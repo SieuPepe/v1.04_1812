@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="HidroFlowManager" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="HidroFlowManager" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="hydroflow" project-jdk-type="Python SDK" />
 </project>

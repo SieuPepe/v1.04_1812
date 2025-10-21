@@ -73,11 +73,5 @@ build/HidroFlowManager/warn-HidroFlowManager.txt
 build/HidroFlowManager/xref-HidroFlowManager.html
 dist/HidroFlowManager.exe
 dist/HidroFlowManager_installer.exe
-__pycache__/
-*.pyc
-venv/
-build/
-dist/
-.vscode/
-output/
-logs/
+/documents/
+/backup/

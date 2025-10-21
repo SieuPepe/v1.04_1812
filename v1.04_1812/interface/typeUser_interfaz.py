@@ -4,6 +4,7 @@ from interface.manager_interfaz import AppManager
 from interface.select_project_interfaz import AppSelectProject
 from script.modulo_db import manager_db, user_db, get_schemas_db
 from CTkMessagebox import CTkMessagebox
+from interface.parts_interfaz import AppParts
 import os
 
 # Obtener la ruta actual
@@ -57,6 +58,14 @@ class AppTypeUser(customtkinter.CTk):
         self.admin_label.grid(row=1, column=1, padx=30, pady=(15, 5))
         self.admin_button = customtkinter.CTkButton(self.select_frame, text="Administrador de proyecto", command=lambda:self.manager_event(access), width=200)
         self.admin_button.grid(row=2, column=1, padx=30, pady=(15, 15))
+        # --- NUEVO: botón Generador de partes ---
+        self.parts_button = customtkinter.CTkButton(
+            self.select_frame,
+            text="Generador de partes",
+            command=lambda: self.parts_event(access),
+            width=200
+        )
+        self.parts_button.grid(row=2, column=2, padx=30, pady=(15, 15))
 
     def manager_event(self, access):
         password = access[1]
@@ -72,7 +81,39 @@ class AppTypeUser(customtkinter.CTk):
             CTkMessagebox(title="Warning Message!", message=mssg,
                           icon="warning")
 
+    def parts_event(self, access):
+        """Abrir selector de proyecto para Generador de Partes"""
+        try:
+            user, password = access[0], access[1]
+            schemas = get_schemas_db(user, password)
+            schemas = [s for s in schemas if
+                       s not in ['information_schema', 'performance_schema', 'manager', 'mysql', 'sys',
+                                 'proyecto_tipo']]
 
+            if not schemas:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="No tienes acceso a ningún proyecto.\nContacta con un administrador.",
+                    icon="warning"
+                )
+                return
+
+            # Si solo hay 1 esquema, abrir directamente
+            if len(schemas) == 1:
+                from interface.parts_manager_interfaz import AppPartsManager
+                self.destroy()
+                app = AppPartsManager(access, schemas[0])
+                app.mainloop()
+            else:
+                # Si hay múltiples proyectos, usar el primero por ahora
+                # TODO: Implementar selector de proyectos
+                from interface.parts_manager_interfaz import AppPartsManager
+                self.destroy()
+                app = AppPartsManager(access, schemas[0])
+                app.mainloop()
+
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"No se pudo abrir Generador de partes:\n{e}", icon="warning")
     def user_event(self, access):
         password = access[1]
         user = access[0]
