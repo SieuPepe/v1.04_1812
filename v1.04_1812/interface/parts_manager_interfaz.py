@@ -1,9 +1,10 @@
 # interface/parts_manager_interfaz.py
-import os
 import customtkinter
 from PIL import Image
 from CTkMessagebox import CTkMessagebox
+from tkinter import ttk, font as tkfont
 from script.modulo_db import get_schemas_db, project_directory_db
+import os
 
 # Obtener rutas
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -12,12 +13,62 @@ parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 
 
+# ✅ CONFIGURACIÓN GLOBAL DE TREEVIEW - Estilo mejorado
+def configure_treeview_style():
+    """Configura el estilo visual de todos los TreeView con mejor legibilidad"""
+    style = ttk.Style()
+
+    # Tema base
+    style.theme_use('clam')
+
+    # ========== ESTILO DE FILAS ==========
+    style.configure("Treeview",
+                    background="#2a2d2e",
+                    foreground="white",
+                    fieldbackground="#2a2d2e",
+                    rowheight=35,  # ✅ Altura de fila aumentada
+                    font=('Segoe UI', 11),  # ✅ Fuente más grande
+                    borderwidth=0)
+
+    # Colores alternos para filas (opcional)
+    style.map('Treeview',
+              background=[('selected', '#1f6aa5')],
+              foreground=[('selected', 'white')])
+
+    # ========== ESTILO DE HEADERS ==========
+    style.configure("Treeview.Heading",
+                    background="#1f6aa5",
+                    foreground="white",
+                    relief="flat",
+                    font=('Segoe UI', 12, 'bold'),  # ✅ Headers más grandes y en negrita
+                    borderwidth=1)
+
+    style.map("Treeview.Heading",
+              background=[('active', '#144870')],
+              foreground=[('active', 'white')])
+
+    # ========== BORDE DE CELDAS ==========
+    # Para hacer las líneas divisorias más visibles
+    style.layout("Treeview", [('Treeview.treearea', {'sticky': 'nswe'})])
+
+
+customtkinter.set_appearance_mode("dark")
+
 class AppPartsManager(customtkinter.CTk):
-    width = 1500
-    height = 800
+    width = 1600
+    height = 900
 
     def __init__(self, access, schema):
         super().__init__()
+
+        # ✅ CONFIGURAR ESTILO DE TREEVIEW PRIMERO
+        configure_treeview_style()
+
+        self.user = access[0]
+        self.password = access[1]
+        self.schema = schema
+
+        self.title(f"HydroFlow Manager - Generador de Partes [{schema}]")
 
         self.user = access[0]
         self.password = access[1]
@@ -222,16 +273,32 @@ class AppPartsManager(customtkinter.CTk):
 
         # Configurar columnas
         col_widths = {
-            "id": 50, "codigo": 100, "descripcion": 250, "estado": 100,
-            "ot": 80, "red": 80, "tipo": 100, "cod_trabajo": 100,
-            "presupuesto": 100, "certificado": 100, "pendiente": 100
+            "id": 40, "codigo": 80, "descripcion": 200, "estado": 80,
+            "ot": 70, "red": 70, "tipo": 80, "cod_trabajo": 80,
+            "presupuesto": 90, "certificado": 90, "pendiente": 90
         }
 
         for col in cols:
-            self.tree_resumen.heading(col, text=col.replace("_", " ").title())
-            self.tree_resumen.column(col, width=col_widths.get(col, 100), anchor="w")
+            header_text = {
+                "id": "ID",
+                "codigo": "Código",
+                "descripcion": "Descripción",
+                "estado": "Estado",
+                "ot": "OT",
+                "red": "Red",
+                "tipo": "Tipo",
+                "cod_trabajo": "Cód.Trabajo",
+                "presupuesto": "Presup.",
+                "certificado": "Certif.",
+                "pendiente": "Pendiente"
+            }
+            self.tree_resumen.heading(col, text=header_text.get(col, col.title()))
 
-        # Scrollbar
+        for col in cols:
+            self.tree_resumen.heading(col, text=col.replace("_", " ").title())
+            self.tree_resumen.column(col, width=col_widths.get(col, 100), anchor="center")  # ✅ center
+
+                # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree_resumen.yview)
         self.tree_resumen.configure(yscrollcommand=scrollbar.set)
         self.tree_resumen.grid(row=0, column=0, sticky="nsew")
@@ -834,13 +901,13 @@ class AppPartsManager(customtkinter.CTk):
         tree.heading("precio_unit", text="Precio Unit.")
         tree.heading("coste", text="Coste")
 
-        tree.column("id", width=50)
-        tree.column("codigo", width=100)
-        tree.column("resumen", width=300)
-        tree.column("unidad", width=50)
-        tree.column("cantidad", width=80)
-        tree.column("precio_unit", width=100)
-        tree.column("coste", width=100)
+        tree.column("id", width=40, anchor="center")
+        tree.column("codigo", width=90, anchor="center")
+        tree.column("resumen", width=250, anchor="w")
+        tree.column("unidad", width=40, anchor="center")
+        tree.column("cantidad", width=70, anchor="e")
+        tree.column("precio_unit", width=80, anchor="e")
+        tree.column("coste", width=80, anchor="e")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -922,14 +989,14 @@ class AppPartsManager(customtkinter.CTk):
         tree.heading("coste", text="Coste")
         tree.heading("fecha", text="Fecha")
 
-        tree.column("id", width=50)
-        tree.column("codigo", width=100)
-        tree.column("resumen", width=250)
-        tree.column("unidad", width=50)
-        tree.column("cantidad", width=80)
-        tree.column("precio", width=90)
-        tree.column("coste", width=90)
-        tree.column("fecha", width=100)
+        tree.column("id", width=40, anchor="center")
+        tree.column("codigo", width=90, anchor="center")
+        tree.column("resumen", width=220, anchor="w")
+        tree.column("unidad", width=40, anchor="center")
+        tree.column("cantidad", width=70, anchor="e")
+        tree.column("precio", width=80, anchor="e")
+        tree.column("coste", width=80, anchor="e")
+        tree.column("fecha", width=90, anchor="center")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -1309,13 +1376,26 @@ class AppPartsManager(customtkinter.CTk):
         self.tree_presupuesto.heading("precio_unit", text="Precio Unit.")
         self.tree_presupuesto.heading("coste", text="Coste")
 
-        self.tree_presupuesto.column("id", width=50)
-        self.tree_presupuesto.column("codigo", width=100)
-        self.tree_presupuesto.column("resumen", width=350)
-        self.tree_presupuesto.column("unidad", width=60)
-        self.tree_presupuesto.column("cantidad", width=100)
-        self.tree_presupuesto.column("precio_unit", width=100)
-        self.tree_presupuesto.column("coste", width=100)
+        self.tree_presupuesto.column("id", width=40, anchor="center")
+        self.tree_presupuesto.column("codigo", width=90, anchor="center")
+        self.tree_presupuesto.column("resumen", width=280, anchor="w")
+        self.tree_presupuesto.column("unidad", width=50, anchor="center")
+        self.tree_presupuesto.column("cantidad", width=80, anchor="e")
+        self.tree_presupuesto.column("precio_unit", width=90, anchor="e")
+        self.tree_presupuesto.column("coste", width=90, anchor="e")
+
+        headers_pres = {
+            "id": "ID",
+            "codigo": "Código",
+            "resumen": "Resumen",
+            "unidad": "Ud",
+            "cantidad": "Cantidad",
+            "precio_unit": "Precio Unit.",
+            "coste": "Coste"
+        }
+
+        for col in cols:
+            self.tree_presupuesto.heading(col, text=headers_pres[col])
 
         # Doble clic para editar cantidad
         self.tree_presupuesto.bind("<Double-1>", lambda e: self._edit_cantidad_presupuesto())
@@ -1631,23 +1711,515 @@ class AppPartsManager(customtkinter.CTk):
         self.wait_window(win)
 
     def main_certificaciones(self):
-        """Pestaña Certificaciones - Con selector de fecha"""
-        self.certificaciones_frame.grid_columnconfigure(0, weight=1)
-        self.certificaciones_frame.grid_rowconfigure(1, weight=1)
+        """Pestaña Certificaciones - Gestión de certificaciones por parte con fechas"""
+        from tkinter import ttk
+        from tkcalendar import DateEntry
+        from datetime import datetime
+        from script.modulo_db import get_partes_resumen
 
+        self.certificaciones_frame.grid_columnconfigure(0, weight=1)
+        self.certificaciones_frame.grid_rowconfigure(4, weight=1)
+        self.certificaciones_frame.grid_rowconfigure(7, weight=1)
+
+        # Título
         title = customtkinter.CTkLabel(
             self.certificaciones_frame,
-            text="CERTIFICACIONES CON FECHA",
+            text="CERTIFICACIONES POR PARTE",
             font=customtkinter.CTkFont(size=20, weight="bold")
         )
         title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
 
-        placeholder = customtkinter.CTkLabel(
-            self.certificaciones_frame,
-            text="📅 Aquí irá gestión de certificaciones\n\n(Próxima fase)",
-            font=customtkinter.CTkFont(size=16)
+        # Selector de parte
+        selector_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
+        selector_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew")
+        selector_frame.grid_columnconfigure(1, weight=1)
+
+        customtkinter.CTkLabel(selector_frame, text="Seleccionar Parte:",
+                               font=("", 14, "bold")).grid(row=0, column=0, padx=(0, 10), sticky="e")
+
+        # Cargar lista de partes
+        try:
+            partes_data = get_partes_resumen(self.user, self.password, self.schema)
+            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+        except:
+            partes_list = ["Sin partes"]
+
+        self.cert_selector = customtkinter.CTkOptionMenu(
+            selector_frame,
+            values=partes_list if partes_list else ["Sin partes"],
+            command=lambda x: self._load_certificaciones_data()
         )
-        placeholder.grid(row=1, column=0, padx=30, pady=30)
+        self.cert_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+
+        if partes_list and hasattr(self, 'selected_parte_id'):
+            for item in partes_list:
+                if item.startswith(f"{self.selected_parte_id} -"):
+                    self.cert_selector.set(item)
+                    break
+        elif partes_list:
+            self.cert_selector.set(partes_list[0])
+
+        btn_reload = customtkinter.CTkButton(
+            selector_frame, text="🔄", width=40,
+            command=lambda: self._reload_cert_selector()
+        )
+        btn_reload.grid(row=0, column=2)
+
+        # ========== SECCIÓN PENDIENTES ==========
+        pendientes_label = customtkinter.CTkLabel(
+            self.certificaciones_frame,
+            text="📋 PENDIENTES DE CERTIFICAR",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            text_color="#FF9800"
+        )
+        pendientes_label.grid(row=2, column=0, padx=30, pady=(20, 5), sticky="w")
+
+        # Selector de fecha global y botón certificar todas
+        fecha_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
+        fecha_frame.grid(row=3, column=0, padx=30, pady=(0, 10), sticky="ew")
+
+        customtkinter.CTkLabel(fecha_frame, text="Fecha para certificar:",
+                               font=("", 13, "bold")).pack(side="left", padx=(0, 10))
+
+        self.fecha_cert_global = DateEntry(
+            fecha_frame,
+            width=15,
+            background='#1f6aa5',
+            foreground='white',
+            borderwidth=2,
+            date_pattern='yyyy-mm-dd',
+            locale='es_ES'
+        )
+        self.fecha_cert_global.set_date(datetime.now())
+        self.fecha_cert_global.pack(side="left", padx=(0, 20))
+
+        btn_cert_all = customtkinter.CTkButton(
+            fecha_frame, text="✅ Certificar Todas",
+            command=self._certificar_todas_pendientes,
+            fg_color="#4CAF50", hover_color="#388E3C", width=150
+        )
+        btn_cert_all.pack(side="left")
+
+        # Tabla pendientes
+        table_pend_frame = customtkinter.CTkFrame(self.certificaciones_frame)
+        table_pend_frame.grid(row=4, column=0, padx=30, pady=(0, 10), sticky="nsew")
+        table_pend_frame.grid_rowconfigure(0, weight=1)
+        table_pend_frame.grid_columnconfigure(0, weight=1)
+
+        cols_pend = ("presupuesto_id", "precio_id", "codigo", "resumen", "unidad",
+                     "presupuestado", "certificado", "pendiente", "precio", "fecha")
+        self.tree_cert_pendientes = ttk.Treeview(table_pend_frame, columns=cols_pend, show="headings", height=10)
+
+        # Configuración mejorada de columnas PENDIENTES
+        cols_config = {
+            "presupuesto_id": (50, "center"),
+            "precio_id": (60, "center"),
+            "codigo": (90, "center"),
+            "resumen": (250, "w"),
+            "unidad": (45, "center"),
+            "presupuestado": (80, "e"),
+            "certificado": (80, "e"),
+            "pendiente": (80, "e"),
+            "precio": (75, "e"),
+            "fecha": (95, "center")
+        }
+
+        # Configurar headers con texto más legible
+        headers = {
+            "presupuesto_id": "Pres.ID",
+            "precio_id": "Precio ID",
+            "codigo": "Código",
+            "resumen": "Resumen",
+            "unidad": "Ud",
+            "presupuestado": "Presup.",
+            "certificado": "Certif.",
+            "pendiente": "Pendiente",
+            "precio": "Precio",
+            "fecha": "Fecha Destino"
+        }
+
+        for col in cols_pend:
+            self.tree_cert_pendientes.heading(col, text=headers[col])
+            width, anchor = cols_config[col]
+            self.tree_cert_pendientes.column(col, width=width, anchor=anchor, stretch=False)
+
+        # Doble clic para editar fecha
+        self.tree_cert_pendientes.bind("<Double-1>", lambda e: self._edit_fecha_destino())
+
+        scrollbar_pend = ttk.Scrollbar(table_pend_frame, orient="vertical", command=self.tree_cert_pendientes.yview)
+        self.tree_cert_pendientes.configure(yscrollcommand=scrollbar_pend.set)
+        self.tree_cert_pendientes.grid(row=0, column=0, sticky="nsew")
+        scrollbar_pend.grid(row=0, column=1, sticky="ns")
+
+        # Botones para pendientes
+        btn_pend_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
+        btn_pend_frame.grid(row=5, column=0, padx=30, pady=(0, 10), sticky="ew")
+
+        btn_cert_selected = customtkinter.CTkButton(
+            btn_pend_frame, text="💰 Certificar Seleccionada",
+            command=self._certificar_seleccionada,
+            fg_color="#2196F3", hover_color="#1976D2", width=180
+        )
+        btn_cert_selected.pack(side="left", padx=(0, 10))
+
+        # ========== SECCIÓN CERTIFICADAS ==========
+        certificadas_label = customtkinter.CTkLabel(
+            self.certificaciones_frame,
+            text="✅ CERTIFICADAS",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            text_color="#4CAF50"
+        )
+        certificadas_label.grid(row=6, column=0, padx=30, pady=(20, 5), sticky="w")
+
+        # Tabla certificadas
+        table_cert_frame = customtkinter.CTkFrame(self.certificaciones_frame)
+        table_cert_frame.grid(row=7, column=0, padx=30, pady=(0, 10), sticky="nsew")
+        table_cert_frame.grid_rowconfigure(0, weight=1)
+        table_cert_frame.grid_columnconfigure(0, weight=1)
+
+        cols_cert = ("id", "codigo", "resumen", "unidad", "cantidad", "precio", "coste", "fecha")
+        self.tree_cert_certificadas = ttk.Treeview(table_cert_frame, columns=cols_cert, show="headings", height=10)
+
+        # Configuración mejorada de columnas CERTIFICADAS
+        cols_config_cert = {
+            "id": (45, "center"),
+            "codigo": (95, "center"),
+            "resumen": (270, "w"),
+            "unidad": (45, "center"),
+            "cantidad": (85, "e"),
+            "precio": (85, "e"),
+            "coste": (85, "e"),
+            "fecha": (95, "center")
+        }
+
+        headers_cert = {
+            "id": "ID",
+            "codigo": "Código",
+            "resumen": "Resumen",
+            "unidad": "Ud",
+            "cantidad": "Cantidad",
+            "precio": "Precio",
+            "coste": "Coste",
+            "fecha": "Fecha Certif."
+        }
+
+        for col in cols_cert:
+            self.tree_cert_certificadas.heading(col, text=headers_cert[col])
+            width, anchor = cols_config_cert[col]
+            self.tree_cert_certificadas.column(col, width=width, anchor=anchor, stretch=False)
+
+        scrollbar_cert = ttk.Scrollbar(table_cert_frame, orient="vertical", command=self.tree_cert_certificadas.yview)
+        self.tree_cert_certificadas.configure(yscrollcommand=scrollbar_cert.set)
+        self.tree_cert_certificadas.grid(row=0, column=0, sticky="nsew")
+        scrollbar_cert.grid(row=0, column=1, sticky="ns")
+
+        # Botones para certificadas y total
+        bottom_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
+        bottom_frame.grid(row=8, column=0, padx=30, pady=(0, 20), sticky="ew")
+        bottom_frame.grid_columnconfigure(1, weight=1)
+
+        btn_delete_cert = customtkinter.CTkButton(
+            bottom_frame, text="🗑️ Eliminar Certificación",
+            command=self._delete_certificacion,
+            fg_color="red", hover_color="#8B0000", width=180
+        )
+        btn_delete_cert.grid(row=0, column=0, sticky="w")
+
+        self.total_cert_label = customtkinter.CTkLabel(
+            bottom_frame,
+            text="TOTAL CERTIFICADO: 0.00€",
+            font=customtkinter.CTkFont(size=18, weight="bold"),
+            text_color="#4CAF50"
+        )
+        self.total_cert_label.grid(row=0, column=1, sticky="e", padx=(0, 20))
+
+        # Cargar datos
+        if partes_list and partes_list[0] != "Sin partes":
+            self._load_certificaciones_data()
+
+    def _reload_cert_selector(self):
+        """Recarga el selector de partes en certificaciones"""
+        from script.modulo_db import get_partes_resumen
+
+        try:
+            partes_data = get_partes_resumen(self.user, self.password, self.schema)
+            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+
+            if partes_list:
+                self.cert_selector.configure(values=partes_list)
+                self.cert_selector.set(partes_list[0])
+                self._load_certificaciones_data()
+            else:
+                self.cert_selector.configure(values=["Sin partes"])
+                self.cert_selector.set("Sin partes")
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
+
+    def _load_certificaciones_data(self):
+        """Carga las certificaciones (pendientes y certificadas) del parte seleccionado"""
+        from script.modulo_db import get_part_cert_pendientes, get_part_cert_certificadas
+
+        # Limpiar tablas
+        for item in self.tree_cert_pendientes.get_children():
+            self.tree_cert_pendientes.delete(item)
+        for item in self.tree_cert_certificadas.get_children():
+            self.tree_cert_certificadas.delete(item)
+
+        selected = self.cert_selector.get()
+        if selected == "Sin partes" or not selected:
+            self.total_cert_label.configure(text="TOTAL CERTIFICADO: 0.00€")
+            return
+
+        try:
+            parte_id = int(selected.split(" - ")[0])
+            self.current_cert_parte_id = parte_id
+
+            # Cargar pendientes
+            pendientes = get_part_cert_pendientes(self.user, self.password, self.schema, parte_id)
+            for row in pendientes:
+                # row: presupuesto_id, precio_id, codigo, resumen, unidad, cant_presup, cant_cert, cant_pend, precio_unit
+                display = (
+                    row[0],  # presupuesto_id
+                    row[1],  # precio_id
+                    row[2],  # codigo
+                    row[3] or "",  # resumen
+                    row[4] or "",  # unidad
+                    f"{float(row[5]):.3f}",  # cantidad_presupuesto
+                    f"{float(row[6]):.3f}",  # cantidad_certificada
+                    f"{float(row[7]):.3f}",  # cantidad_pendiente
+                    f"{float(row[8]):.2f}€",  # precio_unit
+                    self.fecha_cert_global.get_date().strftime('%Y-%m-%d')  # fecha por defecto
+                )
+                self.tree_cert_pendientes.insert("", "end", values=display)
+
+            # Cargar certificadas
+            certificadas = get_part_cert_certificadas(self.user, self.password, self.schema, parte_id)
+            total_cert = 0
+
+            for row in certificadas:
+                # row: id, parte_id, codigo_parte, codigo_partida, resumen, unidad, cantidad_cert, precio_unit, coste_cert, fecha_certificacion, ...
+                display = (
+                    row[0],  # id
+                    row[3],  # codigo_partida
+                    row[4] or "",  # resumen
+                    row[5] or "",  # unidad
+                    f"{float(row[6]):.3f}",  # cantidad_cert
+                    f"{float(row[7]):.2f}€",  # precio_unit
+                    f"{float(row[8]):.2f}€",  # coste_cert
+                    str(row[9])  # fecha_certificacion
+                )
+                self.tree_cert_certificadas.insert("", "end", values=display)
+                total_cert += float(row[8])
+
+            self.total_cert_label.configure(text=f"TOTAL CERTIFICADO: {total_cert:.2f}€")
+
+        except Exception as e:
+            import traceback
+            print(f"ERROR:\n{traceback.format_exc()}")
+            CTkMessagebox(title="Error", message=f"Error cargando certificaciones:\n{e}", icon="cancel")
+
+    def _edit_fecha_destino(self):
+        """Edita la fecha destino de una partida pendiente"""
+        from tkcalendar import DateEntry
+        from datetime import datetime
+
+        selected = self.tree_cert_pendientes.selection()
+        if not selected:
+            return
+
+        item = self.tree_cert_pendientes.item(selected[0])
+        values = list(item['values'])
+        fecha_actual = values[9]
+
+        # Ventana para editar fecha
+        win = customtkinter.CTkToplevel(self)
+        win.title("Modificar Fecha Destino")
+        win.geometry("400x180")
+        win.resizable(False, False)
+        win.attributes('-topmost', True)
+
+        customtkinter.CTkLabel(
+            win,
+            text="Nueva Fecha de Certificación:",
+            font=("", 14, "bold")
+        ).pack(pady=(20, 10))
+
+        fecha_entry = DateEntry(
+            win,
+            width=20,
+            background='#1f6aa5',
+            foreground='white',
+            borderwidth=2,
+            date_pattern='yyyy-mm-dd',
+            locale='es_ES'
+        )
+
+        try:
+            fecha_entry.set_date(datetime.strptime(fecha_actual, '%Y-%m-%d'))
+        except:
+            fecha_entry.set_date(datetime.now())
+
+        fecha_entry.pack(pady=10)
+
+        def guardar():
+            nueva_fecha = fecha_entry.get_date().strftime('%Y-%m-%d')
+            values[9] = nueva_fecha
+            self.tree_cert_pendientes.item(selected[0], values=values)
+            win.destroy()
+
+        btn_frame = customtkinter.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Guardar", command=guardar,
+            fg_color="green", width=100
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Cancelar", command=win.destroy,
+            fg_color="red", width=100
+        ).pack(side="left", padx=5)
+
+        win.lift()
+
+    def _certificar_seleccionada(self):
+        """Certifica la partida pendiente seleccionada"""
+        from script.modulo_db import add_part_cert_item
+
+        selected = self.tree_cert_pendientes.selection()
+        if not selected:
+            CTkMessagebox(title="Aviso", message="Seleccione una partida", icon="info")
+            return
+
+        item = self.tree_cert_pendientes.item(selected[0])
+        values = item['values']
+
+        precio_id = values[1]
+        cantidad_pendiente = float(values[7].replace(',', '.'))
+        precio_unit = float(values[8].replace('€', '').replace(',', '.'))
+        fecha = values[9]
+
+        msg = CTkMessagebox(
+            title="Confirmar",
+            message=f"¿Certificar {cantidad_pendiente:.3f} unidades a fecha {fecha}?",
+            icon="question",
+            option_1="Cancelar",
+            option_2="Certificar"
+        )
+
+        if msg.get() == "Certificar":
+            try:
+                result = add_part_cert_item(
+                    self.user, self.password, self.schema,
+                    self.current_cert_parte_id, precio_id, cantidad_pendiente,
+                    precio_unit, fecha, certificada=1
+                )
+
+                if result == "ok":
+                    CTkMessagebox(title="Éxito", message="✅ Partida certificada", icon="check")
+                    self._load_certificaciones_data()
+                else:
+                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
+            except Exception as e:
+                CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
+
+    def _certificar_todas_pendientes(self):
+        """Certifica todas las partidas pendientes a la fecha global seleccionada"""
+        from script.modulo_db import add_part_cert_item
+
+        if not self.tree_cert_pendientes.get_children():
+            CTkMessagebox(title="Aviso", message="No hay partidas pendientes", icon="info")
+            return
+
+        fecha = self.fecha_cert_global.get_date().strftime('%Y-%m-%d')
+        count = len(self.tree_cert_pendientes.get_children())
+
+        msg = CTkMessagebox(
+            title="Confirmar",
+            message=f"¿Certificar TODAS las {count} partidas pendientes a fecha {fecha}?",
+            icon="warning",
+            option_1="Cancelar",
+            option_2="Certificar Todas"
+        )
+
+        if msg.get() != "Certificar Todas":
+            return
+
+        try:
+            errores = []
+            certificadas = 0
+
+            for child in self.tree_cert_pendientes.get_children():
+                item = self.tree_cert_pendientes.item(child)
+                values = item['values']
+
+                precio_id = values[1]
+                cantidad_pendiente = float(values[7].replace(',', '.'))
+                precio_unit = float(values[8].replace('€', '').replace(',', '.'))
+
+                result = add_part_cert_item(
+                    self.user, self.password, self.schema,
+                    self.current_cert_parte_id, precio_id, cantidad_pendiente,
+                    precio_unit, fecha, certificada=1
+                )
+
+                if result == "ok":
+                    certificadas += 1
+                else:
+                    errores.append(f"Precio ID {precio_id}: {result}")
+
+            if errores:
+                CTkMessagebox(
+                    title="Completado con errores",
+                    message=f"✅ Certificadas: {certificadas}\n❌ Errores: {len(errores)}\n\n{errores[0]}",
+                    icon="warning"
+                )
+            else:
+                CTkMessagebox(
+                    title="Éxito",
+                    message=f"✅ {certificadas} partidas certificadas correctamente",
+                    icon="check"
+                )
+
+            self._load_certificaciones_data()
+
+        except Exception as e:
+            import traceback
+            print(f"ERROR:\n{traceback.format_exc()}")
+            CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
+
+    def _delete_certificacion(self):
+        """Elimina una certificación"""
+        from script.modulo_db import delete_part_cert_item
+
+        selected = self.tree_cert_certificadas.selection()
+        if not selected:
+            CTkMessagebox(title="Aviso", message="Seleccione una certificación", icon="info")
+            return
+
+        item = self.tree_cert_certificadas.item(selected[0])
+        values = item['values']
+        cert_id = values[0]
+        codigo = values[1]
+
+        msg = CTkMessagebox(
+            title="Confirmar",
+            message=f"¿Eliminar certificación {codigo}?\n\nEsta acción no se puede deshacer.",
+            icon="warning",
+            option_1="Cancelar",
+            option_2="Eliminar"
+        )
+
+        if msg.get() == "Eliminar":
+            try:
+                result = delete_part_cert_item(self.user, self.password, self.schema, cert_id)
+                if result == "ok":
+                    CTkMessagebox(title="Éxito", message="✅ Certificación eliminada", icon="check")
+                    self._load_certificaciones_data()
+                else:
+                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
+            except Exception as e:
+                CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
 
     def back_to_selector(self):
         """Volver al selector de tipo de usuario"""
