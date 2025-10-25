@@ -1,12 +1,13 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 from script.modulo_db  import (get_all_bd, get_filter_data_bd, get_id_item_sub_bd, get_id_item_bd,get_option_item_bd,
                                get_item_id_bd, add_group_budget, add_item_group_budget,mod_amount_group_item, delete_group_item,
                                mod_item_aux)
 from interface.item_aux_add_interfaz import AppItemAdd
 from interface.amount_interfaz import AppAmountAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_warning, show_error, show_info
 import os
 
 # Obtener la ruta actual
@@ -19,7 +20,7 @@ parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 
 
-class AppGroupBudgetAdd(customtkinter.CTkToplevel):
+class AppGroupBudgetAdd(BaseWindow):
     width = 800
     height = 350
     def __init__(self, select_data):
@@ -144,10 +145,6 @@ class AppGroupBudgetAdd(customtkinter.CTkToplevel):
         self.type_option.configure(values=type_value)
 
 
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         # recogida de datos de la interfaz
         code = self.code_entry.get()
@@ -176,11 +173,10 @@ class AppGroupBudgetAdd(customtkinter.CTkToplevel):
         else:
             mssg = "ERROR: " + str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
-class AppItemGroupBudgetAdd(customtkinter.CTkToplevel):
+class AppItemGroupBudgetAdd(BaseWindow):
     width = 950
     height = 600
 
@@ -475,7 +471,7 @@ class AppItemGroupBudgetAdd(customtkinter.CTkToplevel):
 
 
     def info_event(self, info):
-        CTkMessagebox(title="Descripción partida", width=500, message=info, icon="info")
+        show_info(info)
 
 
     def update_event(self, i,select_data):
@@ -522,18 +518,10 @@ class AppItemGroupBudgetAdd(customtkinter.CTkToplevel):
         self.update_data_frame(select_data, items_group)
 
         if result =="ok":
-            CTkMessagebox(title="Successfull Message!",
-                          message="Se ha eliminado el item de la base de datos",
-                          icon="check")
+            show_success("Se ha eliminado el item de la base de datos")
 
         else:
-            CTkMessagebox(title="Warning Message!", message=f"Error: {result}",
-                          icon="warning")
-
-
-    def cancel(self):
-        self.destroy()
-
+            show_warning(f"Error: {result}")
 
     def save(self,select_data):
         #Actualizamos el coste con el sumatorio del coste de todas las partidas
@@ -550,15 +538,12 @@ class AppItemGroupBudgetAdd(customtkinter.CTkToplevel):
         self.destroy()
 
         if result =="ok":
-            CTkMessagebox(title="Successfull Message!",
-                          message="Se ha añadido el grupo a la base de datos",
-                          icon="check")
+            show_success("Se ha añadido el grupo a la base de datos")
         else:
-            CTkMessagebox(title="Warning Message!", message=f"Error: {result}",
-                          icon="warning")
+            show_warning(f"Error: {result}")
 
 
-class AppItemGroupBudgetMod(customtkinter.CTkToplevel):
+class AppItemGroupBudgetMod(BaseWindow):
     width = 950
     height = 600
 
@@ -869,7 +854,7 @@ class AppItemGroupBudgetMod(customtkinter.CTkToplevel):
 
 
     def info_event(self, info):
-        CTkMessagebox(title="Descripción partida", width=500, message=info, icon="info")
+        show_info(info)
 
 
     def update_event(self, i, select_data):
@@ -916,18 +901,10 @@ class AppItemGroupBudgetMod(customtkinter.CTkToplevel):
         self.update_data_frame(select_data, items_group)
 
         if result == "ok":
-            CTkMessagebox(title="Successfull Message!",
-                          message="Se ha eliminado el item de la base de datos",
-                          icon="check")
+            show_success("Se ha eliminado el item de la base de datos")
 
         else:
-            CTkMessagebox(title="Warning Message!", message=f"Error: {result}",
-                          icon="warning")
-
-
-    def cancel(self):
-        self.destroy()
-
+            show_warning(f"Error: {result}")
 
     def save(self, select_data):
         #actualizamos el coste del grupo con el sumatorio del coste de las partidas agregadas
@@ -945,12 +922,9 @@ class AppItemGroupBudgetMod(customtkinter.CTkToplevel):
         self.destroy()
 
         if result == "ok":
-            CTkMessagebox(title="Successfull Message!",
-                          message="Se ha modificado el grupo en la base de datos",
-                          icon="check")
+            show_success("Se ha modificado el grupo en la base de datos")
         else:
-            CTkMessagebox(title="Warning Message!", message=f"Error: {result}",
-                          icon="warning")
+            show_warning(f"Error: {result}")
 
 
 
