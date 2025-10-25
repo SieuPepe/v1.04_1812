@@ -1,9 +1,10 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db  import (get_all_bd, get_id_item_sub_bd, get_id_item_bd,get_option_item_bd, add_item_budget)
 from interface.item_aux_add_interfaz import AppItemAdd
 from interface.item_chapter_add_interfaz import AppItemChapterAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -15,17 +16,16 @@ parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 
 
-class AppItemBudgetAdd(customtkinter.CTkToplevel):
+class AppItemBudgetAdd(BaseWindow):
     width = 800
     height = 575
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Añadir partida del presupuesto base")
 
         password = select_data[1]
         user = select_data[0]
         schema =select_data[2]
 
-        self.title("Añadir partida del presupuesto base")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -181,11 +181,6 @@ class AppItemBudgetAdd(customtkinter.CTkToplevel):
         chapter_values.remove("PA000 - PARTIDAS TIPO")
         self.chapter_option.configure(values=chapter_values)
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         # recogida de datos de la interfaz
         chapter_select = self.chapter_option.get()
@@ -213,11 +208,9 @@ class AppItemBudgetAdd(customtkinter.CTkToplevel):
         if result == 'ok':
             mssg = "Se ha añadido la partida en la base de datos "
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg = "ERROR: " + str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 

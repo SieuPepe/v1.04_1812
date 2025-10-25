@@ -2,9 +2,10 @@ import customtkinter
 from PIL import Image, ImageTk
 import base64
 from io import BytesIO
-from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
 from script.modulo_db  import add_customer_item
+from interface.base import BaseWindow
+from interface.components import show_success, show_warning
 import os
 
 # Obtener la ruta actual
@@ -17,18 +18,16 @@ customtkinter.set_appearance_mode("dark")
 
 image_base64=None
 
-class AppCustomerAdd(customtkinter.CTkToplevel):
+class AppCustomerAdd(BaseWindow):
     width = 800
     height = 450
 
     def __init__(self, access):
-        super().__init__()
+        super().__init__(title="Registro de empresas")
         global image_base64
         password = access[1]
         user = access[0]
 
-
-        self.title("Registro de empresas")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -164,15 +163,8 @@ class AppCustomerAdd(customtkinter.CTkToplevel):
             image.close()
 
         else:
-            CTkMessagebox(title="Warning Message!", message="No se ha seleccionado ningún archivo",
-                          icon="warning")
+            show_warning("No se ha seleccionado ningún archivo")
                           
-
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, access):
         global image_base64
         password = access[1]
@@ -192,6 +184,5 @@ class AppCustomerAdd(customtkinter.CTkToplevel):
         #mostramos mensage de confirmacion y cerramos ventana
         mssg="Se ha añadido a la base de datos "+data["name"]
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
 

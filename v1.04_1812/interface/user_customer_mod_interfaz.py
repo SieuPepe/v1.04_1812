@@ -1,8 +1,9 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 from script.modulo_db  import get_user_customer_data, mod_user_customer_item
+from interface.base import BaseWindow
+from interface.components import show_success
 import os
 
 # Obtener la ruta actual
@@ -13,14 +14,13 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppUserCustomerMod(customtkinter.CTkToplevel):
+class AppUserCustomerMod(BaseWindow):
     width = 600
     height = 300
 
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Modificación de responsable")
 
-        self.title("Modificación de responsable")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -96,10 +96,6 @@ class AppUserCustomerMod(customtkinter.CTkToplevel):
 
         self.lift()
 
-
-    def cancel(self):
-        self.destroy()
-
     def save(self, select_data):
         password = select_data[1]
         user = select_data[0]
@@ -118,6 +114,5 @@ class AppUserCustomerMod(customtkinter.CTkToplevel):
         #mostramos mensage de confirmacion y cerramos ventana
         mssg="Se ha modificado los datos del responsable: "+data["name"]+' '+ data["surname"]
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
 

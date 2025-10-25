@@ -9,10 +9,11 @@ import io
 from io import BytesIO
 import fitz  # PyMuPDF
 from collections import Counter
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import (get_all_bd,get_option_item_bd,get_id_item_bd,get_id_item_sub_bd, add_register_item,
                               project_directory_db,get_option_item_sub_bd)
 from interface.register_element_add_interfaz import AppElementAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_warning, show_error
 import os
 
 # Obtener la ruta actual
@@ -23,13 +24,13 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
+class AppRegisterAdd(BaseWindow):
     width = 800
     height = 550
 
 
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Añadir item")
         password = select_data[1]
         user = select_data[0]
         schema = select_data[2]
@@ -42,8 +43,6 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
         self.current_page = 0
         self.total_pages = 0
 
-
-        self.title("Añadir item")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -139,9 +138,7 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
         appAux.grab_set()
         self.wait_window(appAux)  # Esperar a que se cierre la ventana secundaria
         self.items_hidro, self.items_register = appAux.get_items()
-        CTkMessagebox(title="Successfull Message!",
-                      message="Se han agregado los elementos hidráulicos y no hidráulicos de la arqueta",
-                      icon="check")
+        show_success("Se han agregado los elementos hidráulicos y no hidráulicos de la arqueta")
 
 
     def add_photo_data(self):
@@ -164,12 +161,10 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
                 # Codificar la imagen a Base64
                 image_base64 = base64.b64encode(buffered.getvalue()).decode()
                 self.photo_base64.append(image_base64)
-            CTkMessagebox(title="Successfull Message!", message="Se han subido "+str(len(self.photo_base64))+" fotografias al registro",
-                          icon="check")
+            show_success("Se han subido "+str(len(self.photo_base64))+" fotografias al registro")
 
         else:
-            CTkMessagebox(title="Warning Message!", message="No se ha seleccionado ningún archivo",
-                          icon="warning")
+            show_warning("No se ha seleccionado ningún archivo")
 
 
     def add_document_data(self):
@@ -180,9 +175,7 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
                 file_size = os.path.getsize(file_path)  # Obtener el tamaño del archivo en bytes
                 # Comprobar si el archivo supera 3.5 MB (3,500,000 bytes)
                 if file_size > 3500000:
-                    CTkMessagebox(title="Error",
-                                  message=f"El archivo {os.path.basename(file_path)} supera los 3.5 MB y no se puede subir.",
-                                  icon="warning")
+                    show_warning(f"El archivo {os.path.basename(file_path)} supera los 3.5 MB y no se puede subir.")
                     continue  # Saltar este archivo y pasar al siguiente
                 else:
                     # Cargar el PDF completo
@@ -193,12 +186,9 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
                         pdf_pages.append(base64_page)
                     self.pdf_base64.append(pdf_pages)
 
-            CTkMessagebox(title="Successfull Message!",
-                                      message="Se han subido " + str(len(self.pdf_base64)) + " PDFs al registro",
-                                      icon="check")
+            show_success("Se han subido " + str(len(self.pdf_base64)) + " PDFs al registro")
         else:
-            CTkMessagebox(title="Warning Message!", message="No se ha seleccionado ningún archivo",
-                              icon="warning")
+            show_warning("No se ha seleccionado ningún archivo")
 
 
     def load_pdf_document(self, file_path):
@@ -232,11 +222,6 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
         image.save(buffered, format="PNG")  # Guardar la imagen en el buffer en formato PNG
         img_base64 = base64.b64encode(buffered.getvalue()).decode()
         return img_base64
-
-
-    def cancel(self):
-        self.destroy()
-
 
     def save(self, select_data):
         id_project=get_id_item_bd(select_data[0], select_data[1], "tbl_proyectos", select_data[2],
@@ -413,21 +398,17 @@ class AppRegisterAdd(customtkinter.CTkToplevel):#Toplevel
 
             if len(data_no_budget) != 0:
                 mssg = "Los siguientes elementos no tienen asociado una partrida y no se pueden asignar al presupuesto: \n"  + "\n".join(data_no_budget)
-                CTkMessagebox(title="Error Message!", message=mssg,
-                              icon="cancel")
+                show_error(mssg)
 
             if result == 'ok':
                 mssg = "Se ha añadido el registro a la base de datos "
                 self.destroy()
-                CTkMessagebox(title="Successfull Message!", message=mssg,
-                              icon="check")
+                show_success(mssg)
             else:
                 mssg = "ERROR: " + str(result)
                 self.destroy()
-                CTkMessagebox(title="Error Message!", message=mssg,
-                              icon="cancel")
+                show_error(mssg)
 
         except Exception as e:
             mssg = f"Error al copiar o abrir el archivo: {e}"
-            CTkMessagebox(title="Warning Message!", message=mssg,
-                          icon="warning")
+            show_warning(mssg)

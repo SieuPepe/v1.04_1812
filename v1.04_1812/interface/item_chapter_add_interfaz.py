@@ -1,7 +1,8 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import add_item_chapter, get_id_item_bd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -12,14 +13,13 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppItemChapterAdd(customtkinter.CTkToplevel): #Toplevel
+class AppItemChapterAdd(BaseWindow):
     width = 650
     height = 250
 
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Añadir capítulo")
 
-        self.title("Añadir capítulo")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -67,11 +67,6 @@ class AppItemChapterAdd(customtkinter.CTkToplevel): #Toplevel
 
         self.lift()
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         code=self.code_entry.get()
         id_type=get_id_item_bd(select_data[0], select_data[1], 'tbl_pres_naturaleza', select_data[2],
@@ -84,11 +79,9 @@ class AppItemChapterAdd(customtkinter.CTkToplevel): #Toplevel
         if result=='ok':
             mssg="Se ha añadido el capítulo a la base de datos."
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 

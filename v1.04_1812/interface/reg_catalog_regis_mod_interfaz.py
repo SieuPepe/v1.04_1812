@@ -1,9 +1,10 @@
 import customtkinter
 from PIL import Image
 import tkinter as tk
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import get_option_item_bd,get_id_item_bd,mod_catalog_regis_item,get_option_item_sub_bd,get_all_bd
 from interface.item_aux_add_interfaz import AppItemAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -14,12 +15,12 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppCatalogRegisMod(customtkinter.CTkToplevel):#Toplevel
+class AppCatalogRegisMod(BaseWindow):
     width = 800
     height = 700
 
     def __init__(self, select_data,item_select):
-        super().__init__()
+        super().__init__(title="Modificar catálogo")
         password = select_data[1]
         user = select_data[0]
         schema = select_data[2]
@@ -187,11 +188,6 @@ class AppCatalogRegisMod(customtkinter.CTkToplevel):#Toplevel
         brand_value.sort()
         self.brand_option.configure(values=brand_value)
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data,id_item):
         #recogida de datos de la interfaz
         id_type= get_id_item_bd(select_data[0], select_data[1], "tbl_cata_regis_tipo", select_data[2],
@@ -215,10 +211,8 @@ class AppCatalogRegisMod(customtkinter.CTkToplevel):#Toplevel
         if result == 'ok':
             mssg="Se ha modificado la pieza en la base de datos"
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)

@@ -2,11 +2,12 @@ import customtkinter
 from PIL import Image
 from tkinter import filedialog
 import tkinter as tk
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import (get_option_item_bd, update_reference, get_id_item_bd, mod_catalog_hidro_item,
                                 get_option_item_sub_bd, get_id_item_sub_bd,get_all_bd)
 from interface.item_aux_add_interfaz import AppItemAdd
 from interface.item_aux_type_add_interfaz import AppItemTypeAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -17,12 +18,12 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppCatalogHidroMod(customtkinter.CTkToplevel):#Toplevel
+class AppCatalogHidroMod(BaseWindow):
     width = 800
     height = 700
 
     def __init__(self, select_data,item_select):
-        super().__init__()
+        super().__init__(title="Modificar catálogo hidráulico")
         password = select_data[1]
         user = select_data[0]
         schema = select_data[2]
@@ -408,8 +409,7 @@ class AppCatalogHidroMod(customtkinter.CTkToplevel):#Toplevel
         result = update_reference(select_data[0], select_data[1],  select_data[2], path_reference)
         if result=='ok':
             mssg="Se ha actualizado las referencias en la base de datos."
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
             ref_cad_value = get_option_item_bd(select_data[0], select_data[1], "tbl_cata_hidra_referencias_cad", select_data[2], 'ruta')
             ref_cad_value.sort(key=str.lower)
             self.ref_cad_option.configure(values=ref_cad_value)
@@ -417,13 +417,7 @@ class AppCatalogHidroMod(customtkinter.CTkToplevel):#Toplevel
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
-
-
-    def cancel(self):
-        self.destroy()
-
+            show_error(mssg)
 
     def save(self, select_data,id_item):
         # Normalizar los valores de las opciones, asegurando que siempre sean listas
@@ -509,12 +503,10 @@ class AppCatalogHidroMod(customtkinter.CTkToplevel):#Toplevel
         if result == 'ok':
             mssg="Se ha modificado la pieza en la base de datos "
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 

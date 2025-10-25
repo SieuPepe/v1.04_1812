@@ -362,6 +362,8 @@ class AppPartsManager(customtkinter.CTk):
         win = customtkinter.CTkToplevel(self)
         win.title("Añadir Nuevo Parte")
         win.geometry("820x420")
+        win.lift()
+        win.grab_set()
         win.focus()
 
         # Crear interfaz de añadir parte dentro de la ventana
@@ -376,34 +378,34 @@ class AppPartsManager(customtkinter.CTk):
         # OT
         customtkinter.CTkLabel(frame, text="OT:", font=("", 12, "bold")).grid(
             row=0, column=0, padx=10, pady=10, sticky="e")
-        ot_menu = customtkinter.CTkOptionMenu(frame, values=dims.get("OT", ["Sin datos"]))
+        ot_values = dims.get("OT", ["Sin datos"])
+        ot_menu = customtkinter.CTkOptionMenu(frame, values=ot_values)
         ot_menu.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-        if dims.get("OT"):
-            ot_menu.set(dims["OT"][0])
+        ot_menu.set(ot_values[0])
 
         # Red
         customtkinter.CTkLabel(frame, text="Red:", font=("", 12, "bold")).grid(
             row=0, column=2, padx=10, pady=10, sticky="e")
-        red_menu = customtkinter.CTkOptionMenu(frame, values=dims.get("RED", ["Sin datos"]))
+        red_values = dims.get("RED", ["Sin datos"])
+        red_menu = customtkinter.CTkOptionMenu(frame, values=red_values)
         red_menu.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
-        if dims.get("RED"):
-            red_menu.set(dims["RED"][0])
+        red_menu.set(red_values[0])
 
         # Tipo
         customtkinter.CTkLabel(frame, text="Tipo:", font=("", 12, "bold")).grid(
             row=1, column=0, padx=10, pady=10, sticky="e")
-        tipo_menu = customtkinter.CTkOptionMenu(frame, values=dims.get("TIPO_TRABAJO", ["Sin datos"]))
+        tipo_values = dims.get("TIPO_TRABAJO", ["Sin datos"])
+        tipo_menu = customtkinter.CTkOptionMenu(frame, values=tipo_values)
         tipo_menu.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        if dims.get("TIPO_TRABAJO"):
-            tipo_menu.set(dims["TIPO_TRABAJO"][0])
+        tipo_menu.set(tipo_values[0])
 
         # Código
         customtkinter.CTkLabel(frame, text="Código:", font=("", 12, "bold")).grid(
             row=1, column=2, padx=10, pady=10, sticky="e")
-        cod_menu = customtkinter.CTkOptionMenu(frame, values=dims.get("COD_TRABAJO", ["Sin datos"]))
+        cod_values = dims.get("COD_TRABAJO", ["Sin datos"])
+        cod_menu = customtkinter.CTkOptionMenu(frame, values=cod_values)
         cod_menu.grid(row=1, column=3, padx=10, pady=10, sticky="ew")
-        if dims.get("COD_TRABAJO"):
-            cod_menu.set(dims["COD_TRABAJO"][0])
+        cod_menu.set(cod_values[0])
 
         # Descripción
         customtkinter.CTkLabel(frame, text="Descripción:", font=("", 12, "bold")).grid(

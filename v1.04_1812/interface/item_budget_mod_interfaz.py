@@ -1,10 +1,11 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 from script.modulo_db import (get_all_bd, get_filter_data_bd, get_id_item_sub_bd, get_id_item_bd,get_option_item_bd,
                                get_item_id_bd, mod_item_budget)
 from interface.item_aux_add_interfaz import AppItemAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -16,17 +17,16 @@ parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 
 
-class AppItemBudgetMod(customtkinter.CTkToplevel):
+class AppItemBudgetMod(BaseWindow):
     width = 800
     height = 675
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Modificación de partida del presupuesto base")
 
         password = select_data[1]
         user = select_data[0]
         schema =select_data[2]
 
-        self.title("Modificación de partida del presupuesto base")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -251,11 +251,6 @@ class AppItemBudgetMod(customtkinter.CTkToplevel):
         type_value.sort(key=str.lower)
         self.type_option.configure(values=type_value)
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         #item seleccionado
         item_select = self.item_budget_option.get()
@@ -285,10 +280,8 @@ class AppItemBudgetMod(customtkinter.CTkToplevel):
         if result == 'ok':
             mssg = "Se ha modificado la partida en la base de datos "
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg = "ERROR: " + str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)

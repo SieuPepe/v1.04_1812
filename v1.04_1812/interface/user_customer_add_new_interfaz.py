@@ -1,7 +1,8 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db  import add_user_customer_item
+from interface.base import BaseWindow
+from interface.components import show_success
 import os
 
 # Obtener la ruta actual
@@ -12,12 +13,12 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppUserCustomerAddNew(customtkinter.CTkToplevel):
+class AppUserCustomerAddNew(BaseWindow):
     width = 600
     height = 300
 
     def __init__(self, access, on_save_callback=None):
-        super().__init__()
+        super().__init__(title="Registro de responsable")
 
         self.on_save_callback = on_save_callback
 
@@ -89,10 +90,6 @@ class AppUserCustomerAddNew(customtkinter.CTkToplevel):
 
         self.lift()
 
-
-    def cancel(self):
-        self.destroy()
-
     def save(self, access):
         password = access[1]
         user = access[0]
@@ -109,8 +106,7 @@ class AppUserCustomerAddNew(customtkinter.CTkToplevel):
         #mostramos mensage de confirmacion y cerramos ventana
         mssg="Se ha añadido un NUEVO RESPONSABLE a la base de datos: "+data["name"]+' '+data["surname"]
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
         # Llamamos al callback para actualizar la ventana principal
         if self.on_save_callback:
             self.on_save_callback()
