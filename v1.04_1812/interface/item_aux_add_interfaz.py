@@ -1,7 +1,8 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import add_item_aux
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -12,14 +13,13 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppItemAdd(customtkinter.CTkToplevel): #Toplevel
+class AppItemAdd(BaseWindow):
     width = 400
     height = 180
 
     def __init__(self, select_data, table,field,type):
-        super().__init__()
+        super().__init__(title="Añadir item")
 
-        self.title("Añadir item")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -58,22 +58,15 @@ class AppItemAdd(customtkinter.CTkToplevel): #Toplevel
 
         self.lift()
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data,table,field):
         item=self.item_entry.get()
         result=add_item_aux(select_data[0], select_data[1], table, select_data[2], field, item)
         if result=='ok':
             mssg="Se ha añadido a la base de datos."
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
