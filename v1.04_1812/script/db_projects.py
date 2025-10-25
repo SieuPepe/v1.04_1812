@@ -1,117 +1,88 @@
 import mysql.connector
 from mysql.connector import Error
+from .db_config import get_config
+from .db_connection import get_connection, get_manager_connection, get_project_connection
 
 
 # ==================== GESTIÓN DE PROYECTOS ====================
 
 # SELECCIONA DIRECTORIO PROYECTO
 def project_directory_db(user, password, schema):
+    """Selecciona el directorio del proyecto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password,
-        )
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para obtener la lista de CCAA
-        cursor.execute(f"SELECT carpeta FROM {schema}.tbl_proyectos where codigo = '{schema}'")
-        records = cursor.fetchall()
-        folder = sum([list(elem) for elem in records], [])
-        # Comprobar conexion y devuelve la conexion
-        print("Conexión exitosa al servidor MySQL.")
-        conexion.close()
-        return folder
-
+        with get_connection(user, password) as conexion:
+            cursor = conexion.cursor()
+            cursor.execute(f"SELECT carpeta FROM {schema}.tbl_proyectos where codigo = '{schema}'")
+            records = cursor.fetchall()
+            folder = sum([list(elem) for elem in records], [])
+            cursor.close()
+            print("Conexión exitosa al servidor MySQL.")
+            return folder
     except mysql.connector.Error as e:
-        # Si no es posible conectar, devuelve el error
         print(f"Error al conectar a MySQL: {e}")
         return None, e
 
 
 #AÑADE ITEM A LA TABLA PROYECTO DE LA BBDD
-def add_project_item(user, password,data):
+def add_project_item(user, password, data):
+    """Añade item a la tabla proyecto de la BBDD"""
+    config = get_config()
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            database='manager',
-            user=user,
-            password=password
-        )
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = """
-               INSERT INTO tbl_proyectos (codigo, nombre, id_cliente, id_clie_usuario, adjudicatario, id_adj_usuario, fecha_creacion, descripcion, id_estado, id_provincia, id_ccaa, carpeta)
-               VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data["code"],
-            data["name"],
-            data["id_customer"],
-            data["id_user_customer"],
-            data["company"],
-            data["id_user_company"],
-            data["description"],
-            data["id_state"],
-            data["id_province"],
-            data["id_ccaa"],
-            data["folder"]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+        with get_manager_connection(user, password) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = """
+                   INSERT INTO tbl_proyectos (codigo, nombre, id_cliente, id_clie_usuario, adjudicatario, id_adj_usuario, fecha_creacion, descripcion, id_estado, id_provincia, id_ccaa, carpeta)
+                   VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s, %s)
+                   """
+            data_values = (
+                data["code"],
+                data["name"],
+                data["id_customer"],
+                data["id_user_customer"],
+                data["company"],
+                data["id_user_company"],
+                data["description"],
+                data["id_state"],
+                data["id_province"],
+                data["id_ccaa"],
+                data["folder"]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
 
 
 #AÑADE ITEM A LA TABLA PROYECTO DE LA BBDD
-def add_economic_project_item(user, password,data):
+def add_economic_project_item(user, password, data):
+    """Añade datos económicos del proyecto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            database='manager',
-            user=user,
-            password=password
-        )
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = """
-               INSERT INTO tbl_proy_presupuesto (id_proyecto, tipo_presupuesto, gastos_generales, beneficio_industrial, baja, presupuesto_licitacion, iva)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data["id_project"],
-            data["type"],
-            data["gg"],
-            data["bi"],
-            data["reduction"],
-            data["tender"],
-            data["iva"]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+        with get_manager_connection(user, password) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = """
+                   INSERT INTO tbl_proy_presupuesto (id_proyecto, tipo_presupuesto, gastos_generales, beneficio_industrial, baja, presupuesto_licitacion, iva)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)
+                   """
+            data_values = (
+                data["id_project"],
+                data["type"],
+                data["gg"],
+                data["bi"],
+                data["reduction"],
+                data["tender"],
+                data["iva"]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
