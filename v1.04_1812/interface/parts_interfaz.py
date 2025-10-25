@@ -82,10 +82,10 @@ class AppParts(customtkinter.CTk):
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["(sin datos)"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["(sin datos)"]))
 
-            # Preseleccionar primer elemento si existe
+            # Preseleccionar primer elemento
             for w in (self.ot_menu, self.red_menu, self.tipo_menu, self.cod_menu):
                 vals = w.cget("values")
-                if vals:
+                if vals and len(vals) > 0:
                     w.set(vals[0])
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando listas: {e}", icon="warning")
