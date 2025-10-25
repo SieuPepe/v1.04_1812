@@ -2,10 +2,11 @@ import customtkinter
 from PIL import Image
 import base64
 from io import BytesIO
-from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
 import tkinter as tk
 from script.modulo_db  import get_customer_data ,mod_customer_item, get_id_item_bd
+from interface.base import BaseWindow
+from interface.components import show_success, show_warning
 import os
 
 # Obtener la ruta actual
@@ -17,19 +18,17 @@ parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 image_base64=None
 
-class AppCustomerMod(customtkinter.CTkToplevel):
+class AppCustomerMod(BaseWindow):
     width = 800
     height = 450
 
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Modificación de empresa seleccionada")
         global image_base64
         password = select_data[1]
         user = select_data[0]
         customer =select_data[2]
 
-
-        self.title("Modificación de empresa seleccionada")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -176,15 +175,8 @@ class AppCustomerMod(customtkinter.CTkToplevel):
             self.lg_image_label.configure(image=self.lg_image)
             image.close()
         else:
-            CTkMessagebox(title="Warning Message!", message="No se ha seleccionado ningún archivo",
-                          icon="warning")
+            show_warning("No se ha seleccionado ningún archivo")
                           
-
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         global image_base64
         password = select_data[1]
@@ -203,6 +195,5 @@ class AppCustomerMod(customtkinter.CTkToplevel):
         mod_customer_item(user, password, data, id_customer)
         mssg="Se ha modificado en la base de datos el cliente: "+data["name"]
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
 
