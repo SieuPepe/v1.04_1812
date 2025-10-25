@@ -1,8 +1,9 @@
 import customtkinter
 from PIL import Image
 from tkinter import StringVar
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db  import create_user_bd, create_pass
+from interface.base import BaseWindow
+from interface.components import show_success, show_info
 import os
 
 # Obtener la ruta actual
@@ -13,17 +14,16 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppUserBdAddNew(customtkinter.CTkToplevel):
+class AppUserBdAddNew(BaseWindow):
     width = 400
     height = 350
 
     def __init__(self, access):
-        super().__init__()
+        super().__init__(title="Añadir nuevo usuario de la base de datos")
 
         self.user_value = StringVar()
         self.pass_value = StringVar()
 
-        self.title("Añadir nuevo usuario de la base de datos")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -129,13 +129,7 @@ class AppUserBdAddNew(customtkinter.CTkToplevel):
 
         # mostramos mensage de confirmacion y cerramos ventana
         mssg = f"¡¡¡IMPORTANTE!!!! Recuerde copiar el usuario y la contraseña en un bloc de notas, antes de Aceptar"
-        CTkMessagebox(title="Information Message!", message=mssg,
-                      icon="info")
-
-
-    def cancel(self):
-        self.destroy()
-
+        show_info(mssg)
 
     def save(self, access):
         password = access[1]
@@ -149,8 +143,7 @@ class AppUserBdAddNew(customtkinter.CTkToplevel):
         #mostramos mensage de confirmacion y cerramos ventana
         mssg=f"Se ha añadido a la base de datos el usuario: "+user_db+ " . Lo tiene disponible para seleccionar y añadir al proyecto."
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
 
 
 

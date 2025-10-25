@@ -1,9 +1,10 @@
 import customtkinter
 from PIL import Image
 import tkinter as tk
-from CTkMessagebox import CTkMessagebox
 from interface.item_aux_add_interfaz import AppItemAdd
 from script.modulo_db import get_option_item_sub_bd, get_option_item_bd, get_id_item_bd,get_filter_data_bd
+from interface.base import BaseWindow
+from interface.components import show_error
 import os
 
 # Obtener la ruta actual
@@ -13,18 +14,17 @@ current_path = os.path.dirname(os.path.realpath(__file__))
 parent_path = os.path.dirname(current_path)
 customtkinter.set_appearance_mode("dark")
 
-class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
+class AppElementAdd(BaseWindow):
     width = 1400
     height = 950
     register_items = {}
     hidro_items = {}
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Añadir elemento de la arqueta")
         password = select_data[1]
         user = select_data[0]
         schema = select_data[2]
 
-        self.title("Añadir elemento de la arqueta")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -215,8 +215,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_register.insert(customtkinter.END, str(item))
         else:
             mssg = "Por favor, introduce un elemento existente"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def remove_item_register(self):
@@ -225,8 +224,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_register.delete(selected_register_index)
         else:
             mssg = "Selecciona un elemento para eliminar"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def move_up_register(self):
@@ -239,8 +237,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_register.select_set(current_index - 1)
         else:
             mssg = "No se puede mover el elemento más arriba"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def move_down_register(self):
@@ -253,8 +250,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_register.select_set(current_index + 1)
         else:
             mssg = "No se puede mover el elemento más abajo"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def add_hidro_filters (self,select_data, n_lines):
@@ -615,8 +611,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.update_connnection_hidro_options()
         else:
             mssg = "Selecciona un elemento para eliminar."
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def move_up_hidro(self):
@@ -629,8 +624,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_hidro.select_set(current_index - 1)
         else:
             mssg = "No se puede mover el elemento más arriba"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def move_down_hidro(self):
@@ -643,8 +637,7 @@ class AppElementAdd(customtkinter.CTkToplevel):  # Toplevel
             self.listbox_hidro.select_set(current_index + 1)
         else:
             mssg = "No se puede mover el elemento más abajo"
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
 
 
     def add_material_data(self,select_data):
