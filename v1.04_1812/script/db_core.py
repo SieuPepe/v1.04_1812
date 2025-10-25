@@ -3,27 +3,38 @@ from mysql.connector import Error
 import secrets
 import string
 import os
+from .db_config import get_config
+from .db_connection import (
+    get_connection,
+    get_manager_connection,
+    get_project_connection,
+    execute_query,
+    execute_insert,
+    execute_update
+)
 
 
 # ==================== FUNCIONES DE CONEXIÓN Y AUTENTICACIÓN ====================
 
 #COMPRUEBA LOGIN EN BBDD PARA DAR ACCESO A LA APP
 def login_db(user, password):
-    try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-        #Comprobar conexion y devuelve la conexion
-        print("Conexión exitosa al servidor MySQL.")
-        conexion.close()
-        return conexion, None
+    """
+    Comprueba login en BBDD para dar acceso a la app.
 
-    except mysql.connector.Error as e:
-        #Si no es posible conectar, devuelve el error
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+
+    Returns:
+        tuple: (connection, error) - connection si exitoso, error si falla
+    """
+    try:
+        # Usar la configuración centralizada y context manager
+        with get_connection(user, password) as conn:
+            print("Conexión exitosa al servidor MySQL.")
+            # La conexión se cierra automáticamente al salir del with
+            return conn, None
+    except Exception as e:
         print(f"Error al conectar a MySQL: {e}")
         return None, e
 
@@ -31,45 +42,44 @@ def login_db(user, password):
 
 #COMPRUEBA SI ERES MANAGER PARA DEJARTE ENTRAR EN EL MODULO DE MANAGER
 def manager_db(user, password):
+    """
+    Comprueba si el usuario tiene acceso al módulo de manager.
 
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+
+    Returns:
+        tuple: (connection, error) - connection si exitoso, error si falla
+    """
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            database='manager',
-            user=user,
-            password=password
-        )
-
-        # Comprobar conexion y devuelve la conexion
-        print("Conexión exitosa al servidor MySQL.")
-        conexion.close()
-        return conexion, None
-
-    except mysql.connector.Error as e:
-        # Si no es posible conectar, devuelve el error
+        # Usar el helper para esquema manager
+        with get_manager_connection(user, password) as conn:
+            print("Conexión exitosa al servidor MySQL.")
+            return conn, None
+    except Exception as e:
         print(f"Error al conectar a MySQL: {e}")
         return None, e
 
 
 #COMPRUEBA SI ERES MANAGER PARA DEJARTE ENTRAR EN EL MODULO DE USUARIOS
 def user_db(user, password):
-    try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-        # Comprobar conexion y devuelve la conexion
-        print("Conexión exitosa al servidor MySQL.")
-        conexion.close()
-        return conexion, None
+    """
+    Comprueba si el usuario tiene acceso al módulo de usuarios.
 
-    except mysql.connector.Error as e:
-        # Si no es posible conectar, devuelve el error
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+
+    Returns:
+        tuple: (connection, error) - connection si exitoso, error si falla
+    """
+    try:
+        # Usar la configuración centralizada y context manager
+        with get_connection(user, password) as conn:
+            print("Conexión exitosa al servidor MySQL.")
+            return conn, None
+    except Exception as e:
         print(f"Error al conectar a MySQL: {e}")
         return None, e
 
@@ -77,152 +87,158 @@ def user_db(user, password):
 # ==================== GESTIÓN DE ESQUEMAS Y BASES DE DATOS ====================
 
 #DEVUELVE LOS ESQUEMAS DE LA BBDD A LOS QUE TIENE EL USUARIO ACCESO
-def get_schemas_db(user,password):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener la lista de bases de datos
-    cursor.execute("SHOW DATABASES")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    schemas = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+def get_schemas_db(user, password):
+    """
+    Devuelve los esquemas de la BBDD a los que tiene acceso el usuario.
 
-    return schemas
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+
+    Returns:
+        list: Lista de nombres de esquemas
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SHOW DATABASES")
+        records = cursor.fetchall()
+        schemas = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return schemas
 
 
 #DEVUELVE LAS TABLAS DE UN ESQUEMA DE LA BBDD A LOS QUE TIENE EL USUARIO ACCESO
-def get_table_schemas_db(user,password,schema):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=schema
-    )
+def get_table_schemas_db(user, password, schema):
+    """
+    Devuelve las tablas de un esquema de la BBDD.
 
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener la lista de bases de datos
-    cursor.execute("SHOW TABLES")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    tables_schema = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        schema: Nombre del esquema
 
-    return tables_schema
+    Returns:
+        list: Lista de nombres de tablas
+    """
+    with get_connection(user, password, schema) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SHOW TABLES")
+        records = cursor.fetchall()
+        tables_schema = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return tables_schema
 
 
 #CREA EL ESQUEMA DEL PROYECTO
-def create_schemas_db(user,password,db_name):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    try:
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear esquema
-        cursor.execute(f"CREATE SCHEMA {db_name}")
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+def create_schemas_db(user, password, db_name):
+    """
+    Crea el esquema del proyecto.
+
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        db_name: Nombre del esquema a crear
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(f"CREATE SCHEMA {db_name}")
+            cursor.close()
+            return "ok"
+        except Error as e:
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #COPIAR TABLAS VACIAS DEL PROYECTO TIPO A ESQUEMA PROYECTO
-def create_tables_schema_db(user,password, new , example):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+def create_tables_schema_db(user, password, new, example):
+    """
+    Copiar tablas vacías del proyecto tipo a esquema proyecto.
 
-    try:
-        conexion.start_transaction()
-        for i in range(len(new)):
-            new_table=new[i]
-            example_table=example[i]
-            # Crear un cursor para ejecutar la consulta
-            cursor = conexion.cursor()
-            # Ejecutar la consulta para crear esquema
-            cursor.execute(f"CREATE TABLE {new_table} LIKE {example_table}")
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        new: Lista de nombres de tablas nuevas
+        example: Lista de nombres de tablas de ejemplo
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            for i in range(len(new)):
+                new_table = new[i]
+                example_table = example[i]
+                cursor.execute(f"CREATE TABLE {new_table} LIKE {example_table}")
+            conn.commit()
             cursor.close()
-            # Cerrar conexión
-        conexion.commit()
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #COPIAR CONTENIDO DE TABLAS DEL PROYECTO TIPO A ESQUEMA PROYECTO
-def copy_tables_schema_db(user,password, code_project, table):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+def copy_tables_schema_db(user, password, code_project, table):
+    """
+    Copiar contenido de tablas del proyecto tipo a esquema proyecto.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para copiar datos
-        cursor.execute(f"INSERT INTO {code_project}.{table} SELECT * FROM proyecto_tipo.{table}")
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto destino
+        table: Nombre de la tabla
 
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    config = get_config()
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            cursor.execute(f"INSERT INTO {code_project}.{table} SELECT * FROM {config.example_schema}.{table}")
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #CREAR TABLA DE MUNICIPIOS PARA PROYECTO
-def create_locality_schema_db(user,password, code_project, cod_province):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+def create_locality_schema_db(user, password, code_project, cod_province):
+    """
+    Crear tabla de municipios para proyecto.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para copiar datos
-        cursor.execute(f"INSERT INTO {code_project}.tbl_municipios SELECT * FROM manager.list_municipios WHERE CODNUT3 = '{cod_province}'")
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+        cod_province: Código de la provincia
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    config = get_config()
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            cursor.execute(f"INSERT INTO {code_project}.tbl_municipios SELECT * FROM {config.manager_schema}.list_municipios WHERE CODNUT3 = '{cod_province}'")
+            conn.commit()
+            cursor.close()
+            return "ok"
 
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
@@ -230,50 +246,53 @@ def create_locality_schema_db(user,password, code_project, cod_province):
 
 
 #CREA VISTA TBL DE PROYECTOS PARA QUE PUEDAS ACCEDER AL ID DESDE EL ESQUEMA SIN SER ADMINISTRADOR
-def create_view_projects(user,password, code_project):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=code_project
-    )
+def create_view_projects(user, password, code_project):
+    """
+    Crea vista tbl de proyectos para acceder al ID desde el esquema sin ser administrador.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista de proyecto
-        cursor.execute(f"CREATE VIEW tbl_proyectos AS SELECT * FROM manager.tbl_proyectos")
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
 
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    config = get_config()
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            cursor.execute(f"CREATE VIEW tbl_proyectos AS SELECT * FROM {config.manager_schema}.tbl_proyectos")
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #CREA VISTA DE LOS CATÁLOGOS PARA OPTIMIZAR VISUALIZACIÓN LAS TABLAS DE LA APLICACIÓN
-def create_view_catalog(user,password, code_project):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=code_project
-    )
+def create_view_catalog(user, password, code_project):
+    """
+    Crea vista de los catálogos para optimizar visualización de las tablas de la aplicación.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista del catálogo de hidráulica
-        cursor.execute(f""" CREATE VIEW vw_catalogo_hidraulica AS
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            # Crear vista del catálogo de hidráulica
+            cursor.execute(""" CREATE VIEW vw_catalogo_hidraulica AS
                             SELECT
                                 h.id,
                                 f.familia,
@@ -304,11 +323,8 @@ def create_view_catalog(user,password, code_project):
                             LEFT JOIN tbl_cata_hidra_pn pn ON h.id_pn = pn.id
                             LEFT JOIN tbl_cata_hidra_angulo a ON h.id_angulo = a.id;
                         """)
-        conexion.commit()
-        cursor.close()
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista del catálogo de registros
-        cursor.execute(f""" CREATE VIEW vw_catalogo_registros AS
+            # Crear vista del catálogo de registros
+            cursor.execute(""" CREATE VIEW vw_catalogo_registros AS
                             SELECT
                                 h.id,
                                 f.tipo,
@@ -324,34 +340,35 @@ def create_view_catalog(user,password, code_project):
                             LEFT JOIN tbl_cata_regis_tipo f ON h.id_tipo_registro = f.id
                             LEFT JOIN tbl_cata_regis_proveedor t ON h.id_proveedor = t.id
                               """)
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #CREA VISTA DEL PRESUPUESTO Y CERTIFICACION DEL PROYECTO
-def create_view_economic(user,password, code_project):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=code_project
-    )
+def create_view_economic(user, password, code_project):
+    """
+    Crea vista del presupuesto y certificación del proyecto.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista del catálogo de hidráulica
-        cursor.execute(f""" CREATE VIEW vw_presupuesto AS
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            # Crear vista del presupuesto
+            cursor.execute(""" CREATE VIEW vw_presupuesto AS
                             SELECT
                                 a.id,
                                 c.codigo as cod_proyecto,
@@ -387,11 +404,8 @@ def create_view_economic(user,password, code_project):
                             LEFT JOIN
                                 tbl_pres_naturaleza g ON COALESCE(gp.id_naturaleza, d.id_naturaleza) = g.id
                         """)
-        conexion.commit()
-        cursor.close()
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista del catálogo de registros
-        cursor.execute(f""" CREATE VIEW vw_certificaciones AS
+            # Crear vista de certificaciones
+            cursor.execute(""" CREATE VIEW vw_certificaciones AS
                             SELECT
                                 a.id,
                                 c.codigo as cod_proyecto,
@@ -429,35 +443,34 @@ def create_view_economic(user,password, code_project):
                             LEFT JOIN
                                 tbl_pres_naturaleza g ON COALESCE(gp.id_naturaleza, d.id_naturaleza) = g.id
                         """)
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #CREA VISTA DE LOS REGISTROS DEL INVENTARIO  PARA DYNAMO
-def create_view_inventory(user,password, code_project):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=code_project
-    )
+def create_view_inventory(user, password, code_project):
+    """
+    Crea vista de los registros del inventario para Dynamo.
 
-    try:
-        #bloquea la modificacion del elemento en la bbdd
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta para crear vista del catálogo de hidráulica
-        cursor.execute(f""" CREATE VIEW vw_inv_elementos AS
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            cursor.execute(""" CREATE VIEW vw_inv_elementos AS
                             SELECT
                                 h.id,
                                 a.codigo,
@@ -480,34 +493,35 @@ def create_view_inventory(user,password, code_project):
                             LEFT JOIN tbl_inv_material e ON h.id_material = e.id
                             WHERE h.id_tipo = 2;
                         """)
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #CREA CLAVES FORANEAS PARA RELACIONAR TABLAS DEL PROYECTO
-def create_fk(user,password, code_project):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password,
-        database=code_project
-    )
+def create_fk(user, password, code_project):
+    """
+    Crea claves foráneas para relacionar tablas del proyecto.
 
-    try:
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Ejecutar la consulta asiganr claves foraneas a tablas
-        cursor.execute(f""" ALTER TABLE `tbl_presupuesto`
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            # Ejecutar la consulta asiganr claves foraneas a tablas
+            cursor.execute(""" ALTER TABLE `tbl_presupuesto`
                             ADD CONSTRAINT `fk_pres_precios`
                               FOREIGN KEY (`id_partida`)
                               REFERENCES `tbl_pres_precios` (`id`)
@@ -674,209 +688,213 @@ def create_fk(user,password, code_project):
                               ON DELETE NO ACTION
                               ON UPDATE CASCADE;
                         """)
-        conexion.commit()
-        cursor.close()
-        # Cerrar conexión
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            conn.commit()
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #ACTUALIZA LAS REFERENCIAS DEL PROYECTO SEGUN SU DIRECTORIO
-def update_reference(user,password,code_project,path_reference):
+def update_reference(user, password, code_project, path_reference):
+    """
+    Actualiza las referencias del proyecto según su directorio.
+
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_project: Código del proyecto
+        path_reference: Ruta del directorio de referencias
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
     reference_files = []
 
     # Recorrer todos los niveles de subdirectorios
     for subdir, dirs, files in os.walk(path_reference):
         for file in files:
             if file.endswith('.dwg'):
-                subpath = os.path.relpath(subdir, path_reference)  # Ruta relativa desde la carpeta raíz
+                subpath = os.path.relpath(subdir, path_reference)
                 name_file = os.path.splitext(file)[0]
-                path_file=os.path.join(subpath, name_file)
-                reference_files.append((subpath , name_file, path_file))
+                path_file = os.path.join(subpath, name_file)
+                reference_files.append((subpath, name_file, path_file))
 
-    try:
-        # Conectar a la base de datos MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password,
-            database=code_project
-        )
-        cursor =  conexion.cursor()
+    with get_project_connection(user, password, code_project) as conn:
+        cursor = conn.cursor()
+        try:
+            # Borrar los registros existentes
+            cursor.execute("DELETE FROM tbl_cata_hidra_referencias_cad")
+            conn.commit()
 
-        # borrar los registros existentes en la base de datos
-        cursor.execute("DELETE FROM tbl_cata_hidra_referencias_cad")
-        conexion.commit()
+            # Resetear AUTO_INCREMENT
+            cursor.execute("ALTER TABLE tbl_cata_hidra_referencias_cad AUTO_INCREMENT = 1;")
+            conn.commit()
 
-        conexion.start_transaction()
-        # Obtener los registros existentes en la base de datos
-        cursor.execute("ALTER TABLE tbl_cata_hidra_referencias_cad AUTO_INCREMENT = 1;")
-        conexion.commit()
+            # Insertar nuevos archivos si existen
+            if reference_files:
+                conn.start_transaction()
+                cursor.executemany("""
+                INSERT INTO tbl_cata_hidra_referencias_cad (directorio, referencia, ruta)
+                VALUES (%s, %s, %s)
+                """, list(reference_files))
+                conn.commit()
 
-        conexion.start_transaction()
-        # Si hay nuevos archivos, insertarlos en la base de datos
-        if reference_files:
-            cursor.executemany("""
-            INSERT INTO tbl_cata_hidra_referencias_cad (directorio, referencia, ruta)
-            VALUES (%s, %s, %s)
-            """, list(reference_files))
-
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-        return "ok"
-
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+            cursor.close()
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 # ==================== GESTIÓN DE UBICACIONES (CCAA, PROVINCIAS) ====================
 
 #DEVUELVE LAS CCAA DE LA BBDD PARA OPCIONES EN APP
-def get_ccaa_bd(user,password):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener la lista de CCAA
-    cursor.execute("SELECT NAMEUNIT FROM manager.list_ccaa")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    ccaa = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+def get_ccaa_bd(user, password):
+    """
+    Devuelve las CCAA de la BBDD para opciones en APP.
 
-    return ccaa
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
 
-
-#DEVUELVE CODIGO DE LA PROVINCIA
-def get_id_ccaa_bd(user,password,select_ccaa):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener codigo CCAA
-    cursor.execute(f"SELECT id FROM manager.list_ccaa WHERE NAMEUNIT='{select_ccaa}'")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    code_ccaa=sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
-
-    return code_ccaa[0]
+    Returns:
+        list: Lista de nombres de CCAA
+    """
+    config = get_config()
+    with get_manager_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT NAMEUNIT FROM {config.manager_schema}.list_ccaa")
+        records = cursor.fetchall()
+        ccaa = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return ccaa
 
 
 #DEVUELVE CODIGO DE LA PROVINCIA
-def get_id_province_bd(user,password,select_province):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener codigo CCAA
-    cursor.execute(f"SELECT id FROM manager.list_provincias WHERE NAMEUNIT='{select_province}'")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    code_ccaa=sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+def get_id_ccaa_bd(user, password, select_ccaa):
+    """
+    Devuelve código de la CCAA.
 
-    return code_ccaa[0]
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        select_ccaa: Nombre de la CCAA
+
+    Returns:
+        int: ID de la CCAA
+    """
+    config = get_config()
+    with get_manager_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT id FROM {config.manager_schema}.list_ccaa WHERE NAMEUNIT='{select_ccaa}'")
+        records = cursor.fetchall()
+        code_ccaa = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return code_ccaa[0]
+
+
+#DEVUELVE CODIGO DE LA PROVINCIA
+def get_id_province_bd(user, password, select_province):
+    """
+    Devuelve código de la provincia.
+
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        select_province: Nombre de la provincia
+
+    Returns:
+        int: ID de la provincia
+    """
+    config = get_config()
+    with get_manager_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT id FROM {config.manager_schema}.list_provincias WHERE NAMEUNIT='{select_province}'")
+        records = cursor.fetchall()
+        code_province = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return code_province[0]
 
 
 #DEVUELVE CODIGO DE LA CCAA DE LA BBDD PARA OPCIONES DE PROVINCIA EN APP
-def get_code_ccaa_bd(user,password,select_ccaa):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener codigo CCAA
-    cursor.execute(f"SELECT CODNUT2 FROM manager.list_ccaa WHERE NAMEUNIT='{select_ccaa}'")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    code_ccaa=sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+def get_code_ccaa_bd(user, password, select_ccaa):
+    """
+    Devuelve código de la CCAA de la BBDD para opciones de provincia en APP.
 
-    return code_ccaa[0]
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        select_ccaa: Nombre de la CCAA
+
+    Returns:
+        str: Código NUT2 de la CCAA
+    """
+    config = get_config()
+    with get_manager_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT CODNUT2 FROM {config.manager_schema}.list_ccaa WHERE NAMEUNIT='{select_ccaa}'")
+        records = cursor.fetchall()
+        code_ccaa = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return code_ccaa[0]
 
 
 #DEVUELVE LAS PROVINCIAS FILTRADAS POR CCAA DE LA BBDD PARA OPCIONES EN APP
 def get_province_bd(user, password, code_ccaa):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener la lista de provincias
-    cursor.execute(f"SELECT NAMEUNIT FROM manager.list_provincias WHERE CODNUT2='{code_ccaa}'")
-    # Obtener el resultado
-    records = cursor.fetchall()
-    province = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+    """
+    Devuelve las provincias filtradas por CCAA de la BBDD para opciones en APP.
 
-    return province
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        code_ccaa: Código NUT2 de la CCAA
+
+    Returns:
+        list: Lista de nombres de provincias
+    """
+    config = get_config()
+    with get_manager_connection(user, password) as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT NAMEUNIT FROM {config.manager_schema}.list_provincias WHERE CODNUT2='{code_ccaa}'")
+        records = cursor.fetchall()
+        province = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return province
 
 
 # ==================== FUNCIONES GENÉRICAS CRUD ====================
 
 #DEVUELVE EL ID DE UN ELEMENTO DE UNA TABLA DE LA BBDD
 def get_id_item_bd(user, password, table, schema, field, item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT id FROM " + schema + "." + table + " WHERE "+field+ " = '"+item+"'"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    id_item = option_items[0]
-    # Cerrar conexión
-    conexion.close()
+    """
+    Devuelve el ID de un elemento de una tabla de la BBDD.
 
-    return id_item
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo por el que filtrar
+        item: Valor del campo
+
+    Returns:
+        int: ID del elemento
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT id FROM {schema}.{table} WHERE {field} = '{item}'"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        id_item = option_items[0]
+        cursor.close()
+        return id_item
 
 
 #DEVUELVE EL ID DE UN ELEMENTO DE UNA TABLA DE LA BBDD CON DOS CAMPOS DE FILTRADO
