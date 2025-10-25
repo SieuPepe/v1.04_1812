@@ -899,374 +899,414 @@ def get_id_item_bd(user, password, table, schema, field, item):
 
 #DEVUELVE EL ID DE UN ELEMENTO DE UNA TABLA DE LA BBDD CON DOS CAMPOS DE FILTRADO
 def get_id_item_sub_bd(user, password, table, schema, field1, item1, field2, item2):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT id FROM " + schema + "." + table + " WHERE "+field1+ " = '"+item1+"' and "+field2+ " = '"+item2+"'"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    id_item = option_items[0]
-    # Cerrar conexión
-    conexion.close()
+    """
+    Devuelve el ID de un elemento de una tabla con dos campos de filtrado.
 
-    return id_item
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field1: Primer campo de filtrado
+        item1: Valor del primer campo
+        field2: Segundo campo de filtrado
+        item2: Valor del segundo campo
+
+    Returns:
+        int: ID del elemento
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT id FROM {schema}.{table} WHERE {field1} = '{item1}' and {field2} = '{item2}'"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        id_item = option_items[0]
+        cursor.close()
+        return id_item
 
 
 #DEVUELVE EL VALOR DEL CAMPO DE UN ITEM INDICANDO EL ID Y EL CAMPO QUE SE QUIERE MOSTRAR DE UNA TABLA DE LA BBDD
 def get_item_id_bd(user, password, table, schema, field, id):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT "+field+" FROM " + schema + "." + table + " WHERE id = "+str(id)
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    if len(option_items)==0:
-        # Cerrar conexión
-        conexion.close()
+    """
+    Devuelve el valor del campo de un item indicando el ID.
 
-        return "no item"
-    else:
-        item_id = option_items[0]
-        # Cerrar conexión
-        conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo que se quiere obtener
+        id: ID del elemento
 
-        return item_id
+    Returns:
+        El valor del campo o "no item" si no existe
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT {field} FROM {schema}.{table} WHERE id = {str(id)}"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        cursor.close()
+        if len(option_items) == 0:
+            return "no item"
+        else:
+            return option_items[0]
 
 
 #DEVUELVE TODOS LOS ELEMENTOS DE UN CAMPO DE UNA TABLA DE LA BBDD
 def get_option_item_bd(user, password, table, schema, field):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el cmapo requerido
-    sql_query = "SELECT " + field + " FROM " + schema + "." + table
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    option_items.sort()
-    # Cerrar conexión
-    conexion.close()
+    """
+    Devuelve todos los elementos de un campo de una tabla.
 
-    return option_items
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo a obtener
+
+    Returns:
+        list: Lista ordenada de valores del campo
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT {field} FROM {schema}.{table}"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        option_items.sort()
+        cursor.close()
+        return option_items
 
 
 #DEVUELVE TODOS LOS ELEMENTOS DE UN CAMPO FILTRANDO POR UN CAMPO_ID DE UNA TABLA DE LA BBDD
-def get_option_item_sub_bd(user, password, table, schema, field,id,id_field):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el cmapo requerido
-    sql_query = "SELECT " + field + " FROM " + schema + "." + table +  " WHERE "+ id_field +" = '" + str(id)+"'"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    option_items.sort()
-    # Cerrar conexión
-    conexion.close()
+def get_option_item_sub_bd(user, password, table, schema, field, id, id_field):
+    """
+    Devuelve todos los elementos de un campo filtrando por un campo_id.
 
-    return option_items
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo a obtener
+        id: Valor del ID para filtrar
+        id_field: Campo de ID para filtrar
+
+    Returns:
+        list: Lista ordenada de valores del campo filtrados
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT {field} FROM {schema}.{table} WHERE {id_field} = '{str(id)}'"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        option_items.sort()
+        cursor.close()
+        return option_items
 
 
 #DEVUELVE TODOS LOS REGISTROS FILTRADOS DE UNA TABLA
 def get_all_bd(user, password, table, schema):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT * FROM " + schema + "." + table
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    option_items = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+    """
+    Devuelve todos los registros de una tabla.
 
-    return records
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
 
-
-#DEVUELVE FILTRADO LOS REGISTROS DE UNA TABLA
-def get_filter_data_bd(user, password, table, schema, field,item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT * FROM " + schema + "." + table + " WHERE " + field + " = '" + item +"'"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    # Cerrar conexión
-    conexion.close()
-
-    return records
+    Returns:
+        list: Todos los registros de la tabla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT * FROM {schema}.{table}"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        cursor.close()
+        return records
 
 
 #DEVUELVE FILTRADO LOS REGISTROS DE UNA TABLA
-def get_multifilter_data_bd(user, password, table, schema, field1,item1,field2,item2):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+def get_filter_data_bd(user, password, table, schema, field, item):
+    """
+    Devuelve filtrado los registros de una tabla.
 
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = "SELECT * FROM " + schema + "." + table + " WHERE " + field1 + " = '" + item1 +"' AND "+ field2 + " = '" + item2 +"'"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    # Cerrar conexión
-    conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo por el que filtrar
+        item: Valor del campo
 
-    return records
+    Returns:
+        list: Registros filtrados
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT * FROM {schema}.{table} WHERE {field} = '{item}'"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        cursor.close()
+        return records
+
+
+#DEVUELVE FILTRADO LOS REGISTROS DE UNA TABLA
+def get_multifilter_data_bd(user, password, table, schema, field1, item1, field2, item2):
+    """
+    Devuelve filtrado los registros de una tabla con dos campos.
+
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field1: Primer campo por el que filtrar
+        item1: Valor del primer campo
+        field2: Segundo campo por el que filtrar
+        item2: Valor del segundo campo
+
+    Returns:
+        list: Registros filtrados
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT * FROM {schema}.{table} WHERE {field1} = '{item1}' AND {field2} = '{item2}'"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        cursor.close()
+        return records
 
 
 #DEVUELVE CAMPOS DE UNA TABLA
 def get_field_bd(user, password, table, schema):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+    """
+    Devuelve campos de una tabla.
 
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Ejecutar la consulta para obtener el campo requerido
-    sql_query = f"SHOW COLUMNS FROM {schema}.{table}"
-    cursor.execute(sql_query)
-    # Obtener el resultado
-    records = cursor.fetchall()
-    fields = sum([list(elem[:1]) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
 
-    return fields
+    Returns:
+        list: Lista de nombres de campos
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SHOW COLUMNS FROM {schema}.{table}"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        fields = sum([list(elem[:1]) for elem in records], [])
+        cursor.close()
+        return fields
 
 
 #AÑADE ITEM EN UN CAMPO DE UNA TABLA
-def add_item_aux(user,password,table,schema,field,item):
-    try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+def add_item_aux(user, password, table, schema, field, item):
+    """
+    Añade item en un campo de una tabla.
 
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"INSERT INTO {schema}.{table} ({field}) VALUES ('{item}')"
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo donde insertar
+        item: Valor a insertar
 
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            sql_query = f"INSERT INTO {schema}.{table} ({field}) VALUES ('{item}')"
+            cursor.execute(sql_query)
+            conn.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #AÑADE ITEM CON SUBTIPO EN UN CAMPO DE UNA TABLA
-def add_item_type_aux(user,password,table,schema,field1, item1, field2, item2):
-    try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+def add_item_type_aux(user, password, table, schema, field1, item1, field2, item2):
+    """
+    Añade item con subtipo en un campo de una tabla.
 
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"INSERT INTO {schema}.{table} ({field1}, {field2}) VALUES ('{item1}','{item2}')"
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field1: Primer campo
+        item1: Valor del primer campo
+        field2: Segundo campo
+        item2: Valor del segundo campo
 
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            sql_query = f"INSERT INTO {schema}.{table} ({field1}, {field2}) VALUES ('{item1}','{item2}')"
+            cursor.execute(sql_query)
+            conn.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #MODIFICA ITEM EN UN CAMPO DE UNA TABLA
-def mod_item_aux(user,password,table,schema,field,item,id_item):
-    try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+def mod_item_aux(user, password, table, schema, field, item, id_item):
+    """
+    Modifica item en un campo de una tabla.
 
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"UPDATE {schema}.{table} SET {field} = '{item}' WHERE id = {id_item}"
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        table: Nombre de la tabla
+        schema: Nombre del esquema
+        field: Campo a modificar
+        item: Nuevo valor
+        id_item: ID del item a modificar
 
-    except Error as e:
-        print(f"Error al conectarse a MySQL: {e}")
-        return e
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        try:
+            conn.start_transaction()
+            sql_query = f"UPDATE {schema}.{table} SET {field} = '{item}' WHERE id = {id_item}"
+            cursor.execute(sql_query)
+            conn.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
+        except Error as e:
+            conn.rollback()
+            cursor.close()
+            print(f"Error al conectarse a MySQL: {e}")
+            return e
 
 
 #SUMATORIO TOTAL POR PROYECTO
 def sum_field_bd(user, password, fieldSum, fieldGroup, schema, table):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+    """
+    Sumatorio total por proyecto.
 
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"SELECT SUM({fieldSum}) as total FROM {schema}.{table} GROUP BY {fieldGroup}"
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    resultados = cursor.fetchall()
-    conexion.close()
-    return resultados
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        fieldSum: Campo a sumar
+        fieldGroup: Campo por el que agrupar
+        schema: Nombre del esquema
+        table: Nombre de la tabla
+
+    Returns:
+        list: Resultados del sumatorio
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT SUM({fieldSum}) as total FROM {schema}.{table} GROUP BY {fieldGroup}"
+        cursor.execute(sql_query)
+        resultados = cursor.fetchall()
+        cursor.close()
+        return resultados
 
 #SUMATORIO TOTAL POR ARQEUTA DEL PROYECTO
 def sum_field_filter_bd(user, password, field, fieldGroup, schema, table, fieldFilter, itemFilter):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+    """
+    Sumatorio total por arqueta del proyecto.
 
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"SELECT SUM({field}) as total  FROM {schema}.{table}  WHERE {fieldFilter} = '{itemFilter}' GROUP BY {fieldGroup}"
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    resultados = cursor.fetchall()
-    conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
+        field: Campo a sumar
+        fieldGroup: Campo por el que agrupar
+        schema: Nombre del esquema
+        table: Nombre de la tabla
+        fieldFilter: Campo por el que filtrar
+        itemFilter: Valor del filtro
 
-    return resultados
+    Returns:
+        list: Resultados del sumatorio filtrado
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"SELECT SUM({field}) as total FROM {schema}.{table} WHERE {fieldFilter} = '{itemFilter}' GROUP BY {fieldGroup}"
+        cursor.execute(sql_query)
+        resultados = cursor.fetchall()
+        cursor.close()
+        return resultados
 
 
 # ==================== GESTIÓN DE USUARIOS BD ====================
 
 #DEVUELVE LOS USUARIO QUE HAY EN LA BBDD
-def get_user_db(user,password):
+def get_user_db(user, password):
+    """
+    Devuelve los usuarios que hay en la BBDD.
 
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT user, host FROM mysql.user
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    option_items = [list(elem) for elem in records]
-    users=[]
-    for i in range(len(option_items)):
-        if option_items[i][1]=="%" and not ('root' in option_items[i][0] or 'mysql' in option_items[i][0]):
-            users.append(option_items[i][0])
-    # Cerrar conexión
-    conexion.close()
+    Args:
+        user: Usuario de la base de datos
+        password: Contraseña del usuario
 
-    return users
+    Returns:
+        list: Lista de usuarios (excluyendo root y mysql)
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = "SELECT user, host FROM mysql.user"
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        # Formatear resultados
+        option_items = [list(elem) for elem in records]
+        users = []
+        for i in range(len(option_items)):
+            if option_items[i][1] == "%" and not ('root' in option_items[i][0] or 'mysql' in option_items[i][0]):
+                users.append(option_items[i][0])
+        cursor.close()
+        return users
 
 
 #CREA USUARIO DE BBDD DANDO NOMBRE Y APELLIDOS DE USUARIO
-def create_user_bd(user,password,name_user,password_user):
+def create_user_bd(user, password, name_user, password_user):
+    """
+    Crea usuario de BBDD dando nombre y contraseña.
 
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    sql_query = f"CREATE USER '{name_user}'@'%' IDENTIFIED BY '{password_user}';"
-
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    conexion.commit()
+    Args:
+        user: Usuario administrador de la base de datos
+        password: Contraseña del administrador
+        name_user: Nombre del nuevo usuario
+        password_user: Contraseña del nuevo usuario
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        sql_query = f"CREATE USER '{name_user}'@'%' IDENTIFIED BY '{password_user}';"
+        cursor.execute(sql_query)
+        conn.commit()
+        cursor.close()
 
 
 #CREAR CONTRASEÑA PARA USUARIO BD
@@ -1284,78 +1324,87 @@ def user_verfication(cursor, user, host='%'):
 
 
 # ACTUALIZA CONTRASEÑA DE UN USUARIO
-def change_pass_user(user,password, user_db, newpassword):
-    # Conectar a la base de datos MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    cursor = conexion.cursor()
-    query = f"ALTER USER'{user_db}'@'%' IDENTIFIED BY '{newpassword}';"
-    cursor.execute(query)
+def change_pass_user(user, password, user_db, newpassword):
+    """
+    Actualiza contraseña de un usuario.
 
-    cursor.close()
-    conexion.close()
+    Args:
+        user: Usuario administrador de la base de datos
+        password: Contraseña del administrador
+        user_db: Usuario a modificar
+        newpassword: Nueva contraseña
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        query = f"ALTER USER '{user_db}'@'%' IDENTIFIED BY '{newpassword}';"
+        cursor.execute(query)
+        conn.commit()
+        cursor.close()
 
 
 # ==================== GESTIÓN DE PRIVILEGIOS ====================
 
 #AÑADIR PRIVILEGIOS A USUARIO PARA UN ESQUEMA DETERMINADO
-def add_privileges(user,password,code_project, user_bd, type_privilege):
+def add_privileges(user, password, code_project, user_bd, type_privilege):
+    """
+    Añadir privilegios a usuario para un esquema determinado.
+
+    Args:
+        user: Usuario administrador de la base de datos
+        password: Contraseña del administrador
+        code_project: Código del proyecto
+        user_bd: Usuario al que asignar privilegios
+        type_privilege: Tipo de privilegio ("Solo lectura", "Escritura y lectura", "Administrador")
+
+    Returns:
+        str: 'ok' si exitoso, error si falla
+    """
     try:
-        # Conectar a la base de datos MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password,
-            database=code_project
-        )
-        cursor =  conexion.cursor()
+        with get_project_connection(user, password, code_project) as conn:
+            cursor = conn.cursor()
 
-        privileges_query=""
-        # Asignar permisos según el nivel seleccionado
-        if type_privilege == "Solo lectura":
-            privileges_query = f"GRANT SELECT ON {code_project}.* TO '{user_bd}'@'%';"
-        elif type_privilege == "Escritura y lectura":
-            privileges_query = f"GRANT SELECT, INSERT, UPDATE, DELETE,ALTER ON {code_project}.* TO '{user_bd}'@'%';"
-        elif type_privilege == "Administrador":
-            privileges_query = f"GRANT ALL PRIVILEGES ON *.* TO '{user_bd}'@'%' WITH GRANT OPTION;"
+            privileges_query = ""
+            # Asignar permisos según el nivel seleccionado
+            if type_privilege == "Solo lectura":
+                privileges_query = f"GRANT SELECT ON {code_project}.* TO '{user_bd}'@'%';"
+            elif type_privilege == "Escritura y lectura":
+                privileges_query = f"GRANT SELECT, INSERT, UPDATE, DELETE, ALTER ON {code_project}.* TO '{user_bd}'@'%';"
+            elif type_privilege == "Administrador":
+                privileges_query = f"GRANT ALL PRIVILEGES ON *.* TO '{user_bd}'@'%' WITH GRANT OPTION;"
+                cursor.execute(privileges_query)
+                privileges_query = f"GRANT ALL PRIVILEGES ON {code_project}.* TO '{user_bd}'@'%';"
+
             cursor.execute(privileges_query)
-            privileges_query = f"GRANT ALL PRIVILEGES ON {code_project}.* TO '{user_bd}'@'%';"
 
-        cursor.execute(privileges_query)
+            query = "FLUSH PRIVILEGES;"
+            cursor.execute(query)
 
-        query = f"FLUSH PRIVILEGES;"
-        cursor.execute(query)
-
-        # Confirmar los cambios
-        conexion.commit()
-        cursor.close()
-        conexion.close()
-        return "ok"
+            conn.commit()
+            cursor.close()
+            return "ok"
 
     except mysql.connector.Error as e:
         return e
 
 
 # ELIMINA LOS PERMISOS PARA UN ESQUEMA Y UN USUARIO
-def revoke_privileges(user,password, user_db, schema):
-    # Conectar a la base de datos MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-    cursor = conexion.cursor()
-    query = f"REVOKE ALL PRIVILEGES ON {schema}.* FROM '{user_db}'@'%';"
-    cursor.execute(query)
+def revoke_privileges(user, password, user_db, schema):
+    """
+    Elimina los permisos para un esquema y un usuario.
 
-    query = f"FLUSH PRIVILEGES;"
-    cursor.execute(query)
+    Args:
+        user: Usuario administrador de la base de datos
+        password: Contraseña del administrador
+        user_db: Usuario al que revocar privilegios
+        schema: Esquema del que revocar privilegios
+    """
+    with get_connection(user, password) as conn:
+        cursor = conn.cursor()
+        query = f"REVOKE ALL PRIVILEGES ON {schema}.* FROM '{user_db}'@'%';"
+        cursor.execute(query)
 
-    cursor.close()
-    conexion.close()
+        query = "FLUSH PRIVILEGES;"
+        cursor.execute(query)
+
+        conn.commit()
+        cursor.close()
