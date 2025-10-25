@@ -1,8 +1,9 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db import get_option_item_bd, get_id_item_bd,add_catalog_regis_item,get_all_bd
 from interface.item_aux_add_interfaz import AppItemAdd
+from interface.base import BaseWindow
+from interface.components import show_success, show_error
 import os
 
 # Obtener la ruta actual
@@ -13,12 +14,12 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppCatalogRegisAdd(customtkinter.CTkToplevel):#Toplevel
+class AppCatalogRegisAdd(BaseWindow):
     width = 800
     height = 700
 
     def __init__(self, select_data):
-        super().__init__()
+        super().__init__(title="Añadir catálogo")
         password = select_data[1]
         user = select_data[0]
         schema = select_data[2]
@@ -171,11 +172,6 @@ class AppCatalogRegisAdd(customtkinter.CTkToplevel):#Toplevel
         brand_value.sort()
         self.brand_option.configure(values=brand_value)
 
-
-    def cancel(self):
-        self.destroy()
-
-
     def save(self, select_data):
         id_type= get_id_item_bd(select_data[0], select_data[1], "tbl_cata_regis_tipo", select_data[2],
                                         "tipo", self.type_option.get())
@@ -195,10 +191,8 @@ class AppCatalogRegisAdd(customtkinter.CTkToplevel):#Toplevel
         if result == 'ok':
             mssg="Se ha añadido a la base de datos "
             self.destroy()
-            CTkMessagebox(title="Successfull Message!", message=mssg,
-                          icon="check")
+            show_success(mssg)
         else:
             mssg="ERROR: "+str(result)
             self.destroy()
-            CTkMessagebox(title="Error Message!", message=mssg,
-                          icon="cancel")
+            show_error(mssg)
