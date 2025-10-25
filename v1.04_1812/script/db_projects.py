@@ -373,52 +373,25 @@ def get_user_company_data(user, password, id_user_company):
 
 #AÑADE ITEM A LA TABLA CATÁLOGO HIDRÁULICO
 def add_catalog_hidro_item(user, password,schema,data):
+    """Añade item a la tabla catálogo hidráulico"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_catalogo_hidraulica (id_familia,id_tipo_hidraulica, id_marca, id_caracteristica, modelo, referencia, id_dni,id_dnf, id_pn, id_angulo, longitud, long_extremos, altura_eje, altura_total, peso, bloque_ref, descripcion, cod_partida)
-               VALUES (%s, %s, %s, %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s,  %s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            data[6],
-            data[7],
-            data[8],
-            data[9],
-            data[10],
-            data[11],
-            data[12],
-            data[13],
-            data[14],
-            data[15],
-            data[16],
-            data[17]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_catalogo_hidraulica (id_familia,id_tipo_hidraulica, id_marca, id_caracteristica, modelo, referencia, id_dni,id_dnf, id_pn, id_angulo, longitud, long_extremos, altura_eje, altura_total, peso, bloque_ref, descripcion, cod_partida)
+                   VALUES (%s, %s, %s, %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s,  %s, %s, %s)
+                   """
+            data_values = (
+                data[0], data[1], data[2], data[3], data[4], data[5],
+                data[6], data[7], data[8], data[9], data[10], data[11],
+                data[12], data[13], data[14], data[15], data[16], data[17]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -426,54 +399,27 @@ def add_catalog_hidro_item(user, password,schema,data):
 
 #MODIFICA  LOS CAMPOS DE UN ITEM DE LA TABLA CATÁLOGO HIDRAULICO DE LA BBDD
 def mod_catalog_hidro_item(user, password,schema, data, id_item):
+    """Modifica los campos de un item de la tabla catálogo hidráulico de la BBDD"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               UPDATE {schema}.tbl_catalogo_hidraulica
-               SET id_familia = %s, id_tipo_hidraulica = %s, id_marca= %s, id_caracteristica= %s, modelo= %s, referencia= %s, id_dni = %s, id_dnf = %s, id_pn= %s, id_angulo = %s, longitud= %s, long_extremos= %s, altura_eje= %s, altura_total= %s, peso= %s, bloque_ref= %s, descripcion= %s , cod_partida = %s
-               WHERE id = %s
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            data[6],
-            data[7],
-            data[8],
-            data[9],
-            data[10],
-            data[11],
-            data[12],
-            data[13],
-            data[14],
-            data[15],
-            data[16],
-            data[17],
-            id_item
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   UPDATE {schema}.tbl_catalogo_hidraulica
+                   SET id_familia = %s, id_tipo_hidraulica = %s, id_marca= %s, id_caracteristica= %s, modelo= %s, referencia= %s, id_dni = %s, id_dnf = %s, id_pn= %s, id_angulo = %s, longitud= %s, long_extremos= %s, altura_eje= %s, altura_total= %s, peso= %s, bloque_ref= %s, descripcion= %s , cod_partida = %s
+                   WHERE id = %s
+                   """
+            data_values = (
+                data[0], data[1], data[2], data[3], data[4], data[5],
+                data[6], data[7], data[8], data[9], data[10], data[11],
+                data[12], data[13], data[14], data[15], data[16], data[17],
+                id_item
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -481,43 +427,24 @@ def mod_catalog_hidro_item(user, password,schema, data, id_item):
 
 #AÑADE ITEM A LA TABLA CATÁLOGO REGISTRO
 def add_catalog_regis_item(user, password,schema,data):
+    """Añade item a la tabla catálogo registros"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_catalogo_registros (id_tipo_registro, id_proveedor, modelo, referencia, dimensionA, dimensionB, dimensionC,  descripcion, cod_partida)
-               VALUES (%s, %s, %s, %s, %s, %s,  %s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            data[6],
-            data[7],
-            data[8]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_catalogo_registros (id_tipo_registro, id_proveedor, modelo, referencia, dimensionA, dimensionB, dimensionC,  descripcion, cod_partida)
+                   VALUES (%s, %s, %s, %s, %s, %s,  %s, %s, %s)
+                   """
+            data_values = (
+                data[0], data[1], data[2], data[3], data[4],
+                data[5], data[6], data[7], data[8]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -525,45 +452,25 @@ def add_catalog_regis_item(user, password,schema,data):
 
 #MODIFICA  LOS CAMPOS DE UN ITEM DE LA TABLA CATÁLOGO REGISTRO DE LA BBDD
 def mod_catalog_regis_item(user, password,schema, data, id_item):
+    """Modifica los campos de un item de la tabla catálogo registros de la BBDD"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               UPDATE {schema}.tbl_catalogo_registros
-               SET id_tipo_registro = %s, id_proveedor= %s, modelo= %s, referencia= %s, dimensionA = %s, dimensionB= %s, dimensionC= %s,  descripcion= %s, cod_partida= %s
-               WHERE id = %s
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            data[6],
-            data[7],
-            data[8],
-            id_item
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   UPDATE {schema}.tbl_catalogo_registros
+                   SET id_tipo_registro = %s, id_proveedor= %s, modelo= %s, referencia= %s, dimensionA = %s, dimensionB= %s, dimensionC= %s,  descripcion= %s, cod_partida= %s
+                   WHERE id = %s
+                   """
+            data_values = (
+                data[0], data[1], data[2], data[3], data[4],
+                data[5], data[6], data[7], data[8], id_item
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -573,155 +480,83 @@ def mod_catalog_regis_item(user, password,schema, data, id_item):
 
 #AÑADE LOS ITEMS A TODAS LAS TABLAS HIJAS DE UN REGISTRO
 def add_register_item(user, password,schema,data_inventory,data_pdf,data_photo,data_element_hidro,data_element_register,data_element_budget_hidro,data_element_budget_regis):
+    """Añade los items a todas las tablas hijas de un registro"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+        with get_project_connection(user, password, schema) as conexion:
+            cursor = conexion.cursor()
 
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-
-        if len(data_inventory)!=0:
-                # Consulta SQL con parámetros para evitar SQL Injection - tbl inventario
+            if len(data_inventory)!=0:
                 sql_query = f"""
                        INSERT INTO {schema}.tbl_inventario (codigo, id_proyecto, id_municipio, id_estado, observaciones, id_certificacion)
                        VALUES (%s, %s, %s, %s, %s, %s)
                        """
-                # Datos a insertar
                 data_values = (
-                    data_inventory[0],
-                    data_inventory[1],
-                    data_inventory[2],
-                    3,
-                    data_inventory[3],
-                    3
+                    data_inventory[0], data_inventory[1], data_inventory[2],
+                    3, data_inventory[3], 3
                 )
-                # Ejecutar la consulta
                 cursor.execute(sql_query, data_values)
 
-        if len(data_element_hidro)!=0:
-            for item in data_element_hidro:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (hidraulicos)
-                sql_query = f"""
-                       INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_linea, id_pieza_conexion, id_tipo_elemento, id_catalogo_elemento,n_orden, existente, id_orientacion, id_material)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s,%s, %s, %s,%s)
-                       """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                    item[5],
-                    item[6],
-                    item[7],
-                    item[8],
-                    item[9],
-                    item[10]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_hidro)!=0:
+                for item in data_element_hidro:
+                    sql_query = f"""
+                           INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_linea, id_pieza_conexion, id_tipo_elemento, id_catalogo_elemento,n_orden, existente, id_orientacion, id_material)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s,%s, %s, %s,%s)
+                           """
+                    data_values = (
+                        item[0], item[1], item[2], item[3], item[4], item[5],
+                        item[6], item[7], item[8], item[9], item[10]
+                    )
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_element_register) != 0:
-            for item in data_element_register:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (registros)
-                sql_query = f"""
-                               INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_elementos, id_tipo_elemento, id_catalogo_elemento)
-                               VALUES (%s, %s, %s, %s, %s, %s)
-                               """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                    item[5]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_register) != 0:
+                for item in data_element_register:
+                    sql_query = f"""
+                                   INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_elementos, id_tipo_elemento, id_catalogo_elemento)
+                                   VALUES (%s, %s, %s, %s, %s, %s)
+                                   """
+                    data_values = (item[0], item[1], item[2], item[3], item[4], item[5])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_photo) != 0:
-            for item in data_photo:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_fotos
-                sql_query = f"""
-                                       INSERT INTO {schema}.tbl_inv_fotografias (id_proyecto, id_inventario, id_tipo_foto, base64, ruta)
-                                       VALUES (%s, %s, %s, %s, %s)
-                                       """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_photo) != 0:
+                for item in data_photo:
+                    sql_query = f"""
+                                           INSERT INTO {schema}.tbl_inv_fotografias (id_proyecto, id_inventario, id_tipo_foto, base64, ruta)
+                                           VALUES (%s, %s, %s, %s, %s)
+                                           """
+                    data_values = (item[0], item[1], item[2], item[3], item[4])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_pdf) != 0:
-            for item in data_pdf:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_documentos
-                sql_query = f"""
-                                       INSERT INTO {schema}.tbl_inv_documentos (id_proyecto, id_inventario, base64, ruta)
-                                       VALUES (%s, %s, %s, %s)
-                                       """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_pdf) != 0:
+                for item in data_pdf:
+                    sql_query = f"""
+                                           INSERT INTO {schema}.tbl_inv_documentos (id_proyecto, id_inventario, base64, ruta)
+                                           VALUES (%s, %s, %s, %s)
+                                           """
+                    data_values = (item[0], item[1], item[2], item[3])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_element_budget_hidro) != 0:
-            for item in data_element_budget_hidro:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (registros)
-                sql_query = f"""
-                               INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
-                               VALUES (%s, %s, %s, %s, %s)
-                               """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_budget_hidro) != 0:
+                for item in data_element_budget_hidro:
+                    sql_query = f"""
+                                   INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
+                                   VALUES (%s, %s, %s, %s, %s)
+                                   """
+                    data_values = (item[0], item[1], item[2], item[3], item[4])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_element_budget_regis) != 0:
-            for item in data_element_budget_regis:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (registros)
-                sql_query = f"""
-                               INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
-                               VALUES (%s, %s, %s, %s, %s)
-                               """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_budget_regis) != 0:
+                for item in data_element_budget_regis:
+                    sql_query = f"""
+                                   INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
+                                   VALUES (%s, %s, %s, %s, %s)
+                                   """
+                    data_values = (item[0], item[1], item[2], item[3], item[4])
+                    cursor.execute(sql_query, data_values)
 
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
 
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
@@ -730,114 +565,62 @@ def add_register_item(user, password,schema,data_inventory,data_pdf,data_photo,d
 
 #MODIDICA UN ITEM DE REGISTRO Y SUS DATOS HIJOS DE LA BBDD
 def mod_register_item(user, password,schema,data_inventory,data_pdf,data_photo,data_element_hidro,data_element_register):
+    """Modifica un item de registro y sus datos hijos de la BBDD"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+        with get_project_connection(user, password, schema) as conexion:
+            cursor = conexion.cursor()
 
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-
-        if len(data_inventory)!=0:
-                # Consulta SQL con parámetros para evitar SQL Injection - tbl inventario
+            if len(data_inventory)!=0:
                 sql_query = f"""
                        INSERT INTO {schema}.tbl_inventario (codigo, id_proyecto, id_municipio, id_estado, observaciones, id_certificacion)
                        VALUES (%s, %s, %s, %s, %s, %s)
                        """
-                # Datos a insertar
                 data_values = (
-                    data_inventory[0],
-                    data_inventory[1],
-                    data_inventory[2],
-                    3,
-                    data_inventory[3],
-                    3
+                    data_inventory[0], data_inventory[1], data_inventory[2],
+                    3, data_inventory[3], 3
                 )
-                # Ejecutar la consulta
                 cursor.execute(sql_query, data_values)
 
-        if len(data_element_hidro)!=0:
-            for item in data_element_hidro:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (hidraulicos)
-                sql_query = f"""
-                       INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_linea, id_pieza_conexion, id_tipo_elemento, id_catalogo_elemento)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)
-                       """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                    item[5],
-                    item[6]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_hidro)!=0:
+                for item in data_element_hidro:
+                    sql_query = f"""
+                           INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_linea, id_pieza_conexion, id_tipo_elemento, id_catalogo_elemento)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           """
+                    data_values = (item[0], item[1], item[2], item[3], item[4], item[5], item[6])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_element_register) != 0:
-            for item in data_element_register:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_elementos (registros)
-                sql_query = f"""
-                               INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_elementos, id_tipo_elemento, id_catalogo_elemento)
-                               VALUES (%s, %s, %s, %s, %s, %s)
-                               """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                    item[5]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_element_register) != 0:
+                for item in data_element_register:
+                    sql_query = f"""
+                                   INSERT INTO {schema}.tbl_inv_elementos (id_tipo, id_proyecto, id_inventario, n_elementos, id_tipo_elemento, id_catalogo_elemento)
+                                   VALUES (%s, %s, %s, %s, %s, %s)
+                                   """
+                    data_values = (item[0], item[1], item[2], item[3], item[4], item[5])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_photo) != 0:
-            for item in data_photo:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_fotos
-                sql_query = f"""
-                                INSERT INTO {schema}.tbl_inv_fotografias (id_proyecto, id_inventario, id_tipo_foto, base64, ruta)
-                                VALUES (%s, %s, %s, %s, %s)
-                            """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
+            if len(data_photo) != 0:
+                for item in data_photo:
+                    sql_query = f"""
+                                    INSERT INTO {schema}.tbl_inv_fotografias (id_proyecto, id_inventario, id_tipo_foto, base64, ruta)
+                                    VALUES (%s, %s, %s, %s, %s)
+                                """
+                    data_values = (item[0], item[1], item[2], item[3], item[4])
+                    cursor.execute(sql_query, data_values)
 
-        if len(data_pdf) != 0:
-            for item in data_pdf:
-                # Consulta SQL con parámetros para evitar SQL Injection- tbl inv_documentos
-                sql_query = f"""
-                            INSERT INTO {schema}.tbl_inv_documentos (id_proyecto, id_inventario, base64, ruta)
-                            VALUES (%s, %s, %s, %s)
-                            """
-                # Datos a insertar
-                data_values = (
-                    item[0],
-                    item[1],
-                    item[2],
-                    item[3]
-                )
-                # Ejecutar la consulta
-                cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+            if len(data_pdf) != 0:
+                for item in data_pdf:
+                    sql_query = f"""
+                                INSERT INTO {schema}.tbl_inv_documentos (id_proyecto, id_inventario, base64, ruta)
+                                VALUES (%s, %s, %s, %s)
+                                """
+                    data_values = (item[0], item[1], item[2], item[3])
+                    cursor.execute(sql_query, data_values)
+
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
 
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
