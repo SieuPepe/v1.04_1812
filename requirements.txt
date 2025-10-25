@@ -1,0 +1,14 @@
+# Production dependencies
+# Generated from pyproject.toml
+
+# GUI Framework
+customtkinter>=5.0.0
+
+# Image processing
+pillow>=10.0.0
+
+# Plotting and visualization
+matplotlib>=3.5.0
+
+# Existing dependencies (mantener compatibilidad)
+CTkMessagebox>=2.0.0

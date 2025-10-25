@@ -1,0 +1,238 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "v1.04_1812"
+version = "1.0.0"
+description = "Sistema de gestión de proyectos con Clean Architecture"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    {name = "SieuPepe", email = "info@example.com"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+dependencies = [
+    "customtkinter>=5.0.0",
+    "pillow>=10.0.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.11.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+    "mypy>=1.4.0",
+    "pylint>=2.17.0",
+    "flake8>=6.0.0",
+    "bandit>=1.7.5",
+    "pre-commit>=3.3.0",
+    "coverage>=7.2.0",
+    "radon>=6.0.0",
+]
+
+# ============================================================================
+# BLACK - Code Formatter
+# ============================================================================
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+  | v1.04_1812/interface/legacy
+)/
+'''
+
+# ============================================================================
+# ISORT - Import Sorter
+# ============================================================================
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+skip_glob = ["*/legacy/*", "*/migrations/*"]
+known_first_party = ["src"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# ============================================================================
+# MYPY - Static Type Checker
+# ============================================================================
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+pretty = true
+show_error_codes = true
+show_error_context = true
+
+# Configuración por módulo
+[[tool.mypy.overrides]]
+module = "customtkinter.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "matplotlib.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "PIL.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "v1.04_1812.interface.legacy.*"
+ignore_errors = true
+
+# ============================================================================
+# PYTEST - Test Framework
+# ============================================================================
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = """
+    -v
+    --strict-markers
+    --strict-config
+    --cov=src
+    --cov-report=html
+    --cov-report=term-missing
+    --cov-report=xml
+    --cov-fail-under=80
+    --tb=short
+"""
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "ui: UI tests",
+    "e2e: End-to-end tests",
+    "slow: Tests that take a long time",
+]
+
+# ============================================================================
+# COVERAGE - Code Coverage
+# ============================================================================
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/legacy/*",
+    "*/migrations/*",
+]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# ============================================================================
+# PYLINT - Code Linter
+# ============================================================================
+[tool.pylint.main]
+py-version = "3.9"
+jobs = 0  # Use all CPUs
+ignore = ["legacy", "migrations", ".git"]
+ignore-patterns = ["test_.*?.py"]
+
+[tool.pylint.messages_control]
+max-line-length = 100
+disable = [
+    "C0111",  # missing-docstring (handled by pydocstyle)
+    "C0103",  # invalid-name (too strict)
+    "R0903",  # too-few-public-methods (dataclasses)
+    "R0913",  # too-many-arguments (sometimes necessary)
+    "W0212",  # protected-access (needed for testing)
+]
+
+[tool.pylint.format]
+max-line-length = 100
+indent-string = "    "
+
+[tool.pylint.design]
+max-args = 7
+max-locals = 20
+max-returns = 6
+max-branches = 15
+max-statements = 60
+max-attributes = 15
+min-public-methods = 1
+
+[tool.pylint.similarities]
+min-similarity-lines = 10
+ignore-comments = true
+ignore-docstrings = true
+
+# ============================================================================
+# BANDIT - Security Linter
+# ============================================================================
+[tool.bandit]
+exclude_dirs = [
+    "/tests/",
+    "/legacy/",
+    "/.venv/",
+]
+skips = ["B101"]  # assert_used (ok in tests)
+
+# ============================================================================
+# RADON - Complexity Metrics
+# ============================================================================
+[tool.radon]
+exclude = "*test_*.py,legacy/*"
+cc_min = "C"  # Show only functions with complexity >= C (moderate)
+mi_min = "B"  # Show only modules with maintainability index < B (good)
