@@ -89,68 +89,50 @@ def add_economic_project_item(user, password, data):
 
 
 #MODIFICAR ITEM A LA TABLA PROYECTO DE LA BBDD
-def mod_project_item(user, password,data_project, data_tender,id_project):
+def mod_project_item(user, password, data_project, data_tender, id_project):
+    """Modifica datos del proyecto y su presupuesto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            database='manager',
-            user=user,
-            password=password
-        )
+        with get_manager_connection(user, password) as conexion:
+            # Modificar datos de tbl_proyectos
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   UPDATE tbl_proyectos SET nombre = %s, id_cliente = %s, id_clie_usuario = %s, adjudicatario = %s, id_adj_usuario = %s, fecha_actualizacion = NOW(), descripcion = %s, id_estado = %s, carpeta = %s
+                   WHERE id = {id_project}
+                   """
+            data_values = (
+                data_project["name"],
+                data_project["id_customer"],
+                data_project["id_user_customer"],
+                data_project["company"],
+                data_project["id_user_company"],
+                data_project["description"],
+                data_project["id_state"],
+                data_project["folder"]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
 
-        #modificadar datos de tbl_proyectos
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               UPDATE tbl_proyectos SET nombre = %s, id_cliente = %s, id_clie_usuario = %s, adjudicatario = %s, id_adj_usuario = %s, fecha_actualizacion = NOW(), descripcion = %s, id_estado = %s, carpeta = %s
-               WHERE id = {id_project}
-               """
-        # Datos a insertar
-        data_values = (
-            data_project["name"],
-            data_project["id_customer"],
-            data_project["id_user_customer"],
-            data_project["company"],
-            data_project["id_user_company"],
-            data_project["description"],
-            data_project["id_state"],
-            data_project["folder"]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        cursor.close()
-
-        #modificacion de datos de tbl_proy_presupuesto
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               UPDATE tbl_proy_presupuesto SET gastos_generales = %s, beneficio_industrial = %s, baja = %s, presupuesto_licitacion = %s, iva = %s
-               WHERE id_proyecto = {id_project}
-               """
-        # Datos a insertar
-        data_values = (
-            data_tender["gg"],
-            data_tender["bi"],
-            data_tender["reduction"],
-            data_tender["tender"],
-            data_tender["iva"]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        cursor.close()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
+            # Modificar datos de tbl_proy_presupuesto
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   UPDATE tbl_proy_presupuesto SET gastos_generales = %s, beneficio_industrial = %s, baja = %s, presupuesto_licitacion = %s, iva = %s
+                   WHERE id_proyecto = {id_project}
+                   """
+            data_values = (
+                data_tender["gg"],
+                data_tender["bi"],
+                data_tender["reduction"],
+                data_tender["tender"],
+                data_tender["iva"]
+            )
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -159,358 +141,232 @@ def mod_project_item(user, password,data_project, data_tender,id_project):
 # ==================== GESTIÓN DE CLIENTES ====================
 
 #AÑADE ITEM A LA TABLA CLIENTES DE LA BBDD
-def add_customer_item(user, password,data):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           INSERT INTO tbl_cliente (nombre, cif, direccion, municipio, postal, telefono, logo, fecha_alta)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-           """
-    # Datos a insertar
-    data_values = (
-        data["name"],
-        data["cif"],
-        data["street"],
-        data["locality"],
-        data["cp"],
-        data["phone"],
-        data["img"]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro insertado exitosamente.")
-    conexion.close()
+def add_customer_item(user, password, data):
+    """Añade un cliente a la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               INSERT INTO tbl_cliente (nombre, cif, direccion, municipio, postal, telefono, logo, fecha_alta)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+               """
+        data_values = (
+            data["name"],
+            data["cif"],
+            data["street"],
+            data["locality"],
+            data["cp"],
+            data["phone"],
+            data["img"]
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro insertado exitosamente.")
 
 
 #DEVUELVE TODOS LOS CAMPOS DE UN ITEM DE LA TABLA CLIENTES DE LA BBDD
 def get_customer_data(user, password, customer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT * FROM tbl_cliente WHERE nombre='{customer}'
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    option_items = sum([list(elem) for elem in records], [])
-    # Cerrar conexión
-    conexion.close()
-
-    return option_items
+    """Devuelve datos de un cliente"""
+    with get_manager_connection(user, password) as conexion:
+        cursor = conexion.cursor()
+        sql_query = f"""
+               SELECT * FROM tbl_cliente WHERE nombre='{customer}'
+               """
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = sum([list(elem) for elem in records], [])
+        cursor.close()
+        return option_items
 
 
 #MODIFICA  LOS CAMPOS DE UN ITEM DE LA TABLA CLIENTES DE LA BBDD
 def mod_customer_item(user, password, data, id_costumer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           UPDATE tbl_cliente
-           SET nombre = %s, cif= %s, direccion= %s, municipio= %s, postal= %s, telefono= %s, logo= %s
-           WHERE id = %s
-           """
-    # Datos a insertar
-    data_values = (
-        data["name"],
-        data["cif"],
-        data["street"],
-        data["locality"],
-        data["cp"],
-        data["phone"],
-        data["img"],
-        id_costumer
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica datos de un cliente"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               UPDATE tbl_cliente
+               SET nombre = %s, cif= %s, direccion= %s, municipio= %s, postal= %s, telefono= %s, logo= %s
+               WHERE id = %s
+               """
+        data_values = (
+            data["name"],
+            data["cif"],
+            data["street"],
+            data["locality"],
+            data["cp"],
+            data["phone"],
+            data["img"],
+            id_costumer
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 # ==================== GESTIÓN DE USUARIOS DE CLIENTES ====================
 
 #DEVUELVE TODOS LOS DATOS DE UN USUARIO DE UN CLIENTES DE LA BBDD
 def get_user_customer_data(user, password, id_customer,id_user_customer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT * FROM tbl_clie_usuario WHERE id_cliente ='{str(id_customer)}' and id = '{str(id_user_customer)}'
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    option_items = [list(elem) for elem in records]
-    # Cerrar conexión
-    conexion.close()
-
-    return option_items
+    """Devuelve todos los datos de un usuario de un cliente de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        cursor = conexion.cursor()
+        sql_query = f"""
+               SELECT * FROM tbl_clie_usuario WHERE id_cliente ='{str(id_customer)}' and id = '{str(id_user_customer)}'
+               """
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = [list(elem) for elem in records]
+        cursor.close()
+        return option_items
 
 
 #DEVUELVE EL ID DEl USUARIO DE UN CLIENTES DE LA BBDD
 def get_id_user_customer(user, password, select_user,id_customer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-
-    select_user_customer = select_user.split(", ")
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT id FROM manager.tbl_clie_usuario WHERE nombre='{select_user_customer[1]}' and apellidos = '{select_user_customer[0]}' and id_cliente = '{id_customer}'
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    id_user_customer = [list(elem) for elem in records][0][0]
-    # Cerrar conexión
-    conexion.close()
-
-    return id_user_customer
+    """Devuelve el ID del usuario de un cliente de la BBDD"""
+    config = get_config()
+    with get_manager_connection(user, password) as conexion:
+        select_user_customer = select_user.split(", ")
+        cursor = conexion.cursor()
+        sql_query = f"""
+               SELECT id FROM {config.manager_schema}.tbl_clie_usuario WHERE nombre='{select_user_customer[1]}' and apellidos = '{select_user_customer[0]}' and id_cliente = '{id_customer}'
+               """
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        id_user_customer = [list(elem) for elem in records][0][0]
+        cursor.close()
+        return id_user_customer
 
 
 #AÑADE ITEM A LA TABLA USUARIOS DE CLIENTES DE LA BBDD
 def add_user_customer_item(user, password,data,id_customer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           INSERT INTO tbl_clie_usuario (id_cliente, nombre, apellidos, email, telefono, fecha_alta)
-           VALUES (%s, %s, %s, %s, %s, NOW())
-           """
-    # Datos a insertar
-    data_values = (
-        id_customer,
-        data["name"],
-        data["surname"],
-        data["email"],
-        data["phone"]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro insertado exitosamente.")
-    conexion.close()
+    """Añade item a la tabla usuarios de clientes de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               INSERT INTO tbl_clie_usuario (id_cliente, nombre, apellidos, email, telefono, fecha_alta)
+               VALUES (%s, %s, %s, %s, %s, NOW())
+               """
+        data_values = (
+            id_customer,
+            data["name"],
+            data["surname"],
+            data["email"],
+            data["phone"]
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro insertado exitosamente.")
 
 
 #MODIFICA  LOS CAMPOS DE UN ITEM DE LA TABLA USUARIOS DE CLIENTES DE LA BBDD
 def mod_user_customer_item(user, password, data, id_costumer,id_user_customer):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           UPDATE tbl_clie_usuario
-           SET nombre = %s, apellidos= %s, email= %s, telefono= %s
-           WHERE id = %s and id_cliente = %s
-           """
-    # Datos a insertar
-    data_values = (
-        data["name"],
-        data["surname"],
-        data["email"],
-        data["phone"],
-        id_user_customer,
-        id_costumer
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica los campos de un item de la tabla usuarios de clientes de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               UPDATE tbl_clie_usuario
+               SET nombre = %s, apellidos= %s, email= %s, telefono= %s
+               WHERE id = %s and id_cliente = %s
+               """
+        data_values = (
+            data["name"],
+            data["surname"],
+            data["email"],
+            data["phone"],
+            id_user_customer,
+            id_costumer
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 # ==================== GESTIÓN DE USUARIOS DE EMPRESA ====================
 
 #DEVUELVE TODOS LOS ID DE LOS USUARIOS DE UN CLIENTES DE LA BBDD
 def get_id_user_company(user, password, select_user):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-
-    select_user_company = select_user.split(", ")
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT id FROM manager.tbl_empr_usuario WHERE nombre='{select_user_company[1]}' and apellidos = '{select_user_company[0]}'
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    id_user_company = [list(elem) for elem in records][0][0]
-    # Cerrar conexión
-    conexion.close()
-
-    return id_user_company
+    """Devuelve todos los ID de los usuarios de la empresa de la BBDD"""
+    config = get_config()
+    with get_manager_connection(user, password) as conexion:
+        select_user_company = select_user.split(", ")
+        cursor = conexion.cursor()
+        sql_query = f"""
+               SELECT id FROM {config.manager_schema}.tbl_empr_usuario WHERE nombre='{select_user_company[1]}' and apellidos = '{select_user_company[0]}'
+               """
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        id_user_company = [list(elem) for elem in records][0][0]
+        cursor.close()
+        return id_user_company
 
 
 #AÑADE ITEM A LA TABLA USUARIOS DE LA EMPRESA DE LA BBDD
 def add_user_company_item(user, password,data):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           INSERT INTO tbl_empr_usuario (nombre, apellidos, email, telefono, fecha_alta)
-           VALUES (%s, %s, %s, %s, NOW())
-           """
-    # Datos a insertar
-    data_values = (
-        data["name"],
-        data["surname"],
-        data["email"],
-        data["phone"]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro insertado exitosamente.")
-    conexion.close()
+    """Añade item a la tabla usuarios de la empresa de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               INSERT INTO tbl_empr_usuario (nombre, apellidos, email, telefono, fecha_alta)
+               VALUES (%s, %s, %s, %s, NOW())
+               """
+        data_values = (
+            data["name"],
+            data["surname"],
+            data["email"],
+            data["phone"]
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro insertado exitosamente.")
 
 
 #MODIFICA  LOS CAMPOS DE UN ITEM DE LA TABLA USUARIOS DE LA EMPRESA DE LA BBDD
 def mod_user_company_item(user, password, data, id_user_company):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = """
-           UPDATE tbl_empr_usuario
-           SET nombre = %s, apellidos= %s, email= %s, telefono= %s
-           WHERE id = %s
-           """
-    # Datos a insertar
-    data_values = (
-        data["name"],
-        data["surname"],
-        data["email"],
-        data["phone"],
-        id_user_company
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica los campos de un item de la tabla usuarios de la empresa de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = """
+               UPDATE tbl_empr_usuario
+               SET nombre = %s, apellidos= %s, email= %s, telefono= %s
+               WHERE id = %s
+               """
+        data_values = (
+            data["name"],
+            data["surname"],
+            data["email"],
+            data["phone"],
+            id_user_company
+        )
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #DEVUELVE TODOS LOS DATOS DE LOS USUARIOS DE LA EMPRESA DE LA BBDD
 def get_user_company_data(user, password, id_user_company):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        database='manager',
-        user=user,
-        password=password
-    )
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           SELECT * FROM tbl_empr_usuario WHERE id = '{str(id_user_company)}'
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    records = cursor.fetchall()
-    # Formatear resultados
-    option_items = [list(elem) for elem in records]
-    # Cerrar conexión
-    conexion.close()
-
-    return option_items
+    """Devuelve todos los datos de los usuarios de la empresa de la BBDD"""
+    with get_manager_connection(user, password) as conexion:
+        cursor = conexion.cursor()
+        sql_query = f"""
+               SELECT * FROM tbl_empr_usuario WHERE id = '{str(id_user_company)}'
+               """
+        cursor.execute(sql_query)
+        records = cursor.fetchall()
+        option_items = [list(elem) for elem in records]
+        cursor.close()
+        return option_items
 
 
 # ==================== GESTIÓN DE CATÁLOGOS ====================
