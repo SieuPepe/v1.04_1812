@@ -231,15 +231,14 @@ def create_locality_schema_db(user, password, code_project, cod_province):
         str: 'ok' si exitoso, error si falla
     """
     config = get_config()
-    with get_connection(user, password) as conn:
-        cursor = conn.cursor()
-        try:
+    try:
+        with get_connection(user, password) as conn:
+            cursor = conn.cursor()
             conn.start_transaction()
             cursor.execute(f"INSERT INTO {code_project}.tbl_municipios SELECT * FROM {config.manager_schema}.list_municipios WHERE CODNUT3 = '{cod_province}'")
             conn.commit()
             cursor.close()
             return "ok"
-
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
