@@ -1,7 +1,8 @@
 import customtkinter
 from PIL import Image
-from CTkMessagebox import CTkMessagebox
 from script.modulo_db  import add_user_company_item
+from interface.base import BaseWindow
+from interface.components import show_success
 import os
 
 # Obtener la ruta actual
@@ -12,14 +13,13 @@ parent_path = os.path.dirname(current_path)
 
 customtkinter.set_appearance_mode("dark")
 
-class AppUserCompanyAdd(customtkinter.CTkToplevel):
+class AppUserCompanyAdd(BaseWindow):
     width = 600
     height = 300
 
     def __init__(self, access):
-        super().__init__()
+        super().__init__(title="Registro de responsable")
 
-        self.title("Registro de responsable")
         self.geometry(f"{self.width}x{self.height}")
         self.resizable(False, False)
 
@@ -87,10 +87,6 @@ class AppUserCompanyAdd(customtkinter.CTkToplevel):
 
         self.lift()
 
-
-    def cancel(self):
-        self.destroy()
-
     def save(self, access):
         password = access[1]
         user = access[0]
@@ -107,7 +103,6 @@ class AppUserCompanyAdd(customtkinter.CTkToplevel):
         #mostramos mensage de confirmacion y cerramos ventana
         mssg="Se ha añadido un NUEVO RESPONSABLE a la base de datos: "+data["name"]+' '+data["surname"]
         self.destroy()
-        CTkMessagebox(title="Successfull Message!", message=mssg,
-                      icon="check")
+        show_success(mssg)
 
 
