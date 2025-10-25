@@ -846,133 +846,74 @@ def mod_photo_site_register(user, password,schema,photo,id_type, id_register):
 
 #MODIFICA LAS CANTIDADES DE LA VENTANA PRESUPUESTO
 def mod_amount_budget_item(user, password,schema, amount, id_item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           UPDATE {schema}.tbl_presupuesto
-           SET cantidad = %s
-           WHERE id = %s
-           """
-    # Datos a insertar
-    data_values = (
-        amount,
-        id_item
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica las cantidades de la ventana presupuesto"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+               UPDATE {schema}.tbl_presupuesto
+               SET cantidad = %s
+               WHERE id = %s
+               """
+        data_values = (amount, id_item)
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #AÑADE LOS ITEMS AL PRESUPUESTO
 def add_budget_item(user, password,schema, data):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
-           VALUES (%s, %s, %s, %s, %s)
-           """
-    # Datos a insertar
-    data_values = (
-        data[0],
-        data[1],
-        data[2],
-        data[3],
-        data[4]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Añade los items al presupuesto"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+               INSERT INTO {schema}.tbl_presupuesto (id_partida, cantidad, id_proyecto, id_arqueta, grupo)
+               VALUES (%s, %s, %s, %s, %s)
+               """
+        data_values = (data[0], data[1], data[2], data[3], data[4])
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #IMPORTA LOS ITEMS DEL PRESUPUESTO A LA TABLA DE CERTIFICACIONES
 def import_budget_items(user, password,schema, data):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
+    """Importa los items del presupuesto a la tabla de certificaciones"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        for item in data:
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_pres_certificacion (id_partida, cantidad_certificada, id_proyecto, id_arqueta,certificada,grupo)
+                   VALUES (%s, %s, %s, %s, %s, %s)
+                   """
+            data_value = (item[1], item[2], item[3], item[4], 0, item[5])
+            cursor.execute(sql_query, data_value)
 
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    for item in data:
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_pres_certificacion (id_partida, cantidad_certificada, id_proyecto, id_arqueta,certificada,grupo)
-               VALUES (%s, %s, %s, %s, %s, %s)
-               """
-        # Datos a insertar
-        data_value = (
-            item[1],
-            item[2],
-            item[3],
-            item[4],
-            0,
-            item[5]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_value)
-
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #BORRA ITEM DE LA TABLA PRESUPUESTO
 def delete_budget_item(user, password,schema, id_item):
+    """Borra item de la tabla presupuesto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   DELETE FROM {schema}.tbl_presupuesto WHERE id = {id_item}
 
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               DELETE FROM {schema}.tbl_presupuesto WHERE id = {id_item}
-
-               """
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+                   """
+            cursor.execute(sql_query)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -980,63 +921,38 @@ def delete_budget_item(user, password,schema, id_item):
 
 #MODIFICA LAS CANTIDADES DE LA TABLA DE CERTIFICACIONES
 def mod_amount_cost_item(user, password,schema, amount, id_item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           UPDATE {schema}.tbl_pres_certificacion
-           SET cantidad_certificada = %s
-           WHERE id = %s
-           """
-    # Datos a insertar
-    data_values = (
-        amount,
-        id_item
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica las cantidades de la tabla de certificaciones"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+               UPDATE {schema}.tbl_pres_certificacion
+               SET cantidad_certificada = %s
+               WHERE id = %s
+               """
+        data_values = (amount, id_item)
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #BORRA ITEM DE LA TABLA DE CERTIFICACION
 def delete_cost_item(user, password, schema, id_item):
+    """Borra item de la tabla de certificación"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   DELETE FROM {schema}.tbl_pres_certificacion WHERE id = {id_item}
 
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               DELETE FROM {schema}.tbl_pres_certificacion WHERE id = {id_item}
-
-               """
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+                   """
+            cursor.execute(sql_query)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -1044,104 +960,56 @@ def delete_cost_item(user, password, schema, id_item):
 
 #CERTIFICA UN ITEM EN LA TABLA DE CERTIFICACIONES
 def cert_cost_item(user, password, schema, id_item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-            UPDATE {schema}.tbl_pres_certificacion
-            SET certificada = 1 , fecha_certificacion=NOW()
-            WHERE id = {id_item}
-           """
-    # Ejecutar la consulta
-    cursor.execute(sql_query)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Certifica un item en la tabla de certificaciones"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+                UPDATE {schema}.tbl_pres_certificacion
+                SET certificada = 1 , fecha_certificacion=NOW()
+                WHERE id = {id_item}
+               """
+        cursor.execute(sql_query)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #AÑADE UN ITEM A LA TABLA DE CERTIFICACION
 def add_cost_item(user, password,schema, data):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query1 = f"""
-           INSERT INTO {schema}.tbl_pres_certificacion (id_partida, cantidad_certificada, id_proyecto, id_arqueta,certificada,grupo)
-           VALUES (%s, %s, %s, %s, %s,%s)
-           """
-    # Datos a insertar
-    data_values1 = (
-        data[0],
-        data[1],
-        data[2],
-        data[3],
-        0,
-        data[4]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query1, data_values1)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Añade un item a la tabla de certificación"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query1 = f"""
+               INSERT INTO {schema}.tbl_pres_certificacion (id_partida, cantidad_certificada, id_proyecto, id_arqueta,certificada,grupo)
+               VALUES (%s, %s, %s, %s, %s,%s)
+               """
+        data_values1 = (data[0], data[1], data[2], data[3], 0, data[4])
+        cursor.execute(sql_query1, data_values1)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #MODIFICA UN ITEM DE LA TABAL DE PRESUPUESTO
 def mod_item_budget(user, password,schema, data, id_item):
+    """Modifica un item de la tabla de presupuesto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               UPDATE {schema}.tbl_pres_precios
-               SET codigo = %s, id_naturaleza= %s, id_unidades= %s, resumen= %s, descripcion = %s, coste= %s
-               WHERE id = %s
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            id_item
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   UPDATE {schema}.tbl_pres_precios
+                   SET codigo = %s, id_naturaleza= %s, id_unidades= %s, resumen= %s, descripcion = %s, coste= %s
+                   WHERE id = %s
+                   """
+            data_values = (data[0], data[1], data[2], data[3], data[4], data[5], id_item)
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -1149,37 +1017,21 @@ def mod_item_budget(user, password,schema, data, id_item):
 
 #AÑADE ITEM DE REGISTRO A LA TABLA CAPITULO
 def add_item_chapter(user, password,schema,data):
+    """Añade item de registro a la tabla capitulo"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection - tbl capitulo
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_pres_capitulos (codigo_capitulo, id_naturaleza, capitulo)
-               VALUES (%s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_pres_capitulos (codigo_capitulo, id_naturaleza, capitulo)
+                   VALUES (%s, %s, %s)
+                   """
+            data_values = (data[0], data[1], data[2])
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -1187,41 +1039,21 @@ def add_item_chapter(user, password,schema,data):
 
 #AÑADE ITEM DE REGISTRO A LA TABLA PRECIOS
 def add_item_budget(user, password,schema,data):
+    """Añade item de registro a la tabla precios"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection - tbl inventario
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_pres_precios (codigo, id_naturaleza, id_unidades, resumen, descripcion, coste, id_capitulo)
-               VALUES (%s, %s, %s,%s, %s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5],
-            data[6]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_pres_precios (codigo, id_naturaleza, id_unidades, resumen, descripcion, coste, id_capitulo)
+                   VALUES (%s, %s, %s,%s, %s, %s, %s)
+                   """
+            data_values = (data[0], data[1], data[2], data[3], data[4], data[5], data[6])
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -1229,40 +1061,21 @@ def add_item_budget(user, password,schema,data):
 
 #AÑADE GRUPO A LA TABLA GRUPOS DE PRESUPUESTO
 def add_group_budget(user, password,schema,data):
+    """Añade grupo a la tabla grupos de presupuesto"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection - tbl inventario
-        sql_query = f"""
-               INSERT INTO {schema}.tbl_pres_grupo_partidas (codigo, id_naturaleza, id_unidades, resumen, descripcion, id_capitulo)
-               VALUES (%s, %s, %s,%s, %s, %s)
-               """
-        # Datos a insertar
-        data_values = (
-            data[0],
-            data[1],
-            data[2],
-            data[3],
-            data[4],
-            data[5]
-        )
-        # Ejecutar la consulta
-        cursor.execute(sql_query, data_values)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro insertado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   INSERT INTO {schema}.tbl_pres_grupo_partidas (codigo, id_naturaleza, id_unidades, resumen, descripcion, id_capitulo)
+                   VALUES (%s, %s, %s,%s, %s, %s)
+                   """
+            data_values = (data[0], data[1], data[2], data[3], data[4], data[5])
+            cursor.execute(sql_query, data_values)
+            conexion.commit()
+            cursor.close()
+            print("Registro insertado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
@@ -1270,95 +1083,54 @@ def add_group_budget(user, password,schema,data):
 
 #AÑADE ITEM A LA TABLA DE ELEMENTOS DE GRUPOS DE PRESUPUESTOS
 def add_item_group_budget(user, password,schema,data):
-
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection - tbl inventario
-    sql_query = f"""
-           INSERT INTO {schema}.tbl_pres_grupo_elementos (id_grupo, id_partida, cantidad)
-           VALUES (%s, %s, %s)
-           """
-    # Datos a insertar
-    data_values = (
-        data[0],
-        data[1],
-        data[2]
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro insertado exitosamente.")
-    conexion.close()
+    """Añade item a la tabla de elementos de grupos de presupuestos"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+               INSERT INTO {schema}.tbl_pres_grupo_elementos (id_grupo, id_partida, cantidad)
+               VALUES (%s, %s, %s)
+               """
+        data_values = (data[0], data[1], data[2])
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro insertado exitosamente.")
 
 
 #MODIFICA LA CANTIDAD DE UN ITEM EN LA TABLA DE ELEMENTOS DE GRUPOS DE PRESUPUESTOS
 def mod_amount_group_item(user, password,schema, amount, id_item):
-    # Establecer la conexión con el servidor MySQL
-    conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user=user,
-        password=password
-    )
-
-    conexion.start_transaction()
-    # Crear un cursor para ejecutar la consulta
-    cursor = conexion.cursor()
-    # Consulta SQL con parámetros para evitar SQL Injection
-    sql_query = f"""
-           UPDATE {schema}.tbl_pres_grupo_elementos
-           SET cantidad = %s
-           WHERE id = %s
-           """
-    # Datos a insertar
-    data_values = (
-        amount,
-        id_item
-    )
-    # Ejecutar la consulta
-    cursor.execute(sql_query, data_values)
-    # Confirmar la transacción
-    conexion.commit()
-    print("Registro modificado exitosamente.")
-    conexion.close()
+    """Modifica la cantidad de un item en la tabla de elementos de grupos de presupuestos"""
+    with get_project_connection(user, password, schema) as conexion:
+        conexion.start_transaction()
+        cursor = conexion.cursor()
+        sql_query = f"""
+               UPDATE {schema}.tbl_pres_grupo_elementos
+               SET cantidad = %s
+               WHERE id = %s
+               """
+        data_values = (amount, id_item)
+        cursor.execute(sql_query, data_values)
+        conexion.commit()
+        cursor.close()
+        print("Registro modificado exitosamente.")
 
 
 #ELIMINA UN GRUPO DE LA TABLA DE GRUPOS DE PRESUPUESTOS
 def delete_group_item(user, password, schema, id_item):
+    """Elimina un grupo de la tabla de grupos de presupuestos"""
     try:
-        # Establecer la conexión con el servidor MySQL
-        conexion = mysql.connector.connect(
-            host='localhost',
-            port=3307,
-            user=user,
-            password=password
-        )
-
-        conexion.start_transaction()
-        # Crear un cursor para ejecutar la consulta
-        cursor = conexion.cursor()
-        # Consulta SQL con parámetros para evitar SQL Injection
-        sql_query = f"""
-               DELETE FROM {schema}.tbl_pres_grupo_elementos WHERE id = {id_item}
-               """
-        # Ejecutar la consulta
-        cursor.execute(sql_query)
-        # Confirmar la transacción
-        conexion.commit()
-        print("Registro modificado exitosamente.")
-        conexion.close()
-        return "ok"
-
+        with get_project_connection(user, password, schema) as conexion:
+            conexion.start_transaction()
+            cursor = conexion.cursor()
+            sql_query = f"""
+                   DELETE FROM {schema}.tbl_pres_grupo_elementos WHERE id = {id_item}
+                   """
+            cursor.execute(sql_query)
+            conexion.commit()
+            cursor.close()
+            print("Registro modificado exitosamente.")
+            return "ok"
     except Error as e:
         print(f"Error al conectarse a MySQL: {e}")
         return e
