@@ -97,6 +97,60 @@ def get_dim_all(user: str, password: str, schema: str):
     }
 
 
+def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcion: str = None):
+    """
+    Añade un nuevo código de OT a la tabla dim_ot.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            # Detectar la columna de texto
+            text_col = _guess_text_column(user, password, schema, 'dim_ot')
+            if text_col:
+                cur.execute(f"INSERT INTO dim_ot (ot_codigo, {text_col}) VALUES (%s, %s)", (ot_codigo, descripcion or ot_codigo))
+            else:
+                cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
+            cn.commit()
+            cur.close()
+            return "ok"
+    except Exception as e:
+        return str(e)
+
+
+def get_all_dim_ot(user: str, password: str, schema: str):
+    """
+    Devuelve todos los registros de dim_ot.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            text_col = _guess_text_column(user, password, schema, 'dim_ot')
+            if text_col:
+                cur.execute(f"SELECT id, ot_codigo, {text_col} FROM dim_ot ORDER BY ot_codigo")
+            else:
+                cur.execute("SELECT id, ot_codigo FROM dim_ot ORDER BY ot_codigo")
+            rows = cur.fetchall()
+            cur.close()
+            return rows
+    except Exception as e:
+        return []
+
+
+def delete_dim_ot(user: str, password: str, schema: str, ot_id: int):
+    """
+    Elimina un código de OT.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute("DELETE FROM dim_ot WHERE id = %s", (ot_id,))
+            cn.commit()
+            cur.close()
+            return "ok"
+    except Exception as e:
+        return str(e)
+
+
 # ==================== GESTIÓN DE PARTES ====================
 
 def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion):

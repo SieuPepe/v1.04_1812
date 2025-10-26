@@ -34,6 +34,7 @@ from .db_core import (
     create_view_catalog,
     create_view_economic,
     create_view_inventory,
+    create_view_partes,
     create_fk,
     update_reference,
 
