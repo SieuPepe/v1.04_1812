@@ -142,6 +142,9 @@ from .db_partes import (
     get_dim_all,
     _guess_text_column,
     _fetch_dim_list_guess,
+    add_dim_ot,
+    get_all_dim_ot,
+    delete_dim_ot,
 
     # Gestión de partes
     add_parte_with_code,
@@ -204,6 +207,7 @@ __all__ = [
 
     # db_partes
     'get_dim_all', '_guess_text_column', '_fetch_dim_list_guess',
+    'add_dim_ot', 'get_all_dim_ot', 'delete_dim_ot',
     'add_parte_with_code', 'list_partes', 'get_parts_list',
     'delete_parte', 'get_partes_resumen', 'get_parte_detail',
     'mod_parte_item', 'get_part_presupuesto', 'add_part_presupuesto_item',
