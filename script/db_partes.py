@@ -96,9 +96,49 @@ def get_dim_all(user: str, password: str, schema: str):
 
 # ==================== GESTIÓN DE PARTES ====================
 
+def _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id):
+    """
+    Determina el prefijo del código según el tipo de trabajo:
+    - Gastos Fijos → GF
+    - Orden de Trabajo → OT
+    - Trabajos Programados → TP
+    - Por defecto → PT
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            # Detectar columna de texto en dim_tipo_trabajo
+            text_col = _guess_text_column(user, password, schema, 'dim_tipo_trabajo')
+            if text_col:
+                cur.execute(f"SELECT {text_col} FROM dim_tipo_trabajo WHERE id = %s", (tipo_trabajo_id,))
+            else:
+                cur.execute("SELECT tipo_codigo FROM dim_tipo_trabajo WHERE id = %s", (tipo_trabajo_id,))
+
+            result = cur.fetchone()
+            cur.close()
+
+            if result:
+                tipo_nombre = result[0].lower() if result[0] else ""
+                # Determinar prefijo según el nombre
+                if "gastos" in tipo_nombre or "gf" in tipo_nombre:
+                    return "GF"
+                elif "orden" in tipo_nombre or "ot" == tipo_nombre:
+                    return "OT"
+                elif "programado" in tipo_nombre or "tp" in tipo_nombre:
+                    return "TP"
+
+            # Por defecto
+            return "PT"
+    except Exception:
+        return "PT"
+
+
 def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion):
     """
-    Inserta un parte y genera el código automático (PT-00001).
+    Inserta un parte y genera el código automático según el tipo de trabajo:
+    - GF-00001 (Gastos Fijos)
+    - OT-00001 (Orden de Trabajo)
+    - TP-00001 (Trabajos Programados)
     Devuelve (id, codigo).
     """
     with get_project_connection(user, password, schema) as cn:
@@ -109,7 +149,11 @@ def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_tra
             (red_id, tipo_trabajo_id, cod_trabajo_id, descripcion)
         )
         new_id = cur.lastrowid
-        codigo = f"PT-{new_id:05d}"
+
+        # Obtener prefijo según tipo de trabajo
+        prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
+        codigo = f"{prefix}-{new_id:05d}"
+
         cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))
         cn.commit()
         cur.close()
@@ -490,7 +534,8 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        localizacion: str = None,
                        id_municipio: int = None):
     """
-    Inserta un parte con los campos mejorados y genera el código automático (PT-00001).
+    Inserta un parte con los campos mejorados y genera el código automático según tipo:
+    GF-00001 (Gastos Fijos), OT-00001 (Orden de Trabajo), TP-00001 (Trabajos Programados).
 
     Args:
         user: Usuario de BD
@@ -580,8 +625,9 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         cur.execute(query, tuple(insert_vals))
         new_id = cur.lastrowid
 
-        # Generar código
-        codigo = f"PT-{new_id:05d}"
+        # Generar código según tipo de trabajo
+        prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
+        codigo = f"{prefix}-{new_id:05d}"
         cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))
 
         cn.commit()
