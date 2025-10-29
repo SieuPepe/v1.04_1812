@@ -23,13 +23,41 @@ ON DUPLICATE KEY UPDATE nombre = VALUES(nombre), nombre_euskera = VALUES(nombre_
 
 -- 3. Añadir columna provincia_id a tbl_municipios
 -- ================================================
-ALTER TABLE tbl_municipios
-ADD COLUMN IF NOT EXISTS provincia_id INT DEFAULT NULL COMMENT 'ID de la provincia'
-AFTER id;
+-- Verificar si la columna ya existe antes de añadirla
+SET @col_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'tbl_municipios'
+    AND COLUMN_NAME = 'provincia_id'
+);
 
--- Crear índice para provincia_id
-ALTER TABLE tbl_municipios
-ADD INDEX IF NOT EXISTS idx_provincia_id (provincia_id);
+SET @sql_add_col = IF(@col_exists = 0,
+    'ALTER TABLE tbl_municipios ADD COLUMN provincia_id INT DEFAULT NULL COMMENT ''ID de la provincia'' AFTER id',
+    'SELECT "Columna provincia_id ya existe" AS mensaje'
+);
+
+PREPARE stmt FROM @sql_add_col;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Crear índice para provincia_id (solo si no existe)
+SET @idx_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'tbl_municipios'
+    AND INDEX_NAME = 'idx_provincia_id'
+);
+
+SET @sql_add_idx = IF(@idx_exists = 0,
+    'ALTER TABLE tbl_municipios ADD INDEX idx_provincia_id (provincia_id)',
+    'SELECT "Índice idx_provincia_id ya existe" AS mensaje'
+);
+
+PREPARE stmt FROM @sql_add_idx;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Crear FK solo si no existe
 SET @fk_exists = (
@@ -42,7 +70,7 @@ SET @fk_exists = (
 
 SET @sql_fk = IF(@fk_exists = 0,
     'ALTER TABLE tbl_municipios ADD CONSTRAINT fk_municipios_provincia FOREIGN KEY (provincia_id) REFERENCES dim_provincias(id)',
-    'SELECT "FK ya existe" AS mensaje'
+    'SELECT "FK fk_municipios_provincia ya existe" AS mensaje'
 );
 
 PREPARE stmt FROM @sql_fk;
