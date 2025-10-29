@@ -31,8 +31,19 @@ def crear_vista(user: str, password: str, schema: str):
     print("  CREACIÓN DE VISTA vw_partes_completo")
     print("=" * 80)
 
+    # Función auxiliar para obtener columnas de una tabla
+    def get_columnas(tabla):
+        """Obtiene las columnas de una tabla."""
+        cursor.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = '{schema}'
+            AND TABLE_NAME = '{tabla}'
+        """)
+        return {row[0] for row in cursor.fetchall()}
+
     # Verificar qué tablas existen
-    print("\n📋 Verificando tablas disponibles:")
+    print("\n📋 Verificando tablas y columnas disponibles:")
 
     tablas_a_verificar = [
         'tbl_municipios',
@@ -47,6 +58,8 @@ def crear_vista(user: str, password: str, schema: str):
     ]
 
     tablas_existentes = {}
+    columnas_tablas = {}
+
     for tabla in tablas_a_verificar:
         cursor.execute(f"""
             SELECT COUNT(*)
@@ -56,7 +69,13 @@ def crear_vista(user: str, password: str, schema: str):
         """)
         existe = cursor.fetchone()[0] > 0
         tablas_existentes[tabla] = existe
-        icono = "✅" if existe else "⚠️ "
+
+        if existe:
+            columnas_tablas[tabla] = get_columnas(tabla)
+            icono = "✅"
+        else:
+            icono = "⚠️ "
+
         print(f"   {icono} {tabla}")
 
     # Construir la vista adaptándose a las tablas disponibles
@@ -95,10 +114,24 @@ def crear_vista(user: str, password: str, schema: str):
 
     # Añadir campos y joins según tablas disponibles
     if tablas_existentes.get('tbl_municipios'):
-        select_parts.extend([
-            "p.localizacion",
-            "m.nombre AS municipio"
-        ])
+        columnas = columnas_tablas.get('tbl_municipios', set())
+        select_parts.append("p.localizacion")
+
+        # Intentar diferentes nombres de columna
+        if 'nombre' in columnas:
+            select_parts.append("m.nombre AS municipio")
+        elif 'municipio' in columnas:
+            select_parts.append("m.municipio AS municipio")
+        elif 'descripcion' in columnas:
+            select_parts.append("m.descripcion AS municipio")
+        else:
+            # Usar la primera columna que no sea id
+            col_texto = next((c for c in columnas if c not in ['id', 'codigo']), None)
+            if col_texto:
+                select_parts.append(f"m.{col_texto} AS municipio")
+            else:
+                select_parts.append("NULL AS municipio")
+
         joins.append("LEFT JOIN tbl_municipios m ON p.id_municipio = m.id")
     else:
         select_parts.extend([
@@ -106,31 +139,48 @@ def crear_vista(user: str, password: str, schema: str):
             "NULL AS municipio"
         ])
 
+    # Función auxiliar para obtener columna de nombre
+    def get_columna_nombre(tabla):
+        """Obtiene la columna apropiada para el nombre de una tabla."""
+        cols = columnas_tablas.get(tabla, set())
+        if 'nombre' in cols:
+            return 'nombre'
+        elif 'descripcion' in cols:
+            return 'descripcion'
+        else:
+            # Buscar primera columna de texto que no sea id/codigo
+            col_texto = next((c for c in cols if c not in ['id', 'codigo'] and not c.startswith('id_')), None)
+            return col_texto if col_texto else 'id'
+
     # Tablas de dimensiones (probar primero con prefijo dim_, luego tbl_)
     if tablas_existentes.get('dim_ot') or tablas_existentes.get('tbl_ot'):
         tabla_ot = 'dim_ot' if tablas_existentes.get('dim_ot') else 'tbl_ot'
-        select_parts.append(f"ot.nombre AS ot")
+        col_nombre = get_columna_nombre(tabla_ot)
+        select_parts.append(f"ot.{col_nombre} AS ot")
         joins.append(f"LEFT JOIN {tabla_ot} ot ON p.id_ot = ot.id")
     else:
         select_parts.append("NULL AS ot")
 
     if tablas_existentes.get('dim_red') or tablas_existentes.get('tbl_red'):
         tabla_red = 'dim_red' if tablas_existentes.get('dim_red') else 'tbl_red'
-        select_parts.append(f"r.nombre AS red")
+        col_nombre = get_columna_nombre(tabla_red)
+        select_parts.append(f"r.{col_nombre} AS red")
         joins.append(f"LEFT JOIN {tabla_red} r ON p.id_red = r.id")
     else:
         select_parts.append("NULL AS red")
 
     if tablas_existentes.get('dim_tipo_trabajo') or tablas_existentes.get('tbl_tipo_trabajo'):
         tabla_tipo = 'dim_tipo_trabajo' if tablas_existentes.get('dim_tipo_trabajo') else 'tbl_tipo_trabajo'
-        select_parts.append(f"tt.nombre AS tipo_trabajo")
+        col_nombre = get_columna_nombre(tabla_tipo)
+        select_parts.append(f"tt.{col_nombre} AS tipo_trabajo")
         joins.append(f"LEFT JOIN {tabla_tipo} tt ON p.id_tipo_trabajo = tt.id")
     else:
         select_parts.append("NULL AS tipo_trabajo")
 
     if tablas_existentes.get('dim_cod_trabajo') or tablas_existentes.get('tbl_cod_trabajo'):
         tabla_cod = 'dim_cod_trabajo' if tablas_existentes.get('dim_cod_trabajo') else 'tbl_cod_trabajo'
-        select_parts.append(f"ct.nombre AS cod_trabajo")
+        col_nombre = get_columna_nombre(tabla_cod)
+        select_parts.append(f"ct.{col_nombre} AS cod_trabajo")
         joins.append(f"LEFT JOIN {tabla_cod} ct ON p.id_cod_trabajo = ct.id")
     else:
         select_parts.append("NULL AS cod_trabajo")
