@@ -897,3 +897,83 @@ def list_partes_mejorado(user: str, password: str, schema: str, limit: int = 200
 
         # Convertir a lista de dicts
         return [dict(zip(columns, row)) for row in rows]
+
+
+# ==================== PROVINCIAS Y MUNICIPIOS ====================
+
+def get_provincias(user: str, password: str, schema: str):
+    """
+    Obtiene lista de provincias en formato "id - nombre"
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute("""
+                SELECT id, nombre
+                FROM dim_provincias
+                ORDER BY codigo
+            """)
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        print(f"Error al obtener provincias: {e}")
+        return []
+
+
+def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
+    """
+    Obtiene lista de municipios filtrados por provincia
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        provincia_id: ID de provincia para filtrar (None = todos)
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Detectar columna de nombre
+            cur.execute(f"""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'tbl_municipios'
+                AND COLUMN_NAME IN ('nombre', 'municipio', 'descripcion', 'NAMEUNIT')
+                ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio', 'descripcion', 'NAMEUNIT')
+                LIMIT 1
+            """, (schema,))
+            col_result = cur.fetchone()
+            col_name = col_result[0] if col_result else 'id'
+
+            # Construir query con filtro opcional
+            if provincia_id:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM tbl_municipios
+                    WHERE provincia_id = %s
+                    ORDER BY {col_name}
+                """
+                cur.execute(query, (provincia_id,))
+            else:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM tbl_municipios
+                    ORDER BY {col_name}
+                """
+                cur.execute(query)
+
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        print(f"Error al obtener municipios: {e}")
+        return []
