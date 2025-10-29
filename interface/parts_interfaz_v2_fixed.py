@@ -43,24 +43,20 @@ class AppPartsV2(customtkinter.CTk):
         # ====================================================================
         # CARACTERÍSTICAS DEL TRABAJO
         # ====================================================================
-        # Fila 1: OT / RED
-        customtkinter.CTkLabel(self, text="OT:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.ot_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
-        self.ot_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
-
-        customtkinter.CTkLabel(self, text="Red:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
+        # Fila 1: Red / Tipo trabajo
+        customtkinter.CTkLabel(self, text="Red:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.red_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
-        self.red_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
+        self.red_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+
+        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
+        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
+        self.tipo_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Fila 2: Tipo trabajo / Código trabajo
-        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
-        self.tipo_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
-
-        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
+        # Fila 2: Código trabajo
+        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
-        self.cod_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
+        self.cod_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
         # ====================================================================
@@ -124,11 +120,11 @@ class AppPartsV2(customtkinter.CTk):
         self.btn_ver_partes = customtkinter.CTkButton(self, text="Ver listado de partes", command=self._open_parts_list)
         self.btn_ver_partes.grid(row=row, column=0, columnspan=4, padx=20, pady=5, sticky="ew")
 
-        # Cargar datos iniciales (incluyendo OT automáticamente)
+        # Cargar datos iniciales
         self._reload_dims()
 
     def _reload_dims(self):
-        """Recarga estados, dimensiones y municipios. OT se carga automáticamente."""
+        """Recarga estados, dimensiones y municipios."""
         try:
             # 1. Cargar estados
             estados = get_estados_parte(self.user, self.password, self.schema)
@@ -140,15 +136,14 @@ class AppPartsV2(customtkinter.CTk):
                 self.estado_menu.configure(values=["1 - Pendiente"])
                 self.estado_menu.set("1 - Pendiente")
 
-            # 2. Cargar dimensiones (OT, RED, TIPO, COD)
+            # 2. Cargar dimensiones (RED, TIPO, COD)
             dims = get_dim_all(self.user, self.password, self.schema)
-            self.ot_menu.configure(values=dims.get("OT", ["(sin datos)"]))
             self.red_menu.configure(values=dims.get("RED", ["(sin datos)"]))
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["(sin datos)"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["(sin datos)"]))
 
-            # Preseleccionar primer elemento (OT automático)
-            for menu in (self.ot_menu, self.red_menu, self.tipo_menu, self.cod_menu):
+            # Preseleccionar primer elemento
+            for menu in (self.red_menu, self.tipo_menu, self.cod_menu):
                 vals = menu.cget("values")
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
@@ -218,13 +213,12 @@ class AppPartsV2(customtkinter.CTk):
             CTkMessagebox(title="Campo obligatorio", message="El Estado es obligatorio", icon="warning")
             return
 
-        ot_id = self._take_id(self.ot_menu.get())
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
         cod_id = self._take_id(self.cod_menu.get())
 
-        if not all([ot_id, red_id, tipo_id, cod_id]):
-            CTkMessagebox(title="Campos obligatorios", message="Selecciona OT, Red, Tipo y Código de Trabajo", icon="warning")
+        if not all([red_id, tipo_id, cod_id]):
+            CTkMessagebox(title="Campos obligatorios", message="Selecciona Red, Tipo y Código de Trabajo", icon="warning")
             return
 
         descripcion = self.descripcion_entry.get().strip()
@@ -291,7 +285,7 @@ class AppPartsV2(customtkinter.CTk):
         try:
             new_id, codigo = add_parte_mejorado(
                 self.user, self.password, self.schema,
-                ot_id, red_id, tipo_id, cod_id,
+                red_id, tipo_id, cod_id,
                 titulo=titulo,
                 descripcion=descripcion,
                 descripcion_larga=desc_larga,
