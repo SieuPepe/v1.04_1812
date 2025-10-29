@@ -5,18 +5,19 @@ from script.modulo_db import add_parte_with_code
 from parts_list_window import open_parts_list
 import mysql.connector as m
 
-# Usamos la utilidad que ya probaste para traer las cuatro dimensiones
+# Usamos la utilidad que ya probaste para traer las tres dimensiones
 from script.modulo_db import get_dim_all
 
 class AppParts(customtkinter.CTk):
     """
     Ventana mínima para crear partes en cert_dev.
-    Selecciona OT, RED, TIPO_TRABAJO y COD_TRABAJO y hace INSERT en tbl_partes.
+    Selecciona RED, TIPO_TRABAJO y COD_TRABAJO y hace INSERT en tbl_partes.
+    El código de OT/Parte se genera automáticamente (PT-00001).
     """
     def __init__(self, user: str, password: str, default_schema: str = "cert_dev"):
         super().__init__()
-        self.title("Generador de partes (dev)")
-        self.geometry("820x420")
+        self.title("Generador de partes")
+        self.geometry("820x380")
         self.resizable(False, False)
 
         self.user = user
@@ -32,23 +33,19 @@ class AppParts(customtkinter.CTk):
         self.reload_btn = customtkinter.CTkButton(self, text="Recargar listas", command=self._reload_dims)
         self.reload_btn.grid(row=0, column=2, padx=10, pady=10, sticky="w")
 
-        # Fila 1: OT / RED
-        customtkinter.CTkLabel(self, text="OT:").grid(row=1, column=0, padx=10, pady=15, sticky="e")
-        self.ot_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.ot_menu.grid(row=1, column=1, padx=5, pady=15, sticky="w")
-
-        customtkinter.CTkLabel(self, text="Red:").grid(row=1, column=2, padx=10, pady=15, sticky="e")
+        # Fila 1: RED / TIPO
+        customtkinter.CTkLabel(self, text="Red:").grid(row=1, column=0, padx=10, pady=15, sticky="e")
         self.red_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.red_menu.grid(row=1, column=3, padx=5, pady=15, sticky="w")
+        self.red_menu.grid(row=1, column=1, padx=5, pady=15, sticky="w")
 
-        # Fila 2: Tipo trabajo / Código trabajo
-        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=2, column=0, padx=10, pady=15, sticky="e")
+        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=1, column=2, padx=10, pady=15, sticky="e")
         self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.tipo_menu.grid(row=2, column=1, padx=5, pady=15, sticky="w")
+        self.tipo_menu.grid(row=1, column=3, padx=5, pady=15, sticky="w")
 
-        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=2, column=2, padx=10, pady=15, sticky="e")
+        # Fila 2: Código trabajo
+        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=2, column=0, padx=10, pady=15, sticky="e")
         self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.cod_menu.grid(row=2, column=3, padx=5, pady=15, sticky="w")
+        self.cod_menu.grid(row=2, column=1, padx=5, pady=15, sticky="w")
 
         # Descripción opcional
         customtkinter.CTkLabel(self, text="Descripción (opcional):").grid(row=3, column=0, padx=10, pady=10, sticky="e")
@@ -61,7 +58,7 @@ class AppParts(customtkinter.CTk):
 
         # Botón para ver listado de partes
         self.btn_ver_partes = customtkinter.CTkButton(
-            self,  # ✅ Usa 'self' porque es la ventana principal
+            self,
             text="Ver listado de partes",
             command=self._open_parts_list
         )
@@ -76,14 +73,13 @@ class AppParts(customtkinter.CTk):
         try:
             self.schema = self.schema_entry.get().strip() or "cert_dev"
             dims = get_dim_all(self.user, self.password, self.schema)
-            # Esperamos claves: 'OT', 'RED', 'TIPO_TRABAJO', 'COD_TRABAJO' devolviendo textos "id - nombre"
-            self.ot_menu.configure(values=dims.get("OT", ["(sin datos)"]))
+            # Esperamos claves: 'RED', 'TIPO_TRABAJO', 'COD_TRABAJO' devolviendo textos "id - nombre"
             self.red_menu.configure(values=dims.get("RED", ["(sin datos)"]))
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["(sin datos)"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["(sin datos)"]))
 
             # Preseleccionar primer elemento
-            for w in (self.ot_menu, self.red_menu, self.tipo_menu, self.cod_menu):
+            for w in (self.red_menu, self.tipo_menu, self.cod_menu):
                 vals = w.cget("values")
                 if vals and len(vals) > 0:
                     w.set(vals[0])
@@ -93,7 +89,7 @@ class AppParts(customtkinter.CTk):
     @staticmethod
     def _take_id(v: str) -> int|None:
         # Menús muestran "id - texto". Tomamos la parte izquierda.
-        if not v: 
+        if not v:
             return None
         try:
             return int(str(v).split(" - ")[0].strip())
@@ -101,19 +97,18 @@ class AppParts(customtkinter.CTk):
             return None
 
     def _save_part(self):
-        ot_id = self._take_id(self.ot_menu.get())
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
         cod_id = self._take_id(self.cod_menu.get())
         descripcion = self.desc_entry.get().strip() or None
 
-        if not all([ot_id, red_id, tipo_id, cod_id]):
-            CTkMessagebox(title="Aviso", message="Selecciona OT, Red, Tipo y Código.", icon="info")
+        if not all([red_id, tipo_id, cod_id]):
+            CTkMessagebox(title="Aviso", message="Selecciona Red, Tipo y Código de trabajo.", icon="info")
             return
 
         try:
             new_id, codigo = add_parte_with_code(self.user, self.password, self.schema,
-                                                 ot_id, red_id, tipo_id, cod_id, descripcion)
+                                                 red_id, tipo_id, cod_id, descripcion)
 
             CTkMessagebox(title="Parte guardado",
                           message=f"Parte creado con código {codigo}",

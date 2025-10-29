@@ -10,14 +10,13 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     Intenta detectar automáticamente la columna 'de texto' para mostrar en menús.
     Estrategia:
       1) Preferir nombres que contengan alguna keyword según tabla:
-         - dim_ot:         ['ot','nombre','desc','texto','codigo','cod']
          - dim_red:        ['red','nombre','desc','texto','codigo','cod']
          - dim_tipo_trabajo: ['tipo','nombre','desc','texto','codigo','cod']
+         - dim_codigo_trabajo: ['cod_trabajo','nombre','desc','texto','codigo','cod']
       2) Si no hay match por nombre, elegir la primera columna tipo VARCHAR/TEXT distinta de 'id'.
     Devuelve nombre de columna o None si no encuentra.
     """
     keywords_map = {
-        'dim_ot': ['descripcion','desc','nombre','texto','ot','codigo','cod'],
         'dim_red': ['descripcion','desc','nombre','texto','red','codigo','cod'],
         'dim_tipo_trabajo': ['descripcion','desc','nombre','texto','tipo','codigo','cod'],
         'dim_codigo_trabajo': ['descripcion','desc','nombre','texto','cod_trabajo','codigo','cod'],
@@ -82,78 +81,22 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
 
 def get_dim_all(user: str, password: str, schema: str):
     """
-    Devuelve dict con las 4 listas de dimensiones para la UI,
+    Devuelve dict con las 3 listas de dimensiones para la UI,
     detectando automáticamente la columna visible:
-      - dim_ot
       - dim_red
       - dim_tipo_trabajo
       - dim_codigo_trabajo
     """
     return {
-        'OT': _fetch_dim_list_guess(user, password, schema, 'dim_ot'),
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
     }
 
 
-def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcion: str = None):
-    """
-    Añade un nuevo código de OT a la tabla dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            # Detectar la columna de texto
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                cur.execute(f"INSERT INTO dim_ot (ot_codigo, {text_col}) VALUES (%s, %s)", (ot_codigo, descripcion or ot_codigo))
-            else:
-                cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
-
-
-def get_all_dim_ot(user: str, password: str, schema: str):
-    """
-    Devuelve todos los registros de dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                cur.execute(f"SELECT id, ot_codigo, {text_col} FROM dim_ot ORDER BY ot_codigo")
-            else:
-                cur.execute("SELECT id, ot_codigo FROM dim_ot ORDER BY ot_codigo")
-            rows = cur.fetchall()
-            cur.close()
-            return rows
-    except Exception as e:
-        return []
-
-
-def delete_dim_ot(user: str, password: str, schema: str, ot_id: int):
-    """
-    Elimina un código de OT.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            cur.execute("DELETE FROM dim_ot WHERE id = %s", (ot_id,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
-
-
 # ==================== GESTIÓN DE PARTES ====================
 
-def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion):
+def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion):
     """
     Inserta un parte y genera el código automático (PT-00001).
     Devuelve (id, codigo).
@@ -161,9 +104,9 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute(
-            "INSERT INTO tbl_partes (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion) "
-            "VALUES (%s,%s,%s,%s,%s)",
-            (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion)
+            "INSERT INTO tbl_partes (red_id, tipo_trabajo_id, cod_trabajo_id, descripcion) "
+            "VALUES (%s,%s,%s,%s)",
+            (red_id, tipo_trabajo_id, cod_trabajo_id, descripcion)
         )
         new_id = cur.lastrowid
         codigo = f"PT-{new_id:05d}"
@@ -176,21 +119,19 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
 def list_partes(user: str, password: str, schema: str, limit: int = 200):
     """
     Devuelve una lista de dicts con los partes más recientes.
-    Campos: id, codigo, ot, red, tipo, cod_trabajo, descripcion, created_at
+    Campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute("""
             SELECT  p.id,
                     p.codigo,
-                    COALESCE(ot.ot_codigo, '')         AS ot,
                     COALESCE(rd.red_codigo, '')        AS red,
                     COALESCE(tt.tipo_codigo, '')       AS tipo,
                     COALESCE(ct.cod_trabajo,'')        AS cod_trabajo,
                     p.descripcion,
                     p.creado_en
             FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
             LEFT JOIN dim_red            rd ON rd.id = p.red_id
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
@@ -200,7 +141,7 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         rows = cur.fetchall()
         cur.close()
 
-        cols = ["id","codigo","ot","red","tipo","cod_trabajo","descripcion","created_at"]
+        cols = ["id","codigo","red","tipo","cod_trabajo","descripcion","created_at"]
         return [dict(zip(cols, r)) for r in rows]
 
 
@@ -214,14 +155,12 @@ def get_parts_list(user, password, schema, limit=100):
             SELECT
                 p.id,
                 p.codigo,
-                COALESCE(ot.ot_codigo, '')         AS ot,
                 COALESCE(rd.red_codigo, '')        AS red,
                 COALESCE(tt.tipo_codigo, '')       AS tipo,
                 COALESCE(ct.cod_trabajo, '')       AS cod_trabajo,
                 p.descripcion,
                 p.creado_en
             FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
             LEFT JOIN dim_red            rd ON rd.id = p.red_id
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
@@ -281,7 +220,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 
         # Construir SELECT dinámicamente
         select_cols = ['id', 'codigo', 'descripcion', 'estado',
-                       'ot_id', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
+                       'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
 
         # Añadir columnas opcionales si existen
         if 'municipio_id' in columns:
@@ -304,7 +243,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 
 
 def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
-                   ot_id: int, red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
+                   red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                    descripcion: str = None, estado: str = 'Pendiente', observaciones: str = None):
     """
     Modifica los datos de un parte existente.
@@ -320,8 +259,7 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             if 'observaciones' in columns:
                 cur.execute("""
                             UPDATE tbl_partes
-                            SET ot_id           = %s,
-                                red_id          = %s,
+                            SET red_id          = %s,
                                 tipo_trabajo_id = %s,
                                 cod_trabajo_id  = %s,
                                 descripcion     = %s,
@@ -330,19 +268,18 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                                 actualizado_en  = NOW()
                             WHERE id = %s
                             """,
-                            (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, observaciones, parte_id))
+                            (red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, observaciones, parte_id))
             else:
                 cur.execute("""
                             UPDATE tbl_partes
-                            SET ot_id           = %s,
-                                red_id          = %s,
+                            SET red_id          = %s,
                                 tipo_trabajo_id = %s,
                                 cod_trabajo_id  = %s,
                                 descripcion     = %s,
                                 estado          = %s,
                                 actualizado_en  = NOW()
                             WHERE id = %s
-                            """, (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, parte_id))
+                            """, (red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, parte_id))
 
             cn.commit()
             cur.close()
@@ -540,7 +477,7 @@ def delete_part_cert_item(user: str, password: str, schema: str, cert_id: int):
 # ==================== FUNCIONES MEJORADAS CON NUEVOS CAMPOS ====================
 
 def add_parte_mejorado(user: str, password: str, schema: str,
-                       ot_id: int, red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
+                       red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                        titulo: str = None,
                        descripcion: str = None,
                        descripcion_larga: str = None,
@@ -559,7 +496,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         user: Usuario de BD
         password: Contraseña
         schema: Esquema del proyecto
-        ot_id: ID de OT (FK)
         red_id: ID de red (FK)
         tipo_trabajo_id: ID de tipo de trabajo (FK)
         cod_trabajo_id: ID de código de trabajo (FK)
@@ -589,8 +525,8 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         columns = {row[0] for row in cur.fetchall()}
 
         # Construir INSERT dinámicamente según columnas disponibles
-        insert_cols = ['ot_id', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
-        insert_vals = [ot_id, red_id, tipo_trabajo_id, cod_trabajo_id]
+        insert_cols = ['red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
+        insert_vals = [red_id, tipo_trabajo_id, cod_trabajo_id]
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:
@@ -655,7 +591,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
 
 def mod_parte_mejorado(user: str, password: str, schema: str,
                        parte_id: int,
-                       ot_id: int = None,
                        red_id: int = None,
                        tipo_trabajo_id: int = None,
                        cod_trabajo_id: int = None,
@@ -697,10 +632,6 @@ def mod_parte_mejorado(user: str, password: str, schema: str,
             update_vals = []
 
             # Campos obligatorios (solo actualizar si se pasan)
-            if ot_id is not None:
-                update_parts.append('ot_id = %s')
-                update_vals.append(ot_id)
-
             if red_id is not None:
                 update_parts.append('red_id = %s')
                 update_vals.append(red_id)
@@ -864,14 +795,12 @@ def list_partes_mejorado(user: str, password: str, schema: str, limit: int = 200
                     p.finalizada,
                     p.localizacion,
                     m.nombre AS municipio,
-                    ot.ot_codigo AS ot,
                     r.red_codigo AS red,
                     tt.tipo_codigo AS tipo_trabajo,
                     ct.cod_trabajo AS cod_trabajo
                 FROM tbl_partes p
                 LEFT JOIN tbl_parte_estados pe ON p.id_estado = pe.id
                 LEFT JOIN tbl_municipios m ON p.id_municipio = m.id
-                LEFT JOIN dim_ot ot ON p.ot_id = ot.id
                 LEFT JOIN dim_red r ON p.red_id = r.id
                 LEFT JOIN dim_tipo_trabajo tt ON p.tipo_trabajo_id = tt.id
                 LEFT JOIN dim_codigo_trabajo ct ON p.cod_trabajo_id = ct.id
