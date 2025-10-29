@@ -17,10 +17,10 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     Devuelve nombre de columna o None si no encuentra.
     """
     keywords_map = {
-        'dim_ot': ['ot','nombre','desc','texto','codigo','cod'],
-        'dim_red': ['red','nombre','desc','texto','codigo','cod'],
-        'dim_tipo_trabajo': ['tipo','nombre','desc','texto','codigo','cod'],
-        'dim_codigo_trabajo': ['cod_trabajo','codigo','cod','nombre','desc','texto'],
+        'dim_ot': ['descripcion','desc','nombre','texto','ot','codigo','cod'],
+        'dim_red': ['descripcion','desc','nombre','texto','red','codigo','cod'],
+        'dim_tipo_trabajo': ['descripcion','desc','nombre','texto','tipo','codigo','cod'],
+        'dim_codigo_trabajo': ['descripcion','desc','nombre','texto','cod_trabajo','codigo','cod'],
     }
     try:
         with get_project_connection(user, password, schema) as cn:
