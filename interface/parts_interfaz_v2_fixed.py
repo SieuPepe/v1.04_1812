@@ -7,7 +7,13 @@ import customtkinter
 from CTkMessagebox import CTkMessagebox
 from tkcalendar import DateEntry
 from datetime import date
-from script.modulo_db import add_parte_mejorado, get_estados_parte, get_dim_all
+from script.modulo_db import (
+    add_parte_mejorado,
+    get_estados_parte,
+    get_dim_all,
+    get_provincias,
+    get_municipios_by_provincia
+)
 from parts_list_window import open_parts_list
 
 class AppPartsV2(customtkinter.CTk):
@@ -113,8 +119,16 @@ class AppPartsV2(customtkinter.CTk):
         self.localizacion_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
         row += 1
 
+        # Provincia
+        customtkinter.CTkLabel(self, text="Provincia:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.provincia_menu = customtkinter.CTkComboBox(self, values=["Cargando..."], width=350,
+                                                         state="readonly", command=self._on_provincia_change)
+        self.provincia_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # Municipio (se actualiza según provincia seleccionada)
         customtkinter.CTkLabel(self, text="Municipio:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Cargando..."], width=400, state="normal")
+        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400, state="normal")
         self.municipio_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -155,46 +169,49 @@ class AppPartsV2(customtkinter.CTk):
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
 
-            # 3. Cargar municipios
-            municipios = self._get_municipios()
-            if municipios:
-                self.municipio_menu.configure(values=municipios)
-                self.municipio_menu.set(municipios[0] if municipios else "(sin datos)")
+            # 3. Cargar provincias
+            provincias = get_provincias(self.user, self.password, self.schema)
+            if provincias:
+                self.provincia_menu.configure(values=provincias)
+                self.provincia_menu.set(provincias[0] if provincias else "(sin datos)")
+                # Cargar municipios de la primera provincia
+                self._on_provincia_change(provincias[0] if provincias else None)
             else:
-                self.municipio_menu.configure(values=["(sin datos)"])
-                self.municipio_menu.set("(sin datos)")
+                self.provincia_menu.configure(values=["(sin datos)"])
+                self.provincia_menu.set("(sin datos)")
 
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
 
-    def _get_municipios(self):
-        """Obtiene lista de municipios ordenados alfabéticamente"""
+    def _on_provincia_change(self, provincia_value=None):
+        """Actualiza lista de municipios cuando cambia la provincia seleccionada"""
         try:
-            from script.db_connection import get_project_connection
-            with get_project_connection(self.user, self.password, self.schema) as cn:
-                cur = cn.cursor()
+            # Si se llama desde el callback del combobox, provincia_value es el valor actual
+            if provincia_value is None:
+                provincia_value = self.provincia_menu.get()
 
-                # Detectar columna para mostrar
-                cur.execute(f"""
-                    SELECT COLUMN_NAME
-                    FROM information_schema.COLUMNS
-                    WHERE TABLE_SCHEMA = '{self.schema}'
-                    AND TABLE_NAME = 'tbl_municipios'
-                    AND COLUMN_NAME IN ('nombre', 'municipio', 'descripcion', 'NAMEUNIT', 'CODIGOINE')
-                    ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio', 'descripcion', 'NAMEUNIT', 'CODIGOINE')
-                    LIMIT 1
-                """)
-                col_result = cur.fetchone()
-                col_name = col_result[0] if col_result else 'id'
+            # Extraer ID de provincia
+            provincia_id = self._take_id(provincia_value)
 
-                cur.execute(f"SELECT id, {col_name} FROM tbl_municipios ORDER BY {col_name}")
-                rows = cur.fetchall()
-                cur.close()
+            if not provincia_id:
+                self.municipio_menu.configure(values=["Selecciona provincia primero"])
+                self.municipio_menu.set("Selecciona provincia primero")
+                return
 
-                return [f"{row[0]} - {row[1]}" for row in rows]
+            # Obtener municipios filtrados por provincia
+            municipios = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+
+            if municipios:
+                self.municipio_menu.configure(values=municipios)
+                self.municipio_menu.set(municipios[0] if municipios else "(sin datos)")
+            else:
+                self.municipio_menu.configure(values=["(sin municipios)"])
+                self.municipio_menu.set("(sin municipios)")
+
         except Exception as e:
-            print(f"Error loading municipios: {e}")
-            return []
+            print(f"Error actualizando municipios: {e}")
+            self.municipio_menu.configure(values=["Error al cargar"])
+            self.municipio_menu.set("Error al cargar")
 
     @staticmethod
     def _take_id(v: str) -> int|None:
