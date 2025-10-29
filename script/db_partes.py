@@ -154,11 +154,20 @@ def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_tra
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
 
         # Obtener el siguiente número para este prefijo específico
+        # Más robusto: maneja NULLs y códigos vacíos
         cur.execute("""
-            SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+            SELECT COALESCE(
+                MAX(
+                    CAST(
+                        REPLACE(codigo, %s, '') AS UNSIGNED
+                    )
+                ),
+                0
+            ) + 1
             FROM tbl_partes
-            WHERE codigo LIKE CONCAT(%s, '-%%')
-        """, (prefix, prefix))
+            WHERE codigo IS NOT NULL
+              AND codigo LIKE %s
+        """, (prefix + '-', prefix + '-%'))
         next_num = cur.fetchone()[0]
 
         codigo = f"{prefix}-{next_num:05d}"
@@ -638,11 +647,20 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
 
         # Obtener el siguiente número para este prefijo específico
+        # Más robusto: maneja NULLs y códigos vacíos
         cur.execute("""
-            SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+            SELECT COALESCE(
+                MAX(
+                    CAST(
+                        REPLACE(codigo, %s, '') AS UNSIGNED
+                    )
+                ),
+                0
+            ) + 1
             FROM tbl_partes
-            WHERE codigo LIKE CONCAT(%s, '-%%')
-        """, (prefix, prefix))
+            WHERE codigo IS NOT NULL
+              AND codigo LIKE %s
+        """, (prefix + '-', prefix + '-%'))
         next_num = cur.fetchone()[0]
 
         codigo = f"{prefix}-{next_num:05d}"

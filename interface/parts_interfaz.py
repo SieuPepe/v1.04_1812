@@ -112,11 +112,20 @@ class AppParts(customtkinter.CTk):
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
                 # Extract the numeric part from existing codes with this prefix
+                # Más robusto: maneja NULLs y códigos vacíos
                 cur.execute("""
-                    SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+                    SELECT COALESCE(
+                        MAX(
+                            CAST(
+                                REPLACE(codigo, %s, '') AS UNSIGNED
+                            )
+                        ),
+                        0
+                    ) + 1
                     FROM tbl_partes
-                    WHERE codigo LIKE CONCAT(%s, '-%%')
-                """, (prefix, prefix))
+                    WHERE codigo IS NOT NULL
+                      AND codigo LIKE %s
+                """, (prefix + '-', prefix + '-%'))
                 next_id = cur.fetchone()[0]
                 cur.close()
 
