@@ -185,11 +185,12 @@ def crear_vista(user: str, password: str, schema: str):
     else:
         select_parts.append("NULL AS cod_trabajo")
 
-    # Campos de auditoría (si existen)
-    select_parts.extend([
-        "p.fecha_creacion",
-        "p.fecha_modificacion"
-    ])
+    # Campos de auditoría (solo si existen en tbl_partes)
+    columnas_partes = get_columnas('tbl_partes')
+    if 'fecha_creacion' in columnas_partes:
+        select_parts.append("p.fecha_creacion")
+    if 'fecha_modificacion' in columnas_partes:
+        select_parts.append("p.fecha_modificacion")
 
     # Construir SQL completo
     sql = f"""
