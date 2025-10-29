@@ -40,6 +40,13 @@ class AppPartsV2(customtkinter.CTk):
         self.estado_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
+        # Código OT (solo lectura, se actualiza dinámicamente)
+        customtkinter.CTkLabel(self, text="Código OT:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.codigo_ot_entry = customtkinter.CTkEntry(self, width=200, state="readonly",
+                                                       fg_color="gray90", text_color="gray30")
+        self.codigo_ot_entry.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        row += 1
+
         # ====================================================================
         # CARACTERÍSTICAS DEL TRABAJO
         # ====================================================================
@@ -49,7 +56,8 @@ class AppPartsV2(customtkinter.CTk):
         self.red_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
 
         customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
-        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
+        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300,
+                                                       command=self._update_codigo_ot)
         self.tipo_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -106,7 +114,7 @@ class AppPartsV2(customtkinter.CTk):
         row += 1
 
         customtkinter.CTkLabel(self, text="Municipio:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.municipio_menu = customtkinter.CTkOptionMenu(self, values=["Cargando..."], width=400)
+        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Cargando..."], width=400, state="normal")
         self.municipio_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -115,13 +123,12 @@ class AppPartsV2(customtkinter.CTk):
         # ====================================================================
         self.save_btn = customtkinter.CTkButton(self, text="Guardar parte", command=self._save_part)
         self.save_btn.grid(row=row, column=0, columnspan=4, padx=20, pady=15, sticky="nsew")
-        row += 1
-
-        self.btn_ver_partes = customtkinter.CTkButton(self, text="Ver listado de partes", command=self._open_parts_list)
-        self.btn_ver_partes.grid(row=row, column=0, columnspan=4, padx=20, pady=5, sticky="ew")
 
         # Cargar datos iniciales
         self._reload_dims()
+
+        # Actualizar código OT inicial
+        self._update_codigo_ot()
 
     def _reload_dims(self):
         """Recarga estados, dimensiones y municipios."""
@@ -161,7 +168,7 @@ class AppPartsV2(customtkinter.CTk):
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
 
     def _get_municipios(self):
-        """Obtiene lista de municipios de tbl_municipios"""
+        """Obtiene lista de municipios de Álava ordenados alfabéticamente"""
         try:
             from script.db_connection import get_project_connection
             with get_project_connection(self.user, self.password, self.schema) as cn:
@@ -180,12 +187,38 @@ class AppPartsV2(customtkinter.CTk):
                 col_result = cur.fetchone()
                 col_name = col_result[0] if col_result else 'id'
 
-                cur.execute(f"SELECT id, {col_name} FROM tbl_municipios ORDER BY {col_name}")
+                # Detectar columna de provincia para filtrar Álava
+                cur.execute(f"""
+                    SELECT COLUMN_NAME
+                    FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA = '{self.schema}'
+                    AND TABLE_NAME = 'tbl_municipios'
+                    AND COLUMN_NAME IN ('provincia', 'NPRO', 'province', 'cod_provincia', 'CODIGOINE')
+                    LIMIT 1
+                """)
+                provincia_col_result = cur.fetchone()
+
+                # Construir WHERE clause para filtrar Álava
+                where_clause = ""
+                if provincia_col_result:
+                    provincia_col = provincia_col_result[0]
+                    if provincia_col == 'CODIGOINE':
+                        # Álava tiene código provincial 01, CODIGOINE empieza por 01
+                        where_clause = "WHERE CODIGOINE LIKE '01%'"
+                    elif provincia_col in ('NPRO', 'cod_provincia'):
+                        # Código numérico de provincia: 1 para Álava
+                        where_clause = f"WHERE {provincia_col} = 1"
+                    else:
+                        # Nombre de provincia: buscar variantes de Álava/Araba
+                        where_clause = f"WHERE {provincia_col} IN ('Álava', 'Araba', 'Alava', 'Araba/Álava', 'Álava/Araba')"
+
+                cur.execute(f"SELECT id, {col_name} FROM tbl_municipios {where_clause} ORDER BY {col_name}")
                 rows = cur.fetchall()
                 cur.close()
 
                 return [f"{row[0]} - {row[1]}" for row in rows]
-        except Exception:
+        except Exception as e:
+            print(f"Error loading municipios: {e}")
             return []
 
     @staticmethod
@@ -197,6 +230,45 @@ class AppPartsV2(customtkinter.CTk):
             return int(str(v).split(" - ")[0].strip())
         except Exception:
             return None
+
+    def _update_codigo_ot(self, *args):
+        """Actualiza el código OT preview según el tipo de trabajo seleccionado"""
+        try:
+            from script.db_partes import _get_tipo_trabajo_prefix
+            from script.db_connection import get_project_connection
+
+            tipo_id = self._take_id(self.tipo_menu.get())
+            if not tipo_id:
+                self.codigo_ot_entry.configure(state="normal")
+                self.codigo_ot_entry.delete(0, "end")
+                self.codigo_ot_entry.insert(0, "PT-?????")
+                self.codigo_ot_entry.configure(state="readonly")
+                return
+
+            # Get prefix based on tipo_trabajo
+            prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
+
+            # Get next ID from database
+            with get_project_connection(self.user, self.password, self.schema) as cn:
+                cur = cn.cursor()
+                cur.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM tbl_partes")
+                next_id = cur.fetchone()[0]
+                cur.close()
+
+            codigo = f"{prefix}-{next_id:05d}"
+
+            # Update readonly entry
+            self.codigo_ot_entry.configure(state="normal")
+            self.codigo_ot_entry.delete(0, "end")
+            self.codigo_ot_entry.insert(0, codigo)
+            self.codigo_ot_entry.configure(state="readonly")
+
+        except Exception as e:
+            print(f"Error updating código OT: {e}")
+            self.codigo_ot_entry.configure(state="normal")
+            self.codigo_ot_entry.delete(0, "end")
+            self.codigo_ot_entry.insert(0, "Error")
+            self.codigo_ot_entry.configure(state="readonly")
 
     def _save_part(self):
         """Guarda el parte con validación completa"""

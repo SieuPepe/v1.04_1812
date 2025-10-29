@@ -1,12 +1,8 @@
 # interface/parts_interfaz.py
 import customtkinter
 from CTkMessagebox import CTkMessagebox
-from script.modulo_db import add_parte_with_code
-from parts_list_window import open_parts_list
+from script.modulo_db import add_parte_with_code, get_dim_all
 import mysql.connector as m
-
-# Usamos la utilidad que ya probaste para traer las tres dimensiones
-from script.modulo_db import get_dim_all
 
 class AppParts(customtkinter.CTk):
     """
@@ -33,41 +29,40 @@ class AppParts(customtkinter.CTk):
         self.reload_btn = customtkinter.CTkButton(self, text="Recargar listas", command=self._reload_dims)
         self.reload_btn.grid(row=0, column=2, padx=10, pady=10, sticky="w")
 
-        # Fila 1: RED / TIPO
-        customtkinter.CTkLabel(self, text="Red:").grid(row=1, column=0, padx=10, pady=15, sticky="e")
+        # Código OT (solo lectura, se actualiza dinámicamente)
+        customtkinter.CTkLabel(self, text="Código OT:").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        self.codigo_ot_entry = customtkinter.CTkEntry(self, width=200, state="readonly",
+                                                       fg_color="gray90", text_color="gray30")
+        self.codigo_ot_entry.grid(row=1, column=1, padx=5, pady=10, sticky="w")
+
+        # Fila 2: RED / TIPO
+        customtkinter.CTkLabel(self, text="Red:").grid(row=2, column=0, padx=10, pady=15, sticky="e")
         self.red_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.red_menu.grid(row=1, column=1, padx=5, pady=15, sticky="w")
+        self.red_menu.grid(row=2, column=1, padx=5, pady=15, sticky="w")
 
-        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=1, column=2, padx=10, pady=15, sticky="e")
-        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.tipo_menu.grid(row=1, column=3, padx=5, pady=15, sticky="w")
+        customtkinter.CTkLabel(self, text="Tipo trabajo:").grid(row=2, column=2, padx=10, pady=15, sticky="e")
+        self.tipo_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], command=self._update_codigo_ot)
+        self.tipo_menu.grid(row=2, column=3, padx=5, pady=15, sticky="w")
 
-        # Fila 2: Código trabajo
-        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=2, column=0, padx=10, pady=15, sticky="e")
+        # Fila 3: Código trabajo
+        customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=3, column=0, padx=10, pady=15, sticky="e")
         self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"])
-        self.cod_menu.grid(row=2, column=1, padx=5, pady=15, sticky="w")
+        self.cod_menu.grid(row=3, column=1, padx=5, pady=15, sticky="w")
 
         # Descripción opcional
-        customtkinter.CTkLabel(self, text="Descripción (opcional):").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+        customtkinter.CTkLabel(self, text="Descripción (opcional):").grid(row=4, column=0, padx=10, pady=10, sticky="e")
         self.desc_entry = customtkinter.CTkEntry(self, width=540)
-        self.desc_entry.grid(row=3, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+        self.desc_entry.grid(row=4, column=1, columnspan=3, padx=5, pady=10, sticky="w")
 
         # Botón guardar
         self.save_btn = customtkinter.CTkButton(self, text="Guardar parte", command=self._save_part)
-        self.save_btn.grid(row=4, column=0, columnspan=4, padx=20, pady=25, sticky="nsew")
-
-        # Botón para ver listado de partes
-        self.btn_ver_partes = customtkinter.CTkButton(
-            self,
-            text="Ver listado de partes",
-            command=self._open_parts_list
-        )
-        self.btn_ver_partes.grid(row=5, column=0, columnspan=4, padx=20, pady=10, sticky="ew")
+        self.save_btn.grid(row=5, column=0, columnspan=4, padx=20, pady=25, sticky="nsew")
 
         # Cargar por primera vez
         self._reload_dims()
 
-
+        # Actualizar código OT inicial
+        self._update_codigo_ot()
 
     def _reload_dims(self):
         try:
@@ -96,6 +91,45 @@ class AppParts(customtkinter.CTk):
         except Exception:
             return None
 
+    def _update_codigo_ot(self, *args):
+        """Actualiza el código OT preview según el tipo de trabajo seleccionado"""
+        try:
+            from script.db_partes import _get_tipo_trabajo_prefix
+            from script.db_connection import get_project_connection
+
+            tipo_id = self._take_id(self.tipo_menu.get())
+            if not tipo_id:
+                self.codigo_ot_entry.configure(state="normal")
+                self.codigo_ot_entry.delete(0, "end")
+                self.codigo_ot_entry.insert(0, "PT-?????")
+                self.codigo_ot_entry.configure(state="readonly")
+                return
+
+            # Get prefix based on tipo_trabajo
+            prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
+
+            # Get next ID from database
+            with get_project_connection(self.user, self.password, self.schema) as cn:
+                cur = cn.cursor()
+                cur.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM tbl_partes")
+                next_id = cur.fetchone()[0]
+                cur.close()
+
+            codigo = f"{prefix}-{next_id:05d}"
+
+            # Update readonly entry
+            self.codigo_ot_entry.configure(state="normal")
+            self.codigo_ot_entry.delete(0, "end")
+            self.codigo_ot_entry.insert(0, codigo)
+            self.codigo_ot_entry.configure(state="readonly")
+
+        except Exception as e:
+            print(f"Error updating código OT: {e}")
+            self.codigo_ot_entry.configure(state="normal")
+            self.codigo_ot_entry.delete(0, "end")
+            self.codigo_ot_entry.insert(0, "Error")
+            self.codigo_ot_entry.configure(state="readonly")
+
     def _save_part(self):
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
@@ -117,7 +151,3 @@ class AppParts(customtkinter.CTk):
             CTkMessagebox(title="Error",
                           message=f"No se pudo guardar el parte:\n{e}",
                           icon="cancel")
-
-    def _open_parts_list(self):
-        # Asumo que la clase ya guarda estas credenciales en self.user, self.password, self.schema
-        open_parts_list(self, self.user, self.password, self.schema)
