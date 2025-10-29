@@ -782,7 +782,7 @@ def get_estados_parte(user: str, password: str, schema: str):
     Obtiene la lista de estados disponibles para los partes.
 
     Returns:
-        list: Lista de tuplas (id, nombre, descripcion, orden)
+        list: Lista de diccionarios con keys: id, nombre, descripcion, orden
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -795,14 +795,24 @@ def get_estados_parte(user: str, password: str, schema: str):
             """)
             rows = cur.fetchall()
             cur.close()
-            return rows
+
+            # Convertir tuplas a diccionarios
+            return [
+                {
+                    'id': row[0],
+                    'nombre': row[1],
+                    'descripcion': row[2],
+                    'orden': row[3]
+                }
+                for row in rows
+            ]
     except Exception:
         # Si la tabla no existe, devolver estados por defecto
         return [
-            (1, 'Pendiente', 'Parte pendiente de iniciar', 1),
-            (2, 'En curso', 'Parte en ejecución', 2),
-            (3, 'Finalizada', 'Parte completada con éxito', 3),
-            (4, 'Cancelada', 'Parte cancelada', 4),
+            {'id': 1, 'nombre': 'Pendiente', 'descripcion': 'Parte pendiente de iniciar', 'orden': 1},
+            {'id': 2, 'nombre': 'En curso', 'descripcion': 'Parte en ejecución', 'orden': 2},
+            {'id': 3, 'nombre': 'Finalizada', 'descripcion': 'Parte completada con éxito', 'orden': 3},
+            {'id': 4, 'nombre': 'Cancelada', 'descripcion': 'Parte cancelada', 'orden': 4},
         ]
 
 
