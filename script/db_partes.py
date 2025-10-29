@@ -535,3 +535,344 @@ def delete_part_cert_item(user: str, password: str, schema: str, cert_id: int):
             return "ok"
     except Exception as e:
         return str(e)
+
+
+# ==================== FUNCIONES MEJORADAS CON NUEVOS CAMPOS ====================
+
+def add_parte_mejorado(user: str, password: str, schema: str,
+                       ot_id: int, red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
+                       titulo: str = None,
+                       descripcion: str = None,
+                       descripcion_larga: str = None,
+                       descripcion_corta: str = None,
+                       fecha_inicio: str = None,
+                       fecha_fin: str = None,
+                       fecha_prevista_fin: str = None,
+                       id_estado: int = 1,
+                       finalizada: bool = False,
+                       localizacion: str = None,
+                       id_municipio: int = None):
+    """
+    Inserta un parte con los campos mejorados y genera el código automático (PT-00001).
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        ot_id: ID de OT (FK)
+        red_id: ID de red (FK)
+        tipo_trabajo_id: ID de tipo de trabajo (FK)
+        cod_trabajo_id: ID de código de trabajo (FK)
+        titulo: Título descriptivo del parte (obligatorio conceptualmente)
+        descripcion: Descripción original (compatible con versión anterior)
+        descripcion_larga: Descripción detallada del trabajo
+        descripcion_corta: Resumen breve para listados
+        fecha_inicio: Fecha de inicio (formato 'YYYY-MM-DD')
+        fecha_fin: Fecha de finalización (formato 'YYYY-MM-DD')
+        fecha_prevista_fin: Fecha prevista de finalización
+        id_estado: ID del estado (1=Pendiente por defecto)
+        finalizada: Booleano de finalización (sincronizado con estado)
+        localizacion: Ubicación textual
+        id_municipio: ID del municipio (FK)
+
+    Returns:
+        tuple: (id, codigo) del parte creado
+
+    Raises:
+        Exception: Si hay error en la inserción
+    """
+    with get_project_connection(user, password, schema) as cn:
+        cur = cn.cursor()
+
+        # Verificar qué columnas existen en tbl_partes
+        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        columns = {row[0] for row in cur.fetchall()}
+
+        # Construir INSERT dinámicamente según columnas disponibles
+        insert_cols = ['ot_id', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
+        insert_vals = [ot_id, red_id, tipo_trabajo_id, cod_trabajo_id]
+
+        # Campos nuevos (añadir solo si la columna existe)
+        if 'titulo' in columns and titulo:
+            insert_cols.append('titulo')
+            insert_vals.append(titulo)
+
+        if 'descripcion' in columns and descripcion:
+            insert_cols.append('descripcion')
+            insert_vals.append(descripcion)
+
+        if 'descripcion_larga' in columns and descripcion_larga:
+            insert_cols.append('descripcion_larga')
+            insert_vals.append(descripcion_larga)
+
+        if 'descripcion_corta' in columns and descripcion_corta:
+            insert_cols.append('descripcion_corta')
+            insert_vals.append(descripcion_corta)
+
+        if 'fecha_inicio' in columns and fecha_inicio:
+            insert_cols.append('fecha_inicio')
+            insert_vals.append(fecha_inicio)
+
+        if 'fecha_fin' in columns and fecha_fin:
+            insert_cols.append('fecha_fin')
+            insert_vals.append(fecha_fin)
+
+        if 'fecha_prevista_fin' in columns and fecha_prevista_fin:
+            insert_cols.append('fecha_prevista_fin')
+            insert_vals.append(fecha_prevista_fin)
+
+        if 'id_estado' in columns:
+            insert_cols.append('id_estado')
+            insert_vals.append(id_estado)
+
+        if 'finalizada' in columns:
+            insert_cols.append('finalizada')
+            insert_vals.append(1 if finalizada else 0)
+
+        if 'localizacion' in columns and localizacion:
+            insert_cols.append('localizacion')
+            insert_vals.append(localizacion)
+
+        if 'id_municipio' in columns and id_municipio:
+            insert_cols.append('id_municipio')
+            insert_vals.append(id_municipio)
+
+        # Construir query
+        placeholders = ', '.join(['%s'] * len(insert_vals))
+        query = f"INSERT INTO tbl_partes ({', '.join(insert_cols)}) VALUES ({placeholders})"
+
+        cur.execute(query, tuple(insert_vals))
+        new_id = cur.lastrowid
+
+        # Generar código
+        codigo = f"PT-{new_id:05d}"
+        cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))
+
+        cn.commit()
+        cur.close()
+        return new_id, codigo
+
+
+def mod_parte_mejorado(user: str, password: str, schema: str,
+                       parte_id: int,
+                       ot_id: int = None,
+                       red_id: int = None,
+                       tipo_trabajo_id: int = None,
+                       cod_trabajo_id: int = None,
+                       titulo: str = None,
+                       descripcion: str = None,
+                       descripcion_larga: str = None,
+                       descripcion_corta: str = None,
+                       fecha_inicio: str = None,
+                       fecha_fin: str = None,
+                       fecha_prevista_fin: str = None,
+                       id_estado: int = None,
+                       finalizada: bool = None,
+                       localizacion: str = None,
+                       id_municipio: int = None):
+    """
+    Modifica un parte existente con los campos mejorados.
+    Solo actualiza los campos que se pasan (los que son None se ignoran).
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        parte_id: ID del parte a modificar
+        Resto de parámetros: ver add_parte_mejorado()
+
+    Returns:
+        str: "ok" si exitoso, mensaje de error si falla
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Verificar qué columnas existen
+            cur.execute(f"DESCRIBE {schema}.tbl_partes")
+            columns = {row[0] for row in cur.fetchall()}
+
+            # Construir UPDATE dinámicamente
+            update_parts = []
+            update_vals = []
+
+            # Campos obligatorios (solo actualizar si se pasan)
+            if ot_id is not None:
+                update_parts.append('ot_id = %s')
+                update_vals.append(ot_id)
+
+            if red_id is not None:
+                update_parts.append('red_id = %s')
+                update_vals.append(red_id)
+
+            if tipo_trabajo_id is not None:
+                update_parts.append('tipo_trabajo_id = %s')
+                update_vals.append(tipo_trabajo_id)
+
+            if cod_trabajo_id is not None:
+                update_parts.append('cod_trabajo_id = %s')
+                update_vals.append(cod_trabajo_id)
+
+            # Campos nuevos
+            if 'titulo' in columns and titulo is not None:
+                update_parts.append('titulo = %s')
+                update_vals.append(titulo)
+
+            if 'descripcion' in columns and descripcion is not None:
+                update_parts.append('descripcion = %s')
+                update_vals.append(descripcion)
+
+            if 'descripcion_larga' in columns and descripcion_larga is not None:
+                update_parts.append('descripcion_larga = %s')
+                update_vals.append(descripcion_larga)
+
+            if 'descripcion_corta' in columns and descripcion_corta is not None:
+                update_parts.append('descripcion_corta = %s')
+                update_vals.append(descripcion_corta)
+
+            if 'fecha_inicio' in columns and fecha_inicio is not None:
+                update_parts.append('fecha_inicio = %s')
+                update_vals.append(fecha_inicio)
+
+            if 'fecha_fin' in columns and fecha_fin is not None:
+                update_parts.append('fecha_fin = %s')
+                update_vals.append(fecha_fin)
+
+            if 'fecha_prevista_fin' in columns and fecha_prevista_fin is not None:
+                update_parts.append('fecha_prevista_fin = %s')
+                update_vals.append(fecha_prevista_fin)
+
+            if 'id_estado' in columns and id_estado is not None:
+                update_parts.append('id_estado = %s')
+                update_vals.append(id_estado)
+
+            if 'finalizada' in columns and finalizada is not None:
+                update_parts.append('finalizada = %s')
+                update_vals.append(1 if finalizada else 0)
+
+            if 'localizacion' in columns and localizacion is not None:
+                update_parts.append('localizacion = %s')
+                update_vals.append(localizacion)
+
+            if 'id_municipio' in columns and id_municipio is not None:
+                update_parts.append('id_municipio = %s')
+                update_vals.append(id_municipio)
+
+            # Añadir fecha de actualización si existe
+            if 'fecha_modificacion' in columns or 'actualizado_en' in columns:
+                update_parts.append('actualizado_en = NOW()')
+
+            if not update_parts:
+                return "No hay campos para actualizar"
+
+            # Construir y ejecutar query
+            update_vals.append(parte_id)
+            query = f"UPDATE tbl_partes SET {', '.join(update_parts)} WHERE id = %s"
+
+            cur.execute(query, tuple(update_vals))
+            cn.commit()
+            cur.close()
+            return "ok"
+    except Exception as e:
+        return str(e)
+
+
+def get_estados_parte(user: str, password: str, schema: str):
+    """
+    Obtiene la lista de estados disponibles para los partes.
+
+    Returns:
+        list: Lista de tuplas (id, nombre, descripcion, orden)
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute("""
+                SELECT id, nombre, descripcion, orden
+                FROM tbl_parte_estados
+                WHERE activo = TRUE
+                ORDER BY orden
+            """)
+            rows = cur.fetchall()
+            cur.close()
+            return rows
+    except Exception:
+        # Si la tabla no existe, devolver estados por defecto
+        return [
+            (1, 'Pendiente', 'Parte pendiente de iniciar', 1),
+            (2, 'En curso', 'Parte en ejecución', 2),
+            (3, 'Finalizada', 'Parte completada con éxito', 3),
+            (4, 'Cancelada', 'Parte cancelada', 4),
+        ]
+
+
+def list_partes_mejorado(user: str, password: str, schema: str, limit: int = 200):
+    """
+    Devuelve una lista de dicts con los partes más recientes, incluyendo nuevos campos.
+
+    Returns:
+        list: Lista de dicts con todos los campos del parte
+    """
+    with get_project_connection(user, password, schema) as cn:
+        cur = cn.cursor()
+
+        # Verificar si existe la vista mejorada
+        cur.execute(f"""
+            SELECT COUNT(*)
+            FROM information_schema.VIEWS
+            WHERE TABLE_SCHEMA = '{schema}'
+            AND TABLE_NAME = 'vw_partes_completo'
+        """)
+
+        if cur.fetchone()[0] > 0:
+            # Usar vista mejorada si existe
+            cur.execute(f"""
+                SELECT *
+                FROM vw_partes_completo
+                ORDER BY fecha_inicio DESC, id DESC
+                LIMIT %s
+            """, (limit,))
+        else:
+            # Fallback a consulta manual
+            cur.execute(f"""
+                SELECT
+                    p.id,
+                    p.codigo,
+                    p.titulo,
+                    p.descripcion,
+                    p.descripcion_larga,
+                    p.descripcion_corta,
+                    p.fecha_inicio,
+                    p.fecha_fin,
+                    p.fecha_prevista_fin,
+                    CASE
+                        WHEN p.fecha_fin IS NOT NULL AND p.fecha_inicio IS NOT NULL
+                        THEN DATEDIFF(p.fecha_fin, p.fecha_inicio)
+                        ELSE NULL
+                    END AS dias_duracion,
+                    pe.nombre AS estado,
+                    p.finalizada,
+                    p.localizacion,
+                    m.nombre AS municipio,
+                    ot.ot_codigo AS ot,
+                    r.red_codigo AS red,
+                    tt.tipo_codigo AS tipo_trabajo,
+                    ct.cod_trabajo AS cod_trabajo
+                FROM tbl_partes p
+                LEFT JOIN tbl_parte_estados pe ON p.id_estado = pe.id
+                LEFT JOIN tbl_municipios m ON p.id_municipio = m.id
+                LEFT JOIN dim_ot ot ON p.ot_id = ot.id
+                LEFT JOIN dim_red r ON p.red_id = r.id
+                LEFT JOIN dim_tipo_trabajo tt ON p.tipo_trabajo_id = tt.id
+                LEFT JOIN dim_codigo_trabajo ct ON p.cod_trabajo_id = ct.id
+                ORDER BY p.fecha_inicio DESC, p.id DESC
+                LIMIT %s
+            """, (limit,))
+
+        # Obtener nombres de columnas
+        columns = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        cur.close()
+
+        # Convertir a lista de dicts
+        return [dict(zip(columns, row)) for row in rows]

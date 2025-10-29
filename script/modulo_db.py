@@ -155,6 +155,12 @@ from .db_partes import (
     get_parte_detail,
     mod_parte_item,
 
+    # Gestión de partes mejorada (con nuevos campos)
+    add_parte_mejorado,
+    mod_parte_mejorado,
+    get_estados_parte,
+    list_partes_mejorado,
+
     # Presupuesto de partes
     get_part_presupuesto,
     add_part_presupuesto_item,
