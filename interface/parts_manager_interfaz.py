@@ -93,14 +93,12 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.presupuesto_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.certificaciones_frame = customtkinter.CTkFrame(self, corner_radius=0)
-        self.configuracion_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
         # Generar vistas
         self.main_resumen()
         self.main_partes()
         self.main_presupuesto()
         self.main_certificaciones()
-        self.main_configuracion()
 
         # Seleccionar frame por defecto
         self.select_frame_by_name("resumen")
@@ -177,18 +175,8 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.certificaciones_button.grid(row=5, column=0, sticky="ew")
 
-        # Botón Configuración
-        self.config_button = customtkinter.CTkButton(
-            self.navigation_frame, corner_radius=0, height=40,
-            border_spacing=10, text="Configuración", fg_color="transparent",
-            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
-            anchor="w", command=lambda: self.select_frame_by_name("configuracion")
-        )
-        self.config_button.grid(row=6, column=0, sticky="ew")
-
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(7, weight=1)
+        self.navigation_frame.grid_rowconfigure(6, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -208,7 +196,6 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_button.configure(fg_color=("gray75", "gray25") if name == "presupuesto" else "transparent")
         self.certificaciones_button.configure(
             fg_color=("gray75", "gray25") if name == "certificaciones" else "transparent")
-        self.config_button.configure(fg_color=("gray75", "gray25") if name == "configuracion" else "transparent")
 
         # Mostrar frame seleccionado
         if name == "resumen":
@@ -230,11 +217,6 @@ class AppPartsManager(customtkinter.CTk):
             self.certificaciones_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
         else:
             self.certificaciones_frame.grid_forget()
-
-        if name == "configuracion":
-            self.configuracion_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
-        else:
-            self.configuracion_frame.grid_forget()
 
     def main_resumen(self):
         """Pestaña Resumen - Lista de partes con KPIs"""
@@ -2245,172 +2227,6 @@ class AppPartsManager(customtkinter.CTk):
                 if result == "ok":
                     CTkMessagebox(title="Éxito", message="✅ Certificación eliminada", icon="check")
                     self._load_certificaciones_data()
-                else:
-                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
-
-    def main_configuracion(self):
-        """Pestaña Configuración - Gestión de dimensiones OT, Red, Tipo, Código"""
-        from tkinter import ttk
-        from script.modulo_db import get_all_dim_ot, add_dim_ot, delete_dim_ot
-
-        self.configuracion_frame.grid_columnconfigure(0, weight=1)
-        self.configuracion_frame.grid_rowconfigure(1, weight=1)
-
-        # Título
-        title = customtkinter.CTkLabel(
-            self.configuracion_frame,
-            text="CONFIGURACIÓN DE CÓDIGOS OT",
-            font=customtkinter.CTkFont(size=20, weight="bold")
-        )
-        title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
-
-        # Frame para botones
-        btn_frame = customtkinter.CTkFrame(self.configuracion_frame, fg_color="transparent")
-        btn_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew")
-
-        btn_add = customtkinter.CTkButton(
-            btn_frame, text="➕ Añadir Código OT",
-            command=self._add_ot_config,
-            fg_color="green", hover_color="#006400", width=150
-        )
-        btn_add.pack(side="left", padx=(0, 10))
-
-        btn_delete = customtkinter.CTkButton(
-            btn_frame, text="🗑️ Eliminar",
-            command=self._delete_ot_config,
-            fg_color="red", hover_color="#8B0000", width=120
-        )
-        btn_delete.pack(side="left", padx=(0, 10))
-
-        btn_refresh = customtkinter.CTkButton(
-            btn_frame, text="🔄", width=40,
-            command=self._reload_ot_config
-        )
-        btn_refresh.pack(side="left")
-
-        # TreeView para mostrar códigos OT
-        tree_container = customtkinter.CTkFrame(self.configuracion_frame)
-        tree_container.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew")
-        self.configuracion_frame.grid_rowconfigure(2, weight=1)
-
-        columns = ("ID", "Código OT", "Descripción")
-        self.tree_ot_config = ttk.Treeview(tree_container, columns=columns, show="headings", height=20)
-
-        # Definir encabezados
-        self.tree_ot_config.heading("ID", text="ID")
-        self.tree_ot_config.heading("Código OT", text="Código OT")
-        self.tree_ot_config.heading("Descripción", text="Descripción")
-
-        # Definir anchos
-        self.tree_ot_config.column("ID", width=80, anchor="center")
-        self.tree_ot_config.column("Código OT", width=200, anchor="w")
-        self.tree_ot_config.column("Descripción", width=400, anchor="w")
-
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.tree_ot_config.yview)
-        self.tree_ot_config.configure(yscrollcommand=scrollbar.set)
-
-        self.tree_ot_config.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Cargar datos
-        self._reload_ot_config()
-
-    def _reload_ot_config(self):
-        """Recarga la lista de códigos OT"""
-        from script.modulo_db import get_all_dim_ot
-
-        # Limpiar TreeView
-        for item in self.tree_ot_config.get_children():
-            self.tree_ot_config.delete(item)
-
-        # Cargar datos
-        try:
-            rows = get_all_dim_ot(self.user, self.password, self.schema)
-            for row in rows:
-                if len(row) >= 3:
-                    self.tree_ot_config.insert("", "end", values=(row[0], row[1], row[2]))
-                else:
-                    self.tree_ot_config.insert("", "end", values=(row[0], row[1], ""))
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"Error cargando códigos OT:\n{e}", icon="cancel")
-
-    def _add_ot_config(self):
-        """Abre ventana para añadir nuevo código OT"""
-        from script.modulo_db import add_dim_ot
-
-        win = customtkinter.CTkToplevel(self)
-        win.title("Añadir Código OT")
-        win.geometry("500x250")
-        win.lift()
-        win.grab_set()
-        win.focus()
-
-        frame = customtkinter.CTkFrame(win)
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Código OT
-        customtkinter.CTkLabel(frame, text="Código OT:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=10, pady=10, sticky="e")
-        codigo_entry = customtkinter.CTkEntry(frame, width=300)
-        codigo_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-
-        # Descripción
-        customtkinter.CTkLabel(frame, text="Descripción:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=10, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(frame, width=300)
-        desc_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-
-        def guardar():
-            codigo = codigo_entry.get().strip()
-            desc = desc_entry.get().strip()
-
-            if not codigo:
-                CTkMessagebox(title="Error", message="El código OT es obligatorio", icon="cancel")
-                return
-
-            result = add_dim_ot(self.user, self.password, self.schema, codigo, desc or codigo)
-            if result == "ok":
-                CTkMessagebox(title="Éxito", message=f"Código OT '{codigo}' añadido correctamente", icon="check")
-                win.destroy()
-                self._reload_ot_config()
-            else:
-                CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-
-        btn_save = customtkinter.CTkButton(frame, text="Guardar", command=guardar,
-                                           fg_color="green", hover_color="#006400")
-        btn_save.grid(row=2, column=0, columnspan=2, padx=20, pady=20, sticky="ew")
-
-    def _delete_ot_config(self):
-        """Elimina un código OT"""
-        from script.modulo_db import delete_dim_ot
-
-        selected = self.tree_ot_config.selection()
-        if not selected:
-            CTkMessagebox(title="Aviso", message="Seleccione un código OT para eliminar", icon="info")
-            return
-
-        item = self.tree_ot_config.item(selected[0])
-        values = item['values']
-        ot_id = values[0]
-        codigo = values[1]
-
-        msg = CTkMessagebox(
-            title="Confirmar",
-            message=f"¿Eliminar código OT '{codigo}'?\n\nEsta acción no se puede deshacer.",
-            icon="warning",
-            option_1="Cancelar",
-            option_2="Eliminar"
-        )
-
-        if msg.get() == "Eliminar":
-            try:
-                result = delete_dim_ot(self.user, self.password, self.schema, ot_id)
-                if result == "ok":
-                    CTkMessagebox(title="Éxito", message=f"Código OT '{codigo}' eliminado", icon="check")
-                    self._reload_ot_config()
                 else:
                     CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
             except Exception as e:
