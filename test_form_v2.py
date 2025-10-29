@@ -9,7 +9,7 @@ from pathlib import Path
 # Añadir directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from interface.parts_interfaz_v2 import AppPartsV2
+from interface.parts_interfaz_v2_fixed import AppPartsV2
 
 if __name__ == "__main__":
     # Ajusta estas credenciales
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     SCHEMA = "cert_dev"
 
     print("=" * 60)
-    print("  FORMULARIO DE PARTES MEJORADO - VERSIÓN 2")
+    print("  FORMULARIO DE PARTES MEJORADO - VERSIÓN CORREGIDA")
     print("=" * 60)
     print(f"Schema: {SCHEMA}")
     print(f"Usuario: {USER}")
