@@ -168,7 +168,7 @@ class AppPartsV2(customtkinter.CTk):
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
 
     def _get_municipios(self):
-        """Obtiene lista de municipios de Álava ordenados alfabéticamente"""
+        """Obtiene lista de municipios ordenados alfabéticamente"""
         try:
             from script.db_connection import get_project_connection
             with get_project_connection(self.user, self.password, self.schema) as cn:
@@ -187,32 +187,7 @@ class AppPartsV2(customtkinter.CTk):
                 col_result = cur.fetchone()
                 col_name = col_result[0] if col_result else 'id'
 
-                # Detectar columna de provincia para filtrar Álava
-                cur.execute(f"""
-                    SELECT COLUMN_NAME
-                    FROM information_schema.COLUMNS
-                    WHERE TABLE_SCHEMA = '{self.schema}'
-                    AND TABLE_NAME = 'tbl_municipios'
-                    AND COLUMN_NAME IN ('provincia', 'NPRO', 'province', 'cod_provincia', 'CODIGOINE')
-                    LIMIT 1
-                """)
-                provincia_col_result = cur.fetchone()
-
-                # Construir WHERE clause para filtrar Álava
-                where_clause = ""
-                if provincia_col_result:
-                    provincia_col = provincia_col_result[0]
-                    if provincia_col == 'CODIGOINE':
-                        # Álava tiene código provincial 01, CODIGOINE empieza por 01
-                        where_clause = "WHERE CODIGOINE LIKE '01%'"
-                    elif provincia_col in ('NPRO', 'cod_provincia'):
-                        # Código numérico de provincia: 1 para Álava
-                        where_clause = f"WHERE {provincia_col} = 1"
-                    else:
-                        # Nombre de provincia: buscar variantes de Álava/Araba
-                        where_clause = f"WHERE {provincia_col} IN ('Álava', 'Araba', 'Alava', 'Araba/Álava', 'Álava/Araba')"
-
-                cur.execute(f"SELECT id, {col_name} FROM tbl_municipios {where_clause} ORDER BY {col_name}")
+                cur.execute(f"SELECT id, {col_name} FROM tbl_municipios ORDER BY {col_name}")
                 rows = cur.fetchall()
                 cur.close()
 
@@ -248,10 +223,15 @@ class AppPartsV2(customtkinter.CTk):
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
 
-            # Get next ID from database
+            # Get next number for this specific prefix (independent numbering per prefix)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                cur.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM tbl_partes")
+                # Extract the numeric part from existing codes with this prefix
+                cur.execute("""
+                    SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+                    FROM tbl_partes
+                    WHERE codigo LIKE CONCAT(%s, '-%%')
+                """, (prefix, prefix))
                 next_id = cur.fetchone()[0]
                 cur.close()
 

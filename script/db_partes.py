@@ -150,9 +150,18 @@ def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_tra
         )
         new_id = cur.lastrowid
 
-        # Obtener prefijo según tipo de trabajo
+        # Obtener prefijo según tipo de trabajo y numeración independiente
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
-        codigo = f"{prefix}-{new_id:05d}"
+
+        # Obtener el siguiente número para este prefijo específico
+        cur.execute("""
+            SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+            FROM tbl_partes
+            WHERE codigo LIKE CONCAT(%s, '-%%')
+        """, (prefix, prefix))
+        next_num = cur.fetchone()[0]
+
+        codigo = f"{prefix}-{next_num:05d}"
 
         cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))
         cn.commit()
@@ -625,9 +634,18 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         cur.execute(query, tuple(insert_vals))
         new_id = cur.lastrowid
 
-        # Generar código según tipo de trabajo
+        # Generar código con numeración independiente por prefijo
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
-        codigo = f"{prefix}-{new_id:05d}"
+
+        # Obtener el siguiente número para este prefijo específico
+        cur.execute("""
+            SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+            FROM tbl_partes
+            WHERE codigo LIKE CONCAT(%s, '-%%')
+        """, (prefix, prefix))
+        next_num = cur.fetchone()[0]
+
+        codigo = f"{prefix}-{next_num:05d}"
         cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))
 
         cn.commit()

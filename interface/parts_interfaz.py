@@ -108,10 +108,15 @@ class AppParts(customtkinter.CTk):
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
 
-            # Get next ID from database
+            # Get next number for this specific prefix (independent numbering per prefix)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                cur.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM tbl_partes")
+                # Extract the numeric part from existing codes with this prefix
+                cur.execute("""
+                    SELECT COALESCE(MAX(CAST(SUBSTRING(codigo, LENGTH(%s) + 2) AS UNSIGNED)), 0) + 1
+                    FROM tbl_partes
+                    WHERE codigo LIKE CONCAT(%s, '-%%')
+                """, (prefix, prefix))
                 next_id = cur.fetchone()[0]
                 cur.close()
 
