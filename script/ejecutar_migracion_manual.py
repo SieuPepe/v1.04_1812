@@ -94,23 +94,26 @@ def ejecutar_sql_archivo(user: str, password: str, schema: str, archivo_sql: Pat
 
                 cursor.execute(comando)
 
-                # Obtener resultados si los hay
-                if cursor.with_rows:
-                    resultados = cursor.fetchall()
-                    if resultados and len(resultados) > 0:
-                        # Mostrar primer resultado si es un mensaje
-                        primer_resultado = resultados[0]
-                        if isinstance(primer_resultado, tuple) and len(primer_resultado) > 0:
-                            mensaje = primer_resultado[0]
-                            if isinstance(mensaje, str) and ('✓' in mensaje or '⚠' in mensaje or 'ℹ' in mensaje):
-                                print(f"→ {mensaje}")
-                            else:
-                                print("✓")
-                        else:
-                            print("✓")
-                    else:
-                        print("✓")
-                else:
+                # Consumir todos los resultsets (importante para CALL procedures)
+                resultado_mostrado = False
+                while True:
+                    # Obtener resultados si los hay
+                    if cursor.with_rows:
+                        resultados = cursor.fetchall()
+                        if resultados and len(resultados) > 0 and not resultado_mostrado:
+                            # Mostrar primer resultado si es un mensaje
+                            primer_resultado = resultados[0]
+                            if isinstance(primer_resultado, tuple) and len(primer_resultado) > 0:
+                                mensaje = primer_resultado[0]
+                                if isinstance(mensaje, str) and ('✓' in mensaje or '⚠' in mensaje or 'ℹ' in mensaje):
+                                    print(f"→ {mensaje}")
+                                    resultado_mostrado = True
+
+                    # Intentar avanzar al siguiente resultset
+                    if not cursor.nextset():
+                        break
+
+                if not resultado_mostrado:
                     print("✓")
 
                 exitos += 1
