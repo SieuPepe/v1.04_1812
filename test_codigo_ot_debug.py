@@ -73,7 +73,7 @@ try:
               AND codigo LIKE %s
         """, (prefix + '-', prefix + '-%'))
 
-        next_num = cur.fetchone()[0]
+        next_num = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
         codigo = f"{prefix}-{next_num:05d}"
 
         print(f"✓ Siguiente número: {next_num}")
