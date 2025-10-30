@@ -168,7 +168,7 @@ def add_parte_with_code(user, password, schema, red_id, tipo_trabajo_id, cod_tra
             WHERE codigo IS NOT NULL
               AND codigo LIKE %s
         """, (prefix + '-', prefix + '-%'))
-        next_num = cur.fetchone()[0]
+        next_num = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
 
         codigo = f"{prefix}-{next_num:05d}"
 
@@ -661,7 +661,7 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             WHERE codigo IS NOT NULL
               AND codigo LIKE %s
         """, (prefix + '-', prefix + '-%'))
-        next_num = cur.fetchone()[0]
+        next_num = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
 
         codigo = f"{prefix}-{next_num:05d}"
         cur.execute("UPDATE tbl_partes SET codigo=%s WHERE id=%s", (codigo, new_id))

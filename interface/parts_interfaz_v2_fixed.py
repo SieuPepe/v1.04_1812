@@ -258,7 +258,7 @@ class AppPartsV2(customtkinter.CTk):
                     WHERE codigo IS NOT NULL
                       AND codigo LIKE %s
                 """, (prefix + '-', prefix + '-%'))
-                next_id = cur.fetchone()[0]
+                next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
             codigo = f"{prefix}-{next_id:05d}"
