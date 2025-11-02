@@ -1335,10 +1335,17 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         close_btn.grid(row=2, column=0, columnspan=2, pady=(0, 5))
 
-        # Centrar ventana
+        # Asegurar que la ventana se muestre al frente
+        results_window.transient(self)  # Hacer ventana dependiente de la principal
         results_window.update_idletasks()
+
+        # Forzar que aparezca al frente (especialmente en Windows)
+        results_window.attributes('-topmost', True)
         results_window.lift()
-        results_window.focus()
+        results_window.focus_force()
+
+        # Después de 100ms, quitar el "siempre encima" para permitir navegación normal
+        results_window.after(100, lambda: results_window.attributes('-topmost', False))
 
     def _export_word(self):
         """Exporta el informe a formato Word (.docx)"""
