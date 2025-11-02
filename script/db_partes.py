@@ -1010,16 +1010,19 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             insert_cols.append('localizacion')
             insert_vals.append(localizacion)
 
-        if 'provincia_id' in columns and provincia_id:
-            insert_cols.append('provincia_id')
+        if ('provincia_id' in columns or 'id_provincia' in columns) and provincia_id:
+            col = 'provincia_id' if 'provincia_id' in columns else 'id_provincia'
+            insert_cols.append(col)
             insert_vals.append(provincia_id)
 
-        if 'comarca_id' in columns and comarca_id:
-            insert_cols.append('comarca_id')
+        if ('comarca_id' in columns or 'id_comarca' in columns) and comarca_id:
+            col = 'comarca_id' if 'comarca_id' in columns else 'id_comarca'
+            insert_cols.append(col)
             insert_vals.append(comarca_id)
 
-        if 'municipio_id' in columns and municipio_id:
-            insert_cols.append('municipio_id')
+        if ('municipio_id' in columns or 'id_municipio' in columns) and municipio_id:
+            col = 'municipio_id' if 'municipio_id' in columns else 'id_municipio'
+            insert_cols.append(col)
             insert_vals.append(municipio_id)
 
         if 'trabajadores' in columns and trabajadores:
