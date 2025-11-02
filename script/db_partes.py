@@ -597,3 +597,298 @@ def delete_part_cert_item(user: str, password: str, schema: str, cert_id: int):
             return "ok"
     except Exception as e:
         return str(e)
+
+
+# ==================== FUNCIONES AUXILIARES PARA FORMULARIO MEJORADO ====================
+
+def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo_id: int):
+    """
+    Obtiene el prefijo de código del tipo de trabajo.
+    Por ejemplo: "MANT-PREV", "OBRA-NUEVA", etc.
+
+    Returns:
+        str: Prefijo del código o "PT" por defecto
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Intentar obtener el código/prefijo del tipo de trabajo
+            cur.execute(f"""
+                SELECT codigo, tipo_codigo, descripcion
+                FROM {schema}.dim_tipo_trabajo
+                WHERE id = %s
+            """, (tipo_trabajo_id,))
+
+            result = cur.fetchone()
+            cur.close()
+
+            if result:
+                # Preferir 'tipo_codigo' o 'codigo', sino usar descripción
+                return result[1] or result[0] or result[2] or "PT"
+            return "PT"
+    except Exception:
+        return "PT"
+
+
+def get_estados_parte(user: str, password: str, schema: str):
+    """
+    Obtiene la lista de estados disponibles para los partes.
+
+    Returns:
+        list: Lista de dicts {'id': int, 'nombre': str, 'descripcion': str, 'orden': int}
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute(f"""
+                SELECT id, nombre, descripcion, orden
+                FROM {schema}.tbl_parte_estados
+                WHERE activo = TRUE
+                ORDER BY orden
+            """)
+            rows = cur.fetchall()
+            cur.close()
+
+            # Convertir a lista de dicts
+            return [{'id': row[0], 'nombre': row[1], 'descripcion': row[2], 'orden': row[3]} for row in rows]
+    except Exception:
+        # Si la tabla no existe, devolver estados por defecto
+        return [
+            {'id': 1, 'nombre': 'Pendiente', 'descripcion': 'Parte pendiente de iniciar', 'orden': 1},
+            {'id': 2, 'nombre': 'En curso', 'descripcion': 'Parte en ejecución', 'orden': 2},
+            {'id': 3, 'nombre': 'Finalizado', 'descripcion': 'Parte completado con éxito', 'orden': 3},
+            {'id': 4, 'nombre': 'Cancelado', 'descripcion': 'Parte cancelado', 'orden': 4},
+        ]
+
+
+def get_provincias(user: str, password: str, schema: str):
+    """
+    Obtiene lista de provincias en formato "id - nombre"
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute(f"""
+                SELECT id, nombre
+                FROM {schema}.dim_provincias
+                WHERE activo = 1
+                ORDER BY codigo
+            """)
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        print(f"Error al obtener provincias: {e}")
+        return []
+
+
+def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
+    """
+    Obtiene lista de municipios filtrados por provincia
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        provincia_id: ID de provincia para filtrar (None = todos)
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Detectar columna de nombre (puede ser 'nombre' o 'municipio')
+            cur.execute(f"""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_municipios'
+                AND COLUMN_NAME IN ('nombre', 'municipio', 'descripcion')
+                ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio', 'descripcion')
+                LIMIT 1
+            """, (schema,))
+            col_result = cur.fetchone()
+            col_name = col_result[0] if col_result else 'nombre'
+
+            # Construir query con filtro opcional
+            if provincia_id:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM {schema}.dim_municipios
+                    WHERE provincia_id = %s AND activo = 1
+                    ORDER BY {col_name}
+                """
+                cur.execute(query, (provincia_id,))
+            else:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM {schema}.dim_municipios
+                    WHERE activo = 1
+                    ORDER BY {col_name}
+                """
+                cur.execute(query)
+
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        print(f"Error al obtener municipios: {e}")
+        return []
+
+
+def add_parte_mejorado(user: str, password: str, schema: str,
+                       red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
+                       titulo: str = None,
+                       descripcion: str = None,
+                       descripcion_larga: str = None,
+                       descripcion_corta: str = None,
+                       fecha_inicio: str = None,
+                       fecha_fin: str = None,
+                       fecha_prevista_fin: str = None,
+                       estado_id: int = 1,
+                       localizacion: str = None,
+                       provincia_id: int = None,
+                       municipio_id: int = None,
+                       trabajadores: str = None,
+                       latitud: float = None,
+                       longitud: float = None):
+    """
+    Inserta un parte con campos completos y genera el código automático basado en tipo_trabajo.
+
+    IMPORTANTE: NO usa dim_ot. El código se genera automáticamente usando el prefijo
+    del tipo de trabajo (ej: MANT-PREV-2024-0001).
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        red_id: ID de red (FK)
+        tipo_trabajo_id: ID de tipo de trabajo (FK)
+        cod_trabajo_id: ID de código de trabajo (FK)
+        titulo: Título descriptivo del parte
+        descripcion: Descripción del trabajo
+        descripcion_larga: Descripción detallada del trabajo
+        descripcion_corta: Resumen breve para listados
+        fecha_inicio: Fecha de inicio (formato 'YYYY-MM-DD')
+        fecha_fin: Fecha de finalización (formato 'YYYY-MM-DD')
+        fecha_prevista_fin: Fecha prevista de finalización
+        estado_id: ID del estado (1=Pendiente por defecto)
+        localizacion: Ubicación textual
+        provincia_id: ID de provincia (FK)
+        municipio_id: ID del municipio (FK)
+        trabajadores: Texto libre con nombres de trabajadores
+        latitud: Coordenada GPS (WGS84)
+        longitud: Coordenada GPS (WGS84)
+
+    Returns:
+        tuple: (id, codigo) del parte creado
+
+    Raises:
+        Exception: Si hay error en la inserción
+    """
+    with get_project_connection(user, password, schema) as cn:
+        cur = cn.cursor()
+
+        # Obtener prefijo del tipo de trabajo
+        prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
+
+        # Generar código único para este prefijo
+        from datetime import datetime
+        year = datetime.now().year
+
+        cur.execute(f"""
+            SELECT COALESCE(MAX(
+                CAST(
+                    SUBSTRING_INDEX(codigo, '-', -1)
+                    AS UNSIGNED
+                )
+            ), 0) + 1
+            FROM {schema}.tbl_partes
+            WHERE codigo LIKE %s
+        """, (f"{prefix}-{year}-%",))
+
+        next_num = cur.fetchone()[0]
+        codigo = f"{prefix}-{year}-{next_num:04d}"
+
+        # Verificar qué columnas existen en tbl_partes
+        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        columns = {row[0] for row in cur.fetchall()}
+
+        # Construir INSERT dinámicamente según columnas disponibles
+        insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
+        insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
+
+        # Campos nuevos (añadir solo si la columna existe)
+        if 'titulo' in columns and titulo:
+            insert_cols.append('titulo')
+            insert_vals.append(titulo)
+
+        if 'descripcion' in columns and descripcion:
+            insert_cols.append('descripcion')
+            insert_vals.append(descripcion)
+
+        if 'descripcion_larga' in columns and descripcion_larga:
+            insert_cols.append('descripcion_larga')
+            insert_vals.append(descripcion_larga)
+
+        if 'descripcion_corta' in columns and descripcion_corta:
+            insert_cols.append('descripcion_corta')
+            insert_vals.append(descripcion_corta)
+
+        if 'fecha_inicio' in columns and fecha_inicio:
+            insert_cols.append('fecha_inicio')
+            insert_vals.append(fecha_inicio)
+
+        if 'fecha_fin' in columns and fecha_fin:
+            insert_cols.append('fecha_fin')
+            insert_vals.append(fecha_fin)
+
+        if 'fecha_prevista_fin' in columns and fecha_prevista_fin:
+            insert_cols.append('fecha_prevista_fin')
+            insert_vals.append(fecha_prevista_fin)
+
+        if 'estado_id' in columns or 'id_estado' in columns:
+            col = 'estado_id' if 'estado_id' in columns else 'id_estado'
+            insert_cols.append(col)
+            insert_vals.append(estado_id)
+
+        if 'localizacion' in columns and localizacion:
+            insert_cols.append('localizacion')
+            insert_vals.append(localizacion)
+
+        if 'provincia_id' in columns and provincia_id:
+            insert_cols.append('provincia_id')
+            insert_vals.append(provincia_id)
+
+        if 'municipio_id' in columns and municipio_id:
+            insert_cols.append('municipio_id')
+            insert_vals.append(municipio_id)
+
+        if 'trabajadores' in columns and trabajadores:
+            insert_cols.append('trabajadores')
+            insert_vals.append(trabajadores)
+
+        if 'latitud' in columns and latitud is not None:
+            insert_cols.append('latitud')
+            insert_vals.append(latitud)
+
+        if 'longitud' in columns and longitud is not None:
+            insert_cols.append('longitud')
+            insert_vals.append(longitud)
+
+        # Construir query
+        placeholders = ', '.join(['%s'] * len(insert_vals))
+        query = f"INSERT INTO {schema}.tbl_partes ({', '.join(insert_cols)}) VALUES ({placeholders})"
+
+        cur.execute(query, tuple(insert_vals))
+        new_id = cur.lastrowid
+
+        cn.commit()
+        cur.close()
+        return new_id, codigo

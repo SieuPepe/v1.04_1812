@@ -167,6 +167,13 @@ from .db_partes import (
     add_part_cert_item,
     cert_part_item,
     delete_part_cert_item,
+
+    # Formulario mejorado de partes
+    add_parte_mejorado,
+    get_estados_parte,
+    get_provincias,
+    get_municipios_by_provincia,
+    _get_tipo_trabajo_prefix,
 )
 
 # Lista de todas las funciones exportadas (útil para debugging)
@@ -214,4 +221,6 @@ __all__ = [
     'mod_amount_part_budget_item', 'delete_part_presupuesto_item',
     'get_part_cert_pendientes', 'get_part_cert_certificadas', 'add_part_cert_item',
     'cert_part_item', 'delete_part_cert_item',
+    'add_parte_mejorado', 'get_estados_parte', 'get_provincias',
+    'get_municipios_by_provincia', '_get_tipo_trabajo_prefix',
 ]
