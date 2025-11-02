@@ -1638,8 +1638,253 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
     def _export_pdf(self):
-        """Exporta a PDF"""
-        self._export_message("PDF (.pdf)")
+        """Exporta el informe a formato PDF"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.pdf"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo PDF
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import letter, A4, landscape
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+            # Determinar orientación según número de columnas
+            if len(columnas) > 6:
+                pagesize = landscape(A4)
+            else:
+                pagesize = A4
+
+            # Crear documento
+            doc = SimpleDocTemplate(archivo, pagesize=pagesize)
+            story = []
+            styles = getSampleStyleSheet()
+
+            # Título personalizado
+            titulo_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                textColor=colors.HexColor('#1F4E78'),
+                spaceAfter=12,
+                alignment=TA_CENTER
+            )
+            titulo = Paragraph(f"📊 {self.informe_seleccionado}", titulo_style)
+            story.append(titulo)
+
+            # Información de fecha y filtros
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros: {len(filtros_aplicados)}"
+            if clasificaciones_aplicadas:
+                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+
+            info_style = ParagraphStyle(
+                'InfoStyle',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.grey,
+                alignment=TA_CENTER,
+                spaceAfter=20
+            )
+            info = Paragraph(info_text, info_style)
+            story.append(info)
+
+            # Preparar datos para la tabla
+            tabla_data = [columnas]  # Encabezados
+            for fila in datos:
+                tabla_data.append([str(v) if v is not None else "" for v in fila])
+
+            # Crear tabla
+            tabla = Table(tabla_data)
+
+            # Estilo de la tabla
+            tabla_style = TableStyle([
+                # Encabezados
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+                # Datos
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+
+                # Bordes y líneas
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
+
+                # Alternar colores de fila
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F2F2')])
+            ])
+
+            tabla.setStyle(tabla_style)
+            story.append(tabla)
+
+            # Espacio
+            story.append(Spacer(1, 0.3 * inch))
+
+            # Resumen
+            resumen_style = ParagraphStyle(
+                'ResumenStyle',
+                parent=styles['Normal'],
+                fontSize=11,
+                alignment=TA_RIGHT,
+                spaceAfter=12
+            )
+            resumen = Paragraph(f"<b>Total de registros: {len(datos)}</b>", resumen_style)
+            story.append(resumen)
+
+            # Generar PDF
+            doc.build(story)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'reportlab' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install reportlab",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a PDF:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a PDF:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _print_report(self):
         """Imprime el informe"""
