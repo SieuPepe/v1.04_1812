@@ -142,6 +142,9 @@ from .db_partes import (
     get_dim_all,
     _guess_text_column,
     _fetch_dim_list_guess,
+    add_dim_ot,
+    get_all_dim_ot,
+    delete_dim_ot,
 
     # Gestión de partes
     add_parte_with_code,
@@ -151,12 +154,6 @@ from .db_partes import (
     get_partes_resumen,
     get_parte_detail,
     mod_parte_item,
-
-    # Gestión de partes mejorada (con nuevos campos)
-    # add_parte_mejorado,
-    mod_parte_mejorado,
-    get_estados_parte,
-    list_partes_mejorado,
 
     # Presupuesto de partes
     get_part_presupuesto,
@@ -170,10 +167,6 @@ from .db_partes import (
     add_part_cert_item,
     cert_part_item,
     delete_part_cert_item,
-
-    # Provincias y Municipios
-    get_provincias,
-    get_municipios_by_provincia,
 )
 
 # Lista de todas las funciones exportadas (útil para debugging)
@@ -214,11 +207,11 @@ __all__ = [
 
     # db_partes
     'get_dim_all', '_guess_text_column', '_fetch_dim_list_guess',
+    'add_dim_ot', 'get_all_dim_ot', 'delete_dim_ot',
     'add_parte_with_code', 'list_partes', 'get_parts_list',
     'delete_parte', 'get_partes_resumen', 'get_parte_detail',
     'mod_parte_item', 'get_part_presupuesto', 'add_part_presupuesto_item',
     'mod_amount_part_budget_item', 'delete_part_presupuesto_item',
     'get_part_cert_pendientes', 'get_part_cert_certificadas', 'add_part_cert_item',
     'cert_part_item', 'delete_part_cert_item',
-    'get_provincias', 'get_municipios_by_provincia',
 ]
