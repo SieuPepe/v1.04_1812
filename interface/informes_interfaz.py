@@ -1161,7 +1161,7 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"{'='*70}\n")
 
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1173,7 +1173,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
             # Mostrar resultados
             if datos:
-                self._show_results_window(columnas, datos)
+                self._show_results_window(columnas, datos, totales)
             else:
                 CTkMessagebox(
                     title="Resultado",
@@ -1192,7 +1192,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 icon="cancel"
             )
 
-    def _show_results_window(self, columnas, datos):
+    def _show_results_window(self, columnas, datos, totales=None):
         """Muestra una ventana con los resultados del informe"""
         # Crear ventana toplevel
         results_window = customtkinter.CTkToplevel(self)
@@ -1254,6 +1254,27 @@ class InformesFrame(customtkinter.CTkFrame):
         # Insertar datos
         for fila in datos:
             tree.insert("", "end", values=fila)
+
+        # Insertar fila de totales si hay totales y la opción está activada
+        if totales and self.totales_var.get():
+            # Crear fila de totales
+            fila_totales = []
+            for i, col in enumerate(columnas):
+                if col in totales:
+                    # Formatear el total según sea moneda o número
+                    valor = totales[col]
+                    fila_totales.append(f"{valor:,.2f} €" if valor else "0.00 €")
+                elif i == 0:
+                    # Primera columna: texto "TOTAL"
+                    fila_totales.append("═══ TOTAL ═══")
+                else:
+                    # Otras columnas: vacío
+                    fila_totales.append("")
+
+            # Insertar fila de totales con tag especial
+            total_item = tree.insert("", "end", values=fila_totales, tags=('total',))
+            # Configurar estilo para fila de totales
+            tree.tag_configure('total', background='#4472C4', foreground='white', font=('TkDefaultFont', 10, 'bold'))
 
         # Botón cerrar
         close_btn = customtkinter.CTkButton(
@@ -1353,7 +1374,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1594,7 +1615,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1823,7 +1844,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,

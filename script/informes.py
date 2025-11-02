@@ -417,7 +417,7 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
 def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None):
     """
-    Ejecuta un informe y devuelve los datos
+    Ejecuta un informe y devuelve los datos con totales
 
     Args:
         user: Usuario de BD
@@ -429,9 +429,10 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         campos_seleccionados: Lista de campos a mostrar
 
     Returns:
-        Tuple (columnas, datos)
+        Tuple (columnas, datos, totales)
         - columnas: Lista de nombres de columnas
         - datos: Lista de tuplas con los datos
+        - totales: Dict con totales por columna totalizable {nombre_col: total}
     """
     try:
         # Construir query (pasando user y password para detectar columnas de dimensiones)
@@ -442,6 +443,10 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         print(f"{'='*60}")
         print(query)
         print(f"{'='*60}\n")
+
+        # Obtener definición del informe para identificar campos totalizables
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Ejecutar query
         with get_project_connection(user, password, schema) as conn:
@@ -454,10 +459,30 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
             # Obtener datos
             datos = cursor.fetchall()
 
-            return columnas, datos
+            # Calcular totales para campos totalizables (numéricos, moneda)
+            totales = {}
+            if datos and campos_seleccionados:
+                for i, col_name in enumerate(columnas):
+                    # Buscar la definición del campo
+                    campo_def = campos_def.get(col_name)
+                    if campo_def:
+                        formato = campo_def.get('formato', '')
+                        tipo = campo_def.get('tipo', '')
+
+                        # Solo totalizar campos numéricos o de moneda
+                        if formato in ['moneda', 'numerico'] or tipo in ['numerico', 'calculado']:
+                            try:
+                                # Calcular suma de la columna
+                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in datos)
+                                totales[col_name] = total
+                            except (ValueError, TypeError):
+                                # Si no se puede convertir a número, omitir
+                                pass
+
+            return columnas, datos, totales
 
     except Exception as e:
         print(f"Error al ejecutar informe: {e}")
         import traceback
         traceback.print_exc()
-        return [], []
+        return [], [], {}
