@@ -1232,36 +1232,6 @@ class AppPartsManager(customtkinter.CTk):
         except Exception as e:
             customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").pack(pady=20)
 
-    def _save_parte_changes(self, parte_id):
-        """Guarda los cambios del parte"""
-        from script.modulo_db import mod_parte_item
-
-        try:
-            # OT es código string ("OT-001"), los demás son IDs numéricos
-            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
-            red_id = int(self.red_menu.get().split(" - ")[0])
-            tipo_id = int(self.tipo_menu.get().split(" - ")[0])
-            cod_id = int(self.cod_menu.get().split(" - ")[0])
-            descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
-            observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
-
-            result = mod_parte_item(
-                self.user, self.password, self.schema, parte_id,
-                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
-            )
-
-            if result == "ok":
-                CTkMessagebox(title="Éxito", message="✅ Parte actualizado correctamente", icon="check")
-                self._reload_partes_selector()
-                # Recargar resumen si está visible
-                if hasattr(self, 'tree_resumen'):
-                    self._reload_resumen()
-            else:
-                CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"Error guardando:\n{e}", icon="cancel")
-
     def _load_parte_selected(self):
         """Carga los datos del parte seleccionado"""
         from script.modulo_db import get_parte_detail, get_dim_all
@@ -1431,40 +1401,6 @@ class AppPartsManager(customtkinter.CTk):
 
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando parte:\n{e}", icon="cancel")
-
-    def _save_parte_changes(self, parte_id):
-        """Guarda los cambios del parte"""
-        from script.modulo_db import mod_parte_item
-
-        try:
-            # OT es código string ("OT-001"), los demás son IDs numéricos
-            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
-            red_id = int(self.red_menu.get().split(" - ")[0])
-            tipo_id = int(self.tipo_menu.get().split(" - ")[0])
-            cod_id = int(self.cod_menu.get().split(" - ")[0])
-            descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
-
-            # Observaciones solo si existe el widget
-            observaciones = None
-            if hasattr(self, 'obs_text'):
-                observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
-
-            result = mod_parte_item(
-                self.user, self.password, self.schema, parte_id,
-                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
-            )
-
-            if result == "ok":
-                CTkMessagebox(title="Éxito", message="Parte actualizado correctamente", icon="check")
-                self._load_parte_selected()
-                # Recargar resumen si está visible
-                if hasattr(self, 'tree_resumen'):
-                    self._reload_resumen()
-            else:
-                CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"Error guardando:\n{e}", icon="cancel")
 
     def _goto_presupuesto(self, parte_id):
         """Ir a pestaña Presupuesto con este parte"""
