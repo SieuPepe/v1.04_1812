@@ -10,7 +10,7 @@ Define categorías, tipos de informes, campos, operadores, etc.
 
 CATEGORIAS_INFORMES = {
     "📊 Partes": [
-        "Informe Tipo 1",
+        "Resumen de Partes",  # ← INFORME MODELO (completamente funcional)
         "Informe Tipo 2",
         "Informe Tipo 3",
         "Informe Tipo 4",
@@ -43,6 +43,159 @@ CATEGORIAS_INFORMES = {
         "Informe Tipo 2",
         "Informe Tipo 3"
     ]
+}
+
+
+# ============================================================
+# DEFINICIONES COMPLETAS DE INFORMES
+# ============================================================
+
+INFORMES_DEFINICIONES = {
+    "Resumen de Partes": {
+        "categoria": "📊 Partes",
+        "descripcion": "Listado completo de partes con filtros, agrupación y totales",
+        "tabla_principal": "tbl_partes",
+
+        # Campos disponibles para mostrar
+        "campos": {
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "ot": {
+                "nombre": "OT",
+                "tipo": "dimension",
+                "columna_bd": "ot_id",
+                "tabla_dimension": "dim_ot",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "codigo_trabajo": {
+                "nombre": "Código de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "cod_trabajo_id",
+                "tabla_dimension": "dim_cod_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "presupuesto": {
+                "nombre": "Presupuesto",
+                "tipo": "numerico",
+                "columna_bd": "presupuesto",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "certificado": {
+                "nombre": "Certificado",
+                "tipo": "numerico",
+                "columna_bd": "certificado",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "pendiente": {
+                "nombre": "Pendiente",
+                "tipo": "calculado",
+                "formula": "presupuesto - certificado",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            },
+            "fecha_fin": {
+                "nombre": "Fecha Fin",
+                "tipo": "fecha",
+                "columna_bd": "fecha_fin",
+                "grupo": "Fechas"
+            }
+        },
+
+        # Filtros disponibles
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            },
+            "ot": {
+                "campo": "ot",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_ot"
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "presupuesto": {
+                "campo": "presupuesto",
+                "tipo": "numerico",
+                "operadores": ["Igual a", "Mayor a", "Menor a", "Mayor o igual a", "Menor o igual a", "Entre"]
+            },
+            "fecha_inicio": {
+                "campo": "fecha_inicio",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            }
+        },
+
+        # Clasificaciones disponibles
+        "clasificaciones": [
+            "estado",
+            "ot",
+            "red",
+            "tipo_trabajo",
+            "fecha_inicio"
+        ],
+
+        # Campos por defecto seleccionados
+        "campos_default": [
+            "codigo",
+            "descripcion",
+            "estado",
+            "ot",
+            "red",
+            "presupuesto",
+            "certificado",
+            "pendiente"
+        ]
+    }
 }
 
 
