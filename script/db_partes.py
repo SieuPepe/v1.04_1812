@@ -294,9 +294,29 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         cur.execute(f"DESCRIBE {schema}.tbl_partes")
         columns = [row[0] for row in cur.fetchall()]
 
-        # Construir SELECT dinámicamente
-        select_cols = ['id', 'codigo', 'descripcion', 'estado',
-                       'ot_id', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
+        # Construir SELECT dinámicamente - columnas básicas siempre presentes
+        select_cols = ['id', 'codigo', 'descripcion', 'estado']
+
+        # Verificar columnas de dimensiones (pueden tener nombres diferentes según esquema)
+        if 'ot_id' in columns:
+            select_cols.append('ot_id')
+        else:
+            select_cols.append('NULL as ot_id')
+
+        if 'red_id' in columns:
+            select_cols.append('red_id')
+        else:
+            select_cols.append('NULL as red_id')
+
+        if 'tipo_trabajo_id' in columns:
+            select_cols.append('tipo_trabajo_id')
+        else:
+            select_cols.append('NULL as tipo_trabajo_id')
+
+        if 'cod_trabajo_id' in columns:
+            select_cols.append('cod_trabajo_id')
+        else:
+            select_cols.append('NULL as cod_trabajo_id')
 
         # Añadir columnas opcionales si existen
         if 'municipio_id' in columns:
