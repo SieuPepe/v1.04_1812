@@ -2273,77 +2273,19 @@ class AppPartsManager(customtkinter.CTk):
 
     def main_informes(self):
         """Pestaña Informes - Generación de informes personalizados"""
+        from interface.informes_interfaz import InformesFrame
+
         self.informes_frame.grid_columnconfigure(0, weight=1)
-        self.informes_frame.grid_rowconfigure(1, weight=1)
+        self.informes_frame.grid_rowconfigure(0, weight=1)
 
-        # Título
-        title = customtkinter.CTkLabel(
+        # Crear el frame de informes completo
+        informes_app = InformesFrame(
             self.informes_frame,
-            text="GENERACIÓN DE INFORMES",
-            font=customtkinter.CTkFont(size=20, weight="bold")
+            user=self.user,
+            password=self.password,
+            schema=self.schema
         )
-        title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
-
-        # Frame de contenido principal
-        content_frame = customtkinter.CTkFrame(self.informes_frame)
-        content_frame.grid(row=1, column=0, padx=30, pady=(10, 20), sticky="nsew")
-        content_frame.grid_columnconfigure(0, weight=1)
-        content_frame.grid_rowconfigure(1, weight=1)
-
-        # Mensaje de estado
-        status_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
-        status_frame.grid(row=0, column=0, sticky="nsew", pady=20)
-        status_frame.grid_columnconfigure(0, weight=1)
-        status_frame.grid_rowconfigure(0, weight=1)
-
-        # Ícono grande y mensaje
-        info_container = customtkinter.CTkFrame(status_frame, fg_color="transparent")
-        info_container.place(relx=0.5, rely=0.5, anchor="center")
-
-        # Ícono grande
-        if hasattr(self, 'informes_image'):
-            large_icon = customtkinter.CTkLabel(
-                info_container,
-                text="",
-                image=customtkinter.CTkImage(Image.open(os.path.join(parent_path, "source/informes.png")), size=(120, 120))
-            )
-            large_icon.pack(pady=(20, 20))
-
-        # Mensaje principal
-        main_msg = customtkinter.CTkLabel(
-            info_container,
-            text="Módulo de Informes",
-            font=customtkinter.CTkFont(size=24, weight="bold")
-        )
-        main_msg.pack(pady=(10, 5))
-
-        # Submensaje
-        sub_msg = customtkinter.CTkLabel(
-            info_container,
-            text="🚧 En desarrollo 🚧",
-            font=customtkinter.CTkFont(size=18),
-            text_color="gray"
-        )
-        sub_msg.pack(pady=(5, 20))
-
-        # Descripción de funcionalidades planificadas
-        features_text = """
-Funcionalidades planificadas:
-
-• Informes por proyecto
-• Informes por periodo
-• Gráficos y estadísticas
-• Exportación a PDF/Excel
-        """
-
-        features_label = customtkinter.CTkLabel(
-            info_container,
-            text=features_text,
-            font=customtkinter.CTkFont(size=14),
-            text_color="lightgray",
-            justify="left"
-        )
-        features_label.pack(pady=(10, 20))
+        informes_app.grid(row=0, column=0, sticky="nsew")
 
     def main_configuracion(self):
         """Pestaña Configuración - Gestión de dimensiones OT, Red, Tipo, Código"""
