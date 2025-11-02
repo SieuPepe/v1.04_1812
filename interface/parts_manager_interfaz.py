@@ -815,16 +815,15 @@ class AppPartsManager(customtkinter.CTk):
             right_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
             right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
             right_frame.grid_columnconfigure(0, weight=1)
-            right_frame.grid_rowconfigure(1, weight=1)
-            right_frame.grid_rowconfigure(3, weight=1)
+            # No dar weight a las filas para que no se expandan y empujen el botón fuera de pantalla
 
             # Descripción
             customtkinter.CTkLabel(
                 right_frame, text="Descripción:", font=("", 13, "bold")
             ).grid(row=0, column=0, padx=5, pady=(0, 5), sticky="w")
 
-            self.desc_text = customtkinter.CTkTextbox(right_frame, height=150)
-            self.desc_text.grid(row=1, column=0, padx=5, pady=(0, 15), sticky="nsew")
+            self.desc_text = customtkinter.CTkTextbox(right_frame, height=120)
+            self.desc_text.grid(row=1, column=0, padx=5, pady=(0, 15), sticky="ew")
             if parte_data[2]:
                 self.desc_text.insert("1.0", parte_data[2])
 
@@ -833,8 +832,8 @@ class AppPartsManager(customtkinter.CTk):
                 right_frame, text="Observaciones:", font=("", 13, "bold")
             ).grid(row=2, column=0, padx=5, pady=(0, 5), sticky="w")
 
-            self.obs_text = customtkinter.CTkTextbox(right_frame, height=150)
-            self.obs_text.grid(row=3, column=0, padx=5, pady=(0, 15), sticky="nsew")
+            self.obs_text = customtkinter.CTkTextbox(right_frame, height=120)
+            self.obs_text.grid(row=3, column=0, padx=5, pady=(0, 15), sticky="ew")
             if parte_data[9]:
                 self.obs_text.insert("1.0", parte_data[9])
 
