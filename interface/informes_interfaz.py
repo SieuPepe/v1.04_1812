@@ -17,6 +17,7 @@ sys.path.append(parent_path)
 
 from script.informes_config import (
     CATEGORIAS_INFORMES,
+    INFORMES_DEFINICIONES,
     CAMPOS_PARTES,
     CAMPOS_RECURSOS,
     CAMPOS_PRESUPUESTOS,
@@ -29,6 +30,7 @@ from script.informes_config import (
     LOGICA_FILTROS,
     CONFIG_CABECERA_DEFAULT
 )
+from script.informes import get_dimension_values, ejecutar_informe
 
 
 class InformesFrame(customtkinter.CTkFrame):
@@ -44,6 +46,7 @@ class InformesFrame(customtkinter.CTkFrame):
         # Variables de estado
         self.informe_seleccionado = None
         self.categoria_seleccionada = None
+        self.definicion_actual = None  # Definición completa del informe seleccionado
         self.clasificaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
@@ -199,13 +202,30 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.categoria_seleccionada = parent_text
                 self.informe_seleccionado = text.strip()
 
-                # Actualizar título del informe
-                self.informe_title_label.configure(
-                    text=f"Informe seleccionado: {self.informe_seleccionado}",
-                    text_color="white"  # Cambiar a blanco cuando hay selección
-                )
+                # Cargar definición del informe (si existe)
+                self.definicion_actual = INFORMES_DEFINICIONES.get(self.informe_seleccionado)
 
-                # Actualizar campos disponibles según categoría
+                # Actualizar título del informe
+                if self.definicion_actual:
+                    titulo = f"Informe seleccionado: {self.informe_seleccionado}"
+                    descripcion = self.definicion_actual.get('descripcion', '')
+                    if descripcion:
+                        titulo += f" ({descripcion})"
+                    self.informe_title_label.configure(
+                        text=titulo,
+                        text_color="white"
+                    )
+                else:
+                    self.informe_title_label.configure(
+                        text=f"Informe seleccionado: {self.informe_seleccionado} (En desarrollo)",
+                        text_color="gray"
+                    )
+
+                # Limpiar filtros y clasificaciones anteriores
+                self._clear_all_filtros()
+                self._clear_all_clasificaciones()
+
+                # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
 
     def _create_right_panel(self):
@@ -677,62 +697,122 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar lista
         self.filtros = [f for f in self.filtros if f['container'].winfo_exists()]
 
+    def _clear_all_filtros(self):
+        """Elimina todos los filtros"""
+        for filtro in self.filtros:
+            if filtro['container'].winfo_exists():
+                filtro['container'].destroy()
+        self.filtros = []
+
+    def _clear_all_clasificaciones(self):
+        """Elimina todas las clasificaciones"""
+        for clasif in self.clasificaciones:
+            if clasif['container'].winfo_exists():
+                clasif['container'].destroy()
+        self.clasificaciones = []
+
     def _update_campos_disponibles(self):
-        """Actualiza los campos disponibles según la categoría seleccionada"""
+        """Actualiza los campos disponibles según el informe seleccionado"""
         # Limpiar campos actuales
         for widget in self.campos_scrollable.winfo_children():
             widget.destroy()
 
         self.campos_seleccionados = {}
 
-        # Determinar qué campos mostrar
-        campos_dict = None
-        if "Partes" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PARTES
-        elif "Recursos" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_RECURSOS
-        elif "Presupuestos" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PRESUPUESTOS
-        elif "Certificaciones" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_CERTIFICACIONES
-        elif "Planificación" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PLANIFICACION
+        # Si hay definición del informe, usar sus campos
+        if self.definicion_actual:
+            campos_informe = self.definicion_actual.get('campos', {})
+            campos_default = self.definicion_actual.get('campos_default', [])
 
-        if not campos_dict:
-            return
+            # Agrupar campos por grupo
+            campos_por_grupo = {}
+            for campo_key, campo_def in campos_informe.items():
+                grupo = campo_def.get('grupo', 'Otros')
+                if grupo not in campos_por_grupo:
+                    campos_por_grupo[grupo] = []
+                campos_por_grupo[grupo].append((campo_key, campo_def['nombre']))
 
-        # Crear checkboxes por grupos
-        row = 0
-        for grupo, campos in campos_dict.items():
-            # Título del grupo
-            grupo_label = customtkinter.CTkLabel(
-                self.campos_scrollable,
-                text=f"{grupo}:",
-                font=customtkinter.CTkFont(size=12, weight="bold")
-            )
-            grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
-            row += 1
-
-            # Checkboxes en 3 columnas
-            col = 0
-            for campo in campos:
-                var = customtkinter.BooleanVar(value=True)
-                check = customtkinter.CTkCheckBox(
+            # Crear checkboxes por grupos
+            row = 0
+            for grupo, campos in campos_por_grupo.items():
+                # Título del grupo
+                grupo_label = customtkinter.CTkLabel(
                     self.campos_scrollable,
-                    text=campo,
-                    variable=var
+                    text=f"{grupo}:",
+                    font=customtkinter.CTkFont(size=12, weight="bold")
                 )
-                check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+                grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
+                row += 1
 
-                self.campos_seleccionados[campo] = var
+                # Checkboxes en 3 columnas
+                col = 0
+                for campo_key, campo_nombre in campos:
+                    # Marcar por defecto si está en campos_default
+                    por_defecto = campo_key in campos_default
+                    var = customtkinter.BooleanVar(value=por_defecto)
+                    check = customtkinter.CTkCheckBox(
+                        self.campos_scrollable,
+                        text=campo_nombre,
+                        variable=var
+                    )
+                    check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
 
-                col += 1
-                if col >= 3:
-                    col = 0
+                    self.campos_seleccionados[campo_key] = var
+
+                    col += 1
+                    if col >= 3:
+                        col = 0
+                        row += 1
+
+                if col > 0:
                     row += 1
 
-            if col > 0:
-                row += 1
+        else:
+            # Si no hay definición, usar campos genéricos de la categoría (fallback)
+            campos_dict = None
+            if "Partes" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PARTES
+            elif "Recursos" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_RECURSOS
+            elif "Presupuestos" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PRESUPUESTOS
+            elif "Certificaciones" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_CERTIFICACIONES
+            elif "Planificación" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PLANIFICACION
+
+            if campos_dict:
+                row = 0
+                for grupo, campos in campos_dict.items():
+                    # Título del grupo
+                    grupo_label = customtkinter.CTkLabel(
+                        self.campos_scrollable,
+                        text=f"{grupo}:",
+                        font=customtkinter.CTkFont(size=12, weight="bold")
+                    )
+                    grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
+                    row += 1
+
+                    # Checkboxes en 3 columnas
+                    col = 0
+                    for campo in campos:
+                        var = customtkinter.BooleanVar(value=True)
+                        check = customtkinter.CTkCheckBox(
+                            self.campos_scrollable,
+                            text=campo,
+                            variable=var
+                        )
+                        check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+
+                        self.campos_seleccionados[campo] = var
+
+                        col += 1
+                        if col >= 3:
+                            col = 0
+                            row += 1
+
+                    if col > 0:
+                        row += 1
 
     def _select_all_campos(self):
         """Selecciona todos los campos"""
