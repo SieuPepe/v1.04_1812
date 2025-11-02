@@ -975,7 +975,10 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         print(f"[DEBUG] Query ejecutado, obteniendo resultado...")
 
         next_num = cur.fetchone()[0]
-        print(f"[DEBUG] next_num obtenido: {next_num}")
+        print(f"[DEBUG] next_num obtenido: {next_num} (tipo: {type(next_num)})")
+        # Convertir a int explícitamente para evitar problemas con Decimal
+        next_num = int(next_num)
+        print(f"[DEBUG] next_num convertido a int: {next_num}")
         codigo = f"{prefix}-{next_num:04d}"
         print(f"[DEBUG] Código generado: {codigo}")
 
