@@ -959,26 +959,29 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         # Formato: PREFIX-NNNN (sin año)
         # Usar .format() para evitar conflictos entre f-string y placeholders MySQL
         print(f"[DEBUG] Generando código con prefijo {prefix}")
-        query_next = """
-            SELECT COALESCE(MAX(
-                CAST(
-                    SUBSTRING_INDEX(codigo, '-', -1)
-                    AS UNSIGNED
-                )
-            ), 0) + 1
-            FROM {}.tbl_partes
-            WHERE codigo LIKE %s
-        """.format(schema)
-        print(f"[DEBUG] Ejecutando query next_num")
-        cur.execute(query_next, (f"{prefix}-%",))
+        # Construir query sin .format() ni f-strings, solo concatenación simple
+        query_next = (
+            "SELECT COALESCE(MAX("
+            "CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)"
+            "), 0) + 1 "
+            "FROM " + schema + ".tbl_partes "
+            "WHERE codigo LIKE %s"
+        )
+        pattern = f"{prefix}-%"
+        print(f"[DEBUG] Query construido: {query_next}")
+        print(f"[DEBUG] Pattern: {pattern}")
+        print(f"[DEBUG] Ejecutando query next_num...")
+        cur.execute(query_next, (pattern,))
+        print(f"[DEBUG] Query ejecutado, obteniendo resultado...")
 
         next_num = cur.fetchone()[0]
+        print(f"[DEBUG] next_num obtenido: {next_num}")
         codigo = f"{prefix}-{next_num:04d}"
         print(f"[DEBUG] Código generado: {codigo}")
 
         # Verificar qué columnas existen en tbl_partes
         print(f"[DEBUG] Verificando columnas de tbl_partes")
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        cur.execute("DESCRIBE " + schema + ".tbl_partes")
         columns = {row[0] for row in cur.fetchall()}
         print(f"[DEBUG] Columnas encontradas: {len(columns)} columnas")
 
@@ -1053,9 +1056,13 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             insert_cols.append('longitud')
             insert_vals.append(longitud)
 
-        # Construir query
+        # Construir query sin f-strings para evitar conflicto con %s
         placeholders = ', '.join(['%s'] * len(insert_vals))
-        query = f"INSERT INTO {schema}.tbl_partes ({', '.join(insert_cols)}) VALUES ({placeholders})"
+        query = (
+            "INSERT INTO " + schema + ".tbl_partes (" +
+            ', '.join(insert_cols) + ") VALUES (" +
+            placeholders + ")"
+        )
 
         # Debug: imprimir query y valores
         print(f"[DEBUG] Query: {query}")
