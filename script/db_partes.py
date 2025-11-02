@@ -702,12 +702,32 @@ def get_provincias(user: str, password: str, schema: str):
             col_result = cur.fetchone()
             col_name = col_result[0] if col_result else 'nombre'
 
+            # Detectar si existe columna activo
             cur.execute(f"""
-                SELECT id, {col_name}
-                FROM {schema}.dim_provincias
-                WHERE activo = 1
-                ORDER BY codigo
-            """)
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_provincias'
+                AND COLUMN_NAME = 'activo'
+            """, (schema,))
+            tiene_activo = cur.fetchone()[0] > 0
+
+            # Construir query con o sin filtro activo
+            if tiene_activo:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM {schema}.dim_provincias
+                    WHERE activo = 1
+                    ORDER BY codigo
+                """
+            else:
+                query = f"""
+                    SELECT id, {col_name}
+                    FROM {schema}.dim_provincias
+                    ORDER BY codigo
+                """
+
+            cur.execute(query)
             rows = cur.fetchall()
             cur.close()
             return [f"{row[0]} - {row[1]}" for row in rows]
@@ -746,22 +766,47 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
             col_result = cur.fetchone()
             col_name = col_result[0] if col_result else 'nombre'
 
-            # Construir query con filtro opcional
+            # Detectar si existe columna activo
+            cur.execute(f"""
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_municipios'
+                AND COLUMN_NAME = 'activo'
+            """, (schema,))
+            tiene_activo = cur.fetchone()[0] > 0
+
+            # Construir query con filtro opcional y condicional activo
             if provincia_id:
-                query = f"""
-                    SELECT id, {col_name}
-                    FROM {schema}.dim_municipios
-                    WHERE provincia_id = %s AND activo = 1
-                    ORDER BY {col_name}
-                """
+                if tiene_activo:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_municipios
+                        WHERE provincia_id = %s AND activo = 1
+                        ORDER BY {col_name}
+                    """
+                else:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_municipios
+                        WHERE provincia_id = %s
+                        ORDER BY {col_name}
+                    """
                 cur.execute(query, (provincia_id,))
             else:
-                query = f"""
-                    SELECT id, {col_name}
-                    FROM {schema}.dim_municipios
-                    WHERE activo = 1
-                    ORDER BY {col_name}
-                """
+                if tiene_activo:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_municipios
+                        WHERE activo = 1
+                        ORDER BY {col_name}
+                    """
+                else:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_municipios
+                        ORDER BY {col_name}
+                    """
                 cur.execute(query)
 
             rows = cur.fetchall()
