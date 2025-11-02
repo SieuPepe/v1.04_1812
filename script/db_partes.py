@@ -287,6 +287,13 @@ def get_partes_resumen(user: str, password: str, schema: str):
 def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve todos los datos de un parte específico.
+    Retorna tupla con índices:
+      0: id, 1: codigo, 2: descripcion, 3: estado, 4: codigo_ot,
+      5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: municipio_id,
+      9: observaciones, 10: creado_en, 11: actualizado_en,
+      12: titulo, 13: fecha_inicio, 14: fecha_fin, 15: fecha_prevista_fin,
+      16: localizacion, 17: latitud, 18: longitud, 19: trabajadores,
+      20: descripcion_corta, 21: descripcion_larga, 22: comarca_id, 23: id_municipio
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -295,51 +302,94 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         cur.execute(f"DESCRIBE {schema}.tbl_partes")
         columns = [row[0] for row in cur.fetchall()]
 
-        # Construir SELECT dinámicamente - columnas básicas siempre presentes
+        # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
         select_cols = ['id', 'codigo', 'descripcion', 'estado']
 
-        # Verificar columnas de dimensiones (pueden tener nombres diferentes según esquema)
-        if 'ot_id' in columns:
+        # Añadir codigo_ot (la tabla usa codigo_ot en lugar de ot_id)
+        if 'codigo_ot' in columns:
+            select_cols.append('codigo_ot')
+        elif 'ot_id' in columns:
             select_cols.append('ot_id')
         else:
-            select_cols.append('NULL as ot_id')
+            select_cols.append('NULL as codigo_ot')
 
-        if 'red_id' in columns:
-            select_cols.append('red_id')
-        else:
-            select_cols.append('NULL as red_id')
+        # Continuar con red, tipo, cod
+        select_cols.extend(['red_id', 'tipo_trabajo_id', 'cod_trabajo_id'])
 
-        if 'tipo_trabajo_id' in columns:
-            select_cols.append('tipo_trabajo_id')
-        else:
-            select_cols.append('NULL as tipo_trabajo_id')
-
-        if 'cod_trabajo_id' in columns:
-            select_cols.append('cod_trabajo_id')
-        else:
-            select_cols.append('NULL as cod_trabajo_id')
-
-        # Añadir columnas opcionales si existen
+        # Añadir municipio_id
         if 'municipio_id' in columns:
             select_cols.append('municipio_id')
         else:
             select_cols.append('NULL as municipio_id')
 
+        # Añadir observaciones
         if 'observaciones' in columns:
             select_cols.append('observaciones')
         else:
             select_cols.append('NULL as observaciones')
 
-        # Añadir columnas de timestamp si existen
-        if 'creado_en' in columns:
-            select_cols.append('creado_en')
-        else:
-            select_cols.append('NULL as creado_en')
+        # Fechas de auditoría
+        select_cols.extend(['creado_en', 'actualizado_en'])
 
-        if 'actualizado_en' in columns:
-            select_cols.append('actualizado_en')
+        # NUEVOS CAMPOS AMPLIADOS
+        # Título
+        if 'titulo' in columns:
+            select_cols.append('titulo')
         else:
-            select_cols.append('NULL as actualizado_en')
+            select_cols.append('NULL as titulo')
+
+        # Fechas del trabajo
+        for col in ['fecha_inicio', 'fecha_fin', 'fecha_prevista_fin']:
+            if col in columns:
+                select_cols.append(col)
+            else:
+                select_cols.append(f'NULL as {col}')
+
+        # Localización
+        if 'localizacion' in columns:
+            select_cols.append('localizacion')
+        else:
+            select_cols.append('NULL as localizacion')
+
+        # Coordenadas GPS
+        if 'latitud' in columns:
+            select_cols.append('latitud')
+        else:
+            select_cols.append('NULL as latitud')
+
+        if 'longitud' in columns:
+            select_cols.append('longitud')
+        else:
+            select_cols.append('NULL as longitud')
+
+        # Trabajadores
+        if 'trabajadores' in columns:
+            select_cols.append('trabajadores')
+        else:
+            select_cols.append('NULL as trabajadores')
+
+        # Descripciones adicionales
+        if 'descripcion_corta' in columns:
+            select_cols.append('descripcion_corta')
+        else:
+            select_cols.append('NULL as descripcion_corta')
+
+        if 'descripcion_larga' in columns:
+            select_cols.append('descripcion_larga')
+        else:
+            select_cols.append('NULL as descripcion_larga')
+
+        # Comarca (provincia)
+        if 'comarca_id' in columns:
+            select_cols.append('comarca_id')
+        else:
+            select_cols.append('NULL as comarca_id')
+
+        # id_municipio (puede ser diferente de municipio_id)
+        if 'id_municipio' in columns:
+            select_cols.append('id_municipio')
+        else:
+            select_cols.append('NULL as id_municipio')
 
         query = f"SELECT {', '.join(select_cols)} FROM tbl_partes WHERE id = %s"
         cur.execute(query, (parte_id,))

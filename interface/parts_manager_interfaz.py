@@ -88,12 +88,14 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.presupuesto_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.certificaciones_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.informes_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
         # Generar vistas
         self.main_resumen()
         self.main_partes()
         self.main_presupuesto()
         self.main_certificaciones()
+        self.main_informes()
 
         # Seleccionar frame por defecto
         self.select_frame_by_name("resumen")
@@ -111,6 +113,9 @@ class AppPartsManager(customtkinter.CTk):
 
         budget_path = os.path.join(parent_path, "source/certificaciones.png")
         self.budget_image = customtkinter.CTkImage(Image.open(budget_path), size=(30, 30))
+
+        informes_path = os.path.join(parent_path, "source/informes.png")
+        self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
 
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
@@ -170,8 +175,18 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.certificaciones_button.grid(row=5, column=0, sticky="ew")
 
+        # Botón Informes
+        self.informes_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=0, height=40,
+            border_spacing=10, text="Informes", fg_color="transparent",
+            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+            image=self.informes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
+            anchor="w", command=lambda: self.select_frame_by_name("informes")
+        )
+        self.informes_button.grid(row=6, column=0, sticky="ew")
+
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(6, weight=1)
+        self.navigation_frame.grid_rowconfigure(7, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -191,6 +206,8 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_button.configure(fg_color=("gray75", "gray25") if name == "presupuesto" else "transparent")
         self.certificaciones_button.configure(
             fg_color=("gray75", "gray25") if name == "certificaciones" else "transparent")
+        self.informes_button.configure(
+            fg_color=("gray75", "gray25") if name == "informes" else "transparent")
 
         # Mostrar frame seleccionado
         if name == "resumen":
@@ -212,6 +229,11 @@ class AppPartsManager(customtkinter.CTk):
             self.certificaciones_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
         else:
             self.certificaciones_frame.grid_forget()
+
+        if name == "informes":
+            self.informes_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
+        else:
+            self.informes_frame.grid_forget()
 
     def main_resumen(self):
         """Pestaña Resumen - Lista de partes con KPIs"""
@@ -2404,6 +2426,22 @@ class AppPartsManager(customtkinter.CTk):
                     CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
+
+    def main_informes(self):
+        """Pestaña Informes - Generación de informes personalizados"""
+        from interface.informes_interfaz import InformesFrame
+
+        self.informes_frame.grid_columnconfigure(0, weight=1)
+        self.informes_frame.grid_rowconfigure(0, weight=1)
+
+        # Crear el frame de informes completo
+        informes_app = InformesFrame(
+            self.informes_frame,
+            user=self.user,
+            password=self.password,
+            schema=self.schema
+        )
+        informes_app.grid(row=0, column=0, sticky="nsew")
 
     def back_to_selector(self):
         """Volver al selector de tipo de usuario"""
