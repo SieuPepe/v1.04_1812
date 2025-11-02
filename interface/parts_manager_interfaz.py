@@ -395,94 +395,18 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
     def _add_parte_resumen(self):
-        """Abre ventana para añadir nuevo parte"""
-        from interface.parts_interfaz import AppParts
+        """Abre ventana para añadir nuevo parte con formulario completo"""
+        from interface.parts_interfaz_v2_fixed import AppPartsV2
 
-        win = customtkinter.CTkToplevel(self)
-        win.title("Añadir Nuevo Parte")
-        win.geometry("820x420")
-        win.lift()
-        win.grab_set()
-        win.focus()
+        # Crear ventana completa con todos los campos
+        win = AppPartsV2(self.user, self.password, self.schema)
 
-        # Crear interfaz de añadir parte dentro de la ventana
-        frame = customtkinter.CTkFrame(win)
-        frame.pack(fill="both", expand=True, padx=10, pady=10)
+        # Callback para recargar la lista cuando se cierre la ventana
+        def on_close():
+            self._reload_resumen()
 
-        from script.modulo_db import get_dim_all, add_parte_with_code
-
-        # Cargar dimensiones
-        dims = get_dim_all(self.user, self.password, self.schema)
-
-        # OT
-        customtkinter.CTkLabel(frame, text="OT:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=10, pady=10, sticky="e")
-        ot_values = dims.get("OT", ["Sin datos"])
-        ot_menu = customtkinter.CTkOptionMenu(frame, values=ot_values)
-        ot_menu.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-        ot_menu.set(ot_values[0])
-
-        # Red
-        customtkinter.CTkLabel(frame, text="Red:", font=("", 12, "bold")).grid(
-            row=0, column=2, padx=10, pady=10, sticky="e")
-        red_values = dims.get("RED", ["Sin datos"])
-        red_menu = customtkinter.CTkOptionMenu(frame, values=red_values)
-        red_menu.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
-        red_menu.set(red_values[0])
-
-        # Tipo
-        customtkinter.CTkLabel(frame, text="Tipo:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=10, pady=10, sticky="e")
-        tipo_values = dims.get("TIPO_TRABAJO", ["Sin datos"])
-        tipo_menu = customtkinter.CTkOptionMenu(frame, values=tipo_values)
-        tipo_menu.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        tipo_menu.set(tipo_values[0])
-
-        # Código
-        customtkinter.CTkLabel(frame, text="Código:", font=("", 12, "bold")).grid(
-            row=1, column=2, padx=10, pady=10, sticky="e")
-        cod_values = dims.get("COD_TRABAJO", ["Sin datos"])
-        cod_menu = customtkinter.CTkOptionMenu(frame, values=cod_values)
-        cod_menu.grid(row=1, column=3, padx=10, pady=10, sticky="ew")
-        cod_menu.set(cod_values[0])
-
-        # Descripción
-        customtkinter.CTkLabel(frame, text="Descripción:", font=("", 12, "bold")).grid(
-            row=2, column=0, padx=10, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(frame, width=400)
-        desc_entry.grid(row=2, column=1, columnspan=3, padx=10, pady=10, sticky="ew")
-
-        def guardar():
-            try:
-                # Validar que no sean valores "Sin datos"
-                if "Sin datos" in ot_menu.get() or "Sin datos" in red_menu.get() or \
-                   "Sin datos" in tipo_menu.get() or "Sin datos" in cod_menu.get():
-                    CTkMessagebox(title="Error",
-                                message="No se puede crear un parte sin configurar primero las dimensiones.\n\n"
-                                        "Por favor, ve a 'Configuración' para añadir códigos de OT, Red, Tipo y Código de trabajo.",
-                                icon="cancel")
-                    return
-
-                ot_id = int(ot_menu.get().split(" - ")[0])
-                red_id = int(red_menu.get().split(" - ")[0])
-                tipo_id = int(tipo_menu.get().split(" - ")[0])
-                cod_id = int(cod_menu.get().split(" - ")[0])
-                desc = desc_entry.get().strip() or None
-
-                new_id, codigo = add_parte_with_code(
-                    self.user, self.password, self.schema,
-                    ot_id, red_id, tipo_id, cod_id, desc
-                )
-
-                CTkMessagebox(title="Éxito", message=f"Parte {codigo} creado", icon="check")
-                win.destroy()
-                self._reload_resumen()
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
-
-        btn_save = customtkinter.CTkButton(frame, text="Guardar", command=guardar,
-                                           fg_color="green", hover_color="#006400")
-        btn_save.grid(row=3, column=0, columnspan=4, padx=20, pady=20, sticky="ew")
+        win.protocol("WM_DELETE_WINDOW", lambda: [on_close(), win.destroy()])
+        win.wait_window()
 
     def _delete_parte_resumen(self):
         """Elimina el parte seleccionado"""
