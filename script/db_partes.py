@@ -107,7 +107,8 @@ def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcio
             # Detectar la columna de texto
             text_col = _guess_text_column(user, password, schema, 'dim_ot')
             if text_col:
-                cur.execute(f"INSERT INTO dim_ot (ot_codigo, {text_col}) VALUES (%s, %s)", (ot_codigo, descripcion or ot_codigo))
+                query_insert = "INSERT INTO dim_ot (ot_codigo, {}) VALUES (%s, %s)".format(text_col)
+                cur.execute(query_insert, (ot_codigo, descripcion or ot_codigo))
             else:
                 cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
             cn.commit()
@@ -942,35 +943,56 @@ def add_parte_mejorado(user: str, password: str, schema: str,
     Raises:
         Exception: Si hay error en la inserción
     """
+    print(f"[DEBUG] Iniciando add_parte_mejorado...")
+    print(f"[DEBUG] red_id={red_id}, tipo_trabajo_id={tipo_trabajo_id}, cod_trabajo_id={cod_trabajo_id}")
+
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
+        print(f"[DEBUG] Conexión establecida")
 
         # Obtener prefijo del tipo de trabajo (OT, GF o TP)
+        print(f"[DEBUG] Obteniendo prefijo para tipo_trabajo_id={tipo_trabajo_id}")
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
+        print(f"[DEBUG] Prefijo obtenido: {prefix}")
 
         # Generar código único para este prefijo
         # Formato: PREFIX-NNNN (sin año)
-        cur.execute(f"""
-            SELECT COALESCE(MAX(
-                CAST(
-                    SUBSTRING_INDEX(codigo, '-', -1)
-                    AS UNSIGNED
-                )
-            ), 0) + 1
-            FROM {schema}.tbl_partes
-            WHERE codigo LIKE %s
-        """, (f"{prefix}-%",))
+        # Usar .format() para evitar conflictos entre f-string y placeholders MySQL
+        print(f"[DEBUG] Generando código con prefijo {prefix}")
+        # Construir query sin .format() ni f-strings, solo concatenación simple
+        query_next = (
+            "SELECT COALESCE(MAX("
+            "CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)"
+            "), 0) + 1 "
+            "FROM " + schema + ".tbl_partes "
+            "WHERE codigo LIKE %s"
+        )
+        pattern = f"{prefix}-%"
+        print(f"[DEBUG] Query construido: {query_next}")
+        print(f"[DEBUG] Pattern: {pattern}")
+        print(f"[DEBUG] Ejecutando query next_num...")
+        cur.execute(query_next, (pattern,))
+        print(f"[DEBUG] Query ejecutado, obteniendo resultado...")
 
         next_num = cur.fetchone()[0]
+        print(f"[DEBUG] next_num obtenido: {next_num} (tipo: {type(next_num)})")
+        # Convertir a int explícitamente para evitar problemas con Decimal
+        next_num = int(next_num)
+        print(f"[DEBUG] next_num convertido a int: {next_num}")
         codigo = f"{prefix}-{next_num:04d}"
+        print(f"[DEBUG] Código generado: {codigo}")
 
         # Verificar qué columnas existen en tbl_partes
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        print(f"[DEBUG] Verificando columnas de tbl_partes")
+        cur.execute("DESCRIBE " + schema + ".tbl_partes")
         columns = {row[0] for row in cur.fetchall()}
+        print(f"[DEBUG] Columnas encontradas: {len(columns)} columnas")
 
         # Construir INSERT dinámicamente según columnas disponibles
+        print(f"[DEBUG] Construyendo INSERT dinámico")
         insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
         insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
+        print(f"[DEBUG] Columnas base: {insert_cols}")
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:
@@ -1037,13 +1059,28 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             insert_cols.append('longitud')
             insert_vals.append(longitud)
 
-        # Construir query
+        # Construir query sin f-strings para evitar conflicto con %s
         placeholders = ', '.join(['%s'] * len(insert_vals))
-        query = f"INSERT INTO {schema}.tbl_partes ({', '.join(insert_cols)}) VALUES ({placeholders})"
+        query = (
+            "INSERT INTO " + schema + ".tbl_partes (" +
+            ', '.join(insert_cols) + ") VALUES (" +
+            placeholders + ")"
+        )
 
-        cur.execute(query, tuple(insert_vals))
-        new_id = cur.lastrowid
+        # Debug: imprimir query y valores
+        print(f"[DEBUG] Query: {query}")
+        print(f"[DEBUG] Columnas: {insert_cols}")
+        print(f"[DEBUG] Valores: {insert_vals}")
 
-        cn.commit()
-        cur.close()
-        return new_id, codigo
+        try:
+            cur.execute(query, tuple(insert_vals))
+            new_id = cur.lastrowid
+
+            cn.commit()
+            cur.close()
+            return new_id, codigo
+        except Exception as e:
+            print(f"[ERROR] Error ejecutando query: {e}")
+            print(f"[ERROR] Query: {query}")
+            print(f"[ERROR] Valores: {insert_vals}")
+            raise
