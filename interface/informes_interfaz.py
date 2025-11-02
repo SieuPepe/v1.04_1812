@@ -555,7 +555,16 @@ class InformesFrame(customtkinter.CTkFrame):
         print_btn.grid(row=0, column=4, padx=5)
 
     def _add_clasificacion(self):
-        """Añade un nuevo selector de clasificación"""
+        """Añade un nuevo selector de clasificación dinámico"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe para poder clasificar los datos",
+                icon="warning"
+            )
+            return
+
         row = len(self.clasificaciones)
 
         clasif_container = customtkinter.CTkFrame(self.clasificaciones_frame)
@@ -571,16 +580,30 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         label.grid(row=0, column=0, padx=(0, 10), sticky="w")
 
-        # Variable
+        # Variable - Poblar con campos disponibles del informe
         var_label = customtkinter.CTkLabel(clasif_container, text="Variable:")
         var_label.grid(row=0, column=1, sticky="w", padx=(0, 5))
 
+        # Obtener todos los campos del informe
+        campos_informe = self.definicion_actual.get('campos', {})
+        nombres_campos = [campo_def['nombre'] for campo_key, campo_def in campos_informe.items()]
+
+        # Crear objeto de clasificación que actualizaremos
+        clasif_obj = {
+            'container': clasif_container,
+            'var_combo': None,
+            'orden_combo': None,
+            'campo_actual': None  # Guardará el campo_key seleccionado
+        }
+
         var_combo = customtkinter.CTkComboBox(
             clasif_container,
-            values=["Seleccionar..."],
-            width=200
+            values=nombres_campos if nombres_campos else ["Sin campos"],
+            width=200,
+            command=lambda choice: self._on_clasificacion_campo_change(clasif_obj, choice)
         )
         var_combo.grid(row=0, column=2, sticky="w", padx=(0, 20))
+        clasif_obj['var_combo'] = var_combo
 
         # Orden
         orden_label = customtkinter.CTkLabel(clasif_container, text="Orden:")
@@ -592,6 +615,7 @@ class InformesFrame(customtkinter.CTkFrame):
             width=150
         )
         orden_combo.grid(row=0, column=4, sticky="w", padx=(0, 10))
+        clasif_obj['orden_combo'] = orden_combo
 
         # Botón eliminar
         del_btn = customtkinter.CTkButton(
@@ -604,11 +628,26 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         del_btn.grid(row=0, column=5, padx=(0, 5))
 
-        self.clasificaciones.append({
-            'container': clasif_container,
-            'var_combo': var_combo,
-            'orden_combo': orden_combo
-        })
+        # Añadir a la lista
+        self.clasificaciones.append(clasif_obj)
+
+        # Auto-seleccionar primer campo si hay campos disponibles
+        if nombres_campos:
+            var_combo.set(nombres_campos[0])
+            self._on_clasificacion_campo_change(clasif_obj, nombres_campos[0])
+
+    def _on_clasificacion_campo_change(self, clasif_obj, campo_nombre):
+        """Maneja el cambio de campo en una clasificación"""
+        if not self.definicion_actual:
+            return
+
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        # Buscar el campo_key que corresponde al nombre seleccionado
+        for campo_key, campo_def in campos_informe.items():
+            if campo_def['nombre'] == campo_nombre:
+                clasif_obj['campo_actual'] = campo_key
+                break
 
     def _remove_clasificacion(self, container):
         """Elimina un selector de clasificación"""
@@ -1016,7 +1055,19 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Recopilar clasificaciones aplicadas
         clasificaciones_aplicadas = []
-        # TODO: Implementar cuando tengamos el sistema de clasificaciones funcional
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"  # Valor por defecto
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
 
         # Recopilar campos seleccionados
         campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
@@ -1033,6 +1084,7 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"\n{'='*70}")
         print(f"EJECUTANDO INFORME: {self.informe_seleccionado}")
         print(f"Filtros aplicados: {len(filtros_aplicados)}")
+        print(f"Clasificaciones aplicadas: {len(clasificaciones_aplicadas)}")
         print(f"Campos seleccionados: {len(campos_seleccionados)}")
         print(f"{'='*70}\n")
 
