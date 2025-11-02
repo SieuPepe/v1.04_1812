@@ -17,6 +17,7 @@ sys.path.append(parent_path)
 
 from script.informes_config import (
     CATEGORIAS_INFORMES,
+    INFORMES_DEFINICIONES,
     CAMPOS_PARTES,
     CAMPOS_RECURSOS,
     CAMPOS_PRESUPUESTOS,
@@ -29,6 +30,7 @@ from script.informes_config import (
     LOGICA_FILTROS,
     CONFIG_CABECERA_DEFAULT
 )
+from script.informes import get_dimension_values, ejecutar_informe
 
 
 class InformesFrame(customtkinter.CTkFrame):
@@ -44,6 +46,7 @@ class InformesFrame(customtkinter.CTkFrame):
         # Variables de estado
         self.informe_seleccionado = None
         self.categoria_seleccionada = None
+        self.definicion_actual = None  # Definición completa del informe seleccionado
         self.clasificaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
@@ -199,13 +202,30 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.categoria_seleccionada = parent_text
                 self.informe_seleccionado = text.strip()
 
-                # Actualizar título del informe
-                self.informe_title_label.configure(
-                    text=f"Informe seleccionado: {self.informe_seleccionado}",
-                    text_color="white"  # Cambiar a blanco cuando hay selección
-                )
+                # Cargar definición del informe (si existe)
+                self.definicion_actual = INFORMES_DEFINICIONES.get(self.informe_seleccionado)
 
-                # Actualizar campos disponibles según categoría
+                # Actualizar título del informe
+                if self.definicion_actual:
+                    titulo = f"Informe seleccionado: {self.informe_seleccionado}"
+                    descripcion = self.definicion_actual.get('descripcion', '')
+                    if descripcion:
+                        titulo += f" ({descripcion})"
+                    self.informe_title_label.configure(
+                        text=titulo,
+                        text_color="white"
+                    )
+                else:
+                    self.informe_title_label.configure(
+                        text=f"Informe seleccionado: {self.informe_seleccionado} (En desarrollo)",
+                        text_color="gray"
+                    )
+
+                # Limpiar filtros y clasificaciones anteriores
+                self._clear_all_filtros()
+                self._clear_all_clasificaciones()
+
+                # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
 
     def _create_right_panel(self):
@@ -535,7 +555,16 @@ class InformesFrame(customtkinter.CTkFrame):
         print_btn.grid(row=0, column=4, padx=5)
 
     def _add_clasificacion(self):
-        """Añade un nuevo selector de clasificación"""
+        """Añade un nuevo selector de clasificación dinámico"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe para poder clasificar los datos",
+                icon="warning"
+            )
+            return
+
         row = len(self.clasificaciones)
 
         clasif_container = customtkinter.CTkFrame(self.clasificaciones_frame)
@@ -551,16 +580,30 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         label.grid(row=0, column=0, padx=(0, 10), sticky="w")
 
-        # Variable
+        # Variable - Poblar con campos disponibles del informe
         var_label = customtkinter.CTkLabel(clasif_container, text="Variable:")
         var_label.grid(row=0, column=1, sticky="w", padx=(0, 5))
 
+        # Obtener todos los campos del informe
+        campos_informe = self.definicion_actual.get('campos', {})
+        nombres_campos = [campo_def['nombre'] for campo_key, campo_def in campos_informe.items()]
+
+        # Crear objeto de clasificación que actualizaremos
+        clasif_obj = {
+            'container': clasif_container,
+            'var_combo': None,
+            'orden_combo': None,
+            'campo_actual': None  # Guardará el campo_key seleccionado
+        }
+
         var_combo = customtkinter.CTkComboBox(
             clasif_container,
-            values=["Seleccionar..."],
-            width=200
+            values=nombres_campos if nombres_campos else ["Sin campos"],
+            width=200,
+            command=lambda choice: self._on_clasificacion_campo_change(clasif_obj, choice)
         )
         var_combo.grid(row=0, column=2, sticky="w", padx=(0, 20))
+        clasif_obj['var_combo'] = var_combo
 
         # Orden
         orden_label = customtkinter.CTkLabel(clasif_container, text="Orden:")
@@ -572,6 +615,7 @@ class InformesFrame(customtkinter.CTkFrame):
             width=150
         )
         orden_combo.grid(row=0, column=4, sticky="w", padx=(0, 10))
+        clasif_obj['orden_combo'] = orden_combo
 
         # Botón eliminar
         del_btn = customtkinter.CTkButton(
@@ -584,11 +628,26 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         del_btn.grid(row=0, column=5, padx=(0, 5))
 
-        self.clasificaciones.append({
-            'container': clasif_container,
-            'var_combo': var_combo,
-            'orden_combo': orden_combo
-        })
+        # Añadir a la lista
+        self.clasificaciones.append(clasif_obj)
+
+        # Auto-seleccionar primer campo si hay campos disponibles
+        if nombres_campos:
+            var_combo.set(nombres_campos[0])
+            self._on_clasificacion_campo_change(clasif_obj, nombres_campos[0])
+
+    def _on_clasificacion_campo_change(self, clasif_obj, campo_nombre):
+        """Maneja el cambio de campo en una clasificación"""
+        if not self.definicion_actual:
+            return
+
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        # Buscar el campo_key que corresponde al nombre seleccionado
+        for campo_key, campo_def in campos_informe.items():
+            if campo_def['nombre'] == campo_nombre:
+                clasif_obj['campo_actual'] = campo_key
+                break
 
     def _remove_clasificacion(self, container):
         """Elimina un selector de clasificación"""
@@ -597,7 +656,16 @@ class InformesFrame(customtkinter.CTkFrame):
         self.clasificaciones = [c for c in self.clasificaciones if c['container'].winfo_exists()]
 
     def _add_filtro(self):
-        """Añade un nuevo selector de filtro"""
+        """Añade un nuevo selector de filtro dinámico"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe con filtros disponibles",
+                icon="warning"
+            )
+            return
+
         row = len(self.filtros)
 
         filtro_container = customtkinter.CTkFrame(self.filtros_frame)
@@ -623,14 +691,19 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         label.grid(row=0, column=1, padx=(0, 10), sticky="w")
 
-        # Campo
+        # Campo - Poblar con filtros disponibles del informe
         campo_label = customtkinter.CTkLabel(filtro_container, text="Campo:")
         campo_label.grid(row=0, column=2, sticky="w", padx=(0, 5))
 
+        filtros_disponibles = self.definicion_actual.get('filtros', {})
+        nombres_campos = [self.definicion_actual['campos'][f['campo']]['nombre']
+                         for f_key, f in filtros_disponibles.items()]
+
         campo_combo = customtkinter.CTkComboBox(
             filtro_container,
-            values=["Seleccionar..."],
-            width=150
+            values=nombres_campos if nombres_campos else ["Sin filtros"],
+            width=150,
+            command=lambda choice: self._on_filtro_campo_change(filtro_obj, choice)
         )
         campo_combo.grid(row=0, column=3, sticky="w", padx=(0, 15))
 
@@ -641,16 +714,17 @@ class InformesFrame(customtkinter.CTkFrame):
         operador_combo = customtkinter.CTkComboBox(
             filtro_container,
             values=["Seleccionar..."],
-            width=130
+            width=130,
+            command=lambda choice: self._on_filtro_operador_change(filtro_obj, choice)
         )
         operador_combo.grid(row=0, column=5, sticky="w", padx=(0, 15))
 
-        # Valor
+        # Valor - Widget inicial (se cambiará dinámicamente)
         valor_label = customtkinter.CTkLabel(filtro_container, text="Valor:")
         valor_label.grid(row=0, column=6, sticky="w", padx=(0, 5))
 
-        valor_entry = customtkinter.CTkEntry(filtro_container, width=150)
-        valor_entry.grid(row=0, column=7, sticky="w", padx=(0, 10))
+        valor_widget = customtkinter.CTkEntry(filtro_container, width=150)
+        valor_widget.grid(row=0, column=7, sticky="w", padx=(0, 10))
 
         # Botón eliminar
         del_btn = customtkinter.CTkButton(
@@ -663,13 +737,125 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         del_btn.grid(row=0, column=8, padx=(0, 5))
 
-        self.filtros.append({
+        # Objeto del filtro
+        filtro_obj = {
             'container': filtro_container,
             'logica_combo': logica_combo,
             'campo_combo': campo_combo,
             'operador_combo': operador_combo,
-            'valor_entry': valor_entry
-        })
+            'valor_widget': valor_widget,
+            'valor_label': valor_label,
+            'campo_actual': None,
+            'tipo_actual': None
+        }
+
+        self.filtros.append(filtro_obj)
+
+        # Si hay campos, seleccionar el primero automáticamente
+        if nombres_campos:
+            campo_combo.set(nombres_campos[0])
+            self._on_filtro_campo_change(filtro_obj, nombres_campos[0])
+
+    def _on_filtro_campo_change(self, filtro_obj, campo_nombre):
+        """Maneja el cambio de campo en un filtro"""
+        if not self.definicion_actual:
+            return
+
+        # Buscar la definición del filtro por nombre del campo
+        filtros_disponibles = self.definicion_actual.get('filtros', {})
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # Encontrar el filtro correspondiente
+        filtro_config = None
+        campo_key = None
+        for fkey, fconfig in filtros_disponibles.items():
+            campo_def = campos_def.get(fconfig['campo'])
+            if campo_def and campo_def['nombre'] == campo_nombre:
+                filtro_config = fconfig
+                campo_key = fconfig['campo']
+                break
+
+        if not filtro_config:
+            return
+
+        # Actualizar operadores disponibles
+        operadores = filtro_config.get('operadores', [])
+        filtro_obj['operador_combo'].configure(values=operadores)
+        if operadores:
+            filtro_obj['operador_combo'].set(operadores[0])
+
+        # Almacenar tipo y campo actual
+        filtro_obj['campo_actual'] = campo_key
+        filtro_obj['tipo_actual'] = filtro_config.get('tipo')
+
+        # Actualizar widget de valor según tipo
+        self._update_valor_widget(filtro_obj, filtro_config)
+
+    def _on_filtro_operador_change(self, filtro_obj, operador):
+        """Maneja el cambio de operador (por si necesita ajustar el widget de valor)"""
+        # Por ahora no hace nada especial, pero podría usarse para casos como "Entre"
+        pass
+
+    def _update_valor_widget(self, filtro_obj, filtro_config):
+        """Actualiza el widget de valor según el tipo de filtro"""
+        tipo = filtro_config.get('tipo')
+
+        # Destruir widget actual
+        if filtro_obj['valor_widget']:
+            filtro_obj['valor_widget'].destroy()
+
+        # Crear nuevo widget según tipo
+        if tipo == 'select':
+            # ComboBox con valores predefinidos
+            valores = filtro_config.get('valores', [])
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=valores,
+                width=150
+            )
+
+        elif tipo == 'select_bd':
+            # ComboBox con valores de BD (obtener dinámicamente)
+            tabla_dimension = filtro_config.get('tabla')
+            valores = self._get_valores_dimension(tabla_dimension)
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=valores if valores else ["Sin datos"],
+                width=150
+            )
+
+        elif tipo == 'numerico':
+            # Entry numérico
+            widget = customtkinter.CTkEntry(
+                filtro_obj['container'],
+                width=150,
+                placeholder_text="Número..."
+            )
+
+        elif tipo == 'fecha':
+            # Entry de fecha (formato YYYY-MM-DD)
+            widget = customtkinter.CTkEntry(
+                filtro_obj['container'],
+                width=150,
+                placeholder_text="YYYY-MM-DD"
+            )
+
+        else:
+            # Default: Entry de texto
+            widget = customtkinter.CTkEntry(filtro_obj['container'], width=150)
+
+        widget.grid(row=0, column=7, sticky="w", padx=(0, 10))
+        filtro_obj['valor_widget'] = widget
+
+    def _get_valores_dimension(self, tabla_dimension):
+        """Obtiene valores de una dimensión desde la BD"""
+        try:
+            resultados = get_dimension_values(self.user, self.password, self.schema, tabla_dimension)
+            # Retornar solo las descripciones
+            return [desc for id, desc in resultados]
+        except Exception as e:
+            print(f"Error al obtener valores de dimensión {tabla_dimension}: {e}")
+            return []
 
     def _remove_filtro(self, container):
         """Elimina un selector de filtro"""
@@ -677,62 +863,122 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar lista
         self.filtros = [f for f in self.filtros if f['container'].winfo_exists()]
 
+    def _clear_all_filtros(self):
+        """Elimina todos los filtros"""
+        for filtro in self.filtros:
+            if filtro['container'].winfo_exists():
+                filtro['container'].destroy()
+        self.filtros = []
+
+    def _clear_all_clasificaciones(self):
+        """Elimina todas las clasificaciones"""
+        for clasif in self.clasificaciones:
+            if clasif['container'].winfo_exists():
+                clasif['container'].destroy()
+        self.clasificaciones = []
+
     def _update_campos_disponibles(self):
-        """Actualiza los campos disponibles según la categoría seleccionada"""
+        """Actualiza los campos disponibles según el informe seleccionado"""
         # Limpiar campos actuales
         for widget in self.campos_scrollable.winfo_children():
             widget.destroy()
 
         self.campos_seleccionados = {}
 
-        # Determinar qué campos mostrar
-        campos_dict = None
-        if "Partes" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PARTES
-        elif "Recursos" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_RECURSOS
-        elif "Presupuestos" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PRESUPUESTOS
-        elif "Certificaciones" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_CERTIFICACIONES
-        elif "Planificación" in self.categoria_seleccionada:
-            campos_dict = CAMPOS_PLANIFICACION
+        # Si hay definición del informe, usar sus campos
+        if self.definicion_actual:
+            campos_informe = self.definicion_actual.get('campos', {})
+            campos_default = self.definicion_actual.get('campos_default', [])
 
-        if not campos_dict:
-            return
+            # Agrupar campos por grupo
+            campos_por_grupo = {}
+            for campo_key, campo_def in campos_informe.items():
+                grupo = campo_def.get('grupo', 'Otros')
+                if grupo not in campos_por_grupo:
+                    campos_por_grupo[grupo] = []
+                campos_por_grupo[grupo].append((campo_key, campo_def['nombre']))
 
-        # Crear checkboxes por grupos
-        row = 0
-        for grupo, campos in campos_dict.items():
-            # Título del grupo
-            grupo_label = customtkinter.CTkLabel(
-                self.campos_scrollable,
-                text=f"{grupo}:",
-                font=customtkinter.CTkFont(size=12, weight="bold")
-            )
-            grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
-            row += 1
-
-            # Checkboxes en 3 columnas
-            col = 0
-            for campo in campos:
-                var = customtkinter.BooleanVar(value=True)
-                check = customtkinter.CTkCheckBox(
+            # Crear checkboxes por grupos
+            row = 0
+            for grupo, campos in campos_por_grupo.items():
+                # Título del grupo
+                grupo_label = customtkinter.CTkLabel(
                     self.campos_scrollable,
-                    text=campo,
-                    variable=var
+                    text=f"{grupo}:",
+                    font=customtkinter.CTkFont(size=12, weight="bold")
                 )
-                check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+                grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
+                row += 1
 
-                self.campos_seleccionados[campo] = var
+                # Checkboxes en 3 columnas
+                col = 0
+                for campo_key, campo_nombre in campos:
+                    # Marcar por defecto si está en campos_default
+                    por_defecto = campo_key in campos_default
+                    var = customtkinter.BooleanVar(value=por_defecto)
+                    check = customtkinter.CTkCheckBox(
+                        self.campos_scrollable,
+                        text=campo_nombre,
+                        variable=var
+                    )
+                    check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
 
-                col += 1
-                if col >= 3:
-                    col = 0
+                    self.campos_seleccionados[campo_key] = var
+
+                    col += 1
+                    if col >= 3:
+                        col = 0
+                        row += 1
+
+                if col > 0:
                     row += 1
 
-            if col > 0:
-                row += 1
+        else:
+            # Si no hay definición, usar campos genéricos de la categoría (fallback)
+            campos_dict = None
+            if "Partes" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PARTES
+            elif "Recursos" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_RECURSOS
+            elif "Presupuestos" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PRESUPUESTOS
+            elif "Certificaciones" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_CERTIFICACIONES
+            elif "Planificación" in str(self.categoria_seleccionada):
+                campos_dict = CAMPOS_PLANIFICACION
+
+            if campos_dict:
+                row = 0
+                for grupo, campos in campos_dict.items():
+                    # Título del grupo
+                    grupo_label = customtkinter.CTkLabel(
+                        self.campos_scrollable,
+                        text=f"{grupo}:",
+                        font=customtkinter.CTkFont(size=12, weight="bold")
+                    )
+                    grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
+                    row += 1
+
+                    # Checkboxes en 3 columnas
+                    col = 0
+                    for campo in campos:
+                        var = customtkinter.BooleanVar(value=True)
+                        check = customtkinter.CTkCheckBox(
+                            self.campos_scrollable,
+                            text=campo,
+                            variable=var
+                        )
+                        check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+
+                        self.campos_seleccionados[campo] = var
+
+                        col += 1
+                        if col >= 3:
+                            col = 0
+                            row += 1
+
+                    if col > 0:
+                        row += 1
 
     def _select_all_campos(self):
         """Selecciona todos los campos"""
@@ -760,9 +1006,10 @@ class InformesFrame(customtkinter.CTkFrame):
         )
 
     def _preview_report(self):
-        """Previsualiza el informe"""
+        """Previsualiza el informe ejecutando el query y mostrando resultados"""
         from CTkMessagebox import CTkMessagebox
 
+        # Validaciones
         if not self.informe_seleccionado:
             CTkMessagebox(
                 title="Aviso",
@@ -771,24 +1018,873 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
-        CTkMessagebox(
-            title="Previsualización",
-            message=f"Vista previa del informe:\n{self.informe_seleccionado}\n\n"
-                    "Funcionalidad en desarrollo.",
-            icon="info"
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            # Obtener valor según tipo de widget
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"  # Valor por defecto
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para mostrar en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe
+        print(f"\n{'='*70}")
+        print(f"EJECUTANDO INFORME: {self.informe_seleccionado}")
+        print(f"Filtros aplicados: {len(filtros_aplicados)}")
+        print(f"Clasificaciones aplicadas: {len(clasificaciones_aplicadas)}")
+        print(f"Campos seleccionados: {len(campos_seleccionados)}")
+        print(f"{'='*70}\n")
+
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            # Mostrar resultados
+            if datos:
+                self._show_results_window(columnas, datos)
+            else:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+
+    def _show_results_window(self, columnas, datos):
+        """Muestra una ventana con los resultados del informe"""
+        # Crear ventana toplevel
+        results_window = customtkinter.CTkToplevel(self)
+        results_window.title(f"Vista Previa: {self.informe_seleccionado}")
+        results_window.geometry("1200x600")
+
+        # Frame principal
+        main_frame = customtkinter.CTkFrame(results_window)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(1, weight=1)
+
+        # Título
+        title_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"📊 {self.informe_seleccionado}",
+            font=customtkinter.CTkFont(size=16, weight="bold")
         )
+        title_label.grid(row=0, column=0, pady=(5, 10), sticky="w", padx=10)
+
+        # Info
+        info_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"{len(datos)} registros encontrados",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray"
+        )
+        info_label.grid(row=0, column=1, pady=(5, 10), sticky="e", padx=10)
+
+        # Frame para TreeView
+        tree_frame = customtkinter.CTkFrame(main_frame)
+        tree_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=(0, 10))
+
+        # Scrollbars
+        vsb = customtkinter.CTkScrollbar(tree_frame, orientation="vertical")
+        vsb.pack(side="right", fill="y")
+
+        hsb = customtkinter.CTkScrollbar(tree_frame, orientation="horizontal")
+        hsb.pack(side="bottom", fill="x")
+
+        # TreeView
+        tree = ttk.Treeview(
+            tree_frame,
+            columns=columnas,
+            show="headings",
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        tree.pack(side="left", fill="both", expand=True)
+
+        vsb.configure(command=tree.yview)
+        hsb.configure(command=tree.xview)
+
+        # Configurar columnas
+        for col in columnas:
+            tree.heading(col, text=col)
+            tree.column(col, width=150, anchor="w")
+
+        # Insertar datos
+        for fila in datos:
+            tree.insert("", "end", values=fila)
+
+        # Botón cerrar
+        close_btn = customtkinter.CTkButton(
+            main_frame,
+            text="Cerrar",
+            width=100,
+            command=results_window.destroy
+        )
+        close_btn.grid(row=2, column=0, columnspan=2, pady=(0, 5))
+
+        # Centrar ventana
+        results_window.update_idletasks()
+        results_window.lift()
+        results_window.focus()
 
     def _export_word(self):
-        """Exporta a Word"""
-        self._export_message("Word (.docx)")
+        """Exporta el informe a formato Word (.docx)"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.docx"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".docx",
+            filetypes=[("Word files", "*.docx"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo Word
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+            doc = Document()
+
+            # Título del informe
+            titulo = doc.add_heading(f"📊 {self.informe_seleccionado}", level=0)
+            titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            titulo_run = titulo.runs[0]
+            titulo_run.font.color.rgb = RGBColor(31, 78, 120)  # Azul oscuro
+
+            # Información de fecha y filtros
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
+            if clasificaciones_aplicadas:
+                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+
+            info_para = doc.add_paragraph(info_text)
+            info_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            info_run = info_para.runs[0]
+            info_run.font.size = Pt(10)
+            info_run.font.italic = True
+            info_run.font.color.rgb = RGBColor(102, 102, 102)  # Gris
+
+            # Espacio
+            doc.add_paragraph()
+
+            # Tabla con datos
+            tabla = doc.add_table(rows=1, cols=len(columnas))
+            tabla.style = 'Light Grid Accent 1'
+
+            # Encabezados
+            header_cells = tabla.rows[0].cells
+            for idx, columna in enumerate(columnas):
+                header_cells[idx].text = str(columna)
+                # Formatear encabezado
+                for paragraph in header_cells[idx].paragraphs:
+                    for run in paragraph.runs:
+                        run.font.bold = True
+                        run.font.size = Pt(11)
+                        run.font.color.rgb = RGBColor(255, 255, 255)
+                # Color de fondo se maneja con el estilo de tabla
+
+            # Datos
+            for fila in datos:
+                row_cells = tabla.add_row().cells
+                for idx, valor in enumerate(fila):
+                    row_cells[idx].text = str(valor) if valor is not None else ""
+                    # Formatear dato
+                    for paragraph in row_cells[idx].paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+
+            # Espacio
+            doc.add_paragraph()
+
+            # Resumen
+            resumen_para = doc.add_paragraph(f"Total de registros: {len(datos)}")
+            resumen_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            resumen_run = resumen_para.runs[0]
+            resumen_run.font.bold = True
+            resumen_run.font.size = Pt(11)
+
+            # Guardar archivo
+            doc.save(archivo)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'python-docx' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install python-docx",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a Word:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a Word:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _export_excel(self):
-        """Exporta a Excel"""
-        self._export_message("Excel (.xlsx)")
+        """Exporta el informe a formato Excel (.xlsx)"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            # Obtener valor según tipo de widget
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.xlsx"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo Excel
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = self.informe_seleccionado[:31]  # Límite de 31 caracteres para nombre de hoja
+
+            # Título del informe (fila 1)
+            ws.merge_cells('A1:' + chr(64 + len(columnas)) + '1')
+            titulo_cell = ws['A1']
+            titulo_cell.value = f"📊 {self.informe_seleccionado}"
+            titulo_cell.font = Font(size=16, bold=True, color="FFFFFF")
+            titulo_cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            titulo_cell.alignment = Alignment(horizontal="center", vertical="center")
+            ws.row_dimensions[1].height = 30
+
+            # Información de fecha y filtros (fila 2)
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
+            ws.merge_cells('A2:' + chr(64 + len(columnas)) + '2')
+            info_cell = ws['A2']
+            info_cell.value = info_text
+            info_cell.font = Font(size=10, italic=True, color="666666")
+            info_cell.alignment = Alignment(horizontal="center")
+            ws.row_dimensions[2].height = 20
+
+            # Encabezados de columnas (fila 4)
+            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+            header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            for col_idx, columna in enumerate(columnas, start=1):
+                cell = ws.cell(row=4, column=col_idx)
+                cell.value = columna
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = border
+                # Ajustar ancho de columna
+                ws.column_dimensions[chr(64 + col_idx)].width = max(15, len(str(columna)) + 2)
+
+            ws.row_dimensions[4].height = 25
+
+            # Datos (desde fila 5)
+            data_alignment = Alignment(horizontal="left", vertical="center")
+            for row_idx, fila in enumerate(datos, start=5):
+                for col_idx, valor in enumerate(fila, start=1):
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    cell.value = valor
+                    cell.alignment = data_alignment
+                    cell.border = border
+
+                    # Alternar color de fila
+                    if row_idx % 2 == 0:
+                        cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
+            # Resumen al final
+            ultima_fila = 5 + len(datos)
+            ws.merge_cells(f'A{ultima_fila}:' + chr(64 + len(columnas)) + str(ultima_fila))
+            resumen_cell = ws[f'A{ultima_fila}']
+            resumen_cell.value = f"Total de registros: {len(datos)}"
+            resumen_cell.font = Font(bold=True, size=11)
+            resumen_cell.alignment = Alignment(horizontal="right")
+            resumen_cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+
+            # Guardar archivo
+            wb.save(archivo)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'openpyxl' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install openpyxl",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a Excel:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a Excel:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _export_pdf(self):
-        """Exporta a PDF"""
-        self._export_message("PDF (.pdf)")
+        """Exporta el informe a formato PDF"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.pdf"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo PDF
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import letter, A4, landscape
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+
+            # Determinar orientación según número de columnas
+            if len(columnas) > 6:
+                pagesize = landscape(A4)
+            else:
+                pagesize = A4
+
+            # Crear documento
+            doc = SimpleDocTemplate(archivo, pagesize=pagesize)
+            story = []
+            styles = getSampleStyleSheet()
+
+            # Título personalizado
+            titulo_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                textColor=colors.HexColor('#1F4E78'),
+                spaceAfter=12,
+                alignment=TA_CENTER
+            )
+            titulo = Paragraph(f"📊 {self.informe_seleccionado}", titulo_style)
+            story.append(titulo)
+
+            # Información de fecha y filtros
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros: {len(filtros_aplicados)}"
+            if clasificaciones_aplicadas:
+                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+
+            info_style = ParagraphStyle(
+                'InfoStyle',
+                parent=styles['Normal'],
+                fontSize=9,
+                textColor=colors.grey,
+                alignment=TA_CENTER,
+                spaceAfter=20
+            )
+            info = Paragraph(info_text, info_style)
+            story.append(info)
+
+            # Preparar datos para la tabla
+            tabla_data = [columnas]  # Encabezados
+            for fila in datos:
+                tabla_data.append([str(v) if v is not None else "" for v in fila])
+
+            # Crear tabla
+            tabla = Table(tabla_data)
+
+            # Estilo de la tabla
+            tabla_style = TableStyle([
+                # Encabezados
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+                # Datos
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+
+                # Bordes y líneas
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
+
+                # Alternar colores de fila
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F2F2')])
+            ])
+
+            tabla.setStyle(tabla_style)
+            story.append(tabla)
+
+            # Espacio
+            story.append(Spacer(1, 0.3 * inch))
+
+            # Resumen
+            resumen_style = ParagraphStyle(
+                'ResumenStyle',
+                parent=styles['Normal'],
+                fontSize=11,
+                alignment=TA_RIGHT,
+                spaceAfter=12
+            )
+            resumen = Paragraph(f"<b>Total de registros: {len(datos)}</b>", resumen_style)
+            story.append(resumen)
+
+            # Generar PDF
+            doc.build(story)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'reportlab' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install reportlab",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a PDF:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a PDF:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _print_report(self):
         """Imprime el informe"""

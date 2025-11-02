@@ -1,8 +1,19 @@
-# interface/parts_interfaz_v2.py
+# interface/parts_interfaz_v2_fixed.py
 """
 Formulario mejorado para crear partes de trabajo.
+Incluye campos de la Fase 1: título, estado, descripciones, fechas, localización, municipio.
+Incluye campos adicionales: trabajadores (texto libre), latitud y longitud GPS (WGS84).
 Mantiene el estilo visual del formulario original.
 """
+import sys
+import os
+from pathlib import Path
+
+# Añadir directorio raíz al path para imports
+root_dir = Path(__file__).parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 from tkcalendar import DateEntry
@@ -16,16 +27,26 @@ from script.modulo_db import (
 )
 from parts_list_window import open_parts_list
 
-class AppPartsV2(customtkinter.CTk):
+class AppPartsV2(customtkinter.CTkToplevel):
     """
     Ventana mejorada para crear partes con todos los campos de Fase 1.
     Estilo original mantenido.
+
+    IMPORTANTE: Hereda de CTkToplevel para poder ser abierta como ventana
+    secundaria desde AppPartsManager. CustomTkinter solo permite una ventana
+    CTk (principal) por aplicación.
     """
     def __init__(self, user: str, password: str, default_schema: str = "cert_dev"):
         super().__init__()
-        self.title("Generador de partes")
-        self.geometry("900x700")
+
+        self.title("Generador de partes - Formulario Completo")
+        self.geometry("900x850")
         self.resizable(False, False)
+
+        # Asegurar que la ventana aparezca al frente
+        self.lift()
+        self.focus_force()
+        self.grab_set()  # Hacer modal para que sea más visible
 
         self.user = user
         self.password = password
@@ -67,9 +88,9 @@ class AppPartsV2(customtkinter.CTk):
         self.tipo_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Fila 2: Código trabajo
+        # Fila 2: Código trabajo (solo habilitado para tipo_trabajo == 3)
         customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
+        self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300, state="disabled")
         self.cod_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -117,6 +138,29 @@ class AppPartsV2(customtkinter.CTk):
         customtkinter.CTkLabel(self, text="Localización:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.localizacion_entry = customtkinter.CTkEntry(self, width=720, placeholder_text="Ej: Calle Mayor 123")
         self.localizacion_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # Trabajadores
+        customtkinter.CTkLabel(self, text="Trabajadores:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.trabajadores_entry = customtkinter.CTkEntry(self, width=720, placeholder_text="Ej: Juan Pérez, María López")
+        self.trabajadores_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # GPS - Latitud y Longitud
+        customtkinter.CTkLabel(self, text="GPS:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+
+        gps_frame = customtkinter.CTkFrame(self, fg_color="transparent")
+        gps_frame.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+
+        customtkinter.CTkLabel(gps_frame, text="Lat:").pack(side="left", padx=(0,5))
+        self.latitud_entry = customtkinter.CTkEntry(gps_frame, width=150, placeholder_text="43.263126")
+        self.latitud_entry.pack(side="left", padx=2)
+
+        customtkinter.CTkLabel(gps_frame, text="Lon:").pack(side="left", padx=(15,5))
+        self.longitud_entry = customtkinter.CTkEntry(gps_frame, width=150, placeholder_text="-2.934985")
+        self.longitud_entry.pack(side="left", padx=2)
+
+        customtkinter.CTkLabel(gps_frame, text="(WGS84)", font=("Arial", 9, "italic")).pack(side="left", padx=10)
         row += 1
 
         # Provincia
@@ -224,44 +268,62 @@ class AppPartsV2(customtkinter.CTk):
             return None
 
     def _update_codigo_ot(self, *args):
-        """Actualiza el código OT preview según el tipo de trabajo seleccionado"""
+        """Actualiza el código OT preview según el tipo de trabajo seleccionado
+
+        Formato: {OT|GF|TP}-{correlativo}
+        Ejemplos: OT-0001, GF-0001, TP-0001
+        Cada tipo de trabajo tiene su propio correlativo independiente
+        """
         try:
             from script.db_partes import _get_tipo_trabajo_prefix
             from script.db_connection import get_project_connection
 
-            tipo_id = self._take_id(self.tipo_menu.get())
+            tipo_value = self.tipo_menu.get()
+            print(f"[DEBUG] Tipo trabajo seleccionado: {tipo_value}")  # DEBUG
+
+            tipo_id = self._take_id(tipo_value)
+            print(f"[DEBUG] ID extraído: {tipo_id}")  # DEBUG
+
+            # Habilitar/deshabilitar "Código trabajo" según tipo de trabajo
+            # Solo habilitado si tipo_trabajo == 3 (Trabajos programados)
+            if tipo_id == 3:
+                self.cod_menu.configure(state="normal")
+            else:
+                self.cod_menu.configure(state="disabled")
+
             if not tipo_id:
                 self.codigo_ot_entry.configure(state="normal")
                 self.codigo_ot_entry.delete(0, "end")
-                self.codigo_ot_entry.insert(0, "PT-?????")
+                self.codigo_ot_entry.insert(0, "PT-????")
                 self.codigo_ot_entry.configure(state="readonly")
                 return
 
-            # Get prefix based on tipo_trabajo
+            # Get prefix based on tipo_trabajo (OT, GF o TP)
+            # ID 1 → GF, ID 2 → OT, ID 3 → TP
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
+            print(f"[DEBUG] Prefijo obtenido: {prefix}")  # DEBUG
 
             # Get next number for this specific prefix (independent numbering per prefix)
+            # Formato: PREFIX-NNNN (sin año)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Extract the numeric part from existing codes with this prefix
-                # Más robusto: maneja NULLs y códigos vacíos
+                # Obtener el último número usado para este prefijo
                 cur.execute("""
-                    SELECT COALESCE(
-                        MAX(
-                            CAST(
-                                REPLACE(codigo, %s, '') AS UNSIGNED
-                            )
-                        ),
-                        0
-                    ) + 1
+                    SELECT COALESCE(MAX(
+                        CAST(
+                            SUBSTRING_INDEX(codigo, '-', -1)
+                            AS UNSIGNED
+                        )
+                    ), 0) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
                       AND codigo LIKE %s
-                """, (prefix + '-', prefix + '-%'))
+                """, (f"{prefix}-%",))
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:05d}"
+            codigo = f"{prefix}-{next_id:04d}"
+            print(f"[DEBUG] Código generado: {codigo}")  # DEBUG
 
             # Update readonly entry
             self.codigo_ot_entry.configure(state="normal")
@@ -270,7 +332,9 @@ class AppPartsV2(customtkinter.CTk):
             self.codigo_ot_entry.configure(state="readonly")
 
         except Exception as e:
-            print(f"Error updating código OT: {e}")
+            print(f"[ERROR] Error updating código OT: {e}")
+            import traceback
+            traceback.print_exc()  # Imprimir stack trace completo
             self.codigo_ot_entry.configure(state="normal")
             self.codigo_ot_entry.delete(0, "end")
             self.codigo_ot_entry.insert(0, "Error")
@@ -334,12 +398,12 @@ class AppPartsV2(customtkinter.CTk):
             CTkMessagebox(title="Campo obligatorio", message="El Municipio es obligatorio", icon="warning")
             return
 
-        # VALIDACIÓN ESPECIAL: Si estado es "Finalizada", Fecha Fin es obligatoria
+        # VALIDACIÓN ESPECIAL: Si estado es "Finalizado", Fecha Fin es obligatoria
         fecha_fin_str = self.fecha_fin_entry.get()
-        if estado_nombre.lower() == "finalizada" and not fecha_fin_str:
+        if estado_nombre.lower() == "finalizado" and not fecha_fin_str:
             CTkMessagebox(
                 title="Campo obligatorio",
-                message="Si el estado es 'Finalizada', debes indicar la Fecha de Fin",
+                message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
                 icon="warning"
             )
             return
@@ -360,6 +424,55 @@ class AppPartsV2(customtkinter.CTk):
         fecha_fin = convert_date(fecha_fin_str) if fecha_fin_str else None
         fecha_prevista = convert_date(fecha_prevista_str)
 
+        # Obtener trabajadores (opcional)
+        trabajadores = self.trabajadores_entry.get().strip() or None
+
+        # Obtener coordenadas GPS (opcionales, pero validar formato)
+        latitud_str = self.latitud_entry.get().strip()
+        longitud_str = self.longitud_entry.get().strip()
+
+        latitud = None
+        longitud = None
+
+        # Si se ingresaron coordenadas, validarlas
+        if latitud_str or longitud_str:
+            if not latitud_str or not longitud_str:
+                CTkMessagebox(
+                    title="Error GPS",
+                    message="Si ingresas coordenadas GPS, debes proporcionar tanto Latitud como Longitud",
+                    icon="warning"
+                )
+                return
+
+            try:
+                latitud = float(latitud_str)
+                longitud = float(longitud_str)
+
+                # Validar rangos
+                if latitud < -90 or latitud > 90:
+                    CTkMessagebox(
+                        title="Error Latitud",
+                        message="La Latitud debe estar entre -90 y 90 grados",
+                        icon="warning"
+                    )
+                    return
+
+                if longitud < -180 or longitud > 180:
+                    CTkMessagebox(
+                        title="Error Longitud",
+                        message="La Longitud debe estar entre -180 y 180 grados",
+                        icon="warning"
+                    )
+                    return
+
+            except ValueError:
+                CTkMessagebox(
+                    title="Error formato GPS",
+                    message="Las coordenadas GPS deben ser números decimales válidos\nEjemplo: 43.263126, -2.934985",
+                    icon="warning"
+                )
+                return
+
         try:
             new_id, codigo = add_parte_mejorado(
                 self.user, self.password, self.schema,
@@ -373,7 +486,10 @@ class AppPartsV2(customtkinter.CTk):
                 fecha_prevista_fin=fecha_prevista,
                 id_estado=estado_id,
                 localizacion=localizacion,
-                id_municipio=municipio_id
+                id_municipio=municipio_id,
+                trabajadores=trabajadores,
+                latitud=latitud,
+                longitud=longitud
             )
 
             CTkMessagebox(
@@ -402,6 +518,9 @@ class AppPartsV2(customtkinter.CTk):
         self.fecha_fin_entry.delete(0, "end")
         self.fecha_prevista_entry.delete(0, "end")
         self.localizacion_entry.delete(0, "end")
+        self.trabajadores_entry.delete(0, "end")
+        self.latitud_entry.delete(0, "end")
+        self.longitud_entry.delete(0, "end")
         # Recargar mantiene OT preseleccionada
         self._reload_dims()
 

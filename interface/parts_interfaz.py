@@ -1,4 +1,21 @@
 # interface/parts_interfaz.py
+"""
+⚠️ ARCHIVO OBSOLETO - LEGACY CODE ⚠️
+
+Esta es la versión original y simplificada del formulario de partes.
+Solo permite crear partes básicos con campos mínimos (RED, TIPO, CÓDIGO, DESCRIPCIÓN).
+
+NO INCLUYE:
+- Campos FASE 1 (título, descripciones largas/cortas, fechas, estado, localización, municipio)
+- Campos adicionales (trabajadores, GPS)
+
+USO RECOMENDADO:
+Para crear partes completos con todos los campos, usa:
+- interface/parts_interfaz_v2_fixed.py (AppPartsV2)
+
+Este archivo se mantiene solo para compatibilidad con código legacy.
+Considerar eliminarlo en futuras versiones.
+"""
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 from script.modulo_db import add_parte_with_code, get_dim_all
@@ -9,6 +26,8 @@ class AppParts(customtkinter.CTk):
     Ventana mínima para crear partes en cert_dev.
     Selecciona RED, TIPO_TRABAJO y COD_TRABAJO y hace INSERT en tbl_partes.
     El código de OT/Parte se genera automáticamente (PT-00001).
+
+    ⚠️ OBSOLETO: Usa AppPartsV2 de parts_interfaz_v2_fixed.py en su lugar.
     """
     def __init__(self, user: str, password: str, default_schema: str = "cert_dev"):
         super().__init__()
