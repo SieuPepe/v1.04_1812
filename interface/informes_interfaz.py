@@ -62,14 +62,14 @@ class InformesFrame(customtkinter.CTkFrame):
     def _create_header(self):
         """Crea el encabezado con título y botón de configuración"""
         header_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=20, pady=(10, 0))
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 0))
         header_frame.grid_columnconfigure(0, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
             header_frame,
             text="GENERACIÓN DE INFORMES",
-            font=customtkinter.CTkFont(size=20, weight="bold")
+            font=customtkinter.CTkFont(size=18, weight="bold")
         )
         title.grid(row=0, column=0, sticky="w")
 
@@ -78,14 +78,15 @@ class InformesFrame(customtkinter.CTkFrame):
             header_frame,
             text="⚙️ Configuración",
             width=140,
+            height=32,
             command=self._open_config_dialog
         )
         config_button.grid(row=0, column=1, sticky="e")
 
     def _create_left_panel(self):
         """Crea el panel izquierdo con el árbol de informes"""
-        left_frame = customtkinter.CTkFrame(self, width=250)
-        left_frame.grid(row=1, column=0, sticky="nsew", padx=(20, 10), pady=10)
+        left_frame = customtkinter.CTkFrame(self, width=280)
+        left_frame.grid(row=1, column=0, sticky="nsew", padx=(15, 8), pady=5)
         left_frame.grid_propagate(False)
         left_frame.grid_rowconfigure(1, weight=1)
 
@@ -93,9 +94,9 @@ class InformesFrame(customtkinter.CTkFrame):
         title = customtkinter.CTkLabel(
             left_frame,
             text="TIPO DE INFORME",
-            font=customtkinter.CTkFont(size=14, weight="bold")
+            font=customtkinter.CTkFont(size=13, weight="bold")
         )
-        title.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="w")
+        title.grid(row=0, column=0, padx=10, pady=(8, 5), sticky="w")
 
         # Frame para el TreeView
         tree_frame = customtkinter.CTkFrame(left_frame)
@@ -121,11 +122,12 @@ class InformesFrame(customtkinter.CTkFrame):
                         foreground="white",
                         fieldbackground="#2a2d2e",
                         borderwidth=0,
-                        font=('Segoe UI', 10))
+                        rowheight=25,
+                        font=('Segoe UI', 12))
         style.configure("Treeview.Heading",
                         background="#1f538d",
                         foreground="white",
-                        font=('Segoe UI', 10, 'bold'))
+                        font=('Segoe UI', 12, 'bold'))
         style.map('Treeview', background=[('selected', '#1f538d')])
 
         # Poblar el árbol
@@ -171,60 +173,60 @@ class InformesFrame(customtkinter.CTkFrame):
     def _create_right_panel(self):
         """Crea el panel derecho con la configuración del informe"""
         right_frame = customtkinter.CTkScrollableFrame(self)
-        right_frame.grid(row=1, column=1, sticky="nsew", padx=(10, 20), pady=10)
+        right_frame.grid(row=1, column=1, sticky="nsew", padx=(8, 15), pady=5)
         right_frame.grid_columnconfigure(0, weight=1)
 
         # Título del informe seleccionado
         self.informe_title_label = customtkinter.CTkLabel(
             right_frame,
             text="Informe seleccionado: Ninguno",
-            font=customtkinter.CTkFont(size=14, weight="bold"),
+            font=customtkinter.CTkFont(size=13, weight="bold"),
             text_color="gray"
         )
-        self.informe_title_label.grid(row=0, column=0, padx=20, pady=(10, 20), sticky="w")
+        self.informe_title_label.grid(row=0, column=0, padx=15, pady=(5, 10), sticky="w")
 
         # Separador
         separator1 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
-        separator1.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 10))
+        separator1.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 8))
 
         # Sección CLASIFICACIÓN
         self._create_clasificacion_section(right_frame, row=2)
 
         # Separador
         separator2 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
-        separator2.grid(row=3, column=0, sticky="ew", padx=20, pady=15)
+        separator2.grid(row=3, column=0, sticky="ew", padx=15, pady=10)
 
         # Sección FILTROS
         self._create_filtros_section(right_frame, row=4)
 
         # Separador
         separator3 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
-        separator3.grid(row=5, column=0, sticky="ew", padx=20, pady=15)
+        separator3.grid(row=5, column=0, sticky="ew", padx=15, pady=10)
 
         # Sección CAMPOS A MOSTRAR
         self._create_campos_section(right_frame, row=6)
 
         # Separador
         separator4 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
-        separator4.grid(row=7, column=0, sticky="ew", padx=20, pady=15)
+        separator4.grid(row=7, column=0, sticky="ew", padx=15, pady=10)
 
         # Sección OPCIONES DE PRESENTACIÓN
         self._create_opciones_section(right_frame, row=8)
 
     def _create_clasificacion_section(self, parent, row):
         """Crea la sección de clasificación"""
-        # Frame contenedor
-        clasif_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        clasif_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=5)
+        # Frame contenedor con altura mínima
+        clasif_frame = customtkinter.CTkFrame(parent, fg_color="transparent", height=150)
+        clasif_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
         clasif_frame.grid_columnconfigure(0, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
             clasif_frame,
             text="📋 CLASIFICACIÓN (Agrupar por)",
-            font=customtkinter.CTkFont(size=13, weight="bold")
+            font=customtkinter.CTkFont(size=12, weight="bold")
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        title.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
         # Botón añadir
         add_button = customtkinter.CTkButton(
@@ -234,27 +236,34 @@ class InformesFrame(customtkinter.CTkFrame):
             height=28,
             command=self._add_clasificacion
         )
-        add_button.grid(row=1, column=0, sticky="w", pady=(0, 10))
+        add_button.grid(row=1, column=0, sticky="w", pady=(0, 8))
 
-        # Frame para clasificaciones
-        self.clasificaciones_frame = customtkinter.CTkFrame(clasif_frame, fg_color="transparent")
-        self.clasificaciones_frame.grid(row=2, column=0, sticky="ew")
+        # Frame para clasificaciones con scroll
+        self.clasificaciones_container = customtkinter.CTkScrollableFrame(
+            clasif_frame,
+            height=100,
+            fg_color="transparent"
+        )
+        self.clasificaciones_container.grid(row=2, column=0, sticky="ew")
+
+        self.clasificaciones_frame = customtkinter.CTkFrame(self.clasificaciones_container, fg_color="transparent")
+        self.clasificaciones_frame.pack(fill="both", expand=True)
         self.clasificaciones_frame.grid_columnconfigure(0, weight=1)
 
     def _create_filtros_section(self, parent, row):
         """Crea la sección de filtros"""
-        # Frame contenedor
-        filtros_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        filtros_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=5)
+        # Frame contenedor con altura mínima
+        filtros_frame = customtkinter.CTkFrame(parent, fg_color="transparent", height=150)
+        filtros_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
         filtros_frame.grid_columnconfigure(0, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
             filtros_frame,
             text="🔍 FILTROS (Mostrar solo si...)",
-            font=customtkinter.CTkFont(size=13, weight="bold")
+            font=customtkinter.CTkFont(size=12, weight="bold")
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        title.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
         # Botón añadir
         add_button = customtkinter.CTkButton(
@@ -264,31 +273,38 @@ class InformesFrame(customtkinter.CTkFrame):
             height=28,
             command=self._add_filtro
         )
-        add_button.grid(row=1, column=0, sticky="w", pady=(0, 10))
+        add_button.grid(row=1, column=0, sticky="w", pady=(0, 8))
 
-        # Frame para filtros
-        self.filtros_frame = customtkinter.CTkFrame(filtros_frame, fg_color="transparent")
-        self.filtros_frame.grid(row=2, column=0, sticky="ew")
+        # Frame para filtros con scroll
+        self.filtros_container = customtkinter.CTkScrollableFrame(
+            filtros_frame,
+            height=120,
+            fg_color="transparent"
+        )
+        self.filtros_container.grid(row=2, column=0, sticky="ew")
+
+        self.filtros_frame = customtkinter.CTkFrame(self.filtros_container, fg_color="transparent")
+        self.filtros_frame.pack(fill="both", expand=True)
         self.filtros_frame.grid_columnconfigure(0, weight=1)
 
     def _create_campos_section(self, parent, row):
         """Crea la sección de campos a mostrar"""
         # Frame contenedor
         campos_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        campos_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=5)
+        campos_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
         campos_frame.grid_columnconfigure(0, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
             campos_frame,
             text="📄 CAMPOS A MOSTRAR",
-            font=customtkinter.CTkFont(size=13, weight="bold")
+            font=customtkinter.CTkFont(size=12, weight="bold")
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        title.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
         # Frame scrollable para checkboxes
-        self.campos_scrollable = customtkinter.CTkScrollableFrame(campos_frame, height=200)
-        self.campos_scrollable.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        self.campos_scrollable = customtkinter.CTkScrollableFrame(campos_frame, height=180)
+        self.campos_scrollable.grid(row=1, column=0, sticky="ew", pady=(0, 8))
         self.campos_scrollable.grid_columnconfigure(0, weight=1)
         self.campos_scrollable.grid_columnconfigure(1, weight=1)
         self.campos_scrollable.grid_columnconfigure(2, weight=1)
@@ -327,16 +343,16 @@ class InformesFrame(customtkinter.CTkFrame):
         """Crea la sección de opciones de presentación"""
         # Frame contenedor
         opciones_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        opciones_frame.grid(row=row, column=0, sticky="ew", padx=20, pady=5)
+        opciones_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
         opciones_frame.grid_columnconfigure(0, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
             opciones_frame,
             text="🎨 OPCIONES DE PRESENTACIÓN",
-            font=customtkinter.CTkFont(size=13, weight="bold")
+            font=customtkinter.CTkFont(size=12, weight="bold")
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 10))
+        title.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
         # Formato de salida
         formato_label = customtkinter.CTkLabel(
@@ -426,7 +442,7 @@ class InformesFrame(customtkinter.CTkFrame):
     def _create_action_bar(self):
         """Crea la barra de acciones inferior"""
         action_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        action_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 15))
+        action_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))
         action_frame.grid_columnconfigure(0, weight=1)
 
         # Frame para centrar botones
