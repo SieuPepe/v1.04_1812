@@ -107,7 +107,8 @@ def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcio
             # Detectar la columna de texto
             text_col = _guess_text_column(user, password, schema, 'dim_ot')
             if text_col:
-                cur.execute(f"INSERT INTO dim_ot (ot_codigo, {text_col}) VALUES (%s, %s)", (ot_codigo, descripcion or ot_codigo))
+                query_insert = "INSERT INTO dim_ot (ot_codigo, {}) VALUES (%s, %s)".format(text_col)
+                cur.execute(query_insert, (ot_codigo, descripcion or ot_codigo))
             else:
                 cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
             cn.commit()
@@ -950,16 +951,18 @@ def add_parte_mejorado(user: str, password: str, schema: str,
 
         # Generar código único para este prefijo
         # Formato: PREFIX-NNNN (sin año)
-        cur.execute(f"""
+        # Usar .format() para evitar conflictos entre f-string y placeholders MySQL
+        query_next = """
             SELECT COALESCE(MAX(
                 CAST(
                     SUBSTRING_INDEX(codigo, '-', -1)
                     AS UNSIGNED
                 )
             ), 0) + 1
-            FROM {schema}.tbl_partes
+            FROM {}.tbl_partes
             WHERE codigo LIKE %s
-        """, (f"{prefix}-%",))
+        """.format(schema)
+        cur.execute(query_next, (f"{prefix}-%",))
 
         next_num = cur.fetchone()[0]
         codigo = f"{prefix}-{next_num:04d}"
