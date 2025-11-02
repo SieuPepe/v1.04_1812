@@ -48,21 +48,55 @@ class InformesFrame(customtkinter.CTkFrame):
         self.filtros = []
         self.campos_seleccionados = {}
 
-        # Configurar grid - SIN HEADER, todo el espacio vertical para contenido
+        # Configurar grid - Header compacto + contenido principal + action bar
         self.grid_columnconfigure(0, weight=0)  # Panel izquierdo fijo
         self.grid_columnconfigure(1, weight=1)  # Panel derecho expandible
-        self.grid_rowconfigure(0, weight=1)     # Row principal ocupa todo el espacio
-        self.grid_rowconfigure(1, weight=0)     # Action bar sin expansión
+        self.grid_rowconfigure(0, weight=0)     # Header compacto (altura fija ~40px)
+        self.grid_rowconfigure(1, weight=1)     # Row principal (contenido expandible)
+        self.grid_rowconfigure(2, weight=0)     # Action bar (altura fija ~50px)
 
-        # Crear componentes (SIN header, se movió configuración al panel derecho)
+        # Crear componentes
+        self._create_compact_header()
         self._create_left_panel()
         self._create_right_panel()
         self._create_action_bar()
 
+    def _create_compact_header(self):
+        """Crea el header compacto en una sola línea con título y botón configuración"""
+        # Frame del header (altura fija ~40px)
+        header_frame = customtkinter.CTkFrame(self, fg_color="transparent", height=40)
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=15, pady=(8, 5))
+        header_frame.grid_columnconfigure(0, weight=1)
+        header_frame.grid_propagate(False)  # Mantener altura fija
+
+        # Título a la izquierda
+        title = customtkinter.CTkLabel(
+            header_frame,
+            text="GENERACIÓN DE INFORMES",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            anchor="w"
+        )
+        title.grid(row=0, column=0, sticky="w")
+
+        # Botón configuración a la derecha
+        config_button = customtkinter.CTkButton(
+            header_frame,
+            text="⚙️ Configuración",
+            width=120,
+            height=30,
+            font=customtkinter.CTkFont(size=11),
+            command=self._open_config_dialog
+        )
+        config_button.grid(row=0, column=1, sticky="e")
+
+        # Separador visual debajo del header
+        separator = customtkinter.CTkFrame(self, height=1, fg_color="gray30")
+        separator.grid(row=0, column=0, columnspan=2, sticky="ews", padx=15, pady=(38, 0))
+
     def _create_left_panel(self):
         """Crea el panel izquierdo con el árbol de informes - OCUPA TODA LA ALTURA"""
         left_frame = customtkinter.CTkFrame(self, width=300)
-        left_frame.grid(row=0, column=0, sticky="nsew", padx=(15, 8), pady=(10, 5))  # row=0 ahora
+        left_frame.grid(row=1, column=0, sticky="nsew", padx=(15, 8), pady=(5, 5))  # row=1 (contenido)
         left_frame.grid_propagate(False)
         left_frame.grid_rowconfigure(1, weight=1)  # TreeView expande verticalmente
 
@@ -165,9 +199,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.categoria_seleccionada = parent_text
                 self.informe_seleccionado = text.strip()
 
-                # Actualizar título del informe (formato compacto)
+                # Actualizar título del informe
                 self.informe_title_label.configure(
-                    text=f"Informe: {self.informe_seleccionado}",
+                    text=f"Informe seleccionado: {self.informe_seleccionado}",
                     text_color="white"  # Cambiar a blanco cuando hay selección
                 )
 
@@ -175,36 +209,20 @@ class InformesFrame(customtkinter.CTkFrame):
                 self._update_campos_disponibles()
 
     def _create_right_panel(self):
-        """Crea el panel derecho con la configuración del informe - OCUPA TODA LA ALTURA"""
+        """Crea el panel derecho con la configuración del informe"""
         right_frame = customtkinter.CTkScrollableFrame(self)
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=(8, 15), pady=(10, 5))  # row=0 ahora
+        right_frame.grid(row=1, column=1, sticky="nsew", padx=(8, 15), pady=(5, 5))  # row=1 (contenido)
         right_frame.grid_columnconfigure(0, weight=1)
 
-        # Frame superior con título e informe seleccionado + botón configuración
-        header_frame = customtkinter.CTkFrame(right_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(0, 5))
-        header_frame.grid_columnconfigure(0, weight=1)
-
-        # Título del informe seleccionado (más compacto)
+        # Título del informe seleccionado
         self.informe_title_label = customtkinter.CTkLabel(
-            header_frame,
-            text="Informe: Ninguno",
+            right_frame,
+            text="Informe seleccionado: Ninguno",
             font=customtkinter.CTkFont(size=12, weight="bold"),
             text_color="gray",
             anchor="w"
         )
-        self.informe_title_label.grid(row=0, column=0, sticky="w")
-
-        # Botón configuración (movido del header eliminado)
-        config_button = customtkinter.CTkButton(
-            header_frame,
-            text="⚙️ Configuración",
-            width=130,
-            height=28,
-            font=customtkinter.CTkFont(size=11),
-            command=self._open_config_dialog
-        )
-        config_button.grid(row=0, column=1, sticky="e", padx=(10, 0))
+        self.informe_title_label.grid(row=0, column=0, padx=15, pady=(5, 8), sticky="w")
 
         # Separador
         separator1 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
@@ -463,7 +481,7 @@ class InformesFrame(customtkinter.CTkFrame):
     def _create_action_bar(self):
         """Crea la barra de acciones inferior"""
         action_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        action_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))  # row=1 ahora
+        action_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=15, pady=(5, 10))  # row=2 (action bar)
         action_frame.grid_columnconfigure(0, weight=1)
 
         # Frame para centrar botones
