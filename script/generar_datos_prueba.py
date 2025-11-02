@@ -11,8 +11,14 @@ ESTRUCTURA CORRECTA:
 """
 
 import random
+import sys
+import os
 from datetime import datetime, timedelta
-from script.bbdd import get_project_connection
+
+# Añadir el directorio raíz al path para poder importar módulos
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from script.db_connection import get_project_connection
 
 
 def crear_tablas_dimension(cursor, schema):
