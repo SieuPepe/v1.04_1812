@@ -943,15 +943,22 @@ def add_parte_mejorado(user: str, password: str, schema: str,
     Raises:
         Exception: Si hay error en la inserción
     """
+    print(f"[DEBUG] Iniciando add_parte_mejorado...")
+    print(f"[DEBUG] red_id={red_id}, tipo_trabajo_id={tipo_trabajo_id}, cod_trabajo_id={cod_trabajo_id}")
+
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
+        print(f"[DEBUG] Conexión establecida")
 
         # Obtener prefijo del tipo de trabajo (OT, GF o TP)
+        print(f"[DEBUG] Obteniendo prefijo para tipo_trabajo_id={tipo_trabajo_id}")
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
+        print(f"[DEBUG] Prefijo obtenido: {prefix}")
 
         # Generar código único para este prefijo
         # Formato: PREFIX-NNNN (sin año)
         # Usar .format() para evitar conflictos entre f-string y placeholders MySQL
+        print(f"[DEBUG] Generando código con prefijo {prefix}")
         query_next = """
             SELECT COALESCE(MAX(
                 CAST(
@@ -962,18 +969,24 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             FROM {}.tbl_partes
             WHERE codigo LIKE %s
         """.format(schema)
+        print(f"[DEBUG] Ejecutando query next_num")
         cur.execute(query_next, (f"{prefix}-%",))
 
         next_num = cur.fetchone()[0]
         codigo = f"{prefix}-{next_num:04d}"
+        print(f"[DEBUG] Código generado: {codigo}")
 
         # Verificar qué columnas existen en tbl_partes
+        print(f"[DEBUG] Verificando columnas de tbl_partes")
         cur.execute(f"DESCRIBE {schema}.tbl_partes")
         columns = {row[0] for row in cur.fetchall()}
+        print(f"[DEBUG] Columnas encontradas: {len(columns)} columnas")
 
         # Construir INSERT dinámicamente según columnas disponibles
+        print(f"[DEBUG] Construyendo INSERT dinámico")
         insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
         insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
+        print(f"[DEBUG] Columnas base: {insert_cols}")
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:
