@@ -106,33 +106,18 @@ class InformesFrame(customtkinter.CTkFrame):
         self.tree_scroll = customtkinter.CTkScrollbar(tree_frame)
         self.tree_scroll.pack(side="right", fill="y")
 
-        # Estilo ÚNICO para el TreeView de Informes (antes de crear el widget)
-        style = ttk.Style()
-        style.theme_use('clam')
-
-        # Crear estilo personalizado "Informes.Treeview"
-        style.configure("Informes.Treeview",
-                        background="#2a2d2e",
-                        foreground="white",
-                        fieldbackground="#2a2d2e",
-                        borderwidth=0,
-                        rowheight=28,  # Altura de fila para mejor legibilidad
-                        font=('Segoe UI', 13))  # Fuente más grande para Informes
-        style.configure("Informes.Treeview.Heading",
-                        background="#1f538d",
-                        foreground="white",
-                        font=('Segoe UI', 13, 'bold'))
-        style.map('Informes.Treeview', background=[('selected', '#1f538d')])
-
-        # Crear TreeView con el estilo personalizado
+        # Crear TreeView
         self.tree = ttk.Treeview(
             tree_frame,
             yscrollcommand=self.tree_scroll.set,
-            show="tree",
-            style="Informes.Treeview"  # Aplicar estilo único
+            show="tree"
         )
         self.tree.pack(side="left", fill="both", expand=True)
         self.tree_scroll.configure(command=self.tree.yview)
+
+        # IMPORTANTE: Configurar el estilo DESPUÉS de crear el widget y empaquetarlo
+        # Esto asegura que sobrescribe cualquier configuración global previa
+        self._configure_tree_style()
 
         # Poblar el árbol
         self._populate_tree()
@@ -140,15 +125,53 @@ class InformesFrame(customtkinter.CTkFrame):
         # Bind para selección
         self.tree.bind('<<TreeviewSelect>>', self._on_tree_select)
 
+    def _configure_tree_style(self):
+        """Configura el estilo del TreeView DESPUÉS de crearlo para asegurar que se aplique"""
+        import tkinter.font as tkfont
+
+        # Crear estilo único DESPUÉS de que el TreeView existe
+        style = ttk.Style()
+
+        # Nombre único para evitar conflictos
+        style_name = "InformesCustom.Treeview"
+
+        # Configurar con fuente grande
+        style.configure(style_name,
+                        background="#2a2d2e",
+                        foreground="white",
+                        fieldbackground="#2a2d2e",
+                        borderwidth=0,
+                        rowheight=32,  # Fila más alta
+                        font=('Segoe UI', 14, 'bold'))  # Fuente AÚN MÁS GRANDE para que sea VISIBLE
+
+        style.configure(f"{style_name}.Heading",
+                        background="#1f538d",
+                        foreground="white",
+                        font=('Segoe UI', 14, 'bold'))
+
+        style.map(style_name,
+                  background=[('selected', '#1f538d')],
+                  foreground=[('selected', 'white')])
+
+        # Aplicar el estilo al TreeView
+        self.tree.configure(style=style_name)
+
+        # ENFOQUE ALTERNATIVO: Configurar fuente directamente usando tags
+        # Esto es más robusto que depender solo de Style
+        custom_font = tkfont.Font(family='Segoe UI', size=14, weight='bold')
+
+        # Crear un tag con la fuente personalizada
+        self.tree.tag_configure('custom_font', font=custom_font)
+
     def _populate_tree(self):
         """Puebla el TreeView con categorías e informes"""
         for categoria, informes in CATEGORIAS_INFORMES.items():
-            # Insertar categoría
-            cat_id = self.tree.insert("", "end", text=categoria, open=False)
+            # Insertar categoría con tag personalizado
+            cat_id = self.tree.insert("", "end", text=categoria, open=False, tags=('custom_font',))
 
-            # Insertar informes de la categoría
+            # Insertar informes de la categoría con tag personalizado
             for informe in informes:
-                self.tree.insert(cat_id, "end", text=f"  {informe}")
+                self.tree.insert(cat_id, "end", text=f"  {informe}", tags=('custom_font',))
 
     def _on_tree_select(self, event):
         """Maneja la selección en el TreeView"""
