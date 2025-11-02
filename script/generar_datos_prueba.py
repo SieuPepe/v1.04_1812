@@ -40,6 +40,7 @@ def crear_tablas_dimension(cursor, schema):
         CREATE TABLE IF NOT EXISTS {schema}.dim_tipo_trabajo (
             id INT AUTO_INCREMENT PRIMARY KEY,
             codigo VARCHAR(50),
+            tipo_codigo VARCHAR(10) COMMENT 'Prefijo para numeración: OT, GF, TP',
             descripcion VARCHAR(255) NOT NULL,
             activo TINYINT DEFAULT 1
         )
@@ -258,30 +259,52 @@ def poblar_dim_red(cursor, schema):
 
 
 def poblar_dim_tipo_trabajo(cursor, schema):
-    """Pobla la tabla dim_tipo_trabajo con datos de prueba"""
+    """Pobla la tabla dim_tipo_trabajo con datos de prueba
+
+    IMPORTANTE: Los códigos OT, GF, TP se usan para generar numeración independiente:
+    - OT (Órdenes de Trabajo): OT-2025-0001, OT-2025-0002, ...
+    - GF (Garantía y Fallos): GF-2025-0001, GF-2025-0002, ...
+    - TP (Trabajos Programados): TP-2025-0001, TP-2025-0002, ...
+    """
     print("Poblando dim_tipo_trabajo...")
 
+    # Primero verificar si la columna tipo_codigo existe
+    cursor.execute(f"""
+        SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s
+        AND TABLE_NAME = 'dim_tipo_trabajo'
+        AND COLUMN_NAME = 'tipo_codigo'
+    """, (schema,))
+
+    tiene_tipo_codigo = cursor.fetchone()[0] > 0
+
+    # Si no existe tipo_codigo, agregarla
+    if not tiene_tipo_codigo:
+        print("  Agregando columna tipo_codigo a dim_tipo_trabajo...")
+        cursor.execute(f"""
+            ALTER TABLE {schema}.dim_tipo_trabajo
+            ADD COLUMN tipo_codigo VARCHAR(10) AFTER codigo
+        """)
+
+    # Datos con formato: (codigo, tipo_codigo, descripcion)
+    # tipo_codigo es el prefijo que se usa para generar el número de parte
     tipos = [
-        ("MANT-PREV", "Mantenimiento Preventivo"),
-        ("MANT-CORR", "Mantenimiento Correctivo"),
-        ("INSTALACION", "Instalación Nueva"),
-        ("REPARACION", "Reparación"),
-        ("MODERNIZACION", "Modernización"),
-        ("INSPECCION", "Inspección Técnica"),
-        ("EMERGENCIA", "Atención de Emergencia"),
-        ("EXPANSION", "Expansión de Red"),
-        ("REEMPLAZO", "Reemplazo de Equipos"),
-        ("MEJORA", "Mejora de Infraestructura")
+        ("001", "OT", "Órdenes de Trabajo"),
+        ("002", "GF", "Garantía y Fallos"),
+        ("003", "TP", "Trabajos Programados")
     ]
 
-    for codigo, descripcion in tipos:
+    for codigo, tipo_codigo, descripcion in tipos:
         cursor.execute(f"""
-            INSERT INTO {schema}.dim_tipo_trabajo (codigo, descripcion, activo)
-            VALUES (%s, %s, 1)
-            ON DUPLICATE KEY UPDATE descripcion = VALUES(descripcion)
-        """, (codigo, descripcion))
+            INSERT INTO {schema}.dim_tipo_trabajo (codigo, tipo_codigo, descripcion, activo)
+            VALUES (%s, %s, %s, 1)
+            ON DUPLICATE KEY UPDATE
+                tipo_codigo = VALUES(tipo_codigo),
+                descripcion = VALUES(descripcion)
+        """, (codigo, tipo_codigo, descripcion))
 
-    print(f"✓ {len(tipos)} tipos de trabajo insertados")
+    print(f"✓ {len(tipos)} tipos de trabajo insertados (OT, GF, TP)")
 
 
 def poblar_dim_codigo_trabajo(cursor, schema):

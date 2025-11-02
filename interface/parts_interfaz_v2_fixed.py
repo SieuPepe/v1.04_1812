@@ -272,6 +272,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         try:
             from script.db_partes import _get_tipo_trabajo_prefix
             from script.db_connection import get_project_connection
+            from datetime import datetime
 
             tipo_id = self._take_id(self.tipo_menu.get())
 
@@ -291,29 +292,28 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
+            year = datetime.now().year
 
             # Get next number for this specific prefix (independent numbering per prefix)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Extract the numeric part from existing codes with this prefix
-                # Más robusto: maneja NULLs y códigos vacíos
+                # Extract the numeric part from existing codes with this prefix and year
+                # Formato: PREFIX-YEAR-NNNN (ej: OT-2025-0001, GF-2025-0001, TP-2025-0001)
                 cur.execute("""
-                    SELECT COALESCE(
-                        MAX(
-                            CAST(
-                                REPLACE(codigo, %s, '') AS UNSIGNED
-                            )
-                        ),
-                        0
-                    ) + 1
+                    SELECT COALESCE(MAX(
+                        CAST(
+                            SUBSTRING_INDEX(codigo, '-', -1)
+                            AS UNSIGNED
+                        )
+                    ), 0) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
                       AND codigo LIKE %s
-                """, (prefix + '-', prefix + '-%'))
+                """, (f"{prefix}-{year}-%",))
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:05d}"
+            codigo = f"{prefix}-{year}-{next_id:04d}"
 
             # Update readonly entry
             self.codigo_ot_entry.configure(state="normal")
