@@ -34,8 +34,8 @@ if len(sys.argv) >= 3:
     PASSWORD = sys.argv[2]
     NUM_PARTES = int(sys.argv[3]) if len(sys.argv) >= 4 else 1000
 else:
-    USER = "aperez"
-    PASSWORD = "WGueXNk9"
+    USER = "root"
+    PASSWORD = "NuevaPass!2025"
     NUM_PARTES = 1000
     print(f"ℹ️  Usando credenciales por defecto: {USER}")
     print(f"ℹ️  Uso: python generar_1000_partes.py <user> <password> [num_partes]")

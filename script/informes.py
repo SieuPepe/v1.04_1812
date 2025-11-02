@@ -50,13 +50,14 @@ def get_dimension_values(user, password, schema, tabla_dimension):
         return []
 
 
-def build_filter_condition(filtro, definicion_informe):
+def build_filter_condition(filtro, definicion_informe, schema=""):
     """
     Construye una condición SQL para un filtro específico
 
     Args:
         filtro: Dict con {campo, operador, valor(es)}
         definicion_informe: Definición del informe desde INFORMES_DEFINICIONES
+        schema: Nombre del schema/proyecto
 
     Returns:
         String con la condición SQL (ej: "estado = 'Pendiente'")
@@ -70,9 +71,33 @@ def build_filter_condition(filtro, definicion_informe):
     if not campo_def:
         return ""
 
-    # Obtener columna de BD
-    columna_bd = campo_def.get('columna_bd', campo_key)
+    # Obtener columna de BD o fórmula para campos calculados
     tipo_campo = campo_def.get('tipo', 'texto')
+    if tipo_campo == 'calculado':
+        # Reemplazar nombres de tablas en la fórmula con schema.tabla
+        formula = campo_def['formula']
+        tablas_a_reemplazar = [
+            'tbl_part_presupuesto',
+            'tbl_part_certificacion',
+            'tbl_partes',
+            'dim_ot',
+            'dim_red',
+            'dim_tipo_trabajo',
+            'dim_codigo_trabajo',
+            'dim_provincias',
+            'dim_comarcas',
+            'dim_municipios'
+        ]
+        for tabla in tablas_a_reemplazar:
+            formula = formula.replace(f"FROM {tabla}", f"FROM {schema}.{tabla}")
+        columna_bd = f"({formula})"
+    elif tipo_campo == 'dimension':
+        # Para dimensiones, usar el alias de la tabla dimension
+        alias_dim = f"{campo_key}_dim"
+        campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+        columna_bd = f"{alias_dim}.{campo_nombre}"
+    else:
+        columna_bd = f"p.{campo_def.get('columna_bd', campo_key)}"
 
     # Construir condición según operador y tipo
     if operador == "Igual a":
@@ -147,6 +172,8 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
     # ========== CONSTRUIR SELECT ==========
     select_parts = []
+    tabla_alias = "p"  # Alias de la tabla principal
+
     for campo_key in campos_seleccionados:
         campo = campos_def.get(campo_key)
         if not campo:
@@ -154,7 +181,25 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
         if campo['tipo'] == 'calculado':
             # Campo calculado (ej: Pendiente = Presupuesto - Certificado)
-            select_parts.append(f"({campo['formula']}) AS {campo_key}")
+            # Reemplazar nombres de tablas en la fórmula con schema.tabla
+            formula = campo['formula']
+            # Reemplazar referencias a tablas comunes con schema.tabla
+            tablas_a_reemplazar = [
+                'tbl_part_presupuesto',
+                'tbl_part_certificacion',
+                'tbl_partes',
+                'dim_ot',
+                'dim_red',
+                'dim_tipo_trabajo',
+                'dim_codigo_trabajo',
+                'dim_provincias',
+                'dim_comarcas',
+                'dim_municipios'
+            ]
+            for tabla in tablas_a_reemplazar:
+                # Reemplazar "FROM tabla" con "FROM schema.tabla"
+                formula = formula.replace(f"FROM {tabla}", f"FROM {schema}.{tabla}")
+            select_parts.append(f"({formula}) AS {campo_key}")
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión (hacer JOIN)
             tabla_dim = campo['tabla_dimension']
@@ -162,8 +207,8 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
             alias_dim = f"{campo_key}_dim"
             select_parts.append(f"{alias_dim}.{campo_nombre} AS {campo_key}")
         else:
-            # Campo directo
-            select_parts.append(f"p.{campo['columna_bd']} AS {campo_key}")
+            # Campo directo - usar alias de tabla
+            select_parts.append(f"{tabla_alias}.{campo['columna_bd']} AS {campo_key}")
 
     select_clause = "SELECT " + ", ".join(select_parts)
 
@@ -184,7 +229,7 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
     if filtros:
         for filtro in filtros:
-            condicion = build_filter_condition(filtro, definicion)
+            condicion = build_filter_condition(filtro, definicion, schema)
             if condicion:
                 where_conditions.append(condicion)
 
@@ -208,9 +253,12 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
                     alias_dim = f"{campo_key}_dim"
                     campo_nombre = campo.get('campo_nombre', 'descripcion')
                     order_parts.append(f"{alias_dim}.{campo_nombre} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                elif campo['tipo'] == 'calculado':
+                    # Para campos calculados, usar el alias del campo en el SELECT
+                    order_parts.append(f"{campo_key} {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 else:
                     columna = campo.get('columna_bd', campo_key)
-                    order_parts.append(f"p.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                    order_parts.append(f"{tabla_alias}.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
 
         if order_parts:
             order_by_clause = "ORDER BY " + ", ".join(order_parts)

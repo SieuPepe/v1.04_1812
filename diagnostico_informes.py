@@ -8,8 +8,8 @@ from script.informes import ejecutar_informe, build_query
 from script.informes_config import INFORMES_DEFINICIONES
 
 # Credenciales
-USER = "aperez"
-PASSWORD = "WGueXNk9"
+USER = "root"
+PASSWORD = "NuevaPass!2025"
 SCHEMA = "HFM"
 
 def verificar_datos_partes():
