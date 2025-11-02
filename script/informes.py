@@ -8,10 +8,75 @@ from script.db_connection import get_project_connection
 from script.informes_config import INFORMES_DEFINICIONES
 
 
+def _detectar_columna_texto(user, password, schema, tabla_dimension):
+    """
+    Detecta automáticamente qué columna de texto usar para mostrar valores de una dimensión.
+
+    Estrategia:
+    1. Buscar por nombres comunes según el tipo de tabla
+    2. Si no encuentra, usar la primera columna VARCHAR/TEXT que no sea 'id'
+
+    Returns:
+        str: Nombre de la columna o None si no encuentra
+    """
+    try:
+        with get_project_connection(user, password, schema) as conn:
+            cursor = conn.cursor()
+
+            # Obtener todas las columnas de la tabla
+            cursor.execute(f"""
+                SELECT COLUMN_NAME, DATA_TYPE
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
+                ORDER BY ORDINAL_POSITION
+            """, (schema, tabla_dimension))
+
+            columnas = cursor.fetchall()
+            cursor.close()
+
+            if not columnas:
+                return None
+
+            # Mapeo de nombres comunes por tipo de tabla
+            nombres_comunes = {
+                'dim_provincias': ['nombre', 'provincia', 'descripcion'],
+                'dim_comarcas': ['comarca_nombre', 'nombre', 'comarca', 'descripcion'],
+                'dim_municipios': ['municipio_nombre', 'nombre', 'municipio', 'descripcion'],
+                'dim_red': ['descripcion', 'red_codigo', 'nombre'],
+                'dim_tipo_trabajo': ['descripcion', 'tipo_codigo', 'nombre'],
+                'dim_codigo_trabajo': ['descripcion', 'cod_trabajo', 'codigo', 'nombre']
+            }
+
+            # Obtener lista de nombres a buscar
+            nombres_a_buscar = nombres_comunes.get(tabla_dimension, ['descripcion', 'nombre'])
+
+            # 1. Buscar por nombres comunes
+            columnas_lower = {col[0].lower(): col[0] for col in columnas}
+            for nombre in nombres_a_buscar:
+                if nombre.lower() in columnas_lower:
+                    return columnas_lower[nombre.lower()]
+
+            # 2. Buscar la primera columna VARCHAR/TEXT que no sea 'id'
+            for col_name, col_type in columnas:
+                if col_name.lower() != 'id' and col_type.lower() in ('varchar', 'text', 'char', 'tinytext', 'mediumtext', 'longtext'):
+                    return col_name
+
+            # 3. Última opción: primera columna que no sea 'id'
+            for col_name, col_type in columnas:
+                if col_name.lower() != 'id':
+                    return col_name
+
+            return None
+
+    except Exception as e:
+        print(f"Error al detectar columna de texto para {tabla_dimension}: {e}")
+        return None
+
+
 def get_dimension_values(user, password, schema, tabla_dimension):
     """
     Obtiene todos los valores de una tabla de dimensión.
-    Detecta automáticamente si usa 'descripcion' o 'nombre' como columna de texto.
+    Detecta automáticamente la columna de texto correcta.
 
     Args:
         user: Usuario de BD
@@ -23,15 +88,15 @@ def get_dimension_values(user, password, schema, tabla_dimension):
         Lista de tuplas (id, texto)
     """
     try:
+        # Detectar la columna de texto correcta
+        campo_texto = _detectar_columna_texto(user, password, schema, tabla_dimension)
+
+        if not campo_texto:
+            print(f"No se pudo detectar columna de texto para {tabla_dimension}")
+            return []
+
         with get_project_connection(user, password, schema) as conn:
             cursor = conn.cursor()
-
-            # Detectar qué columna usar: 'descripcion' o 'nombre'
-            # Tablas geográficas usan 'nombre', otras usan 'descripcion'
-            if tabla_dimension in ['dim_provincias', 'dim_comarcas', 'dim_municipios']:
-                campo_texto = 'nombre'
-            else:
-                campo_texto = 'descripcion'
 
             # Query para obtener valores
             query = f"""
@@ -42,6 +107,7 @@ def get_dimension_values(user, password, schema, tabla_dimension):
 
             cursor.execute(query)
             result = cursor.fetchall()
+            cursor.close()
 
             return result if result else []
 
@@ -144,7 +210,7 @@ def build_filter_condition(filtro, definicion_informe, schema=""):
         return ""
 
 
-def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None, schema=""):
+def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None, schema="", user="", password=""):
     """
     Construye un query SQL dinámico para un informe
 
@@ -154,6 +220,8 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
         clasificaciones: Lista de dicts con clasificaciones aplicadas
         campos_seleccionados: Lista de campos a mostrar
         schema: Nombre del schema/proyecto
+        user: Usuario de BD (necesario para detectar columnas de dimensiones)
+        password: Contraseña de BD (necesario para detectar columnas de dimensiones)
 
     Returns:
         String con el query SQL completo
@@ -169,6 +237,9 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
     # Si no se especifican campos, usar los por defecto
     if not campos_seleccionados:
         campos_seleccionados = definicion.get('campos_default', list(campos_def.keys()))
+
+    # Cachear la detección de columnas de dimensiones
+    dimension_columns_cache = {}
 
     # ========== CONSTRUIR SELECT ==========
     select_parts = []
@@ -203,8 +274,18 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión (hacer JOIN)
             tabla_dim = campo['tabla_dimension']
-            campo_nombre = campo.get('campo_nombre', 'descripcion')
             alias_dim = f"{campo_key}_dim"
+
+            # Detectar automáticamente la columna correcta si tenemos credenciales
+            if user and password and tabla_dim not in dimension_columns_cache:
+                dimension_columns_cache[tabla_dim] = _detectar_columna_texto(user, password, schema, tabla_dim)
+
+            # Usar la columna detectada o la especificada en config
+            if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                campo_nombre = dimension_columns_cache[tabla_dim]
+            else:
+                campo_nombre = campo.get('campo_nombre', 'descripcion')
+
             select_parts.append(f"{alias_dim}.{campo_nombre} AS {campo_key}")
         else:
             # Campo directo - usar alias de tabla
@@ -292,8 +373,8 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         - datos: Lista de tuplas con los datos
     """
     try:
-        # Construir query
-        query = build_query(informe_nombre, filtros, clasificaciones, campos_seleccionados, schema)
+        # Construir query (pasando user y password para detectar columnas de dimensiones)
+        query = build_query(informe_nombre, filtros, clasificaciones, campos_seleccionados, schema, user, password)
 
         print(f"\n{'='*60}")
         print(f"QUERY GENERADO PARA INFORME: {informe_nombre}")
