@@ -62,6 +62,7 @@ def crear_tablas_dimension(cursor, schema):
             id INT AUTO_INCREMENT PRIMARY KEY,
             codigo VARCHAR(10),
             nombre VARCHAR(100) NOT NULL,
+            nombre_euskera VARCHAR(100) COMMENT 'Nombre en euskera',
             activo TINYINT DEFAULT 1
         )
     """)
@@ -133,25 +134,54 @@ def poblar_dim_provincias(cursor, schema):
     """Pobla la tabla dim_provincias con provincias españolas de ejemplo"""
     print("Poblando dim_provincias...")
 
+    # Primero verificar si la columna nombre_euskera existe
+    cursor.execute(f"""
+        SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s
+        AND TABLE_NAME = 'dim_provincias'
+        AND COLUMN_NAME = 'nombre_euskera'
+    """, (schema,))
+
+    tiene_nombre_euskera = cursor.fetchone()[0] > 0
+
+    # Si no existe nombre_euskera, agregarla
+    if not tiene_nombre_euskera:
+        print("  Agregando columna nombre_euskera a dim_provincias...")
+        cursor.execute(f"""
+            ALTER TABLE {schema}.dim_provincias
+            ADD COLUMN nombre_euskera VARCHAR(100) AFTER nombre
+        """)
+
+    # Provincias con formato: (codigo, nombre, nombre_euskera)
     provincias = [
-        ("08", "Barcelona"),
-        ("17", "Girona"),
-        ("25", "Lleida"),
-        ("43", "Tarragona"),
-        ("28", "Madrid"),
-        ("46", "Valencia"),
-        ("41", "Sevilla"),
-        ("48", "Bizkaia"),
-        ("07", "Baleares"),
-        ("38", "Santa Cruz de Tenerife")
+        ("01", "Álava", "Araba"),
+        ("48", "Bizkaia", "Bizkaia"),
+        ("20", "Gipuzkoa", "Gipuzkoa"),
+        ("31", "Navarra", "Nafarroa"),
+        ("08", "Barcelona", None),
+        ("17", "Girona", None),
+        ("25", "Lleida", None),
+        ("43", "Tarragona", None),
+        ("28", "Madrid", None),
+        ("46", "Valencia", None)
     ]
 
-    for codigo, nombre in provincias:
-        cursor.execute(f"""
-            INSERT INTO {schema}.dim_provincias (codigo, nombre, activo)
-            VALUES (%s, %s, 1)
-            ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
-        """, (codigo, nombre))
+    for codigo, nombre, nombre_euskera in provincias:
+        if nombre_euskera:
+            cursor.execute(f"""
+                INSERT INTO {schema}.dim_provincias (codigo, nombre, nombre_euskera, activo)
+                VALUES (%s, %s, %s, 1)
+                ON DUPLICATE KEY UPDATE
+                    nombre = VALUES(nombre),
+                    nombre_euskera = VALUES(nombre_euskera)
+            """, (codigo, nombre, nombre_euskera))
+        else:
+            cursor.execute(f"""
+                INSERT INTO {schema}.dim_provincias (codigo, nombre, activo)
+                VALUES (%s, %s, 1)
+                ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
+            """, (codigo, nombre))
 
     print(f"✓ {len(provincias)} provincias insertadas")
 

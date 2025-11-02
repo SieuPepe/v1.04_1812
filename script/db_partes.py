@@ -17,10 +17,10 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     Devuelve nombre de columna o None si no encuentra.
     """
     keywords_map = {
-        'dim_ot': ['ot','nombre','desc','texto','codigo','cod'],
-        'dim_red': ['red','nombre','desc','texto','codigo','cod'],
-        'dim_tipo_trabajo': ['tipo','nombre','desc','texto','codigo','cod'],
-        'dim_codigo_trabajo': ['cod_trabajo','codigo','cod','nombre','desc','texto'],
+        'dim_ot': ['descripcion','ot','nombre','desc','texto','codigo','cod'],
+        'dim_red': ['descripcion','red','nombre','desc','texto','codigo','cod'],
+        'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
+        'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
     }
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -664,16 +664,30 @@ def get_estados_parte(user: str, password: str, schema: str):
 
 def get_provincias(user: str, password: str, schema: str):
     """
-    Obtiene lista de provincias en formato "id - nombre"
+    Obtiene lista de provincias en formato "id - nombre_euskera"
 
     Returns:
-        list: Lista de strings formato "id - nombre"
+        list: Lista de strings formato "id - nombre_euskera"
     """
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
+
+            # Detectar si existe columna nombre_euskera
             cur.execute(f"""
-                SELECT id, nombre
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_provincias'
+                AND COLUMN_NAME IN ('nombre_euskera', 'nombre')
+                ORDER BY FIELD(COLUMN_NAME, 'nombre_euskera', 'nombre')
+                LIMIT 1
+            """, (schema,))
+            col_result = cur.fetchone()
+            col_name = col_result[0] if col_result else 'nombre'
+
+            cur.execute(f"""
+                SELECT id, {col_name}
                 FROM {schema}.dim_provincias
                 WHERE activo = 1
                 ORDER BY codigo
@@ -795,13 +809,11 @@ def add_parte_mejorado(user: str, password: str, schema: str,
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Obtener prefijo del tipo de trabajo
+        # Obtener prefijo del tipo de trabajo (OT, GF o TP)
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
 
         # Generar código único para este prefijo
-        from datetime import datetime
-        year = datetime.now().year
-
+        # Formato: PREFIX-NNNN (sin año)
         cur.execute(f"""
             SELECT COALESCE(MAX(
                 CAST(
@@ -811,10 +823,10 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             ), 0) + 1
             FROM {schema}.tbl_partes
             WHERE codigo LIKE %s
-        """, (f"{prefix}-{year}-%",))
+        """, (f"{prefix}-%",))
 
         next_num = cur.fetchone()[0]
-        codigo = f"{prefix}-{year}-{next_num:04d}"
+        codigo = f"{prefix}-{next_num:04d}"
 
         # Verificar qué columnas existen en tbl_partes
         cur.execute(f"DESCRIBE {schema}.tbl_partes")
