@@ -617,7 +617,16 @@ class InformesFrame(customtkinter.CTkFrame):
         self.clasificaciones = [c for c in self.clasificaciones if c['container'].winfo_exists()]
 
     def _add_filtro(self):
-        """Añade un nuevo selector de filtro"""
+        """Añade un nuevo selector de filtro dinámico"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe con filtros disponibles",
+                icon="warning"
+            )
+            return
+
         row = len(self.filtros)
 
         filtro_container = customtkinter.CTkFrame(self.filtros_frame)
@@ -643,14 +652,19 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         label.grid(row=0, column=1, padx=(0, 10), sticky="w")
 
-        # Campo
+        # Campo - Poblar con filtros disponibles del informe
         campo_label = customtkinter.CTkLabel(filtro_container, text="Campo:")
         campo_label.grid(row=0, column=2, sticky="w", padx=(0, 5))
 
+        filtros_disponibles = self.definicion_actual.get('filtros', {})
+        nombres_campos = [self.definicion_actual['campos'][f['campo']]['nombre']
+                         for f_key, f in filtros_disponibles.items()]
+
         campo_combo = customtkinter.CTkComboBox(
             filtro_container,
-            values=["Seleccionar..."],
-            width=150
+            values=nombres_campos if nombres_campos else ["Sin filtros"],
+            width=150,
+            command=lambda choice: self._on_filtro_campo_change(filtro_obj, choice)
         )
         campo_combo.grid(row=0, column=3, sticky="w", padx=(0, 15))
 
@@ -661,16 +675,17 @@ class InformesFrame(customtkinter.CTkFrame):
         operador_combo = customtkinter.CTkComboBox(
             filtro_container,
             values=["Seleccionar..."],
-            width=130
+            width=130,
+            command=lambda choice: self._on_filtro_operador_change(filtro_obj, choice)
         )
         operador_combo.grid(row=0, column=5, sticky="w", padx=(0, 15))
 
-        # Valor
+        # Valor - Widget inicial (se cambiará dinámicamente)
         valor_label = customtkinter.CTkLabel(filtro_container, text="Valor:")
         valor_label.grid(row=0, column=6, sticky="w", padx=(0, 5))
 
-        valor_entry = customtkinter.CTkEntry(filtro_container, width=150)
-        valor_entry.grid(row=0, column=7, sticky="w", padx=(0, 10))
+        valor_widget = customtkinter.CTkEntry(filtro_container, width=150)
+        valor_widget.grid(row=0, column=7, sticky="w", padx=(0, 10))
 
         # Botón eliminar
         del_btn = customtkinter.CTkButton(
@@ -683,13 +698,125 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         del_btn.grid(row=0, column=8, padx=(0, 5))
 
-        self.filtros.append({
+        # Objeto del filtro
+        filtro_obj = {
             'container': filtro_container,
             'logica_combo': logica_combo,
             'campo_combo': campo_combo,
             'operador_combo': operador_combo,
-            'valor_entry': valor_entry
-        })
+            'valor_widget': valor_widget,
+            'valor_label': valor_label,
+            'campo_actual': None,
+            'tipo_actual': None
+        }
+
+        self.filtros.append(filtro_obj)
+
+        # Si hay campos, seleccionar el primero automáticamente
+        if nombres_campos:
+            campo_combo.set(nombres_campos[0])
+            self._on_filtro_campo_change(filtro_obj, nombres_campos[0])
+
+    def _on_filtro_campo_change(self, filtro_obj, campo_nombre):
+        """Maneja el cambio de campo en un filtro"""
+        if not self.definicion_actual:
+            return
+
+        # Buscar la definición del filtro por nombre del campo
+        filtros_disponibles = self.definicion_actual.get('filtros', {})
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # Encontrar el filtro correspondiente
+        filtro_config = None
+        campo_key = None
+        for fkey, fconfig in filtros_disponibles.items():
+            campo_def = campos_def.get(fconfig['campo'])
+            if campo_def and campo_def['nombre'] == campo_nombre:
+                filtro_config = fconfig
+                campo_key = fconfig['campo']
+                break
+
+        if not filtro_config:
+            return
+
+        # Actualizar operadores disponibles
+        operadores = filtro_config.get('operadores', [])
+        filtro_obj['operador_combo'].configure(values=operadores)
+        if operadores:
+            filtro_obj['operador_combo'].set(operadores[0])
+
+        # Almacenar tipo y campo actual
+        filtro_obj['campo_actual'] = campo_key
+        filtro_obj['tipo_actual'] = filtro_config.get('tipo')
+
+        # Actualizar widget de valor según tipo
+        self._update_valor_widget(filtro_obj, filtro_config)
+
+    def _on_filtro_operador_change(self, filtro_obj, operador):
+        """Maneja el cambio de operador (por si necesita ajustar el widget de valor)"""
+        # Por ahora no hace nada especial, pero podría usarse para casos como "Entre"
+        pass
+
+    def _update_valor_widget(self, filtro_obj, filtro_config):
+        """Actualiza el widget de valor según el tipo de filtro"""
+        tipo = filtro_config.get('tipo')
+
+        # Destruir widget actual
+        if filtro_obj['valor_widget']:
+            filtro_obj['valor_widget'].destroy()
+
+        # Crear nuevo widget según tipo
+        if tipo == 'select':
+            # ComboBox con valores predefinidos
+            valores = filtro_config.get('valores', [])
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=valores,
+                width=150
+            )
+
+        elif tipo == 'select_bd':
+            # ComboBox con valores de BD (obtener dinámicamente)
+            tabla_dimension = filtro_config.get('tabla')
+            valores = self._get_valores_dimension(tabla_dimension)
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=valores if valores else ["Sin datos"],
+                width=150
+            )
+
+        elif tipo == 'numerico':
+            # Entry numérico
+            widget = customtkinter.CTkEntry(
+                filtro_obj['container'],
+                width=150,
+                placeholder_text="Número..."
+            )
+
+        elif tipo == 'fecha':
+            # Entry de fecha (formato YYYY-MM-DD)
+            widget = customtkinter.CTkEntry(
+                filtro_obj['container'],
+                width=150,
+                placeholder_text="YYYY-MM-DD"
+            )
+
+        else:
+            # Default: Entry de texto
+            widget = customtkinter.CTkEntry(filtro_obj['container'], width=150)
+
+        widget.grid(row=0, column=7, sticky="w", padx=(0, 10))
+        filtro_obj['valor_widget'] = widget
+
+    def _get_valores_dimension(self, tabla_dimension):
+        """Obtiene valores de una dimensión desde la BD"""
+        try:
+            resultados = get_dimension_values(self.user, self.password, self.schema, tabla_dimension)
+            # Retornar solo las descripciones
+            return [desc for id, desc in resultados]
+        except Exception as e:
+            print(f"Error al obtener valores de dimensión {tabla_dimension}: {e}")
+            return []
 
     def _remove_filtro(self, container):
         """Elimina un selector de filtro"""
