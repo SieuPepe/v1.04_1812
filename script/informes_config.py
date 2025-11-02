@@ -141,7 +141,7 @@ INFORMES_DEFINICIONES = {
             "pendiente": {
                 "nombre": "Pendiente",
                 "tipo": "calculado",
-                "formula": "presupuesto - certificado",
+                "formula": "COALESCE(p.presupuesto, 0) - COALESCE(p.certificado, 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
