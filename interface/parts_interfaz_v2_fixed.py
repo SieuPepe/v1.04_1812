@@ -23,6 +23,7 @@ from script.modulo_db import (
     get_estados_parte,
     get_dim_all,
     get_provincias,
+    get_comarcas_by_provincia,
     get_municipios_by_provincia
 )
 from parts_list_window import open_parts_list
@@ -170,7 +171,14 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.provincia_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Municipio (se actualiza según provincia seleccionada)
+        # Comarca (se actualiza según provincia seleccionada)
+        customtkinter.CTkLabel(self, text="Comarca:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.comarca_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=350,
+                                                       state="readonly", command=self._on_comarca_change)
+        self.comarca_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # Municipio (se actualiza según comarca seleccionada)
         customtkinter.CTkLabel(self, text="Municipio:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400, state="normal")
         self.municipio_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
@@ -228,7 +236,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
 
     def _on_provincia_change(self, provincia_value=None):
-        """Actualiza lista de municipios cuando cambia la provincia seleccionada"""
+        """Actualiza lista de comarcas cuando cambia la provincia seleccionada"""
         try:
             # Si se llama desde el callback del combobox, provincia_value es el valor actual
             if provincia_value is None:
@@ -238,12 +246,48 @@ class AppPartsV2(customtkinter.CTkToplevel):
             provincia_id = self._take_id(provincia_value)
 
             if not provincia_id:
-                self.municipio_menu.configure(values=["Selecciona provincia primero"])
-                self.municipio_menu.set("Selecciona provincia primero")
+                self.comarca_menu.configure(values=["Selecciona provincia primero"])
+                self.comarca_menu.set("Selecciona provincia primero")
+                self.municipio_menu.configure(values=["Selecciona comarca primero"])
+                self.municipio_menu.set("Selecciona comarca primero")
                 return
 
-            # Obtener municipios filtrados por provincia
-            municipios = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+            # Obtener comarcas filtradas por provincia
+            comarcas = get_comarcas_by_provincia(self.user, self.password, self.schema, provincia_id)
+
+            if comarcas:
+                self.comarca_menu.configure(values=comarcas)
+                self.comarca_menu.set(comarcas[0] if comarcas else "(sin datos)")
+                # Cargar municipios de la primera comarca automáticamente
+                self._on_comarca_change(comarcas[0] if comarcas else None)
+            else:
+                self.comarca_menu.configure(values=["(sin comarcas)"])
+                self.comarca_menu.set("(sin comarcas)")
+                self.municipio_menu.configure(values=["(sin municipios)"])
+                self.municipio_menu.set("(sin municipios)")
+
+        except Exception as e:
+            print(f"Error actualizando comarcas: {e}")
+            self.comarca_menu.configure(values=["Error al cargar"])
+            self.comarca_menu.set("Error al cargar")
+
+    def _on_comarca_change(self, comarca_value=None):
+        """Actualiza lista de municipios cuando cambia la comarca seleccionada"""
+        try:
+            # Si se llama desde el callback del combobox, comarca_value es el valor actual
+            if comarca_value is None:
+                comarca_value = self.comarca_menu.get()
+
+            # Extraer ID de comarca
+            comarca_id = self._take_id(comarca_value)
+
+            if not comarca_id:
+                self.municipio_menu.configure(values=["Selecciona comarca primero"])
+                self.municipio_menu.set("Selecciona comarca primero")
+                return
+
+            # Obtener municipios filtrados por comarca
+            municipios = get_municipios_by_provincia(self.user, self.password, self.schema, comarca_id=comarca_id)
 
             if municipios:
                 self.municipio_menu.configure(values=municipios)
@@ -393,7 +437,18 @@ class AppPartsV2(customtkinter.CTkToplevel):
             CTkMessagebox(title="Campo obligatorio", message="La Localización es obligatoria", icon="warning")
             return
 
+        provincia_id = self._take_id(self.provincia_menu.get())
+        comarca_id = self._take_id(self.comarca_menu.get())
         municipio_id = self._take_id(self.municipio_menu.get())
+
+        if not provincia_id:
+            CTkMessagebox(title="Campo obligatorio", message="La Provincia es obligatoria", icon="warning")
+            return
+
+        if not comarca_id:
+            CTkMessagebox(title="Campo obligatorio", message="La Comarca es obligatoria", icon="warning")
+            return
+
         if not municipio_id:
             CTkMessagebox(title="Campo obligatorio", message="El Municipio es obligatorio", icon="warning")
             return
@@ -484,9 +539,11 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
                 fecha_prevista_fin=fecha_prevista,
-                id_estado=estado_id,
+                estado_id=estado_id,
                 localizacion=localizacion,
-                id_municipio=municipio_id,
+                provincia_id=provincia_id,
+                comarca_id=comarca_id,
+                municipio_id=municipio_id,
                 trabajadores=trabajadores,
                 latitud=latitud,
                 longitud=longitud
