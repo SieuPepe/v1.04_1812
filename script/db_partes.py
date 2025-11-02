@@ -603,12 +603,28 @@ def delete_part_cert_item(user: str, password: str, schema: str, cert_id: int):
 
 def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo_id: int):
     """
-    Obtiene el prefijo de código del tipo de trabajo.
-    Por ejemplo: "MANT-PREV", "OBRA-NUEVA", etc.
+    Obtiene el prefijo de código del tipo de trabajo según el ID.
+
+    Mapeo según especificación:
+    - ID 1 → GF (Gastos Fijos)
+    - ID 2 → OT (Orden de Trabajo)
+    - ID 3 → TP (Trabajos Programados)
 
     Returns:
-        str: Prefijo del código o "PT" por defecto
+        str: Prefijo del código (GF, OT o TP)
     """
+    # Mapeo directo por ID según especificación del usuario
+    id_to_prefix = {
+        1: "GF",  # Gastos Fijos
+        2: "OT",  # Orden de Trabajo
+        3: "TP",  # Trabajos Programados
+    }
+
+    # Primero intentar con el mapeo directo
+    if tipo_trabajo_id in id_to_prefix:
+        return id_to_prefix[tipo_trabajo_id]
+
+    # Si no está en el mapeo, buscar en la BD
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()

@@ -278,7 +278,11 @@ class AppPartsV2(customtkinter.CTkToplevel):
             from script.db_partes import _get_tipo_trabajo_prefix
             from script.db_connection import get_project_connection
 
-            tipo_id = self._take_id(self.tipo_menu.get())
+            tipo_value = self.tipo_menu.get()
+            print(f"[DEBUG] Tipo trabajo seleccionado: {tipo_value}")  # DEBUG
+
+            tipo_id = self._take_id(tipo_value)
+            print(f"[DEBUG] ID extraído: {tipo_id}")  # DEBUG
 
             # Habilitar/deshabilitar "Código trabajo" según tipo de trabajo
             # Solo habilitado si tipo_trabajo == 3 (Trabajos programados)
@@ -295,7 +299,9 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 return
 
             # Get prefix based on tipo_trabajo (OT, GF o TP)
+            # ID 1 → GF, ID 2 → OT, ID 3 → TP
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
+            print(f"[DEBUG] Prefijo obtenido: {prefix}")  # DEBUG
 
             # Get next number for this specific prefix (independent numbering per prefix)
             # Formato: PREFIX-NNNN (sin año)
@@ -317,6 +323,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 cur.close()
 
             codigo = f"{prefix}-{next_id:04d}"
+            print(f"[DEBUG] Código generado: {codigo}")  # DEBUG
 
             # Update readonly entry
             self.codigo_ot_entry.configure(state="normal")
@@ -325,7 +332,9 @@ class AppPartsV2(customtkinter.CTkToplevel):
             self.codigo_ot_entry.configure(state="readonly")
 
         except Exception as e:
-            print(f"Error updating código OT: {e}")
+            print(f"[ERROR] Error updating código OT: {e}")
+            import traceback
+            traceback.print_exc()  # Imprimir stack trace completo
             self.codigo_ot_entry.configure(state="normal")
             self.codigo_ot_entry.delete(0, "end")
             self.codigo_ot_entry.insert(0, "Error")
