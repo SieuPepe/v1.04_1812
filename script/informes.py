@@ -178,13 +178,13 @@ def build_filter_condition(filtro, definicion_informe, schema="", user="", passw
 
     # Construir condición según operador y tipo
     if operador == "Igual a":
-        if tipo_campo in ['texto', 'dimension']:
+        if tipo_campo in ['texto', 'dimension', 'fecha']:
             return f"{columna_bd} = '{valor}'"
         else:
             return f"{columna_bd} = {valor}"
 
     elif operador == "Diferente de":
-        if tipo_campo in ['texto', 'dimension']:
+        if tipo_campo in ['texto', 'dimension', 'fecha']:
             return f"{columna_bd} != '{valor}'"
         else:
             return f"{columna_bd} != {valor}"
@@ -196,20 +196,37 @@ def build_filter_condition(filtro, definicion_informe, schema="", user="", passw
         return f"{columna_bd} NOT LIKE '%{valor}%'"
 
     elif operador == "Mayor a":
-        return f"{columna_bd} > {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} > '{valor}'"
+        else:
+            return f"{columna_bd} > {valor}"
 
     elif operador == "Menor a":
-        return f"{columna_bd} < {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} < '{valor}'"
+        else:
+            return f"{columna_bd} < {valor}"
 
     elif operador == "Mayor o igual a":
-        return f"{columna_bd} >= {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} >= '{valor}'"
+        else:
+            return f"{columna_bd} >= {valor}"
 
     elif operador == "Menor o igual a":
-        return f"{columna_bd} <= {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} <= '{valor}'"
+        else:
+            return f"{columna_bd} <= {valor}"
 
     elif operador == "Entre":
         valor1, valor2 = valor  # Espera tupla (min, max)
-        return f"{columna_bd} BETWEEN {valor1} AND {valor2}"
+        # Para fechas y textos, necesitamos comillas
+        if tipo_campo in ['fecha', 'texto', 'dimension']:
+            return f"{columna_bd} BETWEEN '{valor1}' AND '{valor2}'"
+        else:
+            # Para numéricos, sin comillas
+            return f"{columna_bd} BETWEEN {valor1} AND {valor2}"
 
     elif operador == "Posterior a":
         return f"{columna_bd} > '{valor}'"
