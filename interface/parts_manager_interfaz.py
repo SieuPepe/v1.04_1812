@@ -93,6 +93,7 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.presupuesto_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.certificaciones_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.informes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.configuracion_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
         # Generar vistas
@@ -100,6 +101,7 @@ class AppPartsManager(customtkinter.CTk):
         self.main_partes()
         self.main_presupuesto()
         self.main_certificaciones()
+        self.main_informes()
         self.main_configuracion()
 
         # Seleccionar frame por defecto
@@ -118,6 +120,9 @@ class AppPartsManager(customtkinter.CTk):
 
         budget_path = os.path.join(parent_path, "source/certificaciones.png")
         self.budget_image = customtkinter.CTkImage(Image.open(budget_path), size=(30, 30))
+
+        informes_path = os.path.join(parent_path, "source/informes.png")
+        self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
 
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
@@ -177,6 +182,16 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.certificaciones_button.grid(row=5, column=0, sticky="ew")
 
+        # Botón Informes
+        self.informes_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=0, height=40,
+            border_spacing=10, text="Informes", fg_color="transparent",
+            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+            image=self.informes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
+            anchor="w", command=lambda: self.select_frame_by_name("informes")
+        )
+        self.informes_button.grid(row=6, column=0, sticky="ew")
+
         # Botón Configuración
         self.config_button = customtkinter.CTkButton(
             self.navigation_frame, corner_radius=0, height=40,
@@ -185,10 +200,10 @@ class AppPartsManager(customtkinter.CTk):
             image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("configuracion")
         )
-        self.config_button.grid(row=6, column=0, sticky="ew")
+        self.config_button.grid(row=7, column=0, sticky="ew")
 
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(7, weight=1)
+        self.navigation_frame.grid_rowconfigure(8, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -198,7 +213,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=8, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=9, padx=30, pady=(15, 15), sticky="nsew")
 
     def select_frame_by_name(self, name):
         """Cambia entre frames/pestañas"""
@@ -208,6 +223,7 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_button.configure(fg_color=("gray75", "gray25") if name == "presupuesto" else "transparent")
         self.certificaciones_button.configure(
             fg_color=("gray75", "gray25") if name == "certificaciones" else "transparent")
+        self.informes_button.configure(fg_color=("gray75", "gray25") if name == "informes" else "transparent")
         self.config_button.configure(fg_color=("gray75", "gray25") if name == "configuracion" else "transparent")
 
         # Mostrar frame seleccionado
@@ -230,6 +246,11 @@ class AppPartsManager(customtkinter.CTk):
             self.certificaciones_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
         else:
             self.certificaciones_frame.grid_forget()
+
+        if name == "informes":
+            self.informes_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
+        else:
+            self.informes_frame.grid_forget()
 
         if name == "configuracion":
             self.configuracion_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
@@ -2249,6 +2270,80 @@ class AppPartsManager(customtkinter.CTk):
                     CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
+
+    def main_informes(self):
+        """Pestaña Informes - Generación de informes personalizados"""
+        self.informes_frame.grid_columnconfigure(0, weight=1)
+        self.informes_frame.grid_rowconfigure(1, weight=1)
+
+        # Título
+        title = customtkinter.CTkLabel(
+            self.informes_frame,
+            text="GENERACIÓN DE INFORMES",
+            font=customtkinter.CTkFont(size=20, weight="bold")
+        )
+        title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
+
+        # Frame de contenido principal
+        content_frame = customtkinter.CTkFrame(self.informes_frame)
+        content_frame.grid(row=1, column=0, padx=30, pady=(10, 20), sticky="nsew")
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_rowconfigure(1, weight=1)
+
+        # Mensaje de estado
+        status_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+        status_frame.grid(row=0, column=0, sticky="nsew", pady=20)
+        status_frame.grid_columnconfigure(0, weight=1)
+        status_frame.grid_rowconfigure(0, weight=1)
+
+        # Ícono grande y mensaje
+        info_container = customtkinter.CTkFrame(status_frame, fg_color="transparent")
+        info_container.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Ícono grande
+        if hasattr(self, 'informes_image'):
+            large_icon = customtkinter.CTkLabel(
+                info_container,
+                text="",
+                image=customtkinter.CTkImage(Image.open(os.path.join(parent_path, "source/informes.png")), size=(120, 120))
+            )
+            large_icon.pack(pady=(20, 20))
+
+        # Mensaje principal
+        main_msg = customtkinter.CTkLabel(
+            info_container,
+            text="Módulo de Informes",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        main_msg.pack(pady=(10, 5))
+
+        # Submensaje
+        sub_msg = customtkinter.CTkLabel(
+            info_container,
+            text="🚧 En desarrollo 🚧",
+            font=customtkinter.CTkFont(size=18),
+            text_color="gray"
+        )
+        sub_msg.pack(pady=(5, 20))
+
+        # Descripción de funcionalidades planificadas
+        features_text = """
+Funcionalidades planificadas:
+
+• Informes por proyecto
+• Informes por periodo
+• Gráficos y estadísticas
+• Exportación a PDF/Excel
+        """
+
+        features_label = customtkinter.CTkLabel(
+            info_container,
+            text=features_text,
+            font=customtkinter.CTkFont(size=14),
+            text_color="lightgray",
+            justify="left"
+        )
+        features_label.pack(pady=(10, 20))
 
     def main_configuracion(self):
         """Pestaña Configuración - Gestión de dimensiones OT, Red, Tipo, Código"""
