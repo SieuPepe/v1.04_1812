@@ -116,7 +116,7 @@ def get_dimension_values(user, password, schema, tabla_dimension):
         return []
 
 
-def build_filter_condition(filtro, definicion_informe, schema=""):
+def build_filter_condition(filtro, definicion_informe, schema="", user="", password=""):
     """
     Construye una condición SQL para un filtro específico
 
@@ -124,6 +124,8 @@ def build_filter_condition(filtro, definicion_informe, schema=""):
         filtro: Dict con {campo, operador, valor(es)}
         definicion_informe: Definición del informe desde INFORMES_DEFINICIONES
         schema: Nombre del schema/proyecto
+        user: Usuario de BD (para detectar columnas de dimensiones)
+        password: Contraseña de BD (para detectar columnas de dimensiones)
 
     Returns:
         String con la condición SQL (ej: "estado = 'Pendiente'")
@@ -158,9 +160,18 @@ def build_filter_condition(filtro, definicion_informe, schema=""):
             formula = formula.replace(f"FROM {tabla}", f"FROM {schema}.{tabla}")
         columna_bd = f"({formula})"
     elif tipo_campo == 'dimension':
-        # Para dimensiones, usar el alias de la tabla dimension
+        # Para dimensiones, detectar automáticamente la columna si tenemos credenciales
         alias_dim = f"{campo_key}_dim"
-        campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+        tabla_dim = campo_def.get('tabla_dimension')
+
+        # Detectar columna automáticamente
+        if user and password and tabla_dim:
+            campo_nombre = _detectar_columna_texto(user, password, schema, tabla_dim)
+            if not campo_nombre:
+                campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+        else:
+            campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+
         columna_bd = f"{alias_dim}.{campo_nombre}"
     else:
         columna_bd = f"p.{campo_def.get('columna_bd', campo_key)}"
@@ -293,11 +304,37 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
     select_clause = "SELECT " + ", ".join(select_parts)
 
+    # ========== RECOPILAR DIMENSIONES NECESARIAS ==========
+    # Necesitamos JOINs para dimensiones usadas en SELECT y también en filtros
+    dimensiones_necesarias = set()
+
+    # 1. Dimensiones de campos seleccionados
+    for campo_key in campos_seleccionados:
+        campo = campos_def.get(campo_key)
+        if campo and campo['tipo'] == 'dimension':
+            dimensiones_necesarias.add(campo_key)
+
+    # 2. Dimensiones usadas en filtros
+    if filtros:
+        for filtro in filtros:
+            campo_key = filtro.get('campo')
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
+
+    # 3. Dimensiones usadas en clasificaciones
+    if clasificaciones:
+        for clasif in clasificaciones:
+            campo_key = clasif.get('campo')
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
+
     # ========== CONSTRUIR FROM + JOINS ==========
     from_clause = f"FROM {schema}.{tabla_principal} p"
 
-    # Añadir JOINs para dimensiones
-    for campo_key in campos_seleccionados:
+    # Añadir JOINs para TODAS las dimensiones necesarias
+    for campo_key in dimensiones_necesarias:
         campo = campos_def.get(campo_key)
         if campo and campo['tipo'] == 'dimension':
             tabla_dim = campo['tabla_dimension']
@@ -310,7 +347,7 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
     if filtros:
         for filtro in filtros:
-            condicion = build_filter_condition(filtro, definicion, schema)
+            condicion = build_filter_condition(filtro, definicion, schema, user, password)
             if condicion:
                 where_conditions.append(condicion)
 
@@ -332,7 +369,20 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
             if campo:
                 if campo['tipo'] == 'dimension':
                     alias_dim = f"{campo_key}_dim"
-                    campo_nombre = campo.get('campo_nombre', 'descripcion')
+                    tabla_dim = campo.get('tabla_dimension')
+
+                    # Detectar columna automáticamente
+                    if user and password and tabla_dim and tabla_dim in dimension_columns_cache:
+                        campo_nombre = dimension_columns_cache[tabla_dim]
+                    elif user and password and tabla_dim:
+                        campo_nombre = _detectar_columna_texto(user, password, schema, tabla_dim)
+                        if campo_nombre:
+                            dimension_columns_cache[tabla_dim] = campo_nombre
+                        else:
+                            campo_nombre = campo.get('campo_nombre', 'descripcion')
+                    else:
+                        campo_nombre = campo.get('campo_nombre', 'descripcion')
+
                     order_parts.append(f"{alias_dim}.{campo_nombre} {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 elif campo['tipo'] == 'calculado':
                     # Para campos calculados, usar el alias del campo en el SELECT
