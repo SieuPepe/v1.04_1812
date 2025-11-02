@@ -792,9 +792,57 @@ class InformesFrame(customtkinter.CTkFrame):
         self._update_valor_widget(filtro_obj, filtro_config)
 
     def _on_filtro_operador_change(self, filtro_obj, operador):
-        """Maneja el cambio de operador (por si necesita ajustar el widget de valor)"""
-        # Por ahora no hace nada especial, pero podría usarse para casos como "Entre"
-        pass
+        """Maneja el cambio de operador (ajusta el widget de valor para casos especiales como 'Entre')"""
+        # Si el operador es "Entre", mostrar dos campos de entrada
+        if operador == "Entre":
+            self._create_range_widget(filtro_obj)
+        else:
+            # Para otros operadores, usar el widget normal según el tipo de filtro
+            if filtro_obj.get('tipo_actual') and self.definicion_actual:
+                filtros_disponibles = self.definicion_actual.get('filtros', {})
+                campo_key = filtro_obj.get('campo_actual')
+
+                for fkey, fconfig in filtros_disponibles.items():
+                    if fconfig['campo'] == campo_key:
+                        self._update_valor_widget(filtro_obj, fconfig)
+                        break
+
+    def _create_range_widget(self, filtro_obj):
+        """Crea dos campos de entrada para el operador 'Entre'"""
+        # Destruir widget actual
+        if filtro_obj.get('valor_widget'):
+            filtro_obj['valor_widget'].destroy()
+        if filtro_obj.get('valor_widget2'):
+            filtro_obj['valor_widget2'].destroy()
+
+        # Frame para contener ambos campos
+        range_frame = customtkinter.CTkFrame(filtro_obj['container'], fg_color="transparent")
+        range_frame.grid(row=0, column=7, sticky="w", padx=(0, 10))
+
+        # Campo 1: Valor mínimo
+        widget1 = customtkinter.CTkEntry(
+            range_frame,
+            width=70,
+            placeholder_text="Min..."
+        )
+        widget1.grid(row=0, column=0, padx=(0, 5))
+
+        # Label "y"
+        label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+        label_y.grid(row=0, column=1, padx=(0, 5))
+
+        # Campo 2: Valor máximo
+        widget2 = customtkinter.CTkEntry(
+            range_frame,
+            width=70,
+            placeholder_text="Max..."
+        )
+        widget2.grid(row=0, column=2)
+
+        # Guardar ambos widgets
+        filtro_obj['valor_widget'] = widget1
+        filtro_obj['valor_widget2'] = widget2
+        filtro_obj['is_range'] = True
 
     def _update_valor_widget(self, filtro_obj, filtro_config):
         """Actualiza el widget de valor según el tipo de filtro"""
@@ -1037,20 +1085,44 @@ class InformesFrame(customtkinter.CTkFrame):
             valor_widget = filtro_obj['valor_widget']
 
             # Obtener valor según tipo de widget
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    valor1 = widget1.get() if isinstance(widget1, customtkinter.CTkEntry) else ""
+                    valor2 = widget2.get() if isinstance(widget2, customtkinter.CTkEntry) else ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    # Para "Entre", pasar tupla (min, max)
+                    valor = (valor1, valor2)
+                else:
+                    continue
             else:
-                valor = ""
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, customtkinter.CTkEntry):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
 
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1240,10 +1312,16 @@ class InformesFrame(customtkinter.CTkFrame):
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1447,20 +1525,44 @@ class InformesFrame(customtkinter.CTkFrame):
             valor_widget = filtro_obj['valor_widget']
 
             # Obtener valor según tipo de widget
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    valor1 = widget1.get() if isinstance(widget1, customtkinter.CTkEntry) else ""
+                    valor2 = widget2.get() if isinstance(widget2, customtkinter.CTkEntry) else ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    # Para "Entre", pasar tupla (min, max)
+                    valor = (valor1, valor2)
+                else:
+                    continue
             else:
-                valor = ""
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, customtkinter.CTkEntry):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
 
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1680,10 +1782,16 @@ class InformesFrame(customtkinter.CTkFrame):
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
