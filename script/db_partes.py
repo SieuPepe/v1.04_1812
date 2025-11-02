@@ -255,15 +255,30 @@ def get_partes_resumen(user: str, password: str, schema: str):
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
-        cur.execute("""
-            SELECT
-                id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
-                total_presupuesto, total_certificado, total_pendiente,
-                creado_en, actualizado_en
-            FROM vw_partes_resumen
-            ORDER BY id DESC
-        """)
-        rows = cur.fetchall()
+
+        # Intentar con las columnas timestamp
+        try:
+            cur.execute("""
+                SELECT
+                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
+                    total_presupuesto, total_certificado, total_pendiente,
+                    creado_en, actualizado_en
+                FROM vw_partes_resumen
+                ORDER BY id DESC
+            """)
+            rows = cur.fetchall()
+        except Exception:
+            # Si falla (columnas no existen), intentar sin ellas
+            cur.execute("""
+                SELECT
+                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
+                    total_presupuesto, total_certificado, total_pendiente,
+                    NULL as creado_en, NULL as actualizado_en
+                FROM vw_partes_resumen
+                ORDER BY id DESC
+            """)
+            rows = cur.fetchall()
+
         cur.close()
         return rows
 
@@ -294,7 +309,16 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         else:
             select_cols.append('NULL as observaciones')
 
-        select_cols.extend(['creado_en', 'actualizado_en'])
+        # Añadir columnas de timestamp si existen
+        if 'creado_en' in columns:
+            select_cols.append('creado_en')
+        else:
+            select_cols.append('NULL as creado_en')
+
+        if 'actualizado_en' in columns:
+            select_cols.append('actualizado_en')
+        else:
+            select_cols.append('NULL as actualizado_en')
 
         query = f"SELECT {', '.join(select_cols)} FROM tbl_partes WHERE id = %s"
         cur.execute(query, (parte_id,))
@@ -313,36 +337,39 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
 
-            # Verificar si existe la columna observaciones
+            # Verificar si existen las columnas opcionales
             cur.execute(f"DESCRIBE {schema}.tbl_partes")
             columns = [row[0] for row in cur.fetchall()]
 
-            if 'observaciones' in columns:
-                cur.execute("""
-                            UPDATE tbl_partes
-                            SET ot_id           = %s,
-                                red_id          = %s,
-                                tipo_trabajo_id = %s,
-                                cod_trabajo_id  = %s,
-                                descripcion     = %s,
-                                estado          = %s,
-                                observaciones   = %s,
-                                actualizado_en  = NOW()
-                            WHERE id = %s
-                            """,
-                            (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, observaciones, parte_id))
-            else:
-                cur.execute("""
-                            UPDATE tbl_partes
-                            SET ot_id           = %s,
-                                red_id          = %s,
-                                tipo_trabajo_id = %s,
-                                cod_trabajo_id  = %s,
-                                descripcion     = %s,
-                                estado          = %s,
-                                actualizado_en  = NOW()
-                            WHERE id = %s
-                            """, (ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado, parte_id))
+            has_observaciones = 'observaciones' in columns
+            has_actualizado_en = 'actualizado_en' in columns
+
+            # Construir UPDATE dinámicamente
+            set_clauses = [
+                "ot_id = %s",
+                "red_id = %s",
+                "tipo_trabajo_id = %s",
+                "cod_trabajo_id = %s",
+                "descripcion = %s",
+                "estado = %s"
+            ]
+            params = [ot_id, red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado]
+
+            if has_observaciones:
+                set_clauses.append("observaciones = %s")
+                params.append(observaciones)
+
+            if has_actualizado_en:
+                set_clauses.append("actualizado_en = NOW()")
+
+            params.append(parte_id)
+
+            query = f"""
+                UPDATE tbl_partes
+                SET {', '.join(set_clauses)}
+                WHERE id = %s
+            """
+            cur.execute(query, params)
 
             cn.commit()
             cur.close()
@@ -466,15 +493,30 @@ def get_part_cert_certificadas(user: str, password: str, schema: str, parte_id: 
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
-        cur.execute("""
-            SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
-                   cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
-                   certificada, ot, red, tipo, cod_trabajo, creado_en
-            FROM vw_part_certificaciones
-            WHERE parte_id = %s AND certificada = 1
-            ORDER BY fecha_certificacion DESC, codigo_partida
-        """, (parte_id,))
-        rows = cur.fetchall()
+
+        # Intentar con la columna creado_en
+        try:
+            cur.execute("""
+                SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
+                       cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
+                       certificada, ot, red, tipo, cod_trabajo, creado_en
+                FROM vw_part_certificaciones
+                WHERE parte_id = %s AND certificada = 1
+                ORDER BY fecha_certificacion DESC, codigo_partida
+            """, (parte_id,))
+            rows = cur.fetchall()
+        except Exception:
+            # Si falla (columna no existe), intentar sin ella
+            cur.execute("""
+                SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
+                       cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
+                       certificada, ot, red, tipo, cod_trabajo, NULL as creado_en
+                FROM vw_part_certificaciones
+                WHERE parte_id = %s AND certificada = 1
+                ORDER BY fecha_certificacion DESC, codigo_partida
+            """, (parte_id,))
+            rows = cur.fetchall()
+
         cur.close()
         return rows
 
