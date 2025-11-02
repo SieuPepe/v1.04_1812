@@ -4,6 +4,7 @@ from PIL import Image
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk, font as tkfont
 from script.modulo_db import get_schemas_db, project_directory_db
+from script.db_connection import get_project_connection
 import os
 
 # Obtener rutas
@@ -56,19 +57,13 @@ customtkinter.set_appearance_mode("dark")
 
 class AppPartsManager(customtkinter.CTk):
     width = 1600
-    height = 900
+    height = 1000
 
     def __init__(self, access, schema):
         super().__init__()
 
         # ✅ CONFIGURAR ESTILO DE TREEVIEW PRIMERO
         configure_treeview_style()
-
-        self.user = access[0]
-        self.password = access[1]
-        self.schema = schema
-
-        self.title(f"HydroFlow Manager - Generador de Partes [{schema}]")
 
         self.user = access[0]
         self.password = access[1]
@@ -93,16 +88,12 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.presupuesto_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.certificaciones_frame = customtkinter.CTkFrame(self, corner_radius=0)
-        self.informes_frame = customtkinter.CTkFrame(self, corner_radius=0)
-        self.configuracion_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
         # Generar vistas
         self.main_resumen()
         self.main_partes()
         self.main_presupuesto()
         self.main_certificaciones()
-        self.main_informes()
-        self.main_configuracion()
 
         # Seleccionar frame por defecto
         self.select_frame_by_name("resumen")
@@ -120,9 +111,6 @@ class AppPartsManager(customtkinter.CTk):
 
         budget_path = os.path.join(parent_path, "source/certificaciones.png")
         self.budget_image = customtkinter.CTkImage(Image.open(budget_path), size=(30, 30))
-
-        informes_path = os.path.join(parent_path, "source/informes.png")
-        self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
 
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
@@ -182,28 +170,8 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.certificaciones_button.grid(row=5, column=0, sticky="ew")
 
-        # Botón Informes
-        self.informes_button = customtkinter.CTkButton(
-            self.navigation_frame, corner_radius=0, height=40,
-            border_spacing=10, text="Informes", fg_color="transparent",
-            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            image=self.informes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
-            anchor="w", command=lambda: self.select_frame_by_name("informes")
-        )
-        self.informes_button.grid(row=6, column=0, sticky="ew")
-
-        # Botón Configuración
-        self.config_button = customtkinter.CTkButton(
-            self.navigation_frame, corner_radius=0, height=40,
-            border_spacing=10, text="Configuración", fg_color="transparent",
-            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
-            anchor="w", command=lambda: self.select_frame_by_name("configuracion")
-        )
-        self.config_button.grid(row=7, column=0, sticky="ew")
-
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(8, weight=1)
+        self.navigation_frame.grid_rowconfigure(6, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -213,7 +181,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=9, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=8, padx=30, pady=(15, 15), sticky="nsew")
 
     def select_frame_by_name(self, name):
         """Cambia entre frames/pestañas"""
@@ -223,8 +191,6 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_button.configure(fg_color=("gray75", "gray25") if name == "presupuesto" else "transparent")
         self.certificaciones_button.configure(
             fg_color=("gray75", "gray25") if name == "certificaciones" else "transparent")
-        self.informes_button.configure(fg_color=("gray75", "gray25") if name == "informes" else "transparent")
-        self.config_button.configure(fg_color=("gray75", "gray25") if name == "configuracion" else "transparent")
 
         # Mostrar frame seleccionado
         if name == "resumen":
@@ -246,16 +212,6 @@ class AppPartsManager(customtkinter.CTk):
             self.certificaciones_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
         else:
             self.certificaciones_frame.grid_forget()
-
-        if name == "informes":
-            self.informes_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
-        else:
-            self.informes_frame.grid_forget()
-
-        if name == "configuracion":
-            self.configuracion_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
-        else:
-            self.configuracion_frame.grid_forget()
 
     def main_resumen(self):
         """Pestaña Resumen - Lista de partes con KPIs"""
@@ -395,18 +351,33 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
     def _add_parte_resumen(self):
-        """Abre ventana para añadir nuevo parte con formulario completo"""
-        from interface.parts_interfaz_v2_fixed import AppPartsV2
+        """
+        Abre ventana mejorada para añadir nuevo parte con todos los campos.
+        Incluye: título, estado, descripciones, fechas, localización, municipio, GPS, trabajadores.
+        """
+        try:
+            from interface.parts_interfaz_v2_fixed import AppPartsV2
 
-        # Crear ventana completa con todos los campos
-        win = AppPartsV2(self.user, self.password, self.schema)
+            # Crear ventana independiente con el formulario mejorado
+            parts_window = AppPartsV2(user=self.user, password=self.password, default_schema=self.schema)
 
-        # Callback para recargar la lista cuando se cierre la ventana
-        def on_close():
-            self._reload_resumen()
+            # Configurar para que recargue la lista cuando se cierre
+            def on_closing():
+                parts_window.destroy()
+                self._reload_resumen()
 
-        win.protocol("WM_DELETE_WINDOW", lambda: [on_close(), win.destroy()])
-        win.wait_window()
+            parts_window.protocol("WM_DELETE_WINDOW", on_closing)
+
+            # Hacer que la ventana aparezca al frente
+            parts_window.lift()
+            parts_window.focus()
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            CTkMessagebox(title="Error",
+                        message=f"No se pudo abrir el formulario de partes:\n{e}",
+                        icon="cancel")
 
     def _delete_parte_resumen(self):
         """Elimina el parte seleccionado"""
@@ -564,7 +535,8 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_datos_basicos_tab(self, parte_id):
         """Carga la pestaña de Datos Básicos - Layout optimizado en 2 columnas"""
-        from script.modulo_db import get_parte_detail, get_dim_all
+        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia
+        from tkcalendar import DateEntry
 
         tab = self.partes_subtabs.tab("📝 Datos Básicos")
 
@@ -572,7 +544,7 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal SIN scroll
+        # Frame principal
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
         main_frame.pack(fill="both", expand=True, padx=15, pady=15)
         main_frame.grid_columnconfigure(0, weight=1)
@@ -587,6 +559,9 @@ class AppPartsManager(customtkinter.CTk):
 
             dims = get_dim_all(self.user, self.password, self.schema)
 
+            # Variable para rastrear si hay cambios
+            self.has_changes = False
+
             # ============ COLUMNA IZQUIERDA ============
             left_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
             left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
@@ -600,14 +575,14 @@ class AppPartsManager(customtkinter.CTk):
             ).grid(row=row_left, column=0, columnspan=2, pady=(0, 15), sticky="w")
             row_left += 1
 
-            # ID
+            # ID (solo lectura)
             customtkinter.CTkLabel(left_frame, text="ID:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             customtkinter.CTkLabel(left_frame, text=str(parte_data[0])).grid(
                 row=row_left, column=1, padx=5, pady=8, sticky="w")
             row_left += 1
 
-            # Código
+            # Código (solo lectura)
             customtkinter.CTkLabel(left_frame, text="Código:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             customtkinter.CTkLabel(
@@ -618,6 +593,15 @@ class AppPartsManager(customtkinter.CTk):
             # Separador
             customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
                 row=row_left, column=0, columnspan=2, pady=15, sticky="ew")
+            row_left += 1
+
+            # NUEVO: Título
+            customtkinter.CTkLabel(left_frame, text="Título:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.titulo_entry = customtkinter.CTkEntry(left_frame)
+            self.titulo_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            if parte_data[12]:
+                self.titulo_entry.insert(0, parte_data[12])
             row_left += 1
 
             # Estado
@@ -631,17 +615,6 @@ class AppPartsManager(customtkinter.CTk):
             self.estado_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # OT
-            customtkinter.CTkLabel(left_frame, text="OT:", font=("", 12, "bold")).grid(
-                row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.ot_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("OT", []))
-            self.ot_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            for item in dims.get("OT", []):
-                if item.startswith(f"{parte_data[4]} -"):
-                    self.ot_menu.set(item)
-                    break
-            row_left += 1
-
             # Red
             customtkinter.CTkLabel(left_frame, text="Red:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
@@ -653,7 +626,7 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Tipo
+            # Tipo Trabajo
             customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []))
@@ -675,11 +648,135 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Fechas info
+            # Provincia
+            customtkinter.CTkLabel(left_frame, text="Provincia:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            provincias_list = get_provincias(self.user, self.password, self.schema)
+            self.provincia_menu = customtkinter.CTkOptionMenu(
+                left_frame,
+                values=provincias_list,
+                command=self._on_provincia_change
+            )
+            self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+
+            # Intentar establecer la provincia actual
+            current_municipio_id = parte_data[8]
+            if current_municipio_id:
+                # Obtener provincia del municipio actual
+                try:
+                    with get_project_connection(self.user, self.password, self.schema) as cn:
+                        cur = cn.cursor()
+                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipio WHERE id = %s", (current_municipio_id,))
+                        result = cur.fetchone()
+                        if result:
+                            provincia_id = result[0]
+                            for item in provincias_list:
+                                if item.startswith(f"{provincia_id} -"):
+                                    self.provincia_menu.set(item)
+                                    break
+                        cur.close()
+                except:
+                    pass
+            row_left += 1
+
+            # Municipio
+            customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.municipio_menu = customtkinter.CTkOptionMenu(left_frame, values=["Seleccione provincia primero"])
+            self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+
+            # Cargar municipios si hay provincia
+            if current_municipio_id:
+                try:
+                    with get_project_connection(self.user, self.password, self.schema) as cn:
+                        cur = cn.cursor()
+                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipio WHERE id = %s", (current_municipio_id,))
+                        result = cur.fetchone()
+                        if result:
+                            provincia_id = result[0]
+                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+                            self.municipio_menu.configure(values=municipios_list)
+                            for item in municipios_list:
+                                if item.startswith(f"{current_municipio_id} -"):
+                                    self.municipio_menu.set(item)
+                                    break
+                        cur.close()
+                except:
+                    pass
+            row_left += 1
+
+            # Separador
             customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
                 row=row_left, column=0, columnspan=2, pady=15, sticky="ew")
             row_left += 1
 
+            # NUEVO: Fecha Fin
+            customtkinter.CTkLabel(left_frame, text="Fecha Fin:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.fecha_fin_entry = DateEntry(left_frame, width=20, background='darkblue',
+                                             foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+            self.fecha_fin_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[14]:
+                try:
+                    self.fecha_fin_entry.set_date(parte_data[14])
+                except:
+                    pass
+            row_left += 1
+
+            # NUEVO: Fecha Prevista Fin
+            customtkinter.CTkLabel(left_frame, text="Fecha Prevista:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.fecha_prevista_entry = DateEntry(left_frame, width=20, background='darkblue',
+                                                   foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
+            self.fecha_prevista_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[15]:
+                try:
+                    self.fecha_prevista_entry.set_date(parte_data[15])
+                except:
+                    pass
+            row_left += 1
+
+            # NUEVO: Trabajadores
+            customtkinter.CTkLabel(left_frame, text="Trabajadores:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.trabajadores_entry = customtkinter.CTkEntry(left_frame)
+            self.trabajadores_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            if parte_data[19]:
+                self.trabajadores_entry.insert(0, parte_data[19])
+            row_left += 1
+
+            # NUEVO: Localización
+            customtkinter.CTkLabel(left_frame, text="Localización:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.localizacion_entry = customtkinter.CTkEntry(left_frame)
+            self.localizacion_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            if parte_data[16]:
+                self.localizacion_entry.insert(0, parte_data[16])
+            row_left += 1
+
+            # NUEVO: Coordenadas GPS
+            customtkinter.CTkLabel(left_frame, text="Latitud:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.latitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="41.123456")
+            self.latitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            if parte_data[17]:
+                self.latitud_entry.insert(0, str(parte_data[17]))
+            row_left += 1
+
+            customtkinter.CTkLabel(left_frame, text="Longitud:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.longitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="2.123456")
+            self.longitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            if parte_data[18]:
+                self.longitud_entry.insert(0, str(parte_data[18]))
+            row_left += 1
+
+            # Separador
+            customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
+                row=row_left, column=0, columnspan=2, pady=15, sticky="ew")
+            row_left += 1
+
+            # Fechas de auditoría (info solo lectura)
             customtkinter.CTkLabel(
                 left_frame, text=f"📅 Creado: {parte_data[10]}",
                 font=("", 10), text_color="gray"
@@ -704,7 +801,7 @@ class AppPartsManager(customtkinter.CTk):
                 right_frame, text="Descripción:", font=("", 13, "bold")
             ).grid(row=0, column=0, padx=5, pady=(0, 5), sticky="w")
 
-            self.desc_text = customtkinter.CTkTextbox(right_frame, height=200)
+            self.desc_text = customtkinter.CTkTextbox(right_frame, height=150)
             self.desc_text.grid(row=1, column=0, padx=5, pady=(0, 15), sticky="nsew")
             if parte_data[2]:
                 self.desc_text.insert("1.0", parte_data[2])
@@ -714,24 +811,96 @@ class AppPartsManager(customtkinter.CTk):
                 right_frame, text="Observaciones:", font=("", 13, "bold")
             ).grid(row=2, column=0, padx=5, pady=(0, 5), sticky="w")
 
-            self.obs_text = customtkinter.CTkTextbox(right_frame, height=200)
+            self.obs_text = customtkinter.CTkTextbox(right_frame, height=150)
             self.obs_text.grid(row=3, column=0, padx=5, pady=(0, 15), sticky="nsew")
             if parte_data[9]:
                 self.obs_text.insert("1.0", parte_data[9])
 
-            # Botón guardar (span completo)
-            btn_save = customtkinter.CTkButton(
+            # Botón guardar (span completo) - inicialmente deshabilitado
+            self.btn_save_parte = customtkinter.CTkButton(
                 right_frame, text="💾 GUARDAR CAMBIOS",
                 command=lambda: self._confirm_and_save_parte(parte_id),
-                fg_color="green", hover_color="#006400",
-                height=50, font=("", 16, "bold")
+                fg_color="gray", hover_color="gray",
+                height=50, font=("", 16, "bold"),
+                state="disabled"
             )
-            btn_save.grid(row=4, column=0, padx=5, pady=15, sticky="ew")
+            self.btn_save_parte.grid(row=4, column=0, padx=5, pady=15, sticky="ew")
+
+            # Conectar eventos de cambio a todos los widgets
+            self._connect_change_events()
 
         except Exception as e:
             import traceback
             print(f"ERROR:\n{traceback.format_exc()}")
             customtkinter.CTkLabel(main_frame, text=f"❌ Error: {e}").pack(pady=20)
+
+    def _mark_as_changed(self, *args):
+        """Marca que hay cambios pendientes y habilita el botón guardar"""
+        if not self.has_changes:
+            self.has_changes = True
+            if hasattr(self, 'btn_save_parte'):
+                self.btn_save_parte.configure(
+                    state="normal",
+                    fg_color="green",
+                    hover_color="#006400"
+                )
+
+    def _connect_change_events(self):
+        """Conecta eventos de cambio a todos los widgets editables"""
+        # Entry widgets
+        if hasattr(self, 'titulo_entry'):
+            self.titulo_entry.bind('<KeyRelease>', self._mark_as_changed)
+        if hasattr(self, 'trabajadores_entry'):
+            self.trabajadores_entry.bind('<KeyRelease>', self._mark_as_changed)
+        if hasattr(self, 'localizacion_entry'):
+            self.localizacion_entry.bind('<KeyRelease>', self._mark_as_changed)
+        if hasattr(self, 'latitud_entry'):
+            self.latitud_entry.bind('<KeyRelease>', self._mark_as_changed)
+        if hasattr(self, 'longitud_entry'):
+            self.longitud_entry.bind('<KeyRelease>', self._mark_as_changed)
+
+        # OptionMenu widgets (usan command en lugar de bind)
+        if hasattr(self, 'estado_menu'):
+            self.estado_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'red_menu'):
+            self.red_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'tipo_menu'):
+            self.tipo_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'cod_menu'):
+            self.cod_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'municipio_menu'):
+            self.municipio_menu.configure(command=lambda _: self._mark_as_changed())
+        # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
+
+        # Textbox widgets
+        if hasattr(self, 'desc_text'):
+            self.desc_text.bind('<KeyRelease>', self._mark_as_changed)
+        if hasattr(self, 'obs_text'):
+            self.obs_text.bind('<KeyRelease>', self._mark_as_changed)
+
+        # DateEntry widgets (se activan cuando se selecciona una fecha)
+        if hasattr(self, 'fecha_fin_entry'):
+            self.fecha_fin_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
+        if hasattr(self, 'fecha_prevista_entry'):
+            self.fecha_prevista_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
+
+    def _on_provincia_change(self, selected_provincia):
+        """Actualiza lista de municipios cuando cambia la provincia"""
+        from script.modulo_db import get_municipios_by_provincia
+
+        try:
+            provincia_id = int(selected_provincia.split(" - ")[0])
+            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+
+            if hasattr(self, 'municipio_menu'):
+                self.municipio_menu.configure(values=municipios_list)
+                if municipios_list:
+                    self.municipio_menu.set(municipios_list[0])
+
+            # Marcar como cambiado
+            self._mark_as_changed()
+        except Exception as e:
+            print(f"Error al cambiar provincia: {e}")
 
     def _confirm_and_save_parte(self, parte_id):
         """Solicita confirmación antes de guardar"""
@@ -751,56 +920,95 @@ class AppPartsManager(customtkinter.CTk):
         from script.modulo_db import mod_parte_item
 
         try:
-            # Validar que existan los widgets
-            if not hasattr(self, 'ot_menu'):
-                CTkMessagebox(title="Error", message="Error: Formulario no cargado correctamente", icon="cancel")
-                return
+            # Extraer IDs de dimensiones
+            red_id = int(self.red_menu.get().split(" - ")[0])
+            tipo_id = int(self.tipo_menu.get().split(" - ")[0])
+            cod_id = int(self.cod_menu.get().split(" - ")[0])
 
-            # Extraer IDs de los menús (formato: "id - nombre")
-            ot_text = self.ot_menu.get()
-            red_text = self.red_menu.get()
-            tipo_text = self.tipo_menu.get()
-            cod_text = self.cod_menu.get()
-
-            print(f"DEBUG - Valores de menús:")
-            print(f"  OT: {ot_text}")
-            print(f"  Red: {red_text}")
-            print(f"  Tipo: {tipo_text}")
-            print(f"  Cod: {cod_text}")
-
-            # Extraer IDs
+            # Municipio
+            municipio_id = None
             try:
-                ot_id = int(ot_text.split(" - ")[0])
-                red_id = int(red_text.split(" - ")[0])
-                tipo_id = int(tipo_text.split(" - ")[0])
-                cod_id = int(cod_text.split(" - ")[0])
-            except Exception as e:
-                CTkMessagebox(
-                    title="Error",
-                    message=f"Error extrayendo IDs de los menús:\n{e}",
-                    icon="cancel"
-                )
-                return
+                municipio_text = self.municipio_menu.get()
+                if municipio_text and not municipio_text.startswith("Seleccione"):
+                    municipio_id = int(municipio_text.split(" - ")[0])
+            except:
+                pass
 
-            # Obtener textos
+            # Campos de texto
+            titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
             estado = self.estado_var.get()
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
+            trabajadores = self.trabajadores_entry.get().strip() or None
+            localizacion = self.localizacion_entry.get().strip() or None
+
+            # Fechas
+            fecha_fin = self.fecha_fin_entry.get_date() if hasattr(self.fecha_fin_entry, 'get_date') else None
+            fecha_prevista = self.fecha_prevista_entry.get_date() if hasattr(self.fecha_prevista_entry, 'get_date') else None
+
+            # Coordenadas GPS
+            latitud = None
+            longitud = None
+            try:
+                lat_text = self.latitud_entry.get().strip()
+                if lat_text:
+                    latitud = float(lat_text)
+            except ValueError:
+                pass
+
+            try:
+                lon_text = self.longitud_entry.get().strip()
+                if lon_text:
+                    longitud = float(lon_text)
+            except ValueError:
+                pass
+
+            # VALIDACIÓN: Fecha fin obligatoria si estado es "Finalizado"
+            if estado == "Finalizado" and not fecha_fin:
+                CTkMessagebox(
+                    title="Campo obligatorio",
+                    message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
+                    icon="warning"
+                )
+                return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: OT={ot_id}, Red={red_id}, Tipo={tipo_id}, Cod={cod_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, Municipio={municipio_id}")
+            print(f"  Título: {titulo}")
             print(f"  Estado: {estado}")
-            print(f"  Descripción: {descripcion[:50] if descripcion else 'None'}")
-            print(f"  Observaciones: {observaciones[:50] if observaciones else 'None'}")
+            print(f"  Fechas: fin={fecha_fin}, prevista={fecha_prevista}")
+            print(f"  Trabajadores: {trabajadores}")
+            print(f"  Localización: {localizacion}")
+            print(f"  GPS: {latitud}, {longitud}")
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                ot_id, red_id, tipo_id, cod_id, descripcion, estado, observaciones
+                red_id, tipo_id, cod_id,
+                descripcion=descripcion,
+                estado=estado,
+                observaciones=observaciones,
+                municipio_id=municipio_id,
+                titulo=titulo,
+                fecha_fin=fecha_fin,
+                fecha_prevista_fin=fecha_prevista,
+                trabajadores=trabajadores,
+                localizacion=localizacion,
+                latitud=latitud,
+                longitud=longitud
             )
 
             print(f"DEBUG - Resultado: {result}")
 
             if result == "ok":
+                # Resetear estado de cambios
+                self.has_changes = False
+                if hasattr(self, 'btn_save_parte'):
+                    self.btn_save_parte.configure(
+                        state="disabled",
+                        fg_color="gray",
+                        hover_color="gray"
+                    )
+
                 CTkMessagebox(
                     title="Éxito",
                     message="✅ Parte actualizado correctamente",
@@ -1008,7 +1216,8 @@ class AppPartsManager(customtkinter.CTk):
         from script.modulo_db import mod_parte_item
 
         try:
-            ot_id = int(self.ot_menu.get().split(" - ")[0])
+            # OT es código string ("OT-001"), los demás son IDs numéricos
+            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
@@ -1018,7 +1227,7 @@ class AppPartsManager(customtkinter.CTk):
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                ot_id, red_id, tipo_id, cod_id, descripcion, estado, observaciones
+                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
             )
 
             if result == "ok":
@@ -1056,7 +1265,7 @@ class AppPartsManager(customtkinter.CTk):
                 CTkMessagebox(title="Error", message="No se encontró el parte", icon="warning")
                 return
 
-            # parte_data: id, codigo, descripcion, estado, ot_id, red_id, tipo_trabajo_id,
+            # parte_data: id, codigo, descripcion, estado, codigo_ot, red_id, tipo_trabajo_id,
             #             cod_trabajo_id, municipio_id, observaciones, creado_en, actualizado_en
 
             # Obtener dimensiones
@@ -1207,7 +1416,8 @@ class AppPartsManager(customtkinter.CTk):
         from script.modulo_db import mod_parte_item
 
         try:
-            ot_id = int(self.ot_menu.get().split(" - ")[0])
+            # OT es código string ("OT-001"), los demás son IDs numéricos
+            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
@@ -1221,7 +1431,7 @@ class AppPartsManager(customtkinter.CTk):
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                ot_id, red_id, tipo_id, cod_id, descripcion, estado, observaciones
+                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
             )
 
             if result == "ok":
@@ -2190,188 +2400,6 @@ class AppPartsManager(customtkinter.CTk):
                 if result == "ok":
                     CTkMessagebox(title="Éxito", message="✅ Certificación eliminada", icon="check")
                     self._load_certificaciones_data()
-                else:
-                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-            except Exception as e:
-                CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
-
-    def main_informes(self):
-        """Pestaña Informes - Generación de informes personalizados"""
-        from interface.informes_interfaz import InformesFrame
-
-        self.informes_frame.grid_columnconfigure(0, weight=1)
-        self.informes_frame.grid_rowconfigure(0, weight=1)
-
-        # Crear el frame de informes completo
-        informes_app = InformesFrame(
-            self.informes_frame,
-            user=self.user,
-            password=self.password,
-            schema=self.schema
-        )
-        informes_app.grid(row=0, column=0, sticky="nsew")
-
-    def main_configuracion(self):
-        """Pestaña Configuración - Gestión de dimensiones OT, Red, Tipo, Código"""
-        from tkinter import ttk
-        from script.modulo_db import get_all_dim_ot, add_dim_ot, delete_dim_ot
-
-        self.configuracion_frame.grid_columnconfigure(0, weight=1)
-        self.configuracion_frame.grid_rowconfigure(1, weight=1)
-
-        # Título
-        title = customtkinter.CTkLabel(
-            self.configuracion_frame,
-            text="CONFIGURACIÓN DE CÓDIGOS OT",
-            font=customtkinter.CTkFont(size=20, weight="bold")
-        )
-        title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
-
-        # Frame para botones
-        btn_frame = customtkinter.CTkFrame(self.configuracion_frame, fg_color="transparent")
-        btn_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew")
-
-        btn_add = customtkinter.CTkButton(
-            btn_frame, text="➕ Añadir Código OT",
-            command=self._add_ot_config,
-            fg_color="green", hover_color="#006400", width=150
-        )
-        btn_add.pack(side="left", padx=(0, 10))
-
-        btn_delete = customtkinter.CTkButton(
-            btn_frame, text="🗑️ Eliminar",
-            command=self._delete_ot_config,
-            fg_color="red", hover_color="#8B0000", width=120
-        )
-        btn_delete.pack(side="left", padx=(0, 10))
-
-        btn_refresh = customtkinter.CTkButton(
-            btn_frame, text="🔄", width=40,
-            command=self._reload_ot_config
-        )
-        btn_refresh.pack(side="left")
-
-        # TreeView para mostrar códigos OT
-        tree_container = customtkinter.CTkFrame(self.configuracion_frame)
-        tree_container.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew")
-        self.configuracion_frame.grid_rowconfigure(2, weight=1)
-
-        columns = ("ID", "Código OT", "Descripción")
-        self.tree_ot_config = ttk.Treeview(tree_container, columns=columns, show="headings", height=20)
-
-        # Definir encabezados
-        self.tree_ot_config.heading("ID", text="ID")
-        self.tree_ot_config.heading("Código OT", text="Código OT")
-        self.tree_ot_config.heading("Descripción", text="Descripción")
-
-        # Definir anchos
-        self.tree_ot_config.column("ID", width=80, anchor="center")
-        self.tree_ot_config.column("Código OT", width=200, anchor="w")
-        self.tree_ot_config.column("Descripción", width=400, anchor="w")
-
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(tree_container, orient="vertical", command=self.tree_ot_config.yview)
-        self.tree_ot_config.configure(yscrollcommand=scrollbar.set)
-
-        self.tree_ot_config.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Cargar datos
-        self._reload_ot_config()
-
-    def _reload_ot_config(self):
-        """Recarga la lista de códigos OT"""
-        from script.modulo_db import get_all_dim_ot
-
-        # Limpiar TreeView
-        for item in self.tree_ot_config.get_children():
-            self.tree_ot_config.delete(item)
-
-        # Cargar datos
-        try:
-            rows = get_all_dim_ot(self.user, self.password, self.schema)
-            for row in rows:
-                if len(row) >= 3:
-                    self.tree_ot_config.insert("", "end", values=(row[0], row[1], row[2]))
-                else:
-                    self.tree_ot_config.insert("", "end", values=(row[0], row[1], ""))
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"Error cargando códigos OT:\n{e}", icon="cancel")
-
-    def _add_ot_config(self):
-        """Abre ventana para añadir nuevo código OT"""
-        from script.modulo_db import add_dim_ot
-
-        win = customtkinter.CTkToplevel(self)
-        win.title("Añadir Código OT")
-        win.geometry("500x250")
-        win.lift()
-        win.grab_set()
-        win.focus()
-
-        frame = customtkinter.CTkFrame(win)
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Código OT
-        customtkinter.CTkLabel(frame, text="Código OT:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=10, pady=10, sticky="e")
-        codigo_entry = customtkinter.CTkEntry(frame, width=300)
-        codigo_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-
-        # Descripción
-        customtkinter.CTkLabel(frame, text="Descripción:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=10, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(frame, width=300)
-        desc_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-
-        def guardar():
-            codigo = codigo_entry.get().strip()
-            desc = desc_entry.get().strip()
-
-            if not codigo:
-                CTkMessagebox(title="Error", message="El código OT es obligatorio", icon="cancel")
-                return
-
-            result = add_dim_ot(self.user, self.password, self.schema, codigo, desc or codigo)
-            if result == "ok":
-                CTkMessagebox(title="Éxito", message=f"Código OT '{codigo}' añadido correctamente", icon="check")
-                win.destroy()
-                self._reload_ot_config()
-            else:
-                CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
-
-        btn_save = customtkinter.CTkButton(frame, text="Guardar", command=guardar,
-                                           fg_color="green", hover_color="#006400")
-        btn_save.grid(row=2, column=0, columnspan=2, padx=20, pady=20, sticky="ew")
-
-    def _delete_ot_config(self):
-        """Elimina un código OT"""
-        from script.modulo_db import delete_dim_ot
-
-        selected = self.tree_ot_config.selection()
-        if not selected:
-            CTkMessagebox(title="Aviso", message="Seleccione un código OT para eliminar", icon="info")
-            return
-
-        item = self.tree_ot_config.item(selected[0])
-        values = item['values']
-        ot_id = values[0]
-        codigo = values[1]
-
-        msg = CTkMessagebox(
-            title="Confirmar",
-            message=f"¿Eliminar código OT '{codigo}'?\n\nEsta acción no se puede deshacer.",
-            icon="warning",
-            option_1="Cancelar",
-            option_2="Eliminar"
-        )
-
-        if msg.get() == "Eliminar":
-            try:
-                result = delete_dim_ot(self.user, self.password, self.schema, ot_id)
-                if result == "ok":
-                    CTkMessagebox(title="Éxito", message=f"Código OT '{codigo}' eliminado", icon="check")
-                    self._reload_ot_config()
                 else:
                     CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
             except Exception as e:
