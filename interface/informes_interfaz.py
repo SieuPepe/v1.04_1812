@@ -1103,9 +1103,15 @@ class InformesFrame(customtkinter.CTkFrame):
             if datos:
                 self._show_results_window(columnas, datos)
             else:
+                # Mensaje más claro dependiendo de si hay filtros o no
+                if filtros_aplicados:
+                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
+                else:
+                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
+
                 CTkMessagebox(
-                    title="Resultado",
-                    message="No se encontraron datos con los filtros aplicados.",
+                    title="Sin Resultados",
+                    message=mensaje,
                     icon="info"
                 )
 
@@ -1286,9 +1292,15 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if not datos:
+                # Mensaje más claro dependiendo de si hay filtros o no
+                if filtros_aplicados:
+                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
+                else:
+                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
+
                 CTkMessagebox(
-                    title="Resultado",
-                    message="No se encontraron datos con los filtros aplicados.",
+                    title="Sin Resultados",
+                    message=mensaje,
                     icon="info"
                 )
                 return
@@ -1503,9 +1515,15 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if not datos:
+                # Mensaje más claro dependiendo de si hay filtros o no
+                if filtros_aplicados:
+                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
+                else:
+                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
+
                 CTkMessagebox(
-                    title="Resultado",
-                    message="No se encontraron datos con los filtros aplicados.",
+                    title="Sin Resultados",
+                    message=mensaje,
                     icon="info"
                 )
                 return
@@ -1726,9 +1744,15 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if not datos:
+                # Mensaje más claro dependiendo de si hay filtros o no
+                if filtros_aplicados:
+                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
+                else:
+                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
+
                 CTkMessagebox(
-                    title="Resultado",
-                    message="No se encontraron datos con los filtros aplicados.",
+                    title="Sin Resultados",
+                    message=mensaje,
                     icon="info"
                 )
                 return
