@@ -967,9 +967,10 @@ class InformesFrame(customtkinter.CTkFrame):
         )
 
     def _preview_report(self):
-        """Previsualiza el informe"""
+        """Previsualiza el informe ejecutando el query y mostrando resultados"""
         from CTkMessagebox import CTkMessagebox
 
+        # Validaciones
         if not self.informe_seleccionado:
             CTkMessagebox(
                 title="Aviso",
@@ -978,12 +979,171 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
-        CTkMessagebox(
-            title="Previsualización",
-            message=f"Vista previa del informe:\n{self.informe_seleccionado}\n\n"
-                    "Funcionalidad en desarrollo.",
-            icon="info"
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            # Obtener valor según tipo de widget
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        # TODO: Implementar cuando tengamos el sistema de clasificaciones funcional
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para mostrar en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe
+        print(f"\n{'='*70}")
+        print(f"EJECUTANDO INFORME: {self.informe_seleccionado}")
+        print(f"Filtros aplicados: {len(filtros_aplicados)}")
+        print(f"Campos seleccionados: {len(campos_seleccionados)}")
+        print(f"{'='*70}\n")
+
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            # Mostrar resultados
+            if datos:
+                self._show_results_window(columnas, datos)
+            else:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+
+    def _show_results_window(self, columnas, datos):
+        """Muestra una ventana con los resultados del informe"""
+        # Crear ventana toplevel
+        results_window = customtkinter.CTkToplevel(self)
+        results_window.title(f"Vista Previa: {self.informe_seleccionado}")
+        results_window.geometry("1200x600")
+
+        # Frame principal
+        main_frame = customtkinter.CTkFrame(results_window)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(1, weight=1)
+
+        # Título
+        title_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"📊 {self.informe_seleccionado}",
+            font=customtkinter.CTkFont(size=16, weight="bold")
         )
+        title_label.grid(row=0, column=0, pady=(5, 10), sticky="w", padx=10)
+
+        # Info
+        info_label = customtkinter.CTkLabel(
+            main_frame,
+            text=f"{len(datos)} registros encontrados",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray"
+        )
+        info_label.grid(row=0, column=1, pady=(5, 10), sticky="e", padx=10)
+
+        # Frame para TreeView
+        tree_frame = customtkinter.CTkFrame(main_frame)
+        tree_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=(0, 10))
+
+        # Scrollbars
+        vsb = customtkinter.CTkScrollbar(tree_frame, orientation="vertical")
+        vsb.pack(side="right", fill="y")
+
+        hsb = customtkinter.CTkScrollbar(tree_frame, orientation="horizontal")
+        hsb.pack(side="bottom", fill="x")
+
+        # TreeView
+        tree = ttk.Treeview(
+            tree_frame,
+            columns=columnas,
+            show="headings",
+            yscrollcommand=vsb.set,
+            xscrollcommand=hsb.set
+        )
+        tree.pack(side="left", fill="both", expand=True)
+
+        vsb.configure(command=tree.yview)
+        hsb.configure(command=tree.xview)
+
+        # Configurar columnas
+        for col in columnas:
+            tree.heading(col, text=col)
+            tree.column(col, width=150, anchor="w")
+
+        # Insertar datos
+        for fila in datos:
+            tree.insert("", "end", values=fila)
+
+        # Botón cerrar
+        close_btn = customtkinter.CTkButton(
+            main_frame,
+            text="Cerrar",
+            width=100,
+            command=results_window.destroy
+        )
+        close_btn.grid(row=2, column=0, columnspan=2, pady=(0, 5))
+
+        # Centrar ventana
+        results_window.update_idletasks()
+        results_window.lift()
+        results_window.focus()
 
     def _export_word(self):
         """Exporta a Word"""
