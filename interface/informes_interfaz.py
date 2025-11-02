@@ -85,7 +85,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
     def _create_left_panel(self):
         """Crea el panel izquierdo con el árbol de informes"""
-        left_frame = customtkinter.CTkFrame(self, width=280)
+        left_frame = customtkinter.CTkFrame(self, width=300)  # Aumentado de 280 a 300
         left_frame.grid(row=1, column=0, sticky="nsew", padx=(15, 8), pady=5)
         left_frame.grid_propagate(False)
         left_frame.grid_rowconfigure(1, weight=1)
@@ -106,29 +106,33 @@ class InformesFrame(customtkinter.CTkFrame):
         self.tree_scroll = customtkinter.CTkScrollbar(tree_frame)
         self.tree_scroll.pack(side="right", fill="y")
 
-        self.tree = ttk.Treeview(
-            tree_frame,
-            yscrollcommand=self.tree_scroll.set,
-            show="tree"
-        )
-        self.tree.pack(side="left", fill="both", expand=True)
-        self.tree_scroll.configure(command=self.tree.yview)
-
-        # Estilo del TreeView
+        # Estilo ÚNICO para el TreeView de Informes (antes de crear el widget)
         style = ttk.Style()
         style.theme_use('clam')
-        style.configure("Treeview",
+
+        # Crear estilo personalizado "Informes.Treeview"
+        style.configure("Informes.Treeview",
                         background="#2a2d2e",
                         foreground="white",
                         fieldbackground="#2a2d2e",
                         borderwidth=0,
-                        rowheight=25,
-                        font=('Segoe UI', 12))
-        style.configure("Treeview.Heading",
+                        rowheight=28,  # Altura de fila para mejor legibilidad
+                        font=('Segoe UI', 13))  # Fuente más grande para Informes
+        style.configure("Informes.Treeview.Heading",
                         background="#1f538d",
                         foreground="white",
-                        font=('Segoe UI', 12, 'bold'))
-        style.map('Treeview', background=[('selected', '#1f538d')])
+                        font=('Segoe UI', 13, 'bold'))
+        style.map('Informes.Treeview', background=[('selected', '#1f538d')])
+
+        # Crear TreeView con el estilo personalizado
+        self.tree = ttk.Treeview(
+            tree_frame,
+            yscrollcommand=self.tree_scroll.set,
+            show="tree",
+            style="Informes.Treeview"  # Aplicar estilo único
+        )
+        self.tree.pack(side="left", fill="both", expand=True)
+        self.tree_scroll.configure(command=self.tree.yview)
 
         # Poblar el árbol
         self._populate_tree()
