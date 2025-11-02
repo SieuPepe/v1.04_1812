@@ -1198,8 +1198,220 @@ class InformesFrame(customtkinter.CTkFrame):
         results_window.focus()
 
     def _export_word(self):
-        """Exporta a Word"""
-        self._export_message("Word (.docx)")
+        """Exporta el informe a formato Word (.docx)"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.docx"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".docx",
+            filetypes=[("Word files", "*.docx"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo Word
+        try:
+            from docx import Document
+            from docx.shared import Inches, Pt, RGBColor
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+            doc = Document()
+
+            # Título del informe
+            titulo = doc.add_heading(f"📊 {self.informe_seleccionado}", level=0)
+            titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            titulo_run = titulo.runs[0]
+            titulo_run.font.color.rgb = RGBColor(31, 78, 120)  # Azul oscuro
+
+            # Información de fecha y filtros
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
+            if clasificaciones_aplicadas:
+                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+
+            info_para = doc.add_paragraph(info_text)
+            info_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            info_run = info_para.runs[0]
+            info_run.font.size = Pt(10)
+            info_run.font.italic = True
+            info_run.font.color.rgb = RGBColor(102, 102, 102)  # Gris
+
+            # Espacio
+            doc.add_paragraph()
+
+            # Tabla con datos
+            tabla = doc.add_table(rows=1, cols=len(columnas))
+            tabla.style = 'Light Grid Accent 1'
+
+            # Encabezados
+            header_cells = tabla.rows[0].cells
+            for idx, columna in enumerate(columnas):
+                header_cells[idx].text = str(columna)
+                # Formatear encabezado
+                for paragraph in header_cells[idx].paragraphs:
+                    for run in paragraph.runs:
+                        run.font.bold = True
+                        run.font.size = Pt(11)
+                        run.font.color.rgb = RGBColor(255, 255, 255)
+                # Color de fondo se maneja con el estilo de tabla
+
+            # Datos
+            for fila in datos:
+                row_cells = tabla.add_row().cells
+                for idx, valor in enumerate(fila):
+                    row_cells[idx].text = str(valor) if valor is not None else ""
+                    # Formatear dato
+                    for paragraph in row_cells[idx].paragraphs:
+                        for run in paragraph.runs:
+                            run.font.size = Pt(10)
+
+            # Espacio
+            doc.add_paragraph()
+
+            # Resumen
+            resumen_para = doc.add_paragraph(f"Total de registros: {len(datos)}")
+            resumen_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            resumen_run = resumen_para.runs[0]
+            resumen_run.font.bold = True
+            resumen_run.font.size = Pt(11)
+
+            # Guardar archivo
+            doc.save(archivo)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'python-docx' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install python-docx",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a Word:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a Word:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _export_excel(self):
         """Exporta el informe a formato Excel (.xlsx)"""
