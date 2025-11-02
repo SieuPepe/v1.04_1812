@@ -6,9 +6,11 @@ Generación de informes personalizados con filtros multicriterio
 
 import customtkinter
 from tkinter import ttk, filedialog
+from tkcalendar import DateEntry
 from PIL import Image
 import os
 import sys
+import datetime
 
 # Agregar el directorio padre al path para imports
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -819,25 +821,55 @@ class InformesFrame(customtkinter.CTkFrame):
         range_frame = customtkinter.CTkFrame(filtro_obj['container'], fg_color="transparent")
         range_frame.grid(row=0, column=7, sticky="w", padx=(0, 10))
 
-        # Campo 1: Valor mínimo
-        widget1 = customtkinter.CTkEntry(
-            range_frame,
-            width=70,
-            placeholder_text="Min..."
-        )
-        widget1.grid(row=0, column=0, padx=(0, 5))
+        # Detectar si es un campo de fecha
+        tipo_actual = filtro_obj.get('tipo_actual')
 
-        # Label "y"
-        label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
-        label_y.grid(row=0, column=1, padx=(0, 5))
+        if tipo_actual == 'fecha':
+            # Para fechas, usar DateEntry
+            widget1 = DateEntry(
+                range_frame,
+                width=11,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
+            )
+            widget1.grid(row=0, column=0, padx=(0, 5))
 
-        # Campo 2: Valor máximo
-        widget2 = customtkinter.CTkEntry(
-            range_frame,
-            width=70,
-            placeholder_text="Max..."
-        )
-        widget2.grid(row=0, column=2)
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = DateEntry(
+                range_frame,
+                width=11,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
+            )
+            widget2.grid(row=0, column=2)
+        else:
+            # Para numéricos, usar Entry normal
+            widget1 = customtkinter.CTkEntry(
+                range_frame,
+                width=70,
+                placeholder_text="Min..."
+            )
+            widget1.grid(row=0, column=0, padx=(0, 5))
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = customtkinter.CTkEntry(
+                range_frame,
+                width=70,
+                placeholder_text="Max..."
+            )
+            widget2.grid(row=0, column=2)
 
         # Guardar ambos widgets
         filtro_obj['valor_widget'] = widget1
@@ -881,11 +913,15 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
         elif tipo == 'fecha':
-            # Entry de fecha (formato YYYY-MM-DD)
-            widget = customtkinter.CTkEntry(
+            # DateEntry - selector de calendario
+            widget = DateEntry(
                 filtro_obj['container'],
-                width=150,
-                placeholder_text="YYYY-MM-DD"
+                width=18,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
             )
 
         else:
@@ -1091,8 +1127,16 @@ class InformesFrame(customtkinter.CTkFrame):
                 widget2 = filtro_obj.get('valor_widget2')
 
                 if widget1 and widget2:
-                    valor1 = widget1.get() if isinstance(widget1, customtkinter.CTkEntry) else ""
-                    valor2 = widget2.get() if isinstance(widget2, customtkinter.CTkEntry) else ""
+                    # Obtener valor según tipo de widget
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
 
                     if not valor1 or not valor2:
                         continue
@@ -1105,7 +1149,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 # Caso normal: un solo valor
                 if isinstance(valor_widget, customtkinter.CTkComboBox):
                     valor = valor_widget.get()
-                elif isinstance(valor_widget, customtkinter.CTkEntry):
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
                 else:
                     valor = ""
@@ -1552,8 +1596,16 @@ class InformesFrame(customtkinter.CTkFrame):
                 widget2 = filtro_obj.get('valor_widget2')
 
                 if widget1 and widget2:
-                    valor1 = widget1.get() if isinstance(widget1, customtkinter.CTkEntry) else ""
-                    valor2 = widget2.get() if isinstance(widget2, customtkinter.CTkEntry) else ""
+                    # Obtener valor según tipo de widget
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
 
                     if not valor1 or not valor2:
                         continue
@@ -1566,7 +1618,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 # Caso normal: un solo valor
                 if isinstance(valor_widget, customtkinter.CTkComboBox):
                     valor = valor_widget.get()
-                elif isinstance(valor_widget, customtkinter.CTkEntry):
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
                 else:
                     valor = ""
