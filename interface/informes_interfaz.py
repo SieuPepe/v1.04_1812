@@ -1202,8 +1202,228 @@ class InformesFrame(customtkinter.CTkFrame):
         self._export_message("Word (.docx)")
 
     def _export_excel(self):
-        """Exporta a Excel"""
-        self._export_message("Excel (.xlsx)")
+        """Exporta el informe a formato Excel (.xlsx)"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            # Obtener valor según tipo de widget
+            if isinstance(valor_widget, customtkinter.CTkComboBox):
+                valor = valor_widget.get()
+            elif isinstance(valor_widget, customtkinter.CTkEntry):
+                valor = valor_widget.get()
+            else:
+                valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor
+            })
+
+        # Recopilar clasificaciones aplicadas
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Ejecutar informe para obtener datos
+        try:
+            columnas, datos = ejecutar_informe(
+                self.user,
+                self.password,
+                self.schema,
+                self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados
+            )
+
+            if not datos:
+                CTkMessagebox(
+                    title="Resultado",
+                    message="No se encontraron datos con los filtros aplicados.",
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
+            )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.xlsx"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo Excel
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = self.informe_seleccionado[:31]  # Límite de 31 caracteres para nombre de hoja
+
+            # Título del informe (fila 1)
+            ws.merge_cells('A1:' + chr(64 + len(columnas)) + '1')
+            titulo_cell = ws['A1']
+            titulo_cell.value = f"📊 {self.informe_seleccionado}"
+            titulo_cell.font = Font(size=16, bold=True, color="FFFFFF")
+            titulo_cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+            titulo_cell.alignment = Alignment(horizontal="center", vertical="center")
+            ws.row_dimensions[1].height = 30
+
+            # Información de fecha y filtros (fila 2)
+            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            if filtros_aplicados:
+                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
+            ws.merge_cells('A2:' + chr(64 + len(columnas)) + '2')
+            info_cell = ws['A2']
+            info_cell.value = info_text
+            info_cell.font = Font(size=10, italic=True, color="666666")
+            info_cell.alignment = Alignment(horizontal="center")
+            ws.row_dimensions[2].height = 20
+
+            # Encabezados de columnas (fila 4)
+            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", size=12)
+            header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            for col_idx, columna in enumerate(columnas, start=1):
+                cell = ws.cell(row=4, column=col_idx)
+                cell.value = columna
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = border
+                # Ajustar ancho de columna
+                ws.column_dimensions[chr(64 + col_idx)].width = max(15, len(str(columna)) + 2)
+
+            ws.row_dimensions[4].height = 25
+
+            # Datos (desde fila 5)
+            data_alignment = Alignment(horizontal="left", vertical="center")
+            for row_idx, fila in enumerate(datos, start=5):
+                for col_idx, valor in enumerate(fila, start=1):
+                    cell = ws.cell(row=row_idx, column=col_idx)
+                    cell.value = valor
+                    cell.alignment = data_alignment
+                    cell.border = border
+
+                    # Alternar color de fila
+                    if row_idx % 2 == 0:
+                        cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
+            # Resumen al final
+            ultima_fila = 5 + len(datos)
+            ws.merge_cells(f'A{ultima_fila}:' + chr(64 + len(columnas)) + str(ultima_fila))
+            resumen_cell = ws[f'A{ultima_fila}']
+            resumen_cell.value = f"Total de registros: {len(datos)}"
+            resumen_cell.font = Font(bold=True, size=11)
+            resumen_cell.alignment = Alignment(horizontal="right")
+            resumen_cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+
+            # Guardar archivo
+            wb.save(archivo)
+
+            CTkMessagebox(
+                title="Exportación Exitosa",
+                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                        f"Registros exportados: {len(datos)}",
+                icon="check"
+            )
+
+        except ImportError:
+            CTkMessagebox(
+                title="Error",
+                message="La librería 'openpyxl' no está instalada.\n\n"
+                        "Por favor, instálala con:\n"
+                        "pip install openpyxl",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a Excel:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a Excel:\n\n{str(e)}",
+                icon="cancel"
+            )
 
     def _export_pdf(self):
         """Exporta a PDF"""
