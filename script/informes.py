@@ -10,26 +10,34 @@ from script.informes_config import INFORMES_DEFINICIONES
 
 def get_dimension_values(user, password, schema, tabla_dimension):
     """
-    Obtiene todos los valores de una tabla de dimensión
+    Obtiene todos los valores de una tabla de dimensión.
+    Detecta automáticamente si usa 'descripcion' o 'nombre' como columna de texto.
 
     Args:
         user: Usuario de BD
         password: Contraseña de BD
         schema: Nombre del schema/proyecto
-        tabla_dimension: Nombre de la tabla de dimensión (ej: 'dim_ot', 'dim_red')
+        tabla_dimension: Nombre de la tabla de dimensión (ej: 'dim_red', 'dim_provincias')
 
     Returns:
-        Lista de tuplas (id, descripcion)
+        Lista de tuplas (id, texto)
     """
     try:
         with get_project_connection(user, password, schema) as conn:
             cursor = conn.cursor()
 
+            # Detectar qué columna usar: 'descripcion' o 'nombre'
+            # Tablas geográficas usan 'nombre', otras usan 'descripcion'
+            if tabla_dimension in ['dim_provincias', 'dim_comarcas', 'dim_municipios']:
+                campo_texto = 'nombre'
+            else:
+                campo_texto = 'descripcion'
+
             # Query para obtener valores
             query = f"""
-                SELECT id, descripcion
+                SELECT id, {campo_texto}
                 FROM {schema}.{tabla_dimension}
-                ORDER BY descripcion
+                ORDER BY {campo_texto}
             """
 
             cursor.execute(query)

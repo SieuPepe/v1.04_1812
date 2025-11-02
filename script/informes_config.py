@@ -76,21 +76,13 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "estado",
                 "grupo": "Información Básica"
             },
-            "ot": {
-                "nombre": "OT",
-                "tipo": "dimension",
-                "columna_bd": "ot_id",
-                "tabla_dimension": "dim_ot",
-                "campo_nombre": "descripcion",
-                "grupo": "Dimensiones"
-            },
             "red": {
                 "nombre": "Red",
                 "tipo": "dimension",
                 "columna_bd": "red_id",
                 "tabla_dimension": "dim_red",
                 "campo_nombre": "descripcion",
-                "grupo": "Dimensiones"
+                "grupo": "Dimensiones Técnicas"
             },
             "tipo_trabajo": {
                 "nombre": "Tipo de Trabajo",
@@ -98,15 +90,39 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "tipo_trabajo_id",
                 "tabla_dimension": "dim_tipo_trabajo",
                 "campo_nombre": "descripcion",
-                "grupo": "Dimensiones"
+                "grupo": "Dimensiones Técnicas"
             },
             "codigo_trabajo": {
                 "nombre": "Código de Trabajo",
                 "tipo": "dimension",
                 "columna_bd": "cod_trabajo_id",
-                "tabla_dimension": "dim_cod_trabajo",
+                "tabla_dimension": "dim_codigo_trabajo",
                 "campo_nombre": "descripcion",
-                "grupo": "Dimensiones"
+                "grupo": "Dimensiones Técnicas"
+            },
+            "provincia": {
+                "nombre": "Provincia",
+                "tipo": "dimension",
+                "columna_bd": "provincia_id",
+                "tabla_dimension": "dim_provincias",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
             },
             "presupuesto": {
                 "nombre": "Presupuesto",
@@ -151,17 +167,35 @@ INFORMES_DEFINICIONES = {
                 "operadores": ["Igual a", "Diferente de"],
                 "valores": ["Pendiente", "En curso", "Finalizado"]
             },
-            "ot": {
-                "campo": "ot",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_ot"
-            },
             "red": {
                 "campo": "red",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_red"
+            },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "provincia": {
+                "campo": "provincia",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_provincias"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
+            "municipio": {
+                "campo": "municipio",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_municipios"
             },
             "presupuesto": {
                 "campo": "presupuesto",
@@ -178,9 +212,11 @@ INFORMES_DEFINICIONES = {
         # Clasificaciones disponibles
         "clasificaciones": [
             "estado",
-            "ot",
             "red",
             "tipo_trabajo",
+            "provincia",
+            "comarca",
+            "municipio",
             "fecha_inicio"
         ],
 
@@ -189,8 +225,9 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "descripcion",
             "estado",
-            "ot",
             "red",
+            "tipo_trabajo",
+            "provincia",
             "presupuesto",
             "certificado",
             "pendiente"

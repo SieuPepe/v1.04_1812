@@ -3,6 +3,11 @@
 """
 Script para generar datos de prueba en las tablas del sistema de informes.
 Crea tablas de dimensión y registros en tbl_partes con datos aleatorios.
+
+ESTRUCTURA CORRECTA:
+- tbl_partes.codigo: Código único generado automáticamente (no FK)
+- Dimensiones: red, tipo_trabajo, codigo_trabajo, comarca, municipio, provincia
+- NO existe dim_ot (cada parte tiene código único)
 """
 
 import random
@@ -14,22 +19,12 @@ def crear_tablas_dimension(cursor, schema):
     """Crea las tablas de dimensión si no existen"""
     print("Creando tablas de dimensión...")
 
-    # Tabla dim_ot
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS {schema}.dim_ot (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            descripcion VARCHAR(255) NOT NULL,
-            codigo VARCHAR(50),
-            activo TINYINT DEFAULT 1
-        )
-    """)
-
     # Tabla dim_red
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {schema}.dim_red (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            descripcion VARCHAR(255) NOT NULL,
             codigo VARCHAR(50),
+            descripcion VARCHAR(255) NOT NULL,
             activo TINYINT DEFAULT 1
         )
     """)
@@ -38,9 +33,55 @@ def crear_tablas_dimension(cursor, schema):
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {schema}.dim_tipo_trabajo (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            descripcion VARCHAR(255) NOT NULL,
             codigo VARCHAR(50),
+            descripcion VARCHAR(255) NOT NULL,
             activo TINYINT DEFAULT 1
+        )
+    """)
+
+    # Tabla dim_codigo_trabajo (dim_cod_trabajo)
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {schema}.dim_codigo_trabajo (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(50),
+            descripcion VARCHAR(255) NOT NULL,
+            activo TINYINT DEFAULT 1
+        )
+    """)
+
+    # Tabla dim_provincias
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {schema}.dim_provincias (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(10),
+            nombre VARCHAR(100) NOT NULL,
+            activo TINYINT DEFAULT 1
+        )
+    """)
+
+    # Tabla dim_comarcas
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {schema}.dim_comarcas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(20),
+            nombre VARCHAR(100) NOT NULL,
+            provincia_id INT,
+            activo TINYINT DEFAULT 1,
+            FOREIGN KEY (provincia_id) REFERENCES {schema}.dim_provincias(id)
+        )
+    """)
+
+    # Tabla dim_municipios
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {schema}.dim_municipios (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(20),
+            nombre VARCHAR(100) NOT NULL,
+            comarca_id INT,
+            provincia_id INT,
+            activo TINYINT DEFAULT 1,
+            FOREIGN KEY (comarca_id) REFERENCES {schema}.dim_comarcas(id),
+            FOREIGN KEY (provincia_id) REFERENCES {schema}.dim_provincias(id)
         )
     """)
 
@@ -54,53 +95,133 @@ def crear_tabla_partes(cursor, schema):
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {schema}.tbl_partes (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            codigo VARCHAR(50) NOT NULL,
+            codigo VARCHAR(50) NOT NULL UNIQUE,
             descripcion TEXT,
             estado VARCHAR(50),
-            ot_id INT,
             red_id INT,
             tipo_trabajo_id INT,
-            codigo_trabajo VARCHAR(50),
+            cod_trabajo_id INT,
+            comarca_id INT,
+            municipio_id INT,
+            provincia_id INT,
             presupuesto DECIMAL(10,2),
             certificado DECIMAL(10,2),
             fecha_inicio DATE,
             fecha_fin DATE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (ot_id) REFERENCES {schema}.dim_ot(id),
             FOREIGN KEY (red_id) REFERENCES {schema}.dim_red(id),
-            FOREIGN KEY (tipo_trabajo_id) REFERENCES {schema}.dim_tipo_trabajo(id)
+            FOREIGN KEY (tipo_trabajo_id) REFERENCES {schema}.dim_tipo_trabajo(id),
+            FOREIGN KEY (cod_trabajo_id) REFERENCES {schema}.dim_codigo_trabajo(id),
+            FOREIGN KEY (comarca_id) REFERENCES {schema}.dim_comarcas(id),
+            FOREIGN KEY (municipio_id) REFERENCES {schema}.dim_municipios(id),
+            FOREIGN KEY (provincia_id) REFERENCES {schema}.dim_provincias(id)
         )
     """)
 
     print("✓ Tabla tbl_partes creada")
 
 
-def poblar_dim_ot(cursor, schema):
-    """Pobla la tabla dim_ot con datos de prueba"""
-    print("Poblando dim_ot...")
+def poblar_dim_provincias(cursor, schema):
+    """Pobla la tabla dim_provincias con provincias españolas de ejemplo"""
+    print("Poblando dim_provincias...")
 
-    ots = [
-        ("OT-2024-001", "Renovación Red Eléctrica Zona Norte"),
-        ("OT-2024-002", "Mantenimiento Subestación Central"),
-        ("OT-2024-003", "Expansión Red Distribución Sur"),
-        ("OT-2024-004", "Modernización Sistema Control"),
-        ("OT-2024-005", "Reparación Líneas AT Sector Este"),
-        ("OT-2024-006", "Instalación Transformadores Nuevos"),
-        ("OT-2024-007", "Actualización Equipos Medición"),
-        ("OT-2024-008", "Refuerzo Red Media Tensión"),
-        ("OT-2024-009", "Conexiones Nuevos Clientes Industriales"),
-        ("OT-2024-010", "Mejora Infraestructura Telecomunicaciones")
+    provincias = [
+        ("08", "Barcelona"),
+        ("17", "Girona"),
+        ("25", "Lleida"),
+        ("43", "Tarragona"),
+        ("28", "Madrid"),
+        ("46", "Valencia"),
+        ("41", "Sevilla"),
+        ("48", "Bizkaia"),
+        ("07", "Baleares"),
+        ("38", "Santa Cruz de Tenerife")
     ]
 
-    for codigo, descripcion in ots:
+    for codigo, nombre in provincias:
         cursor.execute(f"""
-            INSERT INTO {schema}.dim_ot (codigo, descripcion, activo)
+            INSERT INTO {schema}.dim_provincias (codigo, nombre, activo)
             VALUES (%s, %s, 1)
-            ON DUPLICATE KEY UPDATE descripcion = VALUES(descripcion)
-        """, (codigo, descripcion))
+            ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
+        """, (codigo, nombre))
 
-    print(f"✓ {len(ots)} OTs insertadas")
+    print(f"✓ {len(provincias)} provincias insertadas")
+
+
+def poblar_dim_comarcas(cursor, schema):
+    """Pobla la tabla dim_comarcas con comarcas de ejemplo"""
+    print("Poblando dim_comarcas...")
+
+    # Obtener IDs de provincias
+    cursor.execute(f"SELECT id, nombre FROM {schema}.dim_provincias")
+    provincias_map = {nombre: id for id, nombre in cursor.fetchall()}
+
+    comarcas = [
+        ("BARCELONES", "Barcelonés", "Barcelona"),
+        ("VALLES-OCC", "Vallès Occidental", "Barcelona"),
+        ("VALLES-OR", "Vallès Oriental", "Barcelona"),
+        ("BAIX-LLOB", "Baix Llobregat", "Barcelona"),
+        ("MARESME", "Maresme", "Barcelona"),
+        ("GARROTXA", "La Garrotxa", "Girona"),
+        ("SELVA", "La Selva", "Girona"),
+        ("ALT-EMPORDA", "Alt Empordà", "Girona"),
+        ("SEGARRA", "La Segarra", "Lleida"),
+        ("URGELL", "L'Urgell", "Lleida"),
+        ("BAIX-EBRE", "Baix Ebre", "Tarragona"),
+        ("TARRAGONÈS", "Tarragonès", "Tarragona")
+    ]
+
+    for codigo, nombre, provincia_nombre in comarcas:
+        provincia_id = provincias_map.get(provincia_nombre)
+        if provincia_id:
+            cursor.execute(f"""
+                INSERT INTO {schema}.dim_comarcas (codigo, nombre, provincia_id, activo)
+                VALUES (%s, %s, %s, 1)
+                ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
+            """, (codigo, nombre, provincia_id))
+
+    print(f"✓ {len(comarcas)} comarcas insertadas")
+
+
+def poblar_dim_municipios(cursor, schema):
+    """Pobla la tabla dim_municipios con municipios de ejemplo"""
+    print("Poblando dim_municipios...")
+
+    # Obtener IDs de comarcas y provincias
+    cursor.execute(f"SELECT id, nombre FROM {schema}.dim_comarcas")
+    comarcas_map = {nombre: id for id, nombre in cursor.fetchall()}
+
+    cursor.execute(f"SELECT id, nombre FROM {schema}.dim_provincias")
+    provincias_map = {nombre: id for id, nombre in cursor.fetchall()}
+
+    municipios = [
+        ("08019", "Barcelona", "Barcelonés", "Barcelona"),
+        ("08096", "Hospitalet de Llobregat", "Barcelonés", "Barcelona"),
+        ("08245", "Sabadell", "Vallès Occidental", "Barcelona"),
+        ("08279", "Terrassa", "Vallès Occidental", "Barcelona"),
+        ("08307", "Granollers", "Vallès Oriental", "Barcelona"),
+        ("08121", "Cornellà de Llobregat", "Baix Llobregat", "Barcelona"),
+        ("08194", "Sant Boi de Llobregat", "Baix Llobregat", "Barcelona"),
+        ("08169", "Mataró", "Maresme", "Barcelona"),
+        ("17007", "Banyoles", "La Garrotxa", "Girona"),
+        ("17079", "Girona", "La Selva", "Girona"),
+        ("25120", "Lleida", "La Segarra", "Lleida"),
+        ("43148", "Tarragona", "Tarragonès", "Tarragona"),
+        ("43123", "Reus", "Baix Ebre", "Tarragona")
+    ]
+
+    for codigo, nombre, comarca_nombre, provincia_nombre in municipios:
+        comarca_id = comarcas_map.get(comarca_nombre)
+        provincia_id = provincias_map.get(provincia_nombre)
+        if comarca_id and provincia_id:
+            cursor.execute(f"""
+                INSERT INTO {schema}.dim_municipios (codigo, nombre, comarca_id, provincia_id, activo)
+                VALUES (%s, %s, %s, %s, 1)
+                ON DUPLICATE KEY UPDATE nombre = VALUES(nombre)
+            """, (codigo, nombre, comarca_id, provincia_id))
+
+    print(f"✓ {len(municipios)} municipios insertados")
 
 
 def poblar_dim_red(cursor, schema):
@@ -157,19 +278,67 @@ def poblar_dim_tipo_trabajo(cursor, schema):
     print(f"✓ {len(tipos)} tipos de trabajo insertados")
 
 
+def poblar_dim_codigo_trabajo(cursor, schema):
+    """Pobla la tabla dim_codigo_trabajo con códigos de trabajo"""
+    print("Poblando dim_codigo_trabajo...")
+
+    codigos = [
+        ("CT-001", "Revisión General"),
+        ("CT-002", "Instalación de Equipos"),
+        ("CT-003", "Reparación de Averías"),
+        ("CT-004", "Calibración de Instrumentos"),
+        ("CT-005", "Cambio de Componentes"),
+        ("CT-006", "Inspección Periódica"),
+        ("CT-007", "Actualización de Software"),
+        ("CT-008", "Limpieza y Mantenimiento"),
+        ("CT-009", "Mediciones Eléctricas"),
+        ("CT-010", "Pruebas de Funcionamiento")
+    ]
+
+    for codigo, descripcion in codigos:
+        cursor.execute(f"""
+            INSERT INTO {schema}.dim_codigo_trabajo (codigo, descripcion, activo)
+            VALUES (%s, %s, 1)
+            ON DUPLICATE KEY UPDATE descripcion = VALUES(descripcion)
+        """, (codigo, descripcion))
+
+    print(f"✓ {len(codigos)} códigos de trabajo insertados")
+
+
+def generar_codigo_parte(tipo_codigo, correlativo):
+    """
+    Genera código único del parte según tipo de intervención y correlativo.
+    Ejemplo: MANT-PREV-2024-0001
+    """
+    año = datetime.now().year
+    return f"{tipo_codigo}-{año}-{correlativo:04d}"
+
+
 def poblar_tbl_partes(cursor, schema, num_partes=50):
     """Pobla la tabla tbl_partes con datos aleatorios"""
     print(f"Generando {num_partes} partes de prueba...")
 
     # Obtener IDs de las dimensiones
-    cursor.execute(f"SELECT id FROM {schema}.dim_ot")
-    ot_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(f"SELECT id, codigo FROM {schema}.dim_red")
+    red_data = cursor.fetchall()
+    red_ids = [row[0] for row in red_data]
 
-    cursor.execute(f"SELECT id FROM {schema}.dim_red")
-    red_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(f"SELECT id, codigo FROM {schema}.dim_tipo_trabajo")
+    tipo_data = cursor.fetchall()
+    tipo_ids = [row[0] for row in tipo_data]
+    tipo_codigos = {row[0]: row[1] for row in tipo_data}
 
-    cursor.execute(f"SELECT id FROM {schema}.dim_tipo_trabajo")
-    tipo_trabajo_ids = [row[0] for row in cursor.fetchall()]
+    cursor.execute(f"SELECT id FROM {schema}.dim_codigo_trabajo")
+    cod_trabajo_ids = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute(f"SELECT id FROM {schema}.dim_provincias")
+    provincia_ids = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute(f"SELECT id FROM {schema}.dim_comarcas")
+    comarca_ids = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute(f"SELECT id FROM {schema}.dim_municipios")
+    municipio_ids = [row[0] for row in cursor.fetchall()]
 
     estados = ["Pendiente", "En curso", "Finalizado"]
 
@@ -201,22 +370,27 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
 
     partes_insertados = 0
     for i in range(1, num_partes + 1):
-        codigo = f"PARTE-{2024}-{i:04d}"
+        # Generar código según tipo de trabajo
+        tipo_trabajo_id = random.choice(tipo_ids) if tipo_ids else None
+        tipo_codigo = tipo_codigos.get(tipo_trabajo_id, "PARTE")
+        codigo = generar_codigo_parte(tipo_codigo, i)
+
         descripcion = random.choice(descripciones_base) + f" - Zona {random.randint(1, 20)}"
         estado = random.choice(estados)
-        ot_id = random.choice(ot_ids) if ot_ids else None
         red_id = random.choice(red_ids) if red_ids else None
-        tipo_trabajo_id = random.choice(tipo_trabajo_ids) if tipo_trabajo_ids else None
-        codigo_trabajo = f"CT-{random.randint(1000, 9999)}"
+        cod_trabajo_id = random.choice(cod_trabajo_ids) if cod_trabajo_ids else None
+        provincia_id = random.choice(provincia_ids) if provincia_ids else None
+        comarca_id = random.choice(comarca_ids) if comarca_ids else None
+        municipio_id = random.choice(municipio_ids) if municipio_ids else None
 
         # Generar presupuesto entre 1000 y 50000
         presupuesto = round(random.uniform(1000, 50000), 2)
 
         # Certificado depende del estado
         if estado == "Finalizado":
-            certificado = round(presupuesto * random.uniform(0.85, 1.05), 2)  # 85% a 105% del presupuesto
+            certificado = round(presupuesto * random.uniform(0.85, 1.05), 2)
         elif estado == "En curso":
-            certificado = round(presupuesto * random.uniform(0.2, 0.7), 2)  # 20% a 70% del presupuesto
+            certificado = round(presupuesto * random.uniform(0.2, 0.7), 2)
         else:  # Pendiente
             certificado = 0.0
 
@@ -228,7 +402,6 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
             duracion = random.randint(5, 60)
             fecha_fin = fecha_inicio + timedelta(days=duracion)
         elif estado == "En curso":
-            # Algunos tienen fecha fin estimada, otros no
             if random.random() > 0.5:
                 duracion = random.randint(10, 90)
                 fecha_fin = fecha_inicio + timedelta(days=duracion)
@@ -240,11 +413,13 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
         try:
             cursor.execute(f"""
                 INSERT INTO {schema}.tbl_partes
-                (codigo, descripcion, estado, ot_id, red_id, tipo_trabajo_id,
-                 codigo_trabajo, presupuesto, certificado, fecha_inicio, fecha_fin)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (codigo, descripcion, estado, ot_id, red_id, tipo_trabajo_id,
-                  codigo_trabajo, presupuesto, certificado, fecha_inicio, fecha_fin))
+                (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id,
+                 comarca_id, municipio_id, provincia_id, presupuesto, certificado,
+                 fecha_inicio, fecha_fin)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id,
+                  comarca_id, municipio_id, provincia_id, presupuesto, certificado,
+                  fecha_inicio, fecha_fin))
             partes_insertados += 1
         except Exception as e:
             print(f"Error insertando parte {codigo}: {e}")
@@ -293,20 +468,35 @@ def generar_estadisticas(cursor, schema):
     print(f"  Certificado Total: €{row[2]:,.2f}")
     print(f"  Pendiente Total:   €{row[3]:,.2f}")
 
-    # Contar por OT
+    # Contar por Tipo de Trabajo
     cursor.execute(f"""
-        SELECT o.descripcion, COUNT(p.id) as cantidad
+        SELECT tt.descripcion, COUNT(p.id) as cantidad
         FROM {schema}.tbl_partes p
-        JOIN {schema}.dim_ot o ON p.ot_id = o.id
-        GROUP BY o.descripcion
+        JOIN {schema}.dim_tipo_trabajo tt ON p.tipo_trabajo_id = tt.id
+        GROUP BY tt.descripcion
         ORDER BY cantidad DESC
         LIMIT 5
     """)
 
-    print("\n🔧 Top 5 OTs con más partes:")
+    print("\n🔧 Top 5 Tipos de Trabajo con más partes:")
     print("-" * 70)
-    for idx, (ot_desc, cantidad) in enumerate(cursor.fetchall(), 1):
-        print(f"  {idx}. {ot_desc[:50]:50} → {cantidad} partes")
+    for idx, (tipo_desc, cantidad) in enumerate(cursor.fetchall(), 1):
+        print(f"  {idx}. {tipo_desc[:50]:50} → {cantidad} partes")
+
+    # Contar por Provincia
+    cursor.execute(f"""
+        SELECT pr.nombre, COUNT(p.id) as cantidad
+        FROM {schema}.tbl_partes p
+        LEFT JOIN {schema}.dim_provincias pr ON p.provincia_id = pr.id
+        GROUP BY pr.nombre
+        ORDER BY cantidad DESC
+        LIMIT 5
+    """)
+
+    print("\n🗺️  Top 5 Provincias con más partes:")
+    print("-" * 70)
+    for idx, (provincia, cantidad) in enumerate(cursor.fetchall(), 1):
+        print(f"  {idx}. {provincia if provincia else '(Sin provincia)':30} → {cantidad} partes")
 
     print("\n" + "="*70)
 
@@ -336,10 +526,18 @@ def main():
             crear_tabla_partes(cursor, schema)
             conn.commit()
 
-            # Poblar tablas de dimensión
-            poblar_dim_ot(cursor, schema)
+            # Poblar tablas de dimensión geográficas (primero porque tienen dependencias)
+            poblar_dim_provincias(cursor, schema)
+            conn.commit()
+            poblar_dim_comarcas(cursor, schema)
+            conn.commit()
+            poblar_dim_municipios(cursor, schema)
+            conn.commit()
+
+            # Poblar otras dimensiones
             poblar_dim_red(cursor, schema)
             poblar_dim_tipo_trabajo(cursor, schema)
+            poblar_dim_codigo_trabajo(cursor, schema)
             conn.commit()
 
             # Poblar tabla de partes
@@ -351,7 +549,8 @@ def main():
 
             print("\n✅ ¡Datos de prueba generados exitosamente!\n")
             print("Ahora puedes probar el sistema de informes con:")
-            print("  - Filtros por Estado, OT, Red, Presupuesto, Fecha")
+            print("  - Filtros por Estado, Red, Tipo Trabajo, Presupuesto, Fecha")
+            print("  - Filtros geográficos por Provincia, Comarca, Municipio")
             print("  - Clasificaciones por cualquier campo")
             print("  - Exportaciones a Excel, Word y PDF")
             print("\n" + "="*70 + "\n")
