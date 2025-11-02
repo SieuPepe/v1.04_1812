@@ -736,15 +736,15 @@ def get_provincias(user: str, password: str, schema: str):
         return []
 
 
-def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
+def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
     """
-    Obtiene lista de municipios filtrados por provincia
+    Obtiene lista de comarcas filtradas por provincia
 
     Args:
         user: Usuario de BD
         password: Contraseña
         schema: Esquema del proyecto
-        provincia_id: ID de provincia para filtrar (None = todos)
+        provincia_id: ID de provincia para filtrar (None = todas)
 
     Returns:
         list: Lista de strings formato "id - nombre"
@@ -753,14 +753,96 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
 
-            # Detectar columna de nombre (puede ser 'nombre' o 'municipio')
+            # Detectar columna de nombre (puede ser 'nombre' o 'comarca_nombre')
+            cur.execute(f"""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_comarcas'
+                AND COLUMN_NAME IN ('comarca_nombre', 'nombre', 'descripcion')
+                ORDER BY FIELD(COLUMN_NAME, 'comarca_nombre', 'nombre', 'descripcion')
+                LIMIT 1
+            """, (schema,))
+            col_result = cur.fetchone()
+            col_name = col_result[0] if col_result else 'comarca_nombre'
+
+            # Detectar si existe columna activo
+            cur.execute(f"""
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_comarcas'
+                AND COLUMN_NAME = 'activo'
+            """, (schema,))
+            tiene_activo = cur.fetchone()[0] > 0
+
+            # Construir query con filtro opcional
+            if provincia_id:
+                if tiene_activo:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_comarcas
+                        WHERE provincia_id = %s AND activo = 1
+                        ORDER BY {col_name}
+                    """
+                else:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_comarcas
+                        WHERE provincia_id = %s
+                        ORDER BY {col_name}
+                    """
+                cur.execute(query, (provincia_id,))
+            else:
+                if tiene_activo:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_comarcas
+                        WHERE activo = 1
+                        ORDER BY {col_name}
+                    """
+                else:
+                    query = f"""
+                        SELECT id, {col_name}
+                        FROM {schema}.dim_comarcas
+                        ORDER BY {col_name}
+                    """
+                cur.execute(query)
+
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        print(f"Error al obtener comarcas: {e}")
+        return []
+
+
+def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None, comarca_id: int = None):
+    """
+    Obtiene lista de municipios filtrados por provincia y/o comarca
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        provincia_id: ID de provincia para filtrar (None = todos)
+        comarca_id: ID de comarca para filtrar (None = todos)
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Detectar columna de nombre (puede ser 'nombre', 'municipio' o 'municipio_nombre')
             cur.execute(f"""
                 SELECT COLUMN_NAME
                 FROM information_schema.COLUMNS
                 WHERE TABLE_SCHEMA = %s
                 AND TABLE_NAME = 'dim_municipios'
-                AND COLUMN_NAME IN ('nombre', 'municipio', 'descripcion')
-                ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio', 'descripcion')
+                AND COLUMN_NAME IN ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
+                ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio_nombre', 'municipio', 'descripcion')
                 LIMIT 1
             """, (schema,))
             col_result = cur.fetchone()
@@ -776,39 +858,31 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
             """, (schema,))
             tiene_activo = cur.fetchone()[0] > 0
 
-            # Construir query con filtro opcional y condicional activo
-            if provincia_id:
-                if tiene_activo:
-                    query = f"""
-                        SELECT id, {col_name}
-                        FROM {schema}.dim_municipios
-                        WHERE provincia_id = %s AND activo = 1
-                        ORDER BY {col_name}
-                    """
-                else:
-                    query = f"""
-                        SELECT id, {col_name}
-                        FROM {schema}.dim_municipios
-                        WHERE provincia_id = %s
-                        ORDER BY {col_name}
-                    """
-                cur.execute(query, (provincia_id,))
-            else:
-                if tiene_activo:
-                    query = f"""
-                        SELECT id, {col_name}
-                        FROM {schema}.dim_municipios
-                        WHERE activo = 1
-                        ORDER BY {col_name}
-                    """
-                else:
-                    query = f"""
-                        SELECT id, {col_name}
-                        FROM {schema}.dim_municipios
-                        ORDER BY {col_name}
-                    """
-                cur.execute(query)
+            # Construir WHERE clause dinámicamente
+            where_parts = []
+            params = []
 
+            if provincia_id:
+                where_parts.append("provincia_id = %s")
+                params.append(provincia_id)
+
+            if comarca_id:
+                where_parts.append("comarca_id = %s")
+                params.append(comarca_id)
+
+            if tiene_activo:
+                where_parts.append("activo = 1")
+
+            where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+
+            query = f"""
+                SELECT id, {col_name}
+                FROM {schema}.dim_municipios
+                WHERE {where_clause}
+                ORDER BY {col_name}
+            """
+
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
             cur.close()
             return [f"{row[0]} - {row[1]}" for row in rows]
@@ -829,6 +903,7 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        estado_id: int = 1,
                        localizacion: str = None,
                        provincia_id: int = None,
+                       comarca_id: int = None,
                        municipio_id: int = None,
                        trabajadores: str = None,
                        latitud: float = None,
@@ -938,6 +1013,10 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         if 'provincia_id' in columns and provincia_id:
             insert_cols.append('provincia_id')
             insert_vals.append(provincia_id)
+
+        if 'comarca_id' in columns and comarca_id:
+            insert_cols.append('comarca_id')
+            insert_vals.append(comarca_id)
 
         if 'municipio_id' in columns and municipio_id:
             insert_cols.append('municipio_id')
