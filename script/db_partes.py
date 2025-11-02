@@ -1041,9 +1041,20 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         placeholders = ', '.join(['%s'] * len(insert_vals))
         query = f"INSERT INTO {schema}.tbl_partes ({', '.join(insert_cols)}) VALUES ({placeholders})"
 
-        cur.execute(query, tuple(insert_vals))
-        new_id = cur.lastrowid
+        # Debug: imprimir query y valores
+        print(f"[DEBUG] Query: {query}")
+        print(f"[DEBUG] Columnas: {insert_cols}")
+        print(f"[DEBUG] Valores: {insert_vals}")
 
-        cn.commit()
-        cur.close()
-        return new_id, codigo
+        try:
+            cur.execute(query, tuple(insert_vals))
+            new_id = cur.lastrowid
+
+            cn.commit()
+            cur.close()
+            return new_id, codigo
+        except Exception as e:
+            print(f"[ERROR] Error ejecutando query: {e}")
+            print(f"[ERROR] Query: {query}")
+            print(f"[ERROR] Valores: {insert_vals}")
+            raise
