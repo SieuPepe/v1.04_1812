@@ -520,6 +520,16 @@ def create_view_partes(user, password, code_project):
         try:
             conn.start_transaction()
 
+            # Verificar qué columnas existen en las tablas
+            cursor.execute(f"DESCRIBE {code_project}.tbl_partes")
+            partes_columns = [row[0] for row in cursor.fetchall()]
+            has_partes_creado = 'creado_en' in partes_columns
+            has_partes_actualizado = 'actualizado_en' in partes_columns
+
+            cursor.execute(f"DESCRIBE {code_project}.tbl_part_certificacion")
+            cert_columns = [row[0] for row in cursor.fetchall()]
+            has_cert_creado = 'creado_en' in cert_columns
+
             # Vista de presupuesto de partes
             cursor.execute(""" CREATE OR REPLACE VIEW vw_part_presupuesto AS
                             SELECT
@@ -539,8 +549,9 @@ def create_view_partes(user, password, code_project):
                             LEFT JOIN tbl_pres_unidades u ON u.id = pr.id_unidades
                         """)
 
-            # Vista de certificaciones de partes
-            cursor.execute(""" CREATE OR REPLACE VIEW vw_part_certificaciones AS
+            # Vista de certificaciones de partes - con columna creado_en opcional
+            cert_creado_col = "pc.creado_en" if has_cert_creado else "NULL as creado_en"
+            cursor.execute(f""" CREATE OR REPLACE VIEW vw_part_certificaciones AS
                             SELECT
                                 pc.id,
                                 pc.parte_id,
@@ -557,7 +568,7 @@ def create_view_partes(user, password, code_project):
                                 COALESCE(rd.red_codigo, '') AS red,
                                 COALESCE(tt.tipo_codigo, '') AS tipo,
                                 COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
-                                pc.creado_en
+                                {cert_creado_col}
                             FROM tbl_part_certificacion pc
                             INNER JOIN tbl_partes p ON p.id = pc.parte_id
                             INNER JOIN tbl_pres_precios pr ON pr.id = pc.precio_id
@@ -568,8 +579,18 @@ def create_view_partes(user, password, code_project):
                             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
                         """)
 
-            # Vista de resumen de partes - FIX: Calificar columna 'estado' para evitar ambigüedad
-            cursor.execute(""" CREATE OR REPLACE VIEW vw_partes_resumen AS
+            # Vista de resumen de partes - con columnas timestamp opcionales
+            partes_creado_col = "p.creado_en" if has_partes_creado else "NULL as creado_en"
+            partes_actualizado_col = "p.actualizado_en" if has_partes_actualizado else "NULL as actualizado_en"
+
+            # Construir GROUP BY dinámicamente
+            group_by_cols = "p.id, p.codigo, p.descripcion, p.estado, ot.ot_codigo, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo"
+            if has_partes_creado:
+                group_by_cols += ", p.creado_en"
+            if has_partes_actualizado:
+                group_by_cols += ", p.actualizado_en"
+
+            cursor.execute(f""" CREATE OR REPLACE VIEW vw_partes_resumen AS
                             SELECT
                                 p.id,
                                 p.codigo,
@@ -582,8 +603,8 @@ def create_view_partes(user, password, code_project):
                                 COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS total_presupuesto,
                                 COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_certificado,
                                 COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_pendiente,
-                                p.creado_en,
-                                p.actualizado_en
+                                {partes_creado_col},
+                                {partes_actualizado_col}
                             FROM tbl_partes p
                             LEFT JOIN dim_ot ot ON ot.id = p.ot_id
                             LEFT JOIN dim_red rd ON rd.id = p.red_id
@@ -591,7 +612,7 @@ def create_view_partes(user, password, code_project):
                             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
                             LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
                             LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
-                            GROUP BY p.id, p.codigo, p.descripcion, p.estado, ot.ot_codigo, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo, p.creado_en, p.actualizado_en
+                            GROUP BY {group_by_cols}
                         """)
 
             conn.commit()
