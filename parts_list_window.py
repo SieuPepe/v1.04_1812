@@ -248,45 +248,31 @@ class PartsTab(customtkinter.CTkFrame):
         ).pack(side="left", padx=5)
 
     def _load_filters(self):
-        """Carga las opciones de filtros desde los valores únicos en la tabla"""
+        """Carga las opciones de filtros SIEMPRE desde las tablas dimensionales"""
         try:
-            # Cargar todos los datos para extraer valores únicos
+            # Cargar dimensiones desde las tablas dim_*
+            dims = get_dim_all(self.user, self.password, self.schema)
+
+            # Extraer solo las descripciones (formato: "ID - DESCRIPCION")
+            # IMPORTANTE: Estos valores deben coincidir EXACTAMENTE con los que se muestran en la tabla
+
+            red_raw = dims.get("RED", [])
+            red_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in red_raw]
+
+            tipo_raw = dims.get("TIPO_TRABAJO", [])
+            tipo_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_raw]
+
+            tipo_rep_raw = dims.get("TIPOS_REP", [])
+            tipo_rep_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_rep_raw]
+
+            # Para Código Trabajo, cargar valores únicos desde la tabla porque puede mostrar
+            # código o descripción dependiendo de la configuración de dim_codigo_trabajo
             all_rows = get_parts_list(self.user, self.password, self.schema, limit=1000)
-
-            # Extraer valores únicos para cada columna filtrable
-            red_set = set()
-            tipo_set = set()
-            tipo_rep_set = set()
             cod_set = set()
-
             for row in all_rows:
-                if row[2]:  # red
-                    red_set.add(str(row[2]))
-                if row[3]:  # tipo
-                    tipo_set.add(str(row[3]))
-                if row[6]:  # tipo_rep - solo si no está vacío
-                    val = str(row[6]).strip()
-                    if val:
-                        tipo_rep_set.add(val)
                 if row[4]:  # cod_trabajo
-                    # Mostrar código - descripción
-                    cod_desc = f"{row[4]} - {row[5]}" if row[5] else str(row[4])
-                    cod_set.add(cod_desc)
-
-            # Ordenar y agregar "Todos" al inicio
-            red_values = ["Todos"] + sorted(list(red_set))
-            tipo_values = ["Todos"] + sorted(list(tipo_set))
+                    cod_set.add(str(row[4]).strip())
             cod_values = ["Todos"] + sorted(list(cod_set))
-
-            # Para Tipo Reparación, cargar desde dim_tipos_rep si no hay valores en los partes
-            if len(tipo_rep_set) == 0:
-                # Cargar directamente desde la tabla dimensional
-                dims = get_dim_all(self.user, self.password, self.schema)
-                tipo_rep_raw = dims.get("TIPOS_REP", [])
-                # Extraer solo las descripciones (formato: "ID - DESCRIPCION")
-                tipo_rep_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_rep_raw]
-            else:
-                tipo_rep_values = ["Todos"] + sorted(list(tipo_rep_set))
 
             self.filter_red.configure(values=red_values)
             self.filter_tipo.configure(values=tipo_values)
@@ -383,13 +369,12 @@ class PartsTab(customtkinter.CTkFrame):
                     if row_val != filter_val:
                         continue
 
-                # Filtro Código Trabajo (comparar por código o descripción)
+                # Filtro Código Trabajo (comparación case-insensitive)
+                # row[4] es cod_trabajo (descripción), row[5] es cod_trabajo_desc (también descripción)
                 if self.filter_cod.get() != "Todos":
-                    filter_val = self.filter_cod.get()
-                    # Extraer solo la parte después del " - " si existe
-                    if " - " in filter_val:
-                        filter_val = filter_val.split(" - ")[1]
-                    if str(row[4]) != filter_val and str(row[5]) != filter_val:
+                    filter_val = self.filter_cod.get().strip().lower()
+                    row_val = str(row[4]).strip().lower()
+                    if row_val != filter_val:
                         continue
 
                 # Búsqueda por código o descripción
