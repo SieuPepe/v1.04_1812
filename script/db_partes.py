@@ -1057,6 +1057,7 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        fecha_fin: str = None,
                        fecha_prevista_fin: str = None,
                        estado_id: int = 1,
+                       tipo_rep_id: int = None,
                        localizacion: str = None,
                        provincia_id: int = None,
                        comarca_id: int = None,
@@ -1182,6 +1183,10 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             col = 'estado_id' if 'estado_id' in columns else 'id_estado'
             insert_cols.append(col)
             insert_vals.append(estado_id)
+
+        if 'tipo_rep_id' in columns and tipo_rep_id:
+            insert_cols.append('tipo_rep_id')
+            insert_vals.append(tipo_rep_id)
 
         if 'localizacion' in columns and localizacion:
             insert_cols.append('localizacion')
