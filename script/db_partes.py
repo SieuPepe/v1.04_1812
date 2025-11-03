@@ -316,6 +316,11 @@ def get_partes_resumen(user: str, password: str, schema: str):
         cur.execute(f"DESCRIBE {schema}.tbl_partes")
         columns = [row[0] for row in cur.fetchall()]
 
+        # Detectar columnas de texto en tablas dimensionales
+        municipio_col = _guess_text_column(user, password, schema, 'dim_municipios') if 'municipio_id' in columns else None
+        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'comarca_id' in columns else None
+        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'provincia_id' in columns else None
+
         # Construir SELECT dinámicamente con todas las columnas disponibles
         query_parts = []
         query_parts.append("SELECT p.id, p.codigo, p.descripcion, p.estado")
@@ -334,9 +339,25 @@ def get_partes_resumen(user: str, password: str, schema: str):
         query_parts.append("p.creado_en" if 'creado_en' in columns else "NULL AS creado_en")
         query_parts.append("p.actualizado_en" if 'actualizado_en' in columns else "NULL AS actualizado_en")
         query_parts.append("p.localizacion" if 'localizacion' in columns else "NULL AS localizacion")
-        query_parts.append("COALESCE(m.nombre, '') AS municipio" if 'municipio_id' in columns else "'' AS municipio")
-        query_parts.append("COALESCE(cm.nombre, '') AS comarca" if 'comarca_id' in columns else "'' AS comarca")
-        query_parts.append("COALESCE(pr.nombre, '') AS provincia" if 'provincia_id' in columns else "'' AS provincia")
+
+        # Usar columna detectada dinámicamente para municipio
+        if 'municipio_id' in columns and municipio_col:
+            query_parts.append(f"COALESCE(m.{municipio_col}, '') AS municipio")
+        else:
+            query_parts.append("'' AS municipio")
+
+        # Usar columna detectada dinámicamente para comarca
+        if 'comarca_id' in columns and comarca_col:
+            query_parts.append(f"COALESCE(cm.{comarca_col}, '') AS comarca")
+        else:
+            query_parts.append("'' AS comarca")
+
+        # Usar columna detectada dinámicamente para provincia
+        if 'provincia_id' in columns and provincia_col:
+            query_parts.append(f"COALESCE(pr.{provincia_col}, '') AS provincia")
+        else:
+            query_parts.append("'' AS provincia")
+
         query_parts.append("p.latitud" if 'latitud' in columns else "NULL AS latitud")
         query_parts.append("p.longitud" if 'longitud' in columns else "NULL AS longitud")
         query_parts.append("p.trabajadores" if 'trabajadores' in columns else "NULL AS trabajadores")
@@ -351,11 +372,11 @@ def get_partes_resumen(user: str, password: str, schema: str):
             from_clause += " LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id"
         from_clause += " LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id"
         from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
-        if 'municipio_id' in columns:
+        if 'municipio_id' in columns and municipio_col:
             from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
-        if 'comarca_id' in columns:
+        if 'comarca_id' in columns and comarca_col:
             from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = p.comarca_id"
-        if 'provincia_id' in columns:
+        if 'provincia_id' in columns and provincia_col:
             from_clause += " LEFT JOIN dim_provincias pr ON pr.id = p.provincia_id"
 
         # GROUP BY
@@ -379,12 +400,12 @@ def get_partes_resumen(user: str, password: str, schema: str):
             group_by += ", p.actualizado_en"
         if 'localizacion' in columns:
             group_by += ", p.localizacion"
-        if 'municipio_id' in columns:
-            group_by += ", m.nombre"
-        if 'comarca_id' in columns:
-            group_by += ", cm.nombre"
-        if 'provincia_id' in columns:
-            group_by += ", pr.nombre"
+        if 'municipio_id' in columns and municipio_col:
+            group_by += f", m.{municipio_col}"
+        if 'comarca_id' in columns and comarca_col:
+            group_by += f", cm.{comarca_col}"
+        if 'provincia_id' in columns and provincia_col:
+            group_by += f", pr.{provincia_col}"
         if 'latitud' in columns:
             group_by += ", p.latitud"
         if 'longitud' in columns:
