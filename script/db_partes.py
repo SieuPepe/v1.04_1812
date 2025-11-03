@@ -208,27 +208,76 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
 
 def get_parts_list(user, password, schema, limit=100):
     """
-    Devuelve lista de partes.
+    Devuelve lista de partes con todos los campos disponibles.
+    Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
+             descripcion, presupuesto, certificado, estado, creado_en
     Nota: ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
+
+        # Verificar si existe la vista vw_partes_resumen
         cur.execute("""
-            SELECT
-                p.id,
-                p.codigo,
-                COALESCE(rd.red_codigo, '')        AS red,
-                COALESCE(tt.tipo_codigo, '')       AS tipo,
-                COALESCE(ct.cod_trabajo, '')       AS cod_trabajo,
-                p.descripcion,
-                p.creado_en
-            FROM tbl_partes p
-            LEFT JOIN dim_red            rd ON rd.id = p.red_id
-            LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
-            LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-            ORDER BY p.id DESC
-            LIMIT %s
-        """, (limit,))
+            SELECT COUNT(*) FROM information_schema.VIEWS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'vw_partes_resumen'
+        """, (schema,))
+        tiene_vista = cur.fetchone()[0] > 0
+
+        if tiene_vista:
+            # Usar la vista que ya tiene los totales calculados
+            cur.execute("""
+                SELECT
+                    vpr.id,
+                    vpr.codigo,
+                    vpr.red,
+                    vpr.tipo,
+                    vpr.cod_trabajo,
+                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                    COALESCE(tr.descripcion, '')         AS tipo_rep,
+                    vpr.descripcion,
+                    COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
+                    COALESCE(vpr.total_certificado, 0)   AS certificado,
+                    COALESCE(pe.estado, 'Pendiente')     AS estado,
+                    COALESCE(vpr.creado_en, NOW())       AS creado_en
+                FROM vw_partes_resumen vpr
+                LEFT JOIN tbl_partes p ON p.id = vpr.id
+                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+                LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id
+                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+                ORDER BY vpr.id DESC
+                LIMIT %s
+            """, (limit,))
+        else:
+            # Fallback sin vista: calcular manualmente
+            cur.execute("""
+                SELECT
+                    p.id,
+                    p.codigo,
+                    COALESCE(rd.red_codigo, '')          AS red,
+                    COALESCE(tt.tipo_codigo, '')         AS tipo,
+                    COALESCE(ct.codigo, '')              AS cod_trabajo,
+                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                    COALESCE(tr.descripcion, '')         AS tipo_rep,
+                    p.descripcion,
+                    COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
+                    COALESCE(SUM(CASE WHEN pc.certificada = 1
+                                 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
+                    COALESCE(pe.estado, 'Pendiente')     AS estado,
+                    p.creado_en
+                FROM tbl_partes p
+                LEFT JOIN dim_red            rd ON rd.id = p.red_id
+                LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
+                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+                LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
+                LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
+                LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
+                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+                GROUP BY p.id, p.codigo, rd.red_codigo, tt.tipo_codigo, ct.codigo, ct.descripcion,
+                         tr.descripcion, p.descripcion, pe.estado, p.creado_en
+                ORDER BY p.id DESC
+                LIMIT %s
+            """, (limit,))
+
         rows = cur.fetchall()
         cur.close()
         return rows
