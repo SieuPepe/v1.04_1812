@@ -244,6 +244,21 @@ class AppPartsManager(customtkinter.CTk):
         self.resumen_frame.grid_columnconfigure(0, weight=1)
         self.resumen_frame.grid_rowconfigure(2, weight=1)
 
+        # Definir todas las columnas disponibles para tbl_partes + presupuesto/certificado
+        self.resumen_columns = {
+            # Columnas principales (visibles por defecto)
+            "codigo": {"label": "Código", "width": 80, "visible": True, "locked": True},
+            "descripcion": {"label": "Descripción", "width": 200, "visible": True, "locked": False},
+            "estado": {"label": "Estado", "width": 80, "visible": True, "locked": False},
+            "red": {"label": "Red", "width": 70, "visible": True, "locked": False},
+            "tipo": {"label": "Tipo", "width": 80, "visible": True, "locked": False},
+            "cod_trabajo": {"label": "Cód.Trabajo", "width": 80, "visible": True, "locked": False},
+            "presupuesto": {"label": "Presup.", "width": 90, "visible": True, "locked": False},
+            "certificado": {"label": "Certif.", "width": 90, "visible": True, "locked": False},
+            "pendiente": {"label": "Pendiente", "width": 90, "visible": True, "locked": False},
+            "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
+        }
+
         # Título
         title = customtkinter.CTkLabel(
             self.resumen_frame,
@@ -275,50 +290,23 @@ class AppPartsManager(customtkinter.CTk):
             command=lambda: open_parts_list(self, self.user, self.password, self.schema),
             width=180
         )
-        btn_list.pack(side="left")
+        btn_list.pack(side="left", padx=(0, 10))
+
+        btn_columns = customtkinter.CTkButton(
+            btn_frame, text="⚙ Columnas",
+            command=self._show_resumen_column_selector,
+            width=100, fg_color="#1f6aa5"
+        )
+        btn_columns.pack(side="left")
 
         # Frame para tabla
-        table_frame = customtkinter.CTkFrame(self.resumen_frame)
-        table_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
-        table_frame.grid_rowconfigure(0, weight=1)
-        table_frame.grid_columnconfigure(0, weight=1)
+        self.resumen_table_frame = customtkinter.CTkFrame(self.resumen_frame)
+        self.resumen_table_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
+        self.resumen_table_frame.grid_rowconfigure(0, weight=1)
+        self.resumen_table_frame.grid_columnconfigure(0, weight=1)
 
-        # Tabla de partes
-        cols = ("id", "codigo", "descripcion", "estado", "red", "tipo", "cod_trabajo",
-                "presupuesto", "certificado", "pendiente")
-        self.tree_resumen = ttk.Treeview(table_frame, columns=cols, show="headings", height=20)
-
-        # Configurar columnas
-        col_widths = {
-            "id": 40, "codigo": 80, "descripcion": 200, "estado": 80,
-            "red": 70, "tipo": 80, "cod_trabajo": 80,
-            "presupuesto": 90, "certificado": 90, "pendiente": 90
-        }
-
-        for col in cols:
-            header_text = {
-                "id": "ID",
-                "codigo": "Código",
-                "descripcion": "Descripción",
-                "estado": "Estado",
-                "red": "Red",
-                "tipo": "Tipo",
-                "cod_trabajo": "Cód.Trabajo",
-                "presupuesto": "Presup.",
-                "certificado": "Certif.",
-                "pendiente": "Pendiente"
-            }
-            self.tree_resumen.heading(col, text=header_text.get(col, col.title()))
-
-        for col in cols:
-            self.tree_resumen.heading(col, text=col.replace("_", " ").title())
-            self.tree_resumen.column(col, width=col_widths.get(col, 100), anchor="center")  # ✅ center
-
-                # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree_resumen.yview)
-        self.tree_resumen.configure(yscrollcommand=scrollbar.set)
-        self.tree_resumen.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
+        # Crear tabla con columnas seleccionadas
+        self._rebuild_resumen_tree()
 
         # Botones inferiores
         bottom_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
@@ -351,24 +339,156 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             rows = get_partes_resumen(self.user, self.password, self.schema)
-            for row in rows:
-                # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo,
-                #      total_presupuesto, total_certificado, total_pendiente, creado_en, actualizado_en
-                display_row = (
-                    row[0],  # id
-                    row[1],  # codigo
-                    row[2] or "",  # descripcion
-                    row[3] or "Pendiente",  # estado
-                    row[4] or "",  # red (antes era row[5])
-                    row[5] or "",  # tipo (antes era row[6])
-                    row[6] or "",  # cod_trabajo (antes era row[7])
-                    f"{float(row[7]):.2f}€" if row[7] else "0.00€",  # presupuesto (antes era row[8])
-                    f"{float(row[8]):.2f}€" if row[8] else "0.00€",  # certificado (antes era row[9])
-                    f"{float(row[9]):.2f}€" if row[9] else "0.00€",  # pendiente (antes era row[10])
-                )
-                self.tree_resumen.insert("", "end", values=display_row)
+
+            # Mapeo de índices del resultado SQL
+            # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo,
+            #      total_presupuesto, total_certificado, total_pendiente, creado_en, actualizado_en
+            field_map = {
+                "id": 0,
+                "codigo": 1,
+                "descripcion": 2,
+                "estado": 3,
+                "red": 4,
+                "tipo": 5,
+                "cod_trabajo": 6,
+                "presupuesto": 7,
+                "certificado": 8,
+                "pendiente": 9,
+                "created_at": 10
+            }
+
+            # Obtener columnas visibles actuales del tree
+            visible_cols = self.tree_resumen["columns"]
+
+            for row_data in rows:
+                # Construir fila con solo las columnas visibles
+                row_values = []
+                for col in visible_cols:
+                    idx = field_map.get(col)
+                    if idx is not None and idx < len(row_data):
+                        value = row_data[idx]
+                        # Formatear valores especiales
+                        if col in ["presupuesto", "certificado", "pendiente"] and value is not None:
+                            row_values.append(f"{float(value):.2f}€")
+                        elif col == "created_at" and value is not None:
+                            row_values.append(str(value))
+                        elif col == "estado":
+                            row_values.append(value if value else "Pendiente")
+                        else:
+                            row_values.append(value if value is not None else "")
+                    else:
+                        row_values.append("")
+
+                self.tree_resumen.insert("", "end", values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
+
+    def _rebuild_resumen_tree(self):
+        """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""
+        from tkinter import ttk
+
+        # Eliminar tabla anterior si existe
+        if hasattr(self, 'tree_resumen'):
+            self.tree_resumen.destroy()
+            self.resumen_scrollbar.destroy()
+
+        # Obtener columnas visibles (codigo siempre primero)
+        visible_cols = ["id"]  # ID siempre incluido pero oculto
+        visible_cols.append("codigo")  # Codigo siempre primero y visible
+
+        # Agregar resto de columnas visibles
+        for col_name, col_info in self.resumen_columns.items():
+            if col_name != "codigo" and col_info["visible"]:
+                visible_cols.append(col_name)
+
+        # Crear nueva tabla
+        self.tree_resumen = ttk.Treeview(self.resumen_table_frame, columns=visible_cols, show="headings", height=20)
+
+        # Configurar columnas
+        self.tree_resumen.heading("id", text="ID")
+        self.tree_resumen.column("id", width=0, stretch=False)  # ID oculto
+
+        for col in visible_cols[1:]:  # Skip "id"
+            col_info = self.resumen_columns.get(col, {"label": col, "width": 100})
+            self.tree_resumen.heading(col, text=col_info["label"])
+            self.tree_resumen.column(col, width=col_info["width"], anchor="center")
+
+        # Scrollbar
+        self.resumen_scrollbar = ttk.Scrollbar(self.resumen_table_frame, orient="vertical", command=self.tree_resumen.yview)
+        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set)
+        self.tree_resumen.grid(row=0, column=0, sticky="nsew")
+        self.resumen_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Doble clic para ver detalles
+        self.tree_resumen.bind("<Double-1>", lambda e: self._view_parte_detail())
+
+        # Recargar datos
+        self._reload_resumen()
+
+    def _show_resumen_column_selector(self):
+        """Muestra ventana para seleccionar columnas visibles del resumen"""
+        selector_window = customtkinter.CTkToplevel(self)
+        selector_window.title("Seleccionar Columnas - Resumen")
+        selector_window.geometry("400x500")
+        selector_window.transient(self)
+        selector_window.grab_set()
+
+        # Título
+        title_label = customtkinter.CTkLabel(
+            selector_window,
+            text="Seleccionar Columnas Visibles",
+            font=("", 16, "bold")
+        )
+        title_label.pack(pady=(20, 10))
+
+        # Scroll frame para checkboxes
+        scroll_frame = customtkinter.CTkScrollableFrame(selector_window, width=350, height=350)
+        scroll_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Checkboxes
+        checkboxes = {}
+        for col_name, col_info in self.resumen_columns.items():
+            if col_info["locked"]:
+                # Columnas bloqueadas (siempre visibles)
+                label = customtkinter.CTkLabel(
+                    scroll_frame,
+                    text=f"✓ {col_info['label']} (siempre visible)",
+                    font=("", 12)
+                )
+                label.pack(anchor="w", pady=5, padx=10)
+            else:
+                # Columnas opcionales
+                var = customtkinter.BooleanVar(value=col_info["visible"])
+                cb = customtkinter.CTkCheckBox(
+                    scroll_frame,
+                    text=col_info["label"],
+                    variable=var,
+                    font=("", 12)
+                )
+                cb.pack(anchor="w", pady=5, padx=10)
+                checkboxes[col_name] = var
+
+        # Botones
+        btn_frame = customtkinter.CTkFrame(selector_window, fg_color="transparent")
+        btn_frame.pack(pady=20)
+
+        def aplicar():
+            # Actualizar visibilidad
+            for col_name, var in checkboxes.items():
+                self.resumen_columns[col_name]["visible"] = var.get()
+
+            # Reconstruir tabla
+            self._rebuild_resumen_tree()
+            selector_window.destroy()
+
+        def cancelar():
+            selector_window.destroy()
+
+        btn_aplicar = customtkinter.CTkButton(btn_frame, text="Aplicar", command=aplicar, width=120)
+        btn_aplicar.pack(side="left", padx=5)
+
+        btn_cancelar = customtkinter.CTkButton(btn_frame, text="Cancelar", command=cancelar, width=120)
+        btn_cancelar.pack(side="left", padx=5)
 
     def _add_parte_resumen(self):
         """
@@ -564,9 +684,13 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
-        main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        # Frame scrollable para contener todo el contenido
+        scroll_frame = customtkinter.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+        # Frame principal dentro del scroll
+        main_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)

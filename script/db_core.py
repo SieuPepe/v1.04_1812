@@ -595,7 +595,6 @@ def create_view_partes(user, password, code_project):
                                 p.codigo,
                                 p.descripcion,
                                 p.estado,
-                                p.codigo AS ot,
                                 COALESCE(rd.red_codigo, '') AS red,
                                 COALESCE(tt.tipo_codigo, '') AS tipo,
                                 COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
