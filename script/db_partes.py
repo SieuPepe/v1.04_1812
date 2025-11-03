@@ -302,34 +302,102 @@ def delete_parte(user: str, password: str, schema: str, parte_id: int):
 
 def get_partes_resumen(user: str, password: str, schema: str):
     """
-    Devuelve lista de partes con totales de presupuesto y certificación.
-    Usa la vista vw_partes_resumen.
+    Devuelve lista de partes con TODAS las columnas de tbl_partes + totales calculados.
+    Usa JOIN directo con dimensiones para obtener descripciones.
+    Devuelve: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
+              presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
+              fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
+              provincia, latitud, longitud, trabajadores, observaciones
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Intentar con las columnas timestamp
-        try:
-            cur.execute("""
-                SELECT
-                    id, codigo, descripcion, estado, red, tipo, cod_trabajo,
-                    total_presupuesto, total_certificado, total_pendiente,
-                    creado_en, actualizado_en
-                FROM vw_partes_resumen
-                ORDER BY id DESC
-            """)
-            rows = cur.fetchall()
-        except Exception:
-            # Si falla (columnas no existen), intentar sin ellas
-            cur.execute("""
-                SELECT
-                    id, codigo, descripcion, estado, red, tipo, cod_trabajo,
-                    total_presupuesto, total_certificado, total_pendiente,
-                    NULL as creado_en, NULL as actualizado_en
-                FROM vw_partes_resumen
-                ORDER BY id DESC
-            """)
-            rows = cur.fetchall()
+        # Verificar qué columnas existen en tbl_partes
+        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        columns = [row[0] for row in cur.fetchall()]
+
+        # Construir SELECT dinámicamente con todas las columnas disponibles
+        query_parts = []
+        query_parts.append("SELECT p.id, p.codigo, p.descripcion, p.estado")
+        query_parts.append("COALESCE(rd.descripcion, '') AS red")
+        query_parts.append("COALESCE(tt.descripcion, '') AS tipo")
+        query_parts.append("COALESCE(ct.descripcion, '') AS cod_trabajo")
+        query_parts.append("COALESCE(tr.descripcion, '') AS tipo_rep" if 'tipo_rep_id' in columns else "'' AS tipo_rep")
+        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto")
+        query_parts.append("COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado")
+        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS pendiente")
+        query_parts.append("p.titulo" if 'titulo' in columns else "NULL AS titulo")
+        query_parts.append("p.descripcion_corta" if 'descripcion_corta' in columns else "NULL AS descripcion_corta")
+        query_parts.append("p.descripcion_larga" if 'descripcion_larga' in columns else "NULL AS descripcion_larga")
+        query_parts.append("p.fecha_inicio" if 'fecha_inicio' in columns else "NULL AS fecha_inicio")
+        query_parts.append("p.fecha_fin" if 'fecha_fin' in columns else "NULL AS fecha_fin")
+        query_parts.append("p.creado_en" if 'creado_en' in columns else "NULL AS creado_en")
+        query_parts.append("p.actualizado_en" if 'actualizado_en' in columns else "NULL AS actualizado_en")
+        query_parts.append("p.localizacion" if 'localizacion' in columns else "NULL AS localizacion")
+        query_parts.append("COALESCE(m.nombre, '') AS municipio" if 'municipio_id' in columns else "'' AS municipio")
+        query_parts.append("COALESCE(cm.nombre, '') AS comarca" if 'comarca_id' in columns else "'' AS comarca")
+        query_parts.append("COALESCE(pr.nombre, '') AS provincia" if 'provincia_id' in columns else "'' AS provincia")
+        query_parts.append("p.latitud" if 'latitud' in columns else "NULL AS latitud")
+        query_parts.append("p.longitud" if 'longitud' in columns else "NULL AS longitud")
+        query_parts.append("p.trabajadores" if 'trabajadores' in columns else "NULL AS trabajadores")
+        query_parts.append("p.observaciones" if 'observaciones' in columns else "NULL AS observaciones")
+
+        # FROM y JOINs
+        from_clause = "FROM tbl_partes p"
+        from_clause += " LEFT JOIN dim_red rd ON rd.id = p.red_id"
+        from_clause += " LEFT JOIN dim_tipo_trabajo tt ON tt.id = p.tipo_trabajo_id"
+        from_clause += " LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id"
+        if 'tipo_rep_id' in columns:
+            from_clause += " LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id"
+        from_clause += " LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id"
+        from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
+        if 'municipio_id' in columns:
+            from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
+        if 'comarca_id' in columns:
+            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = p.comarca_id"
+        if 'provincia_id' in columns:
+            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = p.provincia_id"
+
+        # GROUP BY
+        group_by = "GROUP BY p.id, p.codigo, p.descripcion, p.estado"
+        group_by += ", rd.descripcion, tt.descripcion, ct.descripcion"
+        if 'tipo_rep_id' in columns:
+            group_by += ", tr.descripcion"
+        if 'titulo' in columns:
+            group_by += ", p.titulo"
+        if 'descripcion_corta' in columns:
+            group_by += ", p.descripcion_corta"
+        if 'descripcion_larga' in columns:
+            group_by += ", p.descripcion_larga"
+        if 'fecha_inicio' in columns:
+            group_by += ", p.fecha_inicio"
+        if 'fecha_fin' in columns:
+            group_by += ", p.fecha_fin"
+        if 'creado_en' in columns:
+            group_by += ", p.creado_en"
+        if 'actualizado_en' in columns:
+            group_by += ", p.actualizado_en"
+        if 'localizacion' in columns:
+            group_by += ", p.localizacion"
+        if 'municipio_id' in columns:
+            group_by += ", m.nombre"
+        if 'comarca_id' in columns:
+            group_by += ", cm.nombre"
+        if 'provincia_id' in columns:
+            group_by += ", pr.nombre"
+        if 'latitud' in columns:
+            group_by += ", p.latitud"
+        if 'longitud' in columns:
+            group_by += ", p.longitud"
+        if 'trabajadores' in columns:
+            group_by += ", p.trabajadores"
+        if 'observaciones' in columns:
+            group_by += ", p.observaciones"
+
+        # Ejecutar query completa
+        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC"
+        cur.execute(full_query)
+        rows = cur.fetchall()
 
         cur.close()
         return rows

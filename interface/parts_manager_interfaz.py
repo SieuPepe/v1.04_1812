@@ -244,19 +244,42 @@ class AppPartsManager(customtkinter.CTk):
         self.resumen_frame.grid_columnconfigure(0, weight=1)
         self.resumen_frame.grid_rowconfigure(2, weight=1)
 
-        # Definir todas las columnas disponibles para tbl_partes + presupuesto/certificado
+        # Definir TODAS las columnas disponibles para tbl_partes + presupuesto/certificado/pendiente
         self.resumen_columns = {
             # Columnas principales (visibles por defecto)
             "codigo": {"label": "Código", "width": 80, "visible": True, "locked": True},
             "descripcion": {"label": "Descripción", "width": 200, "visible": True, "locked": False},
             "estado": {"label": "Estado", "width": 80, "visible": True, "locked": False},
-            "red": {"label": "Red", "width": 70, "visible": True, "locked": False},
-            "tipo": {"label": "Tipo", "width": 80, "visible": True, "locked": False},
-            "cod_trabajo": {"label": "Cód.Trabajo", "width": 80, "visible": True, "locked": False},
+            "red": {"label": "Red", "width": 120, "visible": True, "locked": False},
+            "tipo": {"label": "Tipo Trabajo", "width": 120, "visible": True, "locked": False},
+            "cod_trabajo": {"label": "Cód.Trabajo", "width": 120, "visible": True, "locked": False},
+            "tipo_rep": {"label": "Tipo Reparación", "width": 130, "visible": True, "locked": False},
             "presupuesto": {"label": "Presup.", "width": 90, "visible": True, "locked": False},
             "certificado": {"label": "Certif.", "width": 90, "visible": True, "locked": False},
             "pendiente": {"label": "Pendiente", "width": 90, "visible": True, "locked": False},
+
+            # Campos de descripción ampliada (ocultos por defecto)
+            "titulo": {"label": "Título", "width": 200, "visible": False, "locked": False},
+            "descripcion_corta": {"label": "Desc. Corta", "width": 150, "visible": False, "locked": False},
+            "descripcion_larga": {"label": "Desc. Larga", "width": 300, "visible": False, "locked": False},
+
+            # Fechas (ocultas por defecto excepto created_at)
+            "fecha_inicio": {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False},
+            "fecha_fin": {"label": "Fecha Fin", "width": 110, "visible": False, "locked": False},
             "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
+            "updated_at": {"label": "Última Actualiz.", "width": 150, "visible": False, "locked": False},
+
+            # Localización (ocultos por defecto)
+            "localizacion": {"label": "Localización", "width": 200, "visible": False, "locked": False},
+            "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
+            "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
+            "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
+            "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
+            "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
+
+            # Otros campos (ocultos por defecto)
+            "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
+            "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
         }
 
         # Título
@@ -340,9 +363,11 @@ class AppPartsManager(customtkinter.CTk):
         try:
             rows = get_partes_resumen(self.user, self.password, self.schema)
 
-            # Mapeo de índices del resultado SQL
-            # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo,
-            #      total_presupuesto, total_certificado, total_pendiente, creado_en, actualizado_en
+            # Mapeo de índices del resultado SQL - TODAS las columnas
+            # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
+            #      presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
+            #      fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
+            #      provincia, latitud, longitud, trabajadores, observaciones
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -351,10 +376,25 @@ class AppPartsManager(customtkinter.CTk):
                 "red": 4,
                 "tipo": 5,
                 "cod_trabajo": 6,
-                "presupuesto": 7,
-                "certificado": 8,
-                "pendiente": 9,
-                "created_at": 10
+                "tipo_rep": 7,
+                "presupuesto": 8,
+                "certificado": 9,
+                "pendiente": 10,
+                "titulo": 11,
+                "descripcion_corta": 12,
+                "descripcion_larga": 13,
+                "fecha_inicio": 14,
+                "fecha_fin": 15,
+                "created_at": 16,
+                "updated_at": 17,
+                "localizacion": 18,
+                "municipio": 19,
+                "comarca": 20,
+                "provincia": 21,
+                "latitud": 22,
+                "longitud": 23,
+                "trabajadores": 24,
+                "observaciones": 25,
             }
 
             # Obtener columnas visibles actuales del tree
@@ -370,8 +410,10 @@ class AppPartsManager(customtkinter.CTk):
                         # Formatear valores especiales
                         if col in ["presupuesto", "certificado", "pendiente"] and value is not None:
                             row_values.append(f"{float(value):.2f}€")
-                        elif col == "created_at" and value is not None:
+                        elif col in ["created_at", "updated_at", "fecha_inicio", "fecha_fin"] and value is not None:
                             row_values.append(str(value))
+                        elif col in ["latitud", "longitud"] and value is not None:
+                            row_values.append(f"{float(value):.6f}")
                         elif col == "estado":
                             row_values.append(value if value else "Pendiente")
                         else:
