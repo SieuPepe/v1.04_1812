@@ -14,17 +14,42 @@ class PartsTab(customtkinter.CTkFrame):
         self.schema = schema
 
         # Definir todas las columnas disponibles (codigo siempre primero)
+        # Incluye TODOS los campos de tbl_partes según estructura completa
         self.all_columns = {
+            # Columnas principales (visibles por defecto)
             "codigo": {"label": "Código", "width": 120, "visible": True, "locked": True},
             "red": {"label": "Red", "width": 120, "visible": True, "locked": False},
-            "tipo": {"label": "Tipo", "width": 100, "visible": True, "locked": False},
+            "tipo": {"label": "Tipo Trabajo", "width": 100, "visible": True, "locked": False},
             "cod_trabajo": {"label": "Cód. Trabajo", "width": 120, "visible": True, "locked": False},
             "tipo_rep": {"label": "Tipo Reparación", "width": 130, "visible": True, "locked": False},
             "descripcion": {"label": "Descripción", "width": 300, "visible": True, "locked": False},
             "presupuesto": {"label": "Presupuesto (€)", "width": 120, "visible": True, "locked": False},
             "certificado": {"label": "Certificado (€)", "width": 120, "visible": True, "locked": False},
             "estado": {"label": "Estado", "width": 100, "visible": True, "locked": False},
+
+            # Campos de descripción (ocultos por defecto)
+            "titulo": {"label": "Título", "width": 250, "visible": False, "locked": False},
+            "descripcion_corta": {"label": "Desc. Corta", "width": 150, "visible": False, "locked": False},
+            "descripcion_larga": {"label": "Desc. Larga", "width": 300, "visible": False, "locked": False},
+
+            # Campos de fechas (ocultos por defecto)
+            "fecha_inicio": {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False},
+            "fecha_fin": {"label": "Fecha Fin", "width": 110, "visible": False, "locked": False},
+            "fecha_prevista_fin": {"label": "Fecha Prevista Fin", "width": 130, "visible": False, "locked": False},
             "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
+
+            # Campos de localización (ocultos por defecto)
+            "localizacion": {"label": "Localización", "width": 200, "visible": False, "locked": False},
+            "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
+            "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
+            "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
+            "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
+            "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
+
+            # Otros campos (ocultos por defecto)
+            "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
+            "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
+            "finalizada": {"label": "Finalizada", "width": 80, "visible": False, "locked": False},
         }
 
         self._build_ui()

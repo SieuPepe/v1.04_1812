@@ -21,6 +21,7 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
         'dim_red': ['descripcion','red','nombre','desc','texto','codigo','cod'],
         'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
         'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
+        'dim_tipos_rep': ['descripcion','tipo_rep','tipo','nombre','desc','texto','codigo','cod'],
     }
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -60,13 +61,105 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     return None
 
 
+def _crear_dim_tipos_rep_si_no_existe(user: str, password: str, schema: str):
+    """
+    Crea automáticamente la tabla dim_tipos_rep si no existe.
+    Retorna True si la creación fue exitosa o la tabla ya existe.
+    """
+    try:
+        with get_project_connection(user, password, schema) as conn:
+            cursor = conn.cursor()
+
+            # Verificar si la tabla ya existe
+            cursor.execute(f"""
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'dim_tipos_rep'
+            """, (schema,))
+
+            if cursor.fetchone()[0] > 0:
+                cursor.close()
+                return True
+
+            # Crear tabla dim_tipos_rep
+            print(f"  Creando tabla dim_tipos_rep en {schema}...")
+            cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {schema}.dim_tipos_rep (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    codigo VARCHAR(50),
+                    descripcion VARCHAR(255) NOT NULL,
+                    activo TINYINT DEFAULT 1,
+                    INDEX idx_codigo (codigo),
+                    INDEX idx_activo (activo)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            conn.commit()
+
+            # Poblar con datos iniciales
+            print(f"  Poblando dim_tipos_rep con datos iniciales...")
+            cursor.execute(f"""
+                INSERT INTO {schema}.dim_tipos_rep (codigo, descripcion, activo)
+                VALUES
+                    ('FUGA', 'Fuga', 1),
+                    ('ATASCO', 'Atasco', 1),
+                    ('OTROS', 'Otros', 1)
+                ON DUPLICATE KEY UPDATE
+                    descripcion = VALUES(descripcion),
+                    activo = VALUES(activo)
+            """)
+            conn.commit()
+
+            # Verificar si columna tipo_rep_id existe en tbl_partes
+            cursor.execute(f"""
+                SELECT COUNT(*)
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                  AND TABLE_NAME = 'tbl_partes'
+                  AND COLUMN_NAME = 'tipo_rep_id'
+            """, (schema,))
+
+            if cursor.fetchone()[0] == 0:
+                print(f"  Agregando columna tipo_rep_id a tbl_partes...")
+                cursor.execute(f"""
+                    ALTER TABLE {schema}.tbl_partes
+                    ADD COLUMN tipo_rep_id INT NULL,
+                    ADD FOREIGN KEY (tipo_rep_id) REFERENCES {schema}.dim_tipos_rep(id)
+                """)
+                conn.commit()
+
+            cursor.close()
+            print(f"✓ Tabla dim_tipos_rep creada exitosamente en {schema}")
+            return True
+
+    except Exception as e:
+        print(f"❌ Error al crear dim_tipos_rep: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     """
     Devuelve lista de 'id - texto' detectando automáticamente la columna de texto.
+    Si la tabla no existe, intenta crearla automáticamente (solo para dim_tipos_rep).
     """
     text_col = _guess_text_column(user, password, schema, table)
     if not text_col:
-        return []
+        # Si no se encuentra la columna, puede que la tabla no exista
+        if table == 'dim_tipos_rep':
+            print(f"⚠️  Tabla {table} no encontrada en {schema}. Intentando crearla...")
+            if _crear_dim_tipos_rep_si_no_existe(user, password, schema):
+                # Reintentar obtener la columna
+                text_col = _guess_text_column(user, password, schema, table)
+                if not text_col:
+                    print(f"❌ Error: No se pudo crear {table} correctamente")
+                    return []
+            else:
+                print(f"❌ Error: No se pudo crear {table}")
+                return []
+        else:
+            return []
+
     rows = []
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -75,8 +168,22 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
             for rid, txt in cur.fetchall():
                 rows.append(f"{rid} - {txt}")
             cur.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"⚠️  Error al cargar {table} desde {schema}: {str(e)}")
+        # Si es dim_tipos_rep y falla, intentar crearla
+        if table == 'dim_tipos_rep' and '1146' in str(e):  # Table doesn't exist
+            print(f"⚠️  Tabla {table} no existe. Intentando crearla...")
+            if _crear_dim_tipos_rep_si_no_existe(user, password, schema):
+                # Reintentar
+                try:
+                    with get_project_connection(user, password, schema) as cn:
+                        cur = cn.cursor()
+                        cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
+                        for rid, txt in cur.fetchall():
+                            rows.append(f"{rid} - {txt}")
+                        cur.close()
+                except Exception as e2:
+                    print(f"❌ Error después de crear {table}: {str(e2)}")
     return rows
 
 
