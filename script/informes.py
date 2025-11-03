@@ -8,10 +8,75 @@ from script.db_connection import get_project_connection
 from script.informes_config import INFORMES_DEFINICIONES
 
 
+def _detectar_columna_texto(user, password, schema, tabla_dimension):
+    """
+    Detecta automáticamente qué columna de texto usar para mostrar valores de una dimensión.
+
+    Estrategia:
+    1. Buscar por nombres comunes según el tipo de tabla
+    2. Si no encuentra, usar la primera columna VARCHAR/TEXT que no sea 'id'
+
+    Returns:
+        str: Nombre de la columna o None si no encuentra
+    """
+    try:
+        with get_project_connection(user, password, schema) as conn:
+            cursor = conn.cursor()
+
+            # Obtener todas las columnas de la tabla
+            cursor.execute(f"""
+                SELECT COLUMN_NAME, DATA_TYPE
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
+                ORDER BY ORDINAL_POSITION
+            """, (schema, tabla_dimension))
+
+            columnas = cursor.fetchall()
+            cursor.close()
+
+            if not columnas:
+                return None
+
+            # Mapeo de nombres comunes por tipo de tabla
+            nombres_comunes = {
+                'dim_provincias': ['nombre', 'provincia', 'descripcion'],
+                'dim_comarcas': ['comarca_nombre', 'nombre', 'comarca', 'descripcion'],
+                'dim_municipios': ['municipio_nombre', 'nombre', 'municipio', 'descripcion'],
+                'dim_red': ['descripcion', 'red_codigo', 'nombre'],
+                'dim_tipo_trabajo': ['descripcion', 'tipo_codigo', 'nombre'],
+                'dim_codigo_trabajo': ['descripcion', 'cod_trabajo', 'codigo', 'nombre']
+            }
+
+            # Obtener lista de nombres a buscar
+            nombres_a_buscar = nombres_comunes.get(tabla_dimension, ['descripcion', 'nombre'])
+
+            # 1. Buscar por nombres comunes
+            columnas_lower = {col[0].lower(): col[0] for col in columnas}
+            for nombre in nombres_a_buscar:
+                if nombre.lower() in columnas_lower:
+                    return columnas_lower[nombre.lower()]
+
+            # 2. Buscar la primera columna VARCHAR/TEXT que no sea 'id'
+            for col_name, col_type in columnas:
+                if col_name.lower() != 'id' and col_type.lower() in ('varchar', 'text', 'char', 'tinytext', 'mediumtext', 'longtext'):
+                    return col_name
+
+            # 3. Última opción: primera columna que no sea 'id'
+            for col_name, col_type in columnas:
+                if col_name.lower() != 'id':
+                    return col_name
+
+            return None
+
+    except Exception as e:
+        print(f"Error al detectar columna de texto para {tabla_dimension}: {e}")
+        return None
+
+
 def get_dimension_values(user, password, schema, tabla_dimension):
     """
     Obtiene todos los valores de una tabla de dimensión.
-    Detecta automáticamente si usa 'descripcion' o 'nombre' como columna de texto.
+    Detecta automáticamente la columna de texto correcta.
 
     Args:
         user: Usuario de BD
@@ -23,15 +88,15 @@ def get_dimension_values(user, password, schema, tabla_dimension):
         Lista de tuplas (id, texto)
     """
     try:
+        # Detectar la columna de texto correcta
+        campo_texto = _detectar_columna_texto(user, password, schema, tabla_dimension)
+
+        if not campo_texto:
+            print(f"No se pudo detectar columna de texto para {tabla_dimension}")
+            return []
+
         with get_project_connection(user, password, schema) as conn:
             cursor = conn.cursor()
-
-            # Detectar qué columna usar: 'descripcion' o 'nombre'
-            # Tablas geográficas usan 'nombre', otras usan 'descripcion'
-            if tabla_dimension in ['dim_provincias', 'dim_comarcas', 'dim_municipios']:
-                campo_texto = 'nombre'
-            else:
-                campo_texto = 'descripcion'
 
             # Query para obtener valores
             query = f"""
@@ -42,6 +107,7 @@ def get_dimension_values(user, password, schema, tabla_dimension):
 
             cursor.execute(query)
             result = cursor.fetchall()
+            cursor.close()
 
             return result if result else []
 
@@ -50,13 +116,16 @@ def get_dimension_values(user, password, schema, tabla_dimension):
         return []
 
 
-def build_filter_condition(filtro, definicion_informe):
+def build_filter_condition(filtro, definicion_informe, schema="", user="", password=""):
     """
     Construye una condición SQL para un filtro específico
 
     Args:
         filtro: Dict con {campo, operador, valor(es)}
         definicion_informe: Definición del informe desde INFORMES_DEFINICIONES
+        schema: Nombre del schema/proyecto
+        user: Usuario de BD (para detectar columnas de dimensiones)
+        password: Contraseña de BD (para detectar columnas de dimensiones)
 
     Returns:
         String con la condición SQL (ej: "estado = 'Pendiente'")
@@ -70,19 +139,52 @@ def build_filter_condition(filtro, definicion_informe):
     if not campo_def:
         return ""
 
-    # Obtener columna de BD
-    columna_bd = campo_def.get('columna_bd', campo_key)
+    # Obtener columna de BD o fórmula para campos calculados
     tipo_campo = campo_def.get('tipo', 'texto')
+    if tipo_campo == 'calculado':
+        # Reemplazar nombres de tablas en la fórmula con schema.tabla
+        formula = campo_def['formula']
+        tablas_a_reemplazar = [
+            'tbl_part_presupuesto',
+            'tbl_part_certificacion',
+            'tbl_partes',
+            'dim_ot',
+            'dim_red',
+            'dim_tipo_trabajo',
+            'dim_codigo_trabajo',
+            'dim_provincias',
+            'dim_comarcas',
+            'dim_municipios'
+        ]
+        for tabla in tablas_a_reemplazar:
+            formula = formula.replace(f"FROM {tabla}", f"FROM {schema}.{tabla}")
+        columna_bd = f"({formula})"
+    elif tipo_campo == 'dimension':
+        # Para dimensiones, detectar automáticamente la columna si tenemos credenciales
+        alias_dim = f"{campo_key}_dim"
+        tabla_dim = campo_def.get('tabla_dimension')
+
+        # Detectar columna automáticamente
+        if user and password and tabla_dim:
+            campo_nombre = _detectar_columna_texto(user, password, schema, tabla_dim)
+            if not campo_nombre:
+                campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+        else:
+            campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+
+        columna_bd = f"{alias_dim}.{campo_nombre}"
+    else:
+        columna_bd = f"p.{campo_def.get('columna_bd', campo_key)}"
 
     # Construir condición según operador y tipo
     if operador == "Igual a":
-        if tipo_campo in ['texto', 'dimension']:
+        if tipo_campo in ['texto', 'dimension', 'fecha']:
             return f"{columna_bd} = '{valor}'"
         else:
             return f"{columna_bd} = {valor}"
 
     elif operador == "Diferente de":
-        if tipo_campo in ['texto', 'dimension']:
+        if tipo_campo in ['texto', 'dimension', 'fecha']:
             return f"{columna_bd} != '{valor}'"
         else:
             return f"{columna_bd} != {valor}"
@@ -94,20 +196,37 @@ def build_filter_condition(filtro, definicion_informe):
         return f"{columna_bd} NOT LIKE '%{valor}%'"
 
     elif operador == "Mayor a":
-        return f"{columna_bd} > {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} > '{valor}'"
+        else:
+            return f"{columna_bd} > {valor}"
 
     elif operador == "Menor a":
-        return f"{columna_bd} < {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} < '{valor}'"
+        else:
+            return f"{columna_bd} < {valor}"
 
     elif operador == "Mayor o igual a":
-        return f"{columna_bd} >= {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} >= '{valor}'"
+        else:
+            return f"{columna_bd} >= {valor}"
 
     elif operador == "Menor o igual a":
-        return f"{columna_bd} <= {valor}"
+        if tipo_campo == 'fecha':
+            return f"{columna_bd} <= '{valor}'"
+        else:
+            return f"{columna_bd} <= {valor}"
 
     elif operador == "Entre":
         valor1, valor2 = valor  # Espera tupla (min, max)
-        return f"{columna_bd} BETWEEN {valor1} AND {valor2}"
+        # Para fechas y textos, necesitamos comillas
+        if tipo_campo in ['fecha', 'texto', 'dimension']:
+            return f"{columna_bd} BETWEEN '{valor1}' AND '{valor2}'"
+        else:
+            # Para numéricos, sin comillas
+            return f"{columna_bd} BETWEEN {valor1} AND {valor2}"
 
     elif operador == "Posterior a":
         return f"{columna_bd} > '{valor}'"
@@ -119,7 +238,7 @@ def build_filter_condition(filtro, definicion_informe):
         return ""
 
 
-def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None, schema=""):
+def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None, schema="", user="", password=""):
     """
     Construye un query SQL dinámico para un informe
 
@@ -129,6 +248,8 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
         clasificaciones: Lista de dicts con clasificaciones aplicadas
         campos_seleccionados: Lista de campos a mostrar
         schema: Nombre del schema/proyecto
+        user: Usuario de BD (necesario para detectar columnas de dimensiones)
+        password: Contraseña de BD (necesario para detectar columnas de dimensiones)
 
     Returns:
         String con el query SQL completo
@@ -145,8 +266,13 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
     if not campos_seleccionados:
         campos_seleccionados = definicion.get('campos_default', list(campos_def.keys()))
 
+    # Cachear la detección de columnas de dimensiones
+    dimension_columns_cache = {}
+
     # ========== CONSTRUIR SELECT ==========
     select_parts = []
+    tabla_alias = "p"  # Alias de la tabla principal
+
     for campo_key in campos_seleccionados:
         campo = campos_def.get(campo_key)
         if not campo:
@@ -154,24 +280,78 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
         if campo['tipo'] == 'calculado':
             # Campo calculado (ej: Pendiente = Presupuesto - Certificado)
-            select_parts.append(f"({campo['formula']}) AS {campo_key}")
+            # Reemplazar nombres de tablas en la fórmula con schema.tabla
+            formula = campo['formula']
+            # Reemplazar referencias a tablas comunes con schema.tabla
+            tablas_a_reemplazar = [
+                'tbl_part_presupuesto',
+                'tbl_part_certificacion',
+                'tbl_partes',
+                'dim_ot',
+                'dim_red',
+                'dim_tipo_trabajo',
+                'dim_codigo_trabajo',
+                'dim_provincias',
+                'dim_comarcas',
+                'dim_municipios'
+            ]
+            for tabla in tablas_a_reemplazar:
+                # Reemplazar "FROM tabla" con "FROM schema.tabla"
+                formula = formula.replace(f"FROM {tabla}", f"FROM {schema}.{tabla}")
+            select_parts.append(f"({formula}) AS {campo_key}")
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión (hacer JOIN)
             tabla_dim = campo['tabla_dimension']
-            campo_nombre = campo.get('campo_nombre', 'descripcion')
             alias_dim = f"{campo_key}_dim"
+
+            # Detectar automáticamente la columna correcta si tenemos credenciales
+            if user and password and tabla_dim not in dimension_columns_cache:
+                dimension_columns_cache[tabla_dim] = _detectar_columna_texto(user, password, schema, tabla_dim)
+
+            # Usar la columna detectada o la especificada en config
+            if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                campo_nombre = dimension_columns_cache[tabla_dim]
+            else:
+                campo_nombre = campo.get('campo_nombre', 'descripcion')
+
             select_parts.append(f"{alias_dim}.{campo_nombre} AS {campo_key}")
         else:
-            # Campo directo
-            select_parts.append(f"p.{campo['columna_bd']} AS {campo_key}")
+            # Campo directo - usar alias de tabla
+            select_parts.append(f"{tabla_alias}.{campo['columna_bd']} AS {campo_key}")
 
     select_clause = "SELECT " + ", ".join(select_parts)
+
+    # ========== RECOPILAR DIMENSIONES NECESARIAS ==========
+    # Necesitamos JOINs para dimensiones usadas en SELECT y también en filtros
+    dimensiones_necesarias = set()
+
+    # 1. Dimensiones de campos seleccionados
+    for campo_key in campos_seleccionados:
+        campo = campos_def.get(campo_key)
+        if campo and campo['tipo'] == 'dimension':
+            dimensiones_necesarias.add(campo_key)
+
+    # 2. Dimensiones usadas en filtros
+    if filtros:
+        for filtro in filtros:
+            campo_key = filtro.get('campo')
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
+
+    # 3. Dimensiones usadas en clasificaciones
+    if clasificaciones:
+        for clasif in clasificaciones:
+            campo_key = clasif.get('campo')
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
 
     # ========== CONSTRUIR FROM + JOINS ==========
     from_clause = f"FROM {schema}.{tabla_principal} p"
 
-    # Añadir JOINs para dimensiones
-    for campo_key in campos_seleccionados:
+    # Añadir JOINs para TODAS las dimensiones necesarias
+    for campo_key in dimensiones_necesarias:
         campo = campos_def.get(campo_key)
         if campo and campo['tipo'] == 'dimension':
             tabla_dim = campo['tabla_dimension']
@@ -184,14 +364,25 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
     if filtros:
         for filtro in filtros:
-            condicion = build_filter_condition(filtro, definicion)
+            condicion = build_filter_condition(filtro, definicion, schema, user, password)
             if condicion:
-                where_conditions.append(condicion)
+                where_conditions.append((condicion, filtro))
 
     where_clause = ""
     if where_conditions:
-        # TODO: Implementar lógica AND/OR según configuración
-        where_clause = "WHERE " + " AND ".join(where_conditions)
+        # Construir WHERE con lógica AND/OR personalizada
+        where_parts = []
+        for i, (condicion, filtro) in enumerate(where_conditions):
+            if i == 0:
+                # Primera condición, no lleva operador lógico antes
+                where_parts.append(condicion)
+            else:
+                # Condiciones siguientes, usar la lógica del filtro
+                logica = filtro.get('logica', 'Y')  # Por defecto 'Y' (AND)
+                operador_sql = 'AND' if logica == 'Y' else 'OR'
+                where_parts.append(f"{operador_sql} {condicion}")
+
+        where_clause = "WHERE " + " ".join(where_parts)
 
     # ========== CONSTRUIR ORDER BY ==========
     order_by_clause = ""
@@ -206,11 +397,27 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
             if campo:
                 if campo['tipo'] == 'dimension':
                     alias_dim = f"{campo_key}_dim"
-                    campo_nombre = campo.get('campo_nombre', 'descripcion')
+                    tabla_dim = campo.get('tabla_dimension')
+
+                    # Detectar columna automáticamente
+                    if user and password and tabla_dim and tabla_dim in dimension_columns_cache:
+                        campo_nombre = dimension_columns_cache[tabla_dim]
+                    elif user and password and tabla_dim:
+                        campo_nombre = _detectar_columna_texto(user, password, schema, tabla_dim)
+                        if campo_nombre:
+                            dimension_columns_cache[tabla_dim] = campo_nombre
+                        else:
+                            campo_nombre = campo.get('campo_nombre', 'descripcion')
+                    else:
+                        campo_nombre = campo.get('campo_nombre', 'descripcion')
+
                     order_parts.append(f"{alias_dim}.{campo_nombre} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                elif campo['tipo'] == 'calculado':
+                    # Para campos calculados, usar el alias del campo en el SELECT
+                    order_parts.append(f"{campo_key} {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 else:
                     columna = campo.get('columna_bd', campo_key)
-                    order_parts.append(f"p.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                    order_parts.append(f"{tabla_alias}.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
 
         if order_parts:
             order_by_clause = "ORDER BY " + ", ".join(order_parts)
@@ -227,7 +434,7 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
 
 def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None):
     """
-    Ejecuta un informe y devuelve los datos
+    Ejecuta un informe y devuelve los datos con totales
 
     Args:
         user: Usuario de BD
@@ -239,19 +446,24 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         campos_seleccionados: Lista de campos a mostrar
 
     Returns:
-        Tuple (columnas, datos)
+        Tuple (columnas, datos, totales)
         - columnas: Lista de nombres de columnas
         - datos: Lista de tuplas con los datos
+        - totales: Dict con totales por columna totalizable {nombre_col: total}
     """
     try:
-        # Construir query
-        query = build_query(informe_nombre, filtros, clasificaciones, campos_seleccionados, schema)
+        # Construir query (pasando user y password para detectar columnas de dimensiones)
+        query = build_query(informe_nombre, filtros, clasificaciones, campos_seleccionados, schema, user, password)
 
         print(f"\n{'='*60}")
         print(f"QUERY GENERADO PARA INFORME: {informe_nombre}")
         print(f"{'='*60}")
         print(query)
         print(f"{'='*60}\n")
+
+        # Obtener definición del informe para identificar campos totalizables
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Ejecutar query
         with get_project_connection(user, password, schema) as conn:
@@ -264,10 +476,30 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
             # Obtener datos
             datos = cursor.fetchall()
 
-            return columnas, datos
+            # Calcular totales para campos totalizables (numéricos, moneda)
+            totales = {}
+            if datos and campos_seleccionados:
+                for i, col_name in enumerate(columnas):
+                    # Buscar la definición del campo
+                    campo_def = campos_def.get(col_name)
+                    if campo_def:
+                        formato = campo_def.get('formato', '')
+                        tipo = campo_def.get('tipo', '')
+
+                        # Solo totalizar campos numéricos o de moneda
+                        if formato in ['moneda', 'numerico'] or tipo in ['numerico', 'calculado']:
+                            try:
+                                # Calcular suma de la columna
+                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in datos)
+                                totales[col_name] = total
+                            except (ValueError, TypeError):
+                                # Si no se puede convertir a número, omitir
+                                pass
+
+            return columnas, datos, totales
 
     except Exception as e:
         print(f"Error al ejecutar informe: {e}")
         import traceback
         traceback.print_exc()
-        return [], []
+        return [], [], {}

@@ -6,9 +6,11 @@ Generación de informes personalizados con filtros multicriterio
 
 import customtkinter
 from tkinter import ttk, filedialog
+from tkcalendar import DateEntry
 from PIL import Image
 import os
 import sys
+import datetime
 
 # Agregar el directorio padre al path para imports
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -31,6 +33,7 @@ from script.informes_config import (
     CONFIG_CABECERA_DEFAULT
 )
 from script.informes import get_dimension_values, ejecutar_informe
+from script.informes_storage import InformesConfigStorage
 
 
 class InformesFrame(customtkinter.CTkFrame):
@@ -50,6 +53,9 @@ class InformesFrame(customtkinter.CTkFrame):
         self.clasificaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
+
+        # Gestor de almacenamiento de configuraciones
+        self.storage = InformesConfigStorage()
 
         # Configurar grid - Header compacto + contenido principal + action bar
         self.grid_columnconfigure(0, weight=0)  # Panel izquierdo fijo
@@ -509,6 +515,28 @@ class InformesFrame(customtkinter.CTkFrame):
         buttons_frame.grid(row=0, column=0)
 
         # Botones
+        save_config_btn = customtkinter.CTkButton(
+            buttons_frame,
+            text="💾 Guardar Config",
+            width=130,
+            height=35,
+            fg_color="#2B5797",
+            hover_color="#1E3F6B",
+            command=self._guardar_configuracion
+        )
+        save_config_btn.grid(row=0, column=0, padx=5)
+
+        load_config_btn = customtkinter.CTkButton(
+            buttons_frame,
+            text="📂 Cargar Config",
+            width=130,
+            height=35,
+            fg_color="#2B5797",
+            hover_color="#1E3F6B",
+            command=self._cargar_configuracion
+        )
+        load_config_btn.grid(row=0, column=1, padx=5)
+
         preview_btn = customtkinter.CTkButton(
             buttons_frame,
             text="👁️ Previsualizar",
@@ -516,7 +544,7 @@ class InformesFrame(customtkinter.CTkFrame):
             height=35,
             command=self._preview_report
         )
-        preview_btn.grid(row=0, column=0, padx=5)
+        preview_btn.grid(row=0, column=2, padx=5)
 
         word_btn = customtkinter.CTkButton(
             buttons_frame,
@@ -525,7 +553,7 @@ class InformesFrame(customtkinter.CTkFrame):
             height=35,
             command=self._export_word
         )
-        word_btn.grid(row=0, column=1, padx=5)
+        word_btn.grid(row=0, column=3, padx=5)
 
         excel_btn = customtkinter.CTkButton(
             buttons_frame,
@@ -534,7 +562,7 @@ class InformesFrame(customtkinter.CTkFrame):
             height=35,
             command=self._export_excel
         )
-        excel_btn.grid(row=0, column=2, padx=5)
+        excel_btn.grid(row=0, column=4, padx=5)
 
         pdf_btn = customtkinter.CTkButton(
             buttons_frame,
@@ -543,7 +571,7 @@ class InformesFrame(customtkinter.CTkFrame):
             height=35,
             command=self._export_pdf
         )
-        pdf_btn.grid(row=0, column=3, padx=5)
+        pdf_btn.grid(row=0, column=5, padx=5)
 
         print_btn = customtkinter.CTkButton(
             buttons_frame,
@@ -552,7 +580,7 @@ class InformesFrame(customtkinter.CTkFrame):
             height=35,
             command=self._print_report
         )
-        print_btn.grid(row=0, column=4, padx=5)
+        print_btn.grid(row=0, column=6, padx=5)
 
     def _add_clasificacion(self):
         """Añade un nuevo selector de clasificación dinámico"""
@@ -792,9 +820,87 @@ class InformesFrame(customtkinter.CTkFrame):
         self._update_valor_widget(filtro_obj, filtro_config)
 
     def _on_filtro_operador_change(self, filtro_obj, operador):
-        """Maneja el cambio de operador (por si necesita ajustar el widget de valor)"""
-        # Por ahora no hace nada especial, pero podría usarse para casos como "Entre"
-        pass
+        """Maneja el cambio de operador (ajusta el widget de valor para casos especiales como 'Entre')"""
+        # Si el operador es "Entre", mostrar dos campos de entrada
+        if operador == "Entre":
+            self._create_range_widget(filtro_obj)
+        else:
+            # Para otros operadores, usar el widget normal según el tipo de filtro
+            if filtro_obj.get('tipo_actual') and self.definicion_actual:
+                filtros_disponibles = self.definicion_actual.get('filtros', {})
+                campo_key = filtro_obj.get('campo_actual')
+
+                for fkey, fconfig in filtros_disponibles.items():
+                    if fconfig['campo'] == campo_key:
+                        self._update_valor_widget(filtro_obj, fconfig)
+                        break
+
+    def _create_range_widget(self, filtro_obj):
+        """Crea dos campos de entrada para el operador 'Entre'"""
+        # Destruir widget actual
+        if filtro_obj.get('valor_widget'):
+            filtro_obj['valor_widget'].destroy()
+        if filtro_obj.get('valor_widget2'):
+            filtro_obj['valor_widget2'].destroy()
+
+        # Frame para contener ambos campos
+        range_frame = customtkinter.CTkFrame(filtro_obj['container'], fg_color="transparent")
+        range_frame.grid(row=0, column=7, sticky="w", padx=(0, 10))
+
+        # Detectar si es un campo de fecha
+        tipo_actual = filtro_obj.get('tipo_actual')
+
+        if tipo_actual == 'fecha':
+            # Para fechas, usar DateEntry
+            widget1 = DateEntry(
+                range_frame,
+                width=11,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
+            )
+            widget1.grid(row=0, column=0, padx=(0, 5))
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = DateEntry(
+                range_frame,
+                width=11,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
+            )
+            widget2.grid(row=0, column=2)
+        else:
+            # Para numéricos, usar Entry normal
+            widget1 = customtkinter.CTkEntry(
+                range_frame,
+                width=70,
+                placeholder_text="Min..."
+            )
+            widget1.grid(row=0, column=0, padx=(0, 5))
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = customtkinter.CTkEntry(
+                range_frame,
+                width=70,
+                placeholder_text="Max..."
+            )
+            widget2.grid(row=0, column=2)
+
+        # Guardar ambos widgets
+        filtro_obj['valor_widget'] = widget1
+        filtro_obj['valor_widget2'] = widget2
+        filtro_obj['is_range'] = True
 
     def _update_valor_widget(self, filtro_obj, filtro_config):
         """Actualiza el widget de valor según el tipo de filtro"""
@@ -833,11 +939,15 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
         elif tipo == 'fecha':
-            # Entry de fecha (formato YYYY-MM-DD)
-            widget = customtkinter.CTkEntry(
+            # DateEntry - selector de calendario
+            widget = DateEntry(
                 filtro_obj['container'],
-                width=150,
-                placeholder_text="YYYY-MM-DD"
+                width=18,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                locale='es_ES'
             )
 
         else:
@@ -1037,20 +1147,52 @@ class InformesFrame(customtkinter.CTkFrame):
             valor_widget = filtro_obj['valor_widget']
 
             # Obtener valor según tipo de widget
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    # Obtener valor según tipo de widget
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    # Para "Entre", pasar tupla (min, max)
+                    valor = (valor1, valor2)
+                else:
+                    continue
             else:
-                valor = ""
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
 
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1089,7 +1231,7 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"{'='*70}\n")
 
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1101,7 +1243,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
             # Mostrar resultados
             if datos:
-                self._show_results_window(columnas, datos)
+                self._show_results_window(columnas, datos, totales)
             else:
                 CTkMessagebox(
                     title="Resultado",
@@ -1120,7 +1262,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 icon="cancel"
             )
 
-    def _show_results_window(self, columnas, datos):
+    def _show_results_window(self, columnas, datos, totales=None):
         """Muestra una ventana con los resultados del informe"""
         # Crear ventana toplevel
         results_window = customtkinter.CTkToplevel(self)
@@ -1183,6 +1325,27 @@ class InformesFrame(customtkinter.CTkFrame):
         for fila in datos:
             tree.insert("", "end", values=fila)
 
+        # Insertar fila de totales si hay totales y la opción está activada
+        if totales and self.totales_var.get():
+            # Crear fila de totales
+            fila_totales = []
+            for i, col in enumerate(columnas):
+                if col in totales:
+                    # Formatear el total según sea moneda o número
+                    valor = totales[col]
+                    fila_totales.append(f"{valor:,.2f} €" if valor else "0.00 €")
+                elif i == 0:
+                    # Primera columna: texto "TOTAL"
+                    fila_totales.append("═══ TOTAL ═══")
+                else:
+                    # Otras columnas: vacío
+                    fila_totales.append("")
+
+            # Insertar fila de totales con tag especial
+            total_item = tree.insert("", "end", values=fila_totales, tags=('total',))
+            # Configurar estilo para fila de totales
+            tree.tag_configure('total', background='#4472C4', foreground='white', font=('TkDefaultFont', 10, 'bold'))
+
         # Botón cerrar
         close_btn = customtkinter.CTkButton(
             main_frame,
@@ -1192,10 +1355,17 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         close_btn.grid(row=2, column=0, columnspan=2, pady=(0, 5))
 
-        # Centrar ventana
+        # Asegurar que la ventana se muestre al frente
+        results_window.transient(self)  # Hacer ventana dependiente de la principal
         results_window.update_idletasks()
+
+        # Forzar que aparezca al frente (especialmente en Windows)
+        results_window.attributes('-topmost', True)
         results_window.lift()
-        results_window.focus()
+        results_window.focus_force()
+
+        # Después de 100ms, quitar el "siempre encima" para permitir navegación normal
+        results_window.after(100, lambda: results_window.attributes('-topmost', False))
 
     def _export_word(self):
         """Exporta el informe a formato Word (.docx)"""
@@ -1240,10 +1410,16 @@ class InformesFrame(customtkinter.CTkFrame):
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1275,7 +1451,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1447,20 +1623,52 @@ class InformesFrame(customtkinter.CTkFrame):
             valor_widget = filtro_obj['valor_widget']
 
             # Obtener valor según tipo de widget
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    # Obtener valor según tipo de widget
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    # Para "Entre", pasar tupla (min, max)
+                    valor = (valor1, valor2)
+                else:
+                    continue
             else:
-                valor = ""
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
 
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1492,7 +1700,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1680,10 +1888,16 @@ class InformesFrame(customtkinter.CTkFrame):
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
 
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
             filtros_aplicados.append({
                 'campo': campo_actual,
                 'operador': operador,
-                'valor': valor
+                'valor': valor,
+                'logica': logica
             })
 
         # Recopilar clasificaciones aplicadas
@@ -1715,7 +1929,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos = ejecutar_informe(
+            columnas, datos, totales = ejecutar_informe(
                 self.user,
                 self.password,
                 self.schema,
@@ -1922,3 +2136,494 @@ class InformesFrame(customtkinter.CTkFrame):
                     f"Informe seleccionado: {self.informe_seleccionado}",
             icon="info"
         )
+
+    def _guardar_configuracion(self):
+        """Guarda la configuración actual del informe"""
+        from CTkMessagebox import CTkMessagebox
+        import tkinter as tk
+        
+        # Validar que hay algo que guardar
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione un informe primero.",
+                icon="warning"
+            )
+            return
+        
+        # Recopilar configuración actual
+        filtros_aplicados = self._recopilar_filtros()
+        clasificaciones_aplicadas = self._recopilar_clasificaciones()
+        campos_seleccionados_list = self._recopilar_campos()
+        
+        # Crear ventana de diálogo para nombrar la configuración
+        dialog = customtkinter.CTkToplevel(self)
+        dialog.title("Guardar Configuración")
+        dialog.geometry("500x250")
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Frame principal
+        frame = customtkinter.CTkFrame(dialog)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Título
+        title_label = customtkinter.CTkLabel(
+            frame,
+            text="💾 Guardar Configuración de Informe",
+            font=customtkinter.CTkFont(size=14, weight="bold")
+        )
+        title_label.pack(pady=(0, 15))
+        
+        # Nombre
+        nombre_label = customtkinter.CTkLabel(frame, text="Nombre de la configuración:")
+        nombre_label.pack(anchor="w", pady=(0, 5))
+        
+        nombre_entry = customtkinter.CTkEntry(frame, width=400, placeholder_text="Ej: Partes En Curso por OT")
+        nombre_entry.pack(pady=(0, 10))
+        nombre_entry.focus()
+        
+        # Descripción
+        desc_label = customtkinter.CTkLabel(frame, text="Descripción (opcional):")
+        desc_label.pack(anchor="w", pady=(0, 5))
+        
+        desc_entry = customtkinter.CTkEntry(frame, width=400, placeholder_text="Ej: Muestra partes en curso agrupados por OT")
+        desc_entry.pack(pady=(0, 20))
+        
+        def guardar():
+            nombre = nombre_entry.get().strip()
+            if not nombre:
+                CTkMessagebox(
+                    title="Error",
+                    message="El nombre es obligatorio.",
+                    icon="cancel"
+                )
+                return
+            
+            descripcion = desc_entry.get().strip()
+            
+            # Guardar
+            exito = self.storage.guardar_configuracion(
+                nombre=nombre,
+                informe_nombre=self.informe_seleccionado,
+                filtros=filtros_aplicados,
+                clasificaciones=clasificaciones_aplicadas,
+                campos_seleccionados=campos_seleccionados_list,
+                descripcion=descripcion
+            )
+            
+            if exito:
+                CTkMessagebox(
+                    title="Éxito",
+                    message=f"Configuración '{nombre}' guardada correctamente.",
+                    icon="check"
+                )
+                dialog.destroy()
+            else:
+                CTkMessagebox(
+                    title="Error",
+                    message="No se pudo guardar la configuración.",
+                    icon="cancel"
+                )
+        
+        # Botones
+        buttons_frame = customtkinter.CTkFrame(frame, fg_color="transparent")
+        buttons_frame.pack()
+        
+        guardar_btn = customtkinter.CTkButton(
+            buttons_frame,
+            text="Guardar",
+            width=120,
+            command=guardar
+        )
+        guardar_btn.pack(side="left", padx=5)
+        
+        cancelar_btn = customtkinter.CTkButton(
+            buttons_frame,
+            text="Cancelar",
+            width=120,
+            fg_color="gray",
+            command=dialog.destroy
+        )
+        cancelar_btn.pack(side="left", padx=5)
+        
+        # Centrar ventana
+        dialog.update_idletasks()
+        dialog.attributes('-topmost', True)
+        dialog.lift()
+        dialog.focus_force()
+        dialog.after(100, lambda: dialog.attributes('-topmost', False))
+    
+    def _cargar_configuracion(self):
+        """Carga una configuración guardada"""
+        from CTkMessagebox import CTkMessagebox
+        
+        # Listar configuraciones disponibles
+        configuraciones = self.storage.listar_configuraciones()
+        
+        if not configuraciones:
+            CTkMessagebox(
+                title="Aviso",
+                message="No hay configuraciones guardadas.\n\nGuarde una configuración primero usando el botón '💾 Guardar Config'.",
+                icon="info"
+            )
+            return
+        
+        # Crear ventana de diálogo para seleccionar configuración
+        dialog = customtkinter.CTkToplevel(self)
+        dialog.title("Cargar Configuración")
+        dialog.geometry("700x500")
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        # Frame principal
+        frame = customtkinter.CTkFrame(dialog)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Título
+        title_label = customtkinter.CTkLabel(
+            frame,
+            text="📂 Cargar Configuración de Informe",
+            font=customtkinter.CTkFont(size=14, weight="bold")
+        )
+        title_label.pack(pady=(0, 15))
+        
+        # Información
+        info_label = customtkinter.CTkLabel(
+            frame,
+            text=f"Se encontraron {len(configuraciones)} configuraciones guardadas:",
+            font=customtkinter.CTkFont(size=11)
+        )
+        info_label.pack(pady=(0, 10))
+        
+        # Frame scrollable para lista
+        list_frame = customtkinter.CTkScrollableFrame(frame, height=300)
+        list_frame.pack(fill="both", expand=True, pady=(0, 15))
+        
+        selected_config = {"name": None}
+        
+        def seleccionar(nombre):
+            selected_config["name"] = nombre
+            cargar()
+        
+        # Listar configuraciones
+        for i, config in enumerate(configuraciones):
+            config_frame = customtkinter.CTkFrame(list_frame)
+            config_frame.pack(fill="x", pady=5, padx=5)
+            
+            # Info de la configuración
+            info_text = f"📋 {config['nombre']}\n"
+            info_text += f"   Informe: {config['informe_base']}\n"
+            if config['descripcion']:
+                info_text += f"   Descripción: {config['descripcion']}\n"
+            info_text += f"   Filtros: {config['num_filtros']} | Clasificaciones: {config['num_clasificaciones']} | Campos: {config['num_campos']}\n"
+            info_text += f"   Guardado: {config['fecha_creacion'][:10]}"
+            
+            label = customtkinter.CTkLabel(
+                config_frame,
+                text=info_text,
+                justify="left",
+                anchor="w"
+            )
+            label.pack(side="left", fill="x", expand=True, padx=10, pady=10)
+            
+            btn_frame = customtkinter.CTkFrame(config_frame, fg_color="transparent")
+            btn_frame.pack(side="right", padx=10)
+            
+            cargar_btn = customtkinter.CTkButton(
+                btn_frame,
+                text="Cargar",
+                width=80,
+                command=lambda n=config['nombre']: seleccionar(n)
+            )
+            cargar_btn.pack(side="left", padx=2)
+            
+            eliminar_btn = customtkinter.CTkButton(
+                btn_frame,
+                text="🗑️",
+                width=40,
+                fg_color="darkred",
+                hover_color="red",
+                command=lambda n=config['nombre']: eliminar_config(n)
+            )
+            eliminar_btn.pack(side="left", padx=2)
+        
+        def cargar():
+            nombre = selected_config["name"]
+            if not nombre:
+                return
+            
+            config = self.storage.cargar_configuracion(nombre)
+            if not config:
+                CTkMessagebox(
+                    title="Error",
+                    message="No se pudo cargar la configuración.",
+                    icon="cancel"
+                )
+                return
+            
+            # Aplicar configuración
+            self._aplicar_configuracion(config)
+            
+            CTkMessagebox(
+                title="Éxito",
+                message=f"Configuración '{nombre}' cargada correctamente.",
+                icon="check"
+            )
+            dialog.destroy()
+        
+        def eliminar_config(nombre):
+            respuesta = CTkMessagebox(
+                title="Confirmar",
+                message=f"¿Está seguro de eliminar la configuración '{nombre}'?",
+                icon="question",
+                option_1="Cancelar",
+                option_2="Eliminar"
+            )
+            
+            if respuesta.get() == "Eliminar":
+                if self.storage.eliminar_configuracion(nombre):
+                    CTkMessagebox(
+                        title="Éxito",
+                        message=f"Configuración '{nombre}' eliminada.",
+                        icon="check"
+                    )
+                    dialog.destroy()
+                    # Reabrir diálogo actualizado
+                    self._cargar_configuracion()
+        
+        # Botón cerrar
+        cancelar_btn = customtkinter.CTkButton(
+            frame,
+            text="Cerrar",
+            width=120,
+            fg_color="gray",
+            command=dialog.destroy
+        )
+        cancelar_btn.pack()
+        
+        # Centrar ventana
+        dialog.update_idletasks()
+        dialog.attributes('-topmost', True)
+        dialog.lift()
+        dialog.focus_force()
+        dialog.after(100, lambda: dialog.attributes('-topmost', False))
+    
+    def _recopilar_filtros(self):
+        """Recopila los filtros actuales"""
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+            
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+            
+            # Obtener valor según tipo de widget
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+                
+                if widget1 and widget2:
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+                    
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
+                    
+                    if not valor1 or not valor2:
+                        continue
+                    
+                    valor = (valor1, valor2)
+                else:
+                    continue
+            else:
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
+            
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+            
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+            
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor,
+                'logica': logica
+            })
+        
+        return filtros_aplicados
+    
+    def _recopilar_clasificaciones(self):
+        """Recopila las clasificaciones actuales"""
+        clasificaciones_aplicadas = []
+        for clasif_obj in self.clasificaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+            
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+            
+            clasificaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+        
+        return clasificaciones_aplicadas
+    
+    def _recopilar_campos(self):
+        """Recopila los campos seleccionados"""
+        return [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+    
+    def _aplicar_configuracion(self, config):
+        """Aplica una configuración cargada"""
+        # Limpiar estado actual
+        self._clear_all_filtros()
+        self._clear_all_clasificaciones()
+
+        # Seleccionar informe base
+        informe_base = config.get('informe_base')
+        if informe_base:
+            self.informe_seleccionado = informe_base
+            self.definicion_actual = INFORMES_DEFINICIONES.get(informe_base)
+
+            # Actualizar título
+            if self.definicion_actual:
+                titulo = f"Informe seleccionado: {informe_base}"
+                descripcion = self.definicion_actual.get('descripcion', '')
+                if descripcion:
+                    titulo += f" ({descripcion})"
+                self.informe_title_label.configure(text=titulo, text_color="white")
+
+        # Cargar campos disponibles
+        self._update_campos_disponibles()
+
+        # Aplicar campos seleccionados
+        campos_config = config.get('campos_seleccionados', [])
+        for campo_key, var in self.campos_seleccionados.items():
+            var.set(campo_key in campos_config)
+
+        # Aplicar filtros
+        filtros_config = config.get('filtros', [])
+        for i, filtro_data in enumerate(filtros_config):
+            self._add_filtro()
+            if i < len(self.filtros):
+                self._configurar_filtro(self.filtros[i], filtro_data)
+
+        # Aplicar clasificaciones
+        clasifs_config = config.get('clasificaciones', [])
+        for i, clasif_data in enumerate(clasifs_config):
+            self._add_clasificacion()
+            if i < len(self.clasificaciones):
+                self._configurar_clasificacion(self.clasificaciones[i], clasif_data)
+
+    def _configurar_filtro(self, filtro_obj, filtro_data):
+        """Configura un filtro con los datos guardados"""
+        if not self.definicion_actual:
+            return
+
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # 1. Configurar lógica (Y/O) si no es el primero
+        if filtro_obj['logica_combo'] and 'logica' in filtro_data:
+            filtro_obj['logica_combo'].set(filtro_data['logica'])
+
+        # 2. Configurar campo
+        campo_key = filtro_data.get('campo')
+        if campo_key and campo_key in campos_def:
+            campo_nombre = campos_def[campo_key]['nombre']
+            filtro_obj['campo_combo'].set(campo_nombre)
+            self._on_filtro_campo_change(filtro_obj, campo_nombre)
+
+            # 3. Configurar operador
+            operador = filtro_data.get('operador')
+            if operador:
+                filtro_obj['operador_combo'].set(operador)
+                self._on_filtro_operador_change(filtro_obj, operador)
+
+                # 4. Configurar valor
+                valor = filtro_data.get('valor')
+                if valor is not None:
+                    # Esperar un momento para que se cree el widget
+                    self.after(100, lambda: self._set_filtro_valor(filtro_obj, operador, valor))
+
+    def _set_filtro_valor(self, filtro_obj, operador, valor):
+        """Establece el valor de un filtro según su tipo"""
+        if operador == "Entre" and isinstance(valor, (list, tuple)) and len(valor) == 2:
+            # Valor de rango (min, max)
+            widget1 = filtro_obj.get('valor_widget')
+            widget2 = filtro_obj.get('valor_widget2')
+
+            if widget1 and widget2:
+                if isinstance(widget1, DateEntry):
+                    # Para DateEntry, usar set_date
+                    try:
+                        from datetime import datetime
+                        fecha1 = datetime.strptime(valor[0], '%Y-%m-%d')
+                        widget1.set_date(fecha1)
+                    except:
+                        pass
+                else:
+                    # Para Entry, usar insert
+                    widget1.delete(0, 'end')
+                    widget1.insert(0, str(valor[0]))
+
+                if isinstance(widget2, DateEntry):
+                    try:
+                        from datetime import datetime
+                        fecha2 = datetime.strptime(valor[1], '%Y-%m-%d')
+                        widget2.set_date(fecha2)
+                    except:
+                        pass
+                else:
+                    widget2.delete(0, 'end')
+                    widget2.insert(0, str(valor[1]))
+        else:
+            # Valor simple
+            widget = filtro_obj.get('valor_widget')
+            if widget:
+                if isinstance(widget, customtkinter.CTkComboBox):
+                    widget.set(str(valor))
+                elif isinstance(widget, DateEntry):
+                    try:
+                        from datetime import datetime
+                        fecha = datetime.strptime(valor, '%Y-%m-%d')
+                        widget.set_date(fecha)
+                    except:
+                        pass
+                elif isinstance(widget, customtkinter.CTkEntry):
+                    widget.delete(0, 'end')
+                    widget.insert(0, str(valor))
+
+    def _configurar_clasificacion(self, clasif_obj, clasif_data):
+        """Configura una clasificación con los datos guardados"""
+        if not self.definicion_actual:
+            return
+
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # 1. Configurar campo
+        campo_key = clasif_data.get('campo')
+        if campo_key and campo_key in campos_def:
+            campo_nombre = campos_def[campo_key]['nombre']
+            clasif_obj['var_combo'].set(campo_nombre)
+            self._on_clasificacion_campo_change(clasif_obj, campo_nombre)
+
+        # 2. Configurar orden
+        orden = clasif_data.get('orden', 'Ascendente')
+        if clasif_obj['orden_combo']:
+            clasif_obj['orden_combo'].set(orden)

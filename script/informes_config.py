@@ -126,22 +126,22 @@ INFORMES_DEFINICIONES = {
             },
             "presupuesto": {
                 "nombre": "Presupuesto",
-                "tipo": "numerico",
-                "columna_bd": "presupuesto",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
             "certificado": {
                 "nombre": "Certificado",
-                "tipo": "numerico",
-                "columna_bd": "certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
             "pendiente": {
                 "nombre": "Pendiente",
                 "tipo": "calculado",
-                "formula": "presupuesto - certificado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
