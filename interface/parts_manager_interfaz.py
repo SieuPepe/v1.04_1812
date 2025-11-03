@@ -698,7 +698,7 @@ class AppPartsManager(customtkinter.CTk):
         try:
             parte_data = get_parte_detail(self.user, self.password, self.schema, parte_id)
             if not parte_data:
-                customtkinter.CTkLabel(main_frame, text="❌ No se encontró el parte").pack(pady=20)
+                customtkinter.CTkLabel(main_frame, text="❌ No se encontró el parte").grid(row=0, column=0, pady=20)
                 return
 
             dims = get_dim_all(self.user, self.password, self.schema)
@@ -1005,7 +1005,7 @@ class AppPartsManager(customtkinter.CTk):
         except Exception as e:
             import traceback
             print(f"ERROR:\n{traceback.format_exc()}")
-            customtkinter.CTkLabel(main_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(main_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _mark_as_changed(self, *args):
         """Marca que hay cambios pendientes y habilita el botón guardar"""
@@ -1304,7 +1304,7 @@ class AppPartsManager(customtkinter.CTk):
                                    font=("", 16, "bold"), text_color="#4CAF50").pack(side="left")
 
         except Exception as e:
-            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _load_certificaciones_tab(self, parte_id):
         """Carga la pestaña de Certificaciones (solo lectura)"""
@@ -1394,7 +1394,7 @@ class AppPartsManager(customtkinter.CTk):
                                    font=("", 16, "bold"), text_color="#2196F3").pack(side="left")
 
         except Exception as e:
-            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _save_parte_changes(self, parte_id):
         """Guarda los cambios del parte"""

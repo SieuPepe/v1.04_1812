@@ -665,7 +665,7 @@ def get_part_cert_certificadas(user: str, password: str, schema: str, parte_id: 
             cur.execute("""
                 SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
                        cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
-                       certificada, ot, red, tipo, cod_trabajo, creado_en
+                       certificada, red, tipo, cod_trabajo, creado_en
                 FROM vw_part_certificaciones
                 WHERE parte_id = %s AND certificada = 1
                 ORDER BY fecha_certificacion DESC, codigo_partida
@@ -676,7 +676,7 @@ def get_part_cert_certificadas(user: str, password: str, schema: str, parte_id: 
             cur.execute("""
                 SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
                        cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
-                       certificada, ot, red, tipo, cod_trabajo, NULL as creado_en
+                       certificada, red, tipo, cod_trabajo, NULL as creado_en
                 FROM vw_part_certificaciones
                 WHERE parte_id = %s AND certificada = 1
                 ORDER BY fecha_certificacion DESC, codigo_partida
