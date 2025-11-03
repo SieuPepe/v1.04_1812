@@ -736,11 +736,11 @@ class AppPartsManager(customtkinter.CTk):
 
         # Frame scrollable para contener todo el contenido
         scroll_frame = customtkinter.CTkScrollableFrame(tab, fg_color="transparent")
-        scroll_frame.pack(fill="both", expand=True, padx=0, pady=0)
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
 
         # Frame principal dentro del scroll
         main_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10), anchor="n")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5, anchor="n")
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
@@ -1090,6 +1090,8 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'cod_menu'):
             self.cod_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'tipo_rep_menu'):
+            self.tipo_rep_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'municipio_menu'):
             self.municipio_menu.configure(command=lambda _: self._mark_as_changed())
         # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
@@ -1281,7 +1283,7 @@ class AppPartsManager(customtkinter.CTk):
 
         # Frame principal
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10), anchor="n")
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
@@ -1368,7 +1370,7 @@ class AppPartsManager(customtkinter.CTk):
 
         # Frame principal
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10), anchor="n")
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 

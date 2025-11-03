@@ -339,17 +339,26 @@ class PartsTab(customtkinter.CTkFrame):
             search_text = self.search_entry.get().lower()
 
             for row in all_rows:
-                # Filtro Red
-                if self.filter_red.get() != "Todos" and str(row[2]) != self.filter_red.get():
-                    continue
+                # Filtro Red (comparación case-insensitive y sin espacios extras)
+                if self.filter_red.get() != "Todos":
+                    filter_val = self.filter_red.get().strip().lower()
+                    row_val = str(row[2]).strip().lower()
+                    if row_val != filter_val:
+                        continue
 
-                # Filtro Tipo
-                if self.filter_tipo.get() != "Todos" and str(row[3]) != self.filter_tipo.get():
-                    continue
+                # Filtro Tipo (comparación case-insensitive y sin espacios extras)
+                if self.filter_tipo.get() != "Todos":
+                    filter_val = self.filter_tipo.get().strip().lower()
+                    row_val = str(row[3]).strip().lower()
+                    if row_val != filter_val:
+                        continue
 
-                # Filtro Tipo Reparación
-                if self.filter_tipo_rep.get() != "Todos" and str(row[6]) != self.filter_tipo_rep.get():
-                    continue
+                # Filtro Tipo Reparación (comparación case-insensitive y sin espacios extras)
+                if self.filter_tipo_rep.get() != "Todos":
+                    filter_val = self.filter_tipo_rep.get().strip().lower()
+                    row_val = str(row[6]).strip().lower()
+                    if row_val != filter_val:
+                        continue
 
                 # Filtro Código Trabajo (comparar por código o descripción)
                 if self.filter_cod.get() != "Todos":

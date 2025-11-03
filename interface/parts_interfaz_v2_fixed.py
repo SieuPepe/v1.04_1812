@@ -41,7 +41,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
-        self.geometry("900x850")
+        self.geometry("1050x850")
         self.resizable(False, False)
 
         # Asegurar que la ventana aparezca al frente
@@ -208,10 +208,12 @@ class AppPartsV2(customtkinter.CTkToplevel):
             if estados:
                 estado_values = [f"{e['id']} - {e['nombre']}" for e in estados]
                 self.estado_menu.configure(values=estado_values)
-                self.estado_menu.set(estado_values[0] if estado_values else "1 - Pendiente")
+                # Buscar estado "3 - Finalizado" por defecto
+                estado_default = next((v for v in estado_values if v.startswith("3 -")), estado_values[0] if estado_values else "3 - Finalizado")
+                self.estado_menu.set(estado_default)
             else:
-                self.estado_menu.configure(values=["1 - Pendiente"])
-                self.estado_menu.set("1 - Pendiente")
+                self.estado_menu.configure(values=["3 - Finalizado"])
+                self.estado_menu.set("3 - Finalizado")
 
             # 2. Cargar dimensiones (RED, TIPO, COD, TIPOS_REP)
             dims = get_dim_all(self.user, self.password, self.schema)
