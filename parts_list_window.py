@@ -248,22 +248,34 @@ class PartsTab(customtkinter.CTkFrame):
         ).pack(side="left", padx=5)
 
     def _load_filters(self):
-        """Carga las opciones de filtros desde la base de datos"""
+        """Carga las opciones de filtros desde los valores únicos en la tabla"""
         try:
-            dims = get_dim_all(self.user, self.password, self.schema)
+            # Cargar todos los datos para extraer valores únicos
+            all_rows = get_parts_list(self.user, self.password, self.schema, limit=1000)
 
-            # Extraer solo los textos después del " - "
-            red_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in dims.get("RED", [])]
-            tipo_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in dims.get("TIPO_TRABAJO", [])]
-            tipo_rep_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in dims.get("TIPOS_REP", [])]
+            # Extraer valores únicos para cada columna filtrable
+            red_set = set()
+            tipo_set = set()
+            tipo_rep_set = set()
+            cod_set = set()
 
-            # Para Código Trabajo, mostrar "codigo - descripcion"
-            cod_raw = dims.get("COD_TRABAJO", [])
-            cod_values = ["Todos"]
-            for item in cod_raw:
-                # item formato: "ID - CODIGO"
-                # Necesitamos obtener la descripción de la DB
-                cod_values.append(item)
+            for row in all_rows:
+                if row[2]:  # red
+                    red_set.add(str(row[2]))
+                if row[3]:  # tipo
+                    tipo_set.add(str(row[3]))
+                if row[6]:  # tipo_rep
+                    tipo_rep_set.add(str(row[6]))
+                if row[4]:  # cod_trabajo
+                    # Mostrar código - descripción
+                    cod_desc = f"{row[4]} - {row[5]}" if row[5] else str(row[4])
+                    cod_set.add(cod_desc)
+
+            # Ordenar y agregar "Todos" al inicio
+            red_values = ["Todos"] + sorted(list(red_set))
+            tipo_values = ["Todos"] + sorted(list(tipo_set))
+            tipo_rep_values = ["Todos"] + sorted(list(tipo_rep_set))
+            cod_values = ["Todos"] + sorted(list(cod_set))
 
             self.filter_red.configure(values=red_values)
             self.filter_tipo.configure(values=tipo_values)

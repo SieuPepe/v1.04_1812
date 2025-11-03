@@ -734,13 +734,13 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame scrollable para contener todo el contenido
+        # Frame scrollable para contener todo el contenido - usar pack para CTkScrollableFrame
         scroll_frame = customtkinter.CTkScrollableFrame(tab, fg_color="transparent")
-        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+        scroll_frame.pack(fill="both", expand=True, padx=0, pady=0)
 
         # Frame principal dentro del scroll
         main_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=5, anchor="n")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
@@ -1281,9 +1281,9 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
+        # Frame principal - usar pack para mejor expansión
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
@@ -1368,9 +1368,9 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
+        # Frame principal - usar pack para mejor expansión
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=5)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
