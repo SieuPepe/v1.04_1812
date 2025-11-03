@@ -61,104 +61,13 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     return None
 
 
-def _crear_dim_tipos_rep_si_no_existe(user: str, password: str, schema: str):
-    """
-    Crea automáticamente la tabla dim_tipos_rep si no existe.
-    Retorna True si la creación fue exitosa o la tabla ya existe.
-    """
-    try:
-        with get_project_connection(user, password, schema) as conn:
-            cursor = conn.cursor()
-
-            # Verificar si la tabla ya existe
-            cursor.execute(f"""
-                SELECT COUNT(*)
-                FROM INFORMATION_SCHEMA.TABLES
-                WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'dim_tipos_rep'
-            """, (schema,))
-
-            if cursor.fetchone()[0] > 0:
-                cursor.close()
-                return True
-
-            # Crear tabla dim_tipos_rep
-            print(f"  Creando tabla dim_tipos_rep en {schema}...")
-            cursor.execute(f"""
-                CREATE TABLE IF NOT EXISTS {schema}.dim_tipos_rep (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    codigo VARCHAR(50),
-                    descripcion VARCHAR(255) NOT NULL,
-                    activo TINYINT DEFAULT 1,
-                    INDEX idx_codigo (codigo),
-                    INDEX idx_activo (activo)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """)
-            conn.commit()
-
-            # Poblar con datos iniciales
-            print(f"  Poblando dim_tipos_rep con datos iniciales...")
-            cursor.execute(f"""
-                INSERT INTO {schema}.dim_tipos_rep (codigo, descripcion, activo)
-                VALUES
-                    ('FUGA', 'Fuga', 1),
-                    ('ATASCO', 'Atasco', 1),
-                    ('OTROS', 'Otros', 1)
-                ON DUPLICATE KEY UPDATE
-                    descripcion = VALUES(descripcion),
-                    activo = VALUES(activo)
-            """)
-            conn.commit()
-
-            # Verificar si columna tipo_rep_id existe en tbl_partes
-            cursor.execute(f"""
-                SELECT COUNT(*)
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_SCHEMA = %s
-                  AND TABLE_NAME = 'tbl_partes'
-                  AND COLUMN_NAME = 'tipo_rep_id'
-            """, (schema,))
-
-            if cursor.fetchone()[0] == 0:
-                print(f"  Agregando columna tipo_rep_id a tbl_partes...")
-                cursor.execute(f"""
-                    ALTER TABLE {schema}.tbl_partes
-                    ADD COLUMN tipo_rep_id INT NULL,
-                    ADD FOREIGN KEY (tipo_rep_id) REFERENCES {schema}.dim_tipos_rep(id)
-                """)
-                conn.commit()
-
-            cursor.close()
-            print(f"✓ Tabla dim_tipos_rep creada exitosamente en {schema}")
-            return True
-
-    except Exception as e:
-        print(f"❌ Error al crear dim_tipos_rep: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-
 def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     """
     Devuelve lista de 'id - texto' detectando automáticamente la columna de texto.
-    Si la tabla no existe, intenta crearla automáticamente (solo para dim_tipos_rep).
     """
     text_col = _guess_text_column(user, password, schema, table)
     if not text_col:
-        # Si no se encuentra la columna, puede que la tabla no exista
-        if table == 'dim_tipos_rep':
-            print(f"⚠️  Tabla {table} no encontrada en {schema}. Intentando crearla...")
-            if _crear_dim_tipos_rep_si_no_existe(user, password, schema):
-                # Reintentar obtener la columna
-                text_col = _guess_text_column(user, password, schema, table)
-                if not text_col:
-                    print(f"❌ Error: No se pudo crear {table} correctamente")
-                    return []
-            else:
-                print(f"❌ Error: No se pudo crear {table}")
-                return []
-        else:
-            return []
+        return []
 
     rows = []
     try:
@@ -170,20 +79,6 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
             cur.close()
     except Exception as e:
         print(f"⚠️  Error al cargar {table} desde {schema}: {str(e)}")
-        # Si es dim_tipos_rep y falla, intentar crearla
-        if table == 'dim_tipos_rep' and '1146' in str(e):  # Table doesn't exist
-            print(f"⚠️  Tabla {table} no existe. Intentando crearla...")
-            if _crear_dim_tipos_rep_si_no_existe(user, password, schema):
-                # Reintentar
-                try:
-                    with get_project_connection(user, password, schema) as cn:
-                        cur = cn.cursor()
-                        cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
-                        for rid, txt in cur.fetchall():
-                            rows.append(f"{rid} - {txt}")
-                        cur.close()
-                except Exception as e2:
-                    print(f"❌ Error después de crear {table}: {str(e2)}")
     return rows
 
 
@@ -444,12 +339,12 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve todos los datos de un parte específico.
     Retorna tupla con índices:
-      0: id, 1: codigo, 2: descripcion, 3: estado, 4: codigo_ot,
-      5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: tipo_rep_id, 9: municipio_id,
-      10: observaciones, 11: creado_en, 12: actualizado_en,
-      13: titulo, 14: fecha_inicio, 15: fecha_fin,
-      16: localizacion, 17: latitud, 18: longitud, 19: trabajadores,
-      20: descripcion_corta, 21: descripcion_larga, 22: comarca_id, 23: id_municipio
+      0: id, 1: codigo, 2: descripcion, 3: estado,
+      4: red_id, 5: tipo_trabajo_id, 6: cod_trabajo_id, 7: tipo_rep_id, 8: municipio_id,
+      9: observaciones, 10: creado_en, 11: actualizado_en,
+      12: titulo, 13: fecha_inicio, 14: fecha_fin,
+      15: localizacion, 16: latitud, 17: longitud, 18: trabajadores,
+      19: descripcion_corta, 20: descripcion_larga, 21: comarca_id, 22: id_municipio
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -460,14 +355,6 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 
         # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
         select_cols = ['id', 'codigo', 'descripcion', 'estado']
-
-        # Añadir codigo_ot (la tabla usa codigo_ot en lugar de ot_id)
-        if 'codigo_ot' in columns:
-            select_cols.append('codigo_ot')
-        elif 'ot_id' in columns:
-            select_cols.append('ot_id')
-        else:
-            select_cols.append('NULL as codigo_ot')
 
         # Continuar con red, tipo, cod, tipo_rep
         select_cols.extend(['red_id', 'tipo_trabajo_id', 'cod_trabajo_id'])

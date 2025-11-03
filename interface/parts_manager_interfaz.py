@@ -660,7 +660,7 @@ class AppPartsManager(customtkinter.CTk):
             self.red_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("RED", []))
             self.red_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("RED", []):
-                if item.startswith(f"{parte_data[5]} -"):
+                if item.startswith(f"{parte_data[4]} -"):  # Actualizado: era 5, ahora 4
                     self.red_menu.set(item)
                     break
             row_left += 1
@@ -671,7 +671,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []))
             self.tipo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[6]} -"):
+                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
                     self.tipo_menu.set(item)
                     break
             row_left += 1
@@ -682,7 +682,7 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []))
             self.cod_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
-                if item.startswith(f"{parte_data[7]} -"):
+                if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
                     self.cod_menu.set(item)
                     break
             row_left += 1
@@ -693,7 +693,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []))
             self.tipo_rep_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("TIPOS_REP", []):
-                if parte_data[8] and item.startswith(f"{parte_data[8]} -"):
+                if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
                     self.tipo_rep_menu.set(item)
                     break
             row_left += 1
@@ -710,7 +710,7 @@ class AppPartsManager(customtkinter.CTk):
             self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
 
             # Intentar establecer la provincia actual
-            current_municipio_id = parte_data[9]
+            current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
             if current_municipio_id:
                 # Obtener provincia del municipio actual
                 try:
@@ -1401,25 +1401,13 @@ class AppPartsManager(customtkinter.CTk):
             estado_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             row += 1
 
-            # OT
-            customtkinter.CTkLabel(self.datos_parte_frame, text="OT:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.ot_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("OT", []))
-            self.ot_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            # Preseleccionar valor actual
-            for item in dims.get("OT", []):
-                if item.startswith(f"{parte_data[4]} -"):
-                    self.ot_menu.set(item)
-                    break
-            row += 1
-
             # Red
             customtkinter.CTkLabel(self.datos_parte_frame, text="Red:",
                                    font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
             self.red_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("RED", []))
             self.red_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("RED", []):
-                if item.startswith(f"{parte_data[5]} -"):
+                if item.startswith(f"{parte_data[4]} -"):  # Actualizado: era 5, ahora 4
                     self.red_menu.set(item)
                     break
             row += 1
@@ -1430,7 +1418,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPO_TRABAJO", []))
             self.tipo_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[6]} -"):
+                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
                     self.tipo_menu.set(item)
                     break
             row += 1
@@ -1441,7 +1429,7 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("COD_TRABAJO", []))
             self.cod_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
-                if item.startswith(f"{parte_data[7]} -"):
+                if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
                     self.cod_menu.set(item)
                     break
             row += 1
@@ -1452,7 +1440,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_rep_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPOS_REP", []))
             self.tipo_rep_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("TIPOS_REP", []):
-                if parte_data[8] and item.startswith(f"{parte_data[8]} -"):
+                if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
                     self.tipo_rep_menu.set(item)
                     break
             row += 1
