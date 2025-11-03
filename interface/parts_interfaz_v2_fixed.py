@@ -89,16 +89,14 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.tipo_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Fila 2: Código trabajo (solo habilitado para tipo_trabajo == 3)
+        # Fila 2: Código trabajo + Tipo de Reparación
         customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300, state="disabled")
         self.cod_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
-        row += 1
 
-        # Fila 3: Tipo de Reparación
-        customtkinter.CTkLabel(self, text="Tipo Reparación:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        customtkinter.CTkLabel(self, text="Tipo Reparación:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
         self.tipo_rep_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
-        self.tipo_rep_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        self.tipo_rep_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
         # ====================================================================
