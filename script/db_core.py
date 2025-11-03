@@ -564,7 +564,6 @@ def create_view_partes(user, password, code_project):
                                 (pc.cantidad_cert * pc.precio_unit) AS coste_cert,
                                 pc.fecha_certificacion,
                                 pc.certificada,
-                                p.codigo AS ot,
                                 COALESCE(rd.red_codigo, '') AS red,
                                 COALESCE(tt.tipo_codigo, '') AS tipo,
                                 COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
