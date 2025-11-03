@@ -7,12 +7,18 @@ mysql-connector-python>=8.0.0
 # GUI Framework
 customtkinter>=5.0.0
 CTkMessagebox>=2.0.0
+tkcalendar>=1.6.0
 
 # Image processing
 pillow>=10.0.0
 
 # Plotting and visualization
 matplotlib>=3.5.0
+
+# Export formats
+openpyxl>=3.0.0
+python-docx>=0.8.0
+reportlab>=3.6.0
 
 # Variables de entorno
 python-dotenv>=1.0.0
