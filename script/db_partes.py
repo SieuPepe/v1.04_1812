@@ -250,13 +250,13 @@ def get_parts_list(user, password, schema, limit=100):
                 LIMIT %s
             """, (limit,))
         else:
-            # Fallback sin vista: calcular manualmente
+            # Fallback sin vista: calcular manualmente - USAR DESCRIPCIONES
             cur.execute("""
                 SELECT
                     p.id,
                     p.codigo,
-                    COALESCE(rd.red_codigo, '')          AS red,
-                    COALESCE(tt.tipo_codigo, '')         AS tipo,
+                    COALESCE(rd.descripcion, '')         AS red,
+                    COALESCE(tt.descripcion, '')         AS tipo,
                     COALESCE(ct.codigo, '')              AS cod_trabajo,
                     COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
                     COALESCE(tr.descripcion, '')         AS tipo_rep,
@@ -274,7 +274,7 @@ def get_parts_list(user, password, schema, limit=100):
                 LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
                 LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
                 LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
-                GROUP BY p.id, p.codigo, rd.red_codigo, tt.tipo_codigo, ct.codigo, ct.descripcion,
+                GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
                          tr.descripcion, p.descripcion, pe.nombre, p.creado_en
                 ORDER BY p.id DESC
                 LIMIT %s

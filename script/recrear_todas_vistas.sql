@@ -37,10 +37,10 @@ SET @has_partes_actualizado = (
     AND COLUMN_NAME = 'actualizado_en'
 );
 
--- Construir columnas y GROUP BY dinámicamente
+-- Construir columnas y GROUP BY dinámicamente - USAR DESCRIPCIONES no códigos
 SET @partes_creado_col = IF(@has_partes_creado > 0, 'p.creado_en', 'NULL as creado_en');
 SET @partes_actualizado_col = IF(@has_partes_actualizado > 0, 'p.actualizado_en', 'NULL as actualizado_en');
-SET @group_by_cols = 'p.id, p.codigo, p.descripcion, p.estado, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo';
+SET @group_by_cols = 'p.id, p.codigo, p.descripcion, p.estado, rd.descripcion, tt.descripcion, ct.descripcion';
 SET @group_by_cols = IF(@has_partes_creado > 0, CONCAT(@group_by_cols, ', p.creado_en'), @group_by_cols);
 SET @group_by_cols = IF(@has_partes_actualizado > 0, CONCAT(@group_by_cols, ', p.actualizado_en'), @group_by_cols);
 
@@ -51,9 +51,9 @@ SELECT
     p.codigo,
     p.descripcion,
     p.estado,
-    COALESCE(rd.red_codigo, '''') AS red,
-    COALESCE(tt.tipo_codigo, '''') AS tipo,
-    COALESCE(ct.cod_trabajo, '''') AS cod_trabajo,
+    COALESCE(rd.descripcion, '''') AS red,
+    COALESCE(tt.descripcion, '''') AS tipo,
+    COALESCE(ct.descripcion, '''') AS cod_trabajo,
     COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS total_presupuesto,
     COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_certificado,
     COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_pendiente,
