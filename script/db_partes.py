@@ -82,18 +82,20 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
 
 def get_dim_all(user: str, password: str, schema: str):
     """
-    Devuelve dict con las 4 listas de dimensiones para la UI,
+    Devuelve dict con las listas de dimensiones para la UI,
     detectando automáticamente la columna visible:
       - dim_ot
       - dim_red
       - dim_tipo_trabajo
       - dim_codigo_trabajo
+      - dim_tipos_rep
     """
     return {
         'OT': _fetch_dim_list_guess(user, password, schema, 'dim_ot'),
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
+        'TIPOS_REP': _fetch_dim_list_guess(user, password, schema, 'dim_tipos_rep'),
     }
 
 
@@ -287,11 +289,11 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     Devuelve todos los datos de un parte específico.
     Retorna tupla con índices:
       0: id, 1: codigo, 2: descripcion, 3: estado, 4: codigo_ot,
-      5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: municipio_id,
-      9: observaciones, 10: creado_en, 11: actualizado_en,
-      12: titulo, 13: fecha_inicio, 14: fecha_fin, 15: fecha_prevista_fin,
-      16: localizacion, 17: latitud, 18: longitud, 19: trabajadores,
-      20: descripcion_corta, 21: descripcion_larga, 22: comarca_id, 23: id_municipio
+      5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: tipo_rep_id, 9: municipio_id,
+      10: observaciones, 11: creado_en, 12: actualizado_en,
+      13: titulo, 14: fecha_inicio, 15: fecha_fin, 16: fecha_prevista_fin,
+      17: localizacion, 18: latitud, 19: longitud, 20: trabajadores,
+      21: descripcion_corta, 22: descripcion_larga, 23: comarca_id, 24: id_municipio
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -311,8 +313,14 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         else:
             select_cols.append('NULL as codigo_ot')
 
-        # Continuar con red, tipo, cod
+        # Continuar con red, tipo, cod, tipo_rep
         select_cols.extend(['red_id', 'tipo_trabajo_id', 'cod_trabajo_id'])
+
+        # Añadir tipo_rep_id
+        if 'tipo_rep_id' in columns:
+            select_cols.append('tipo_rep_id')
+        else:
+            select_cols.append('NULL as tipo_rep_id')
 
         # Añadir municipio_id
         if 'municipio_id' in columns:
