@@ -15,6 +15,63 @@
 
 ## 1. PREPARACIÓN BASE DE DATOS
 
+### 1.0 Preparación de Esquemas Base (NUEVO - CRÍTICO)
+**Prioridad: CRÍTICA - Realizar ANTES de todo lo demás**
+
+- [ ] **Crear backup del esquema plantilla limpio (`proyecto_tipo`)**
+  ```bash
+  # Backup solo estructura del esquema plantilla (SIN DATOS)
+  mysqldump -u root -p --no-data proyecto_tipo > backup/proyecto_tipo_estructura_limpia.sql
+
+  # Este será el esquema base para CADA proyecto nuevo
+  ```
+  - **¿Por qué es crítico?** Cada vez que un usuario crea un proyecto nuevo en la aplicación, se crea un esquema nuevo copiando desde `proyecto_tipo`
+  - El esquema debe estar LIMPIO (sin datos de prueba/desarrollo)
+  - Debe contener SOLO estructura de tablas, índices, FKs
+  - **Estimación:** 30 minutos
+
+- [ ] **Crear backup del esquema manager con datos de referencia**
+  ```bash
+  # Backup completo del esquema manager (con datos de catálogos)
+  mysqldump -u root -p manager > backup/manager_con_catalogos_produccion.sql
+  ```
+  - Incluye: usuarios, catálogos (tbl_catalogo), dimensiones (dim_*), list_municipios
+  - Estos son datos compartidos entre todos los proyectos
+  - **Estimación:** 30 minutos
+
+- [ ] **Validar esquema `proyecto_tipo` está limpio**
+  - Verificar que NO contenga:
+    - Partes de prueba (tbl_partes debe estar vacía)
+    - Presupuestos de test (tbl_presupuesto, tbl_pres_precios vacías)
+    - Certificaciones de test (tbl_certificacion, tbl_cert_lineas vacías)
+    - OTs de prueba (tbl_ots vacía)
+    - Cualquier dato transaccional
+  - **¿Cómo verificar?**
+    ```sql
+    USE proyecto_tipo;
+    SELECT COUNT(*) FROM tbl_partes;  -- Debe ser 0
+    SELECT COUNT(*) FROM tbl_ots;     -- Debe ser 0
+    SELECT COUNT(*) FROM tbl_presupuesto;  -- Debe ser 0
+    -- etc.
+    ```
+  - **Si hay datos:** ELIMINARLOS antes de hacer el backup
+  - **Estimación:** 1 hora
+
+- [ ] **Documentar qué datos debe tener `manager` vs `proyecto_tipo`**
+  - **manager (esquema maestro):**
+    - ✅ Usuarios del sistema
+    - ✅ Registro de proyectos (tbl_proyectos)
+    - ✅ Catálogos de referencia (tbl_catalogo, tbl_familia, etc.)
+    - ✅ Dimensiones compartidas (dim_red, dim_tipo_trabajo, etc.)
+    - ✅ Listados geográficos (list_municipios, list_provincias)
+  - **proyecto_tipo (plantilla):**
+    - ❌ NO usuarios
+    - ❌ NO proyectos
+    - ❌ NO catálogos (se acceden por vista desde manager)
+    - ✅ SOLO estructura de tablas vacías
+    - ✅ Dimensiones geográficas específicas del proyecto (se llenan al crear proyecto)
+  - **Estimación:** 30 minutos
+
 ### 1.1 Migración de Datos Históricos
 **Prioridad: CRÍTICA**
 
@@ -24,6 +81,7 @@
   - Validar integridad de datos (fechas, OTs, estados)
   - Comprobar relaciones: partes → presupuestos → certificaciones
   - Ejecutar script de verificación: `script/verificar_y_completar_migracion.py`
+  - **IMPORTANTE:** Migrar a un esquema de proyecto existente (ej: PR001), NO a proyecto_tipo
   - **Estimación:** 4-6 horas
 
 - [ ] **Revisar y corregir carga de presupuesto de referencia**
@@ -454,22 +512,35 @@
 
 ### 8.2 Instalación Base de Datos
 
-- [ ] **Crear esquema de base de datos**
-  ```sql
-  CREATE DATABASE hidroflow_produccion;
-  ```
-  - **Estimación:** 5 minutos
-
-- [ ] **Importar estructura**
+- [ ] **Importar esquema MANAGER (maestro)**
   ```bash
-  mysql -u root -p hidroflow_produccion < backup/estructura_produccion.sql
+  # Restaurar esquema manager con todos los catálogos y datos de referencia
+  mysql -u root -p < backup/manager_con_catalogos_produccion.sql
   ```
+  - Contiene: usuarios, catálogos, dimensiones, list_municipios
   - **Estimación:** 10 minutos
 
-- [ ] **Importar datos iniciales**
-  - Catálogos (dim_*, tbl_catalogo)
-  - Datos históricos migrados
-  - **Estimación:** 30 minutos
+- [ ] **Importar esquema PROYECTO_TIPO (plantilla limpia)**
+  ```bash
+  # Restaurar esquema plantilla (SOLO estructura, SIN datos)
+  mysql -u root -p < backup/proyecto_tipo_estructura_limpia.sql
+  ```
+  - Contiene: SOLO estructura de tablas vacías
+  - **CRÍTICO:** Este esquema se usa como plantilla para crear cada proyecto nuevo
+  - **Estimación:** 10 minutos
+
+- [ ] **Crear primer proyecto (ej: PR001) con datos históricos**
+  ```bash
+  # Opción 1: Crear proyecto vacío desde la aplicación (recomendado)
+  # - Usar módulo Manager → Crear Proyecto
+  # - Luego importar datos históricos migrados
+
+  # Opción 2: Restaurar backup si ya existe un proyecto con datos
+  mysql -u root -p < backup/PR001_con_datos_historicos.sql
+  ```
+  - Si se creó PR001 durante desarrollo con datos migrados, hacer backup y restaurar
+  - Si es nueva instalación, crear proyecto vacío y migrar después
+  - **Estimación:** 15-30 minutos
 
 - [ ] **Crear usuario de aplicación**
   ```sql
@@ -581,10 +652,12 @@
 ## ⚠️ ELEMENTOS CRÍTICOS
 
 ### 🔴 Prioridad MÁXIMA
-1. ✅ **Migración completa de partes históricos** - SIN ESTO NO SE PUEDE DESPLEGAR
-2. ✅ **Validación de presupuesto de referencia** - DATOS CRÍTICOS
-3. ✅ **Backup completo pre-producción** - SEGURIDAD
-4. ✅ **Testing módulo de informes completo** - NUEVA FUNCIONALIDAD
+1. ✅ **Backup esquema `proyecto_tipo` LIMPIO** - Se usa como plantilla para CADA proyecto nuevo
+2. ✅ **Backup esquema `manager` con catálogos** - Datos compartidos entre todos los proyectos
+3. ✅ **Migración completa de partes históricos** - SIN ESTO NO SE PUEDE DESPLEGAR
+4. ✅ **Validación de presupuesto de referencia** - DATOS CRÍTICOS
+5. ✅ **Backup completo pre-producción** - SEGURIDAD
+6. ✅ **Testing módulo de informes completo** - NUEVA FUNCIONALIDAD
 
 ### 🟠 Prioridad ALTA
 5. Testing funcional completo de todos los módulos
@@ -686,7 +759,118 @@ Verificar TODOS estos puntos antes de entregar al cliente:
 
 ---
 
+## 🏗️ ARQUITECTURA DE ESQUEMAS DE BASE DE DATOS
+
+### Concepto Fundamental
+
+HydroFlow Manager utiliza una arquitectura **multi-esquema**:
+- **Un esquema por cada proyecto** creado en la aplicación
+- Permite **aislamiento total** de datos entre proyectos
+- Facilita **backup independiente** por proyecto
+- Permite **permisos granulares** por proyecto
+
+### Esquemas del Sistema
+
+#### 1. Esquema `manager` (Maestro)
+**Contiene:**
+- 👥 Tabla de usuarios del sistema
+- 📋 Registro de todos los proyectos (tbl_proyectos)
+- 📚 Catálogos de referencia compartidos (tbl_catalogo, tbl_familia, etc.)
+- 🌐 Dimensiones compartidas (dim_red, dim_tipo_trabajo, dim_provincias, etc.)
+- 🗺️ Listados geográficos (list_municipios, list_comarcas, etc.)
+
+**Backup necesario:** `manager_con_catalogos_produccion.sql` (CON DATOS)
+
+#### 2. Esquema `proyecto_tipo` (Plantilla)
+**Contiene:**
+- 📋 SOLO estructura de 79 tablas (vacías)
+- 🚫 NO contiene datos transaccionales
+- 🚫 NO contiene catálogos (se acceden por vistas desde manager)
+
+**Backup necesario:** `proyecto_tipo_estructura_limpia.sql` (SIN DATOS)
+
+**¿Por qué es crítico?**
+Cada vez que un usuario crea un proyecto nuevo desde el módulo Manager:
+1. Se ejecuta `CREATE SCHEMA [codigo_proyecto]`
+2. Se copian todas las tablas vacías desde `proyecto_tipo`
+3. Se crean vistas que apuntan a catálogos en `manager`
+4. Se copian datos geográficos específicos del proyecto
+
+#### 3. Esquemas de Proyectos (`PR001`, `PR002`, etc.)
+**Contiene:**
+- 📊 Datos transaccionales del proyecto:
+  - Partes de trabajo (tbl_partes)
+  - OTs (tbl_ots)
+  - Presupuestos (tbl_presupuesto, tbl_pres_precios)
+  - Certificaciones (tbl_certificacion, tbl_cert_lineas)
+  - Inventario (tbl_inv_elementos)
+- 👁️ Vistas que apuntan a `manager` (vw_catalogo_hidraulica, tbl_proyectos)
+- 🗺️ Municipios filtrados por provincia del proyecto
+
+**Backup necesario:** Un backup por cada proyecto con datos (ej: `PR001_con_datos_historicos.sql`)
+
+### Flujo de Creación de Proyecto Nuevo
+
+```
+Usuario crea proyecto "PR001" → Aplicación ejecuta:
+
+1. CREATE SCHEMA PR001
+2. Copiar tablas vacías desde proyecto_tipo
+3. CREATE VIEW tbl_proyectos AS SELECT * FROM manager.tbl_proyectos
+4. CREATE VIEW vw_catalogo_* AS SELECT * FROM manager...
+5. INSERT INTO PR001.tbl_municipios SELECT * FROM manager.list_municipios WHERE provincia = '...'
+6. Crear FKs y relaciones
+```
+
+### Implicaciones para Producción
+
+#### ✅ Ventajas
+- ✅ Cada proyecto es independiente (backup/restore selectivo)
+- ✅ Borrar un proyecto = DROP SCHEMA (no afecta otros)
+- ✅ Permisos granulares (usuario solo accede a sus proyectos)
+- ✅ Escalabilidad (proyectos en diferentes servidores)
+
+#### ⚠️ Consideraciones Críticas
+- ⚠️ `proyecto_tipo` DEBE estar limpio (sin datos de test)
+- ⚠️ Cambios en estructura afectan solo proyectos nuevos (no existentes)
+- ⚠️ Actualizaciones de catálogos en `manager` afectan a TODOS los proyectos
+- ⚠️ Backup debe incluir TODOS los esquemas (manager + proyecto_tipo + PRxxx)
+
+### Comandos Útiles para Verificación
+
+```sql
+-- Ver todos los esquemas
+SHOW DATABASES;
+
+-- Ver tablas en proyecto_tipo
+USE proyecto_tipo;
+SHOW TABLES;
+
+-- Verificar que proyecto_tipo esté vacío
+SELECT
+  TABLE_NAME,
+  TABLE_ROWS
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'proyecto_tipo'
+  AND TABLE_ROWS > 0;
+
+-- Ver todos los proyectos activos
+SELECT codigo, nombre, provincia FROM manager.tbl_proyectos;
+
+-- Ver tamaño de cada esquema
+SELECT
+  TABLE_SCHEMA as 'Esquema',
+  ROUND(SUM(DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) as 'Tamaño (MB)'
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')
+GROUP BY TABLE_SCHEMA
+ORDER BY SUM(DATA_LENGTH + INDEX_LENGTH) DESC;
+```
+
+---
+
 **Documento creado:** 2025-11-03
-**Versión:** 1.0
+**Versión:** 1.1
 **Proyecto:** HydroFlow Manager v1.04
 **Módulo nuevo:** Sistema de Generación de Informes Dinámicos con Guardar/Cargar Configuraciones
+**Actualización:** Agregada arquitectura multi-esquema y preparación de esquema plantilla
