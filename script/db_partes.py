@@ -177,21 +177,20 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
 def list_partes(user: str, password: str, schema: str, limit: int = 200):
     """
     Devuelve una lista de dicts con los partes más recientes.
-    Campos: id, codigo, ot, red, tipo, cod_trabajo, descripcion, created_at
+    Campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
+    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute("""
             SELECT  p.id,
                     p.codigo,
-                    COALESCE(ot.ot_codigo, '')         AS ot,
                     COALESCE(rd.red_codigo, '')        AS red,
                     COALESCE(tt.tipo_codigo, '')       AS tipo,
                     COALESCE(ct.cod_trabajo,'')        AS cod_trabajo,
                     p.descripcion,
                     p.creado_en
             FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
             LEFT JOIN dim_red            rd ON rd.id = p.red_id
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
@@ -201,13 +200,14 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         rows = cur.fetchall()
         cur.close()
 
-        cols = ["id","codigo","ot","red","tipo","cod_trabajo","descripcion","created_at"]
+        cols = ["id","codigo","red","tipo","cod_trabajo","descripcion","created_at"]
         return [dict(zip(cols, r)) for r in rows]
 
 
 def get_parts_list(user, password, schema, limit=100):
     """
     Devuelve lista de partes.
+    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -215,14 +215,12 @@ def get_parts_list(user, password, schema, limit=100):
             SELECT
                 p.id,
                 p.codigo,
-                COALESCE(ot.ot_codigo, '')         AS ot,
                 COALESCE(rd.red_codigo, '')        AS red,
                 COALESCE(tt.tipo_codigo, '')       AS tipo,
                 COALESCE(ct.cod_trabajo, '')       AS cod_trabajo,
                 p.descripcion,
                 p.creado_en
             FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
             LEFT JOIN dim_red            rd ON rd.id = p.red_id
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id

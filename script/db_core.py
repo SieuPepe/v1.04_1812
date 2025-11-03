@@ -564,7 +564,7 @@ def create_view_partes(user, password, code_project):
                                 (pc.cantidad_cert * pc.precio_unit) AS coste_cert,
                                 pc.fecha_certificacion,
                                 pc.certificada,
-                                COALESCE(ot.ot_codigo, '') AS ot,
+                                p.codigo AS ot,
                                 COALESCE(rd.red_codigo, '') AS red,
                                 COALESCE(tt.tipo_codigo, '') AS tipo,
                                 COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
@@ -573,7 +573,6 @@ def create_view_partes(user, password, code_project):
                             INNER JOIN tbl_partes p ON p.id = pc.parte_id
                             INNER JOIN tbl_pres_precios pr ON pr.id = pc.precio_id
                             LEFT JOIN tbl_pres_unidades u ON u.id = pr.id_unidades
-                            LEFT JOIN dim_ot ot ON ot.id = p.ot_id
                             LEFT JOIN dim_red rd ON rd.id = p.red_id
                             LEFT JOIN dim_tipo_trabajo tt ON tt.id = p.tipo_trabajo_id
                             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
@@ -583,8 +582,8 @@ def create_view_partes(user, password, code_project):
             partes_creado_col = "p.creado_en" if has_partes_creado else "NULL as creado_en"
             partes_actualizado_col = "p.actualizado_en" if has_partes_actualizado else "NULL as actualizado_en"
 
-            # Construir GROUP BY dinámicamente
-            group_by_cols = "p.id, p.codigo, p.descripcion, p.estado, ot.ot_codigo, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo"
+            # Construir GROUP BY dinámicamente (ot_id eliminado, codigo ahora en tbl_partes.codigo)
+            group_by_cols = "p.id, p.codigo, p.descripcion, p.estado, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo"
             if has_partes_creado:
                 group_by_cols += ", p.creado_en"
             if has_partes_actualizado:
@@ -596,7 +595,7 @@ def create_view_partes(user, password, code_project):
                                 p.codigo,
                                 p.descripcion,
                                 p.estado,
-                                COALESCE(ot.ot_codigo, '') AS ot,
+                                p.codigo AS ot,
                                 COALESCE(rd.red_codigo, '') AS red,
                                 COALESCE(tt.tipo_codigo, '') AS tipo,
                                 COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
@@ -606,7 +605,6 @@ def create_view_partes(user, password, code_project):
                                 {partes_creado_col},
                                 {partes_actualizado_col}
                             FROM tbl_partes p
-                            LEFT JOIN dim_ot ot ON ot.id = p.ot_id
                             LEFT JOIN dim_red rd ON rd.id = p.red_id
                             LEFT JOIN dim_tipo_trabajo tt ON tt.id = p.tipo_trabajo_id
                             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
