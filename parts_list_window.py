@@ -264,8 +264,10 @@ class PartsTab(customtkinter.CTkFrame):
                     red_set.add(str(row[2]))
                 if row[3]:  # tipo
                     tipo_set.add(str(row[3]))
-                if row[6]:  # tipo_rep
-                    tipo_rep_set.add(str(row[6]))
+                if row[6]:  # tipo_rep - solo si no está vacío
+                    val = str(row[6]).strip()
+                    if val:
+                        tipo_rep_set.add(val)
                 if row[4]:  # cod_trabajo
                     # Mostrar código - descripción
                     cod_desc = f"{row[4]} - {row[5]}" if row[5] else str(row[4])
@@ -274,8 +276,17 @@ class PartsTab(customtkinter.CTkFrame):
             # Ordenar y agregar "Todos" al inicio
             red_values = ["Todos"] + sorted(list(red_set))
             tipo_values = ["Todos"] + sorted(list(tipo_set))
-            tipo_rep_values = ["Todos"] + sorted(list(tipo_rep_set))
             cod_values = ["Todos"] + sorted(list(cod_set))
+
+            # Para Tipo Reparación, cargar desde dim_tipos_rep si no hay valores en los partes
+            if len(tipo_rep_set) == 0:
+                # Cargar directamente desde la tabla dimensional
+                dims = get_dim_all(self.user, self.password, self.schema)
+                tipo_rep_raw = dims.get("TIPOS_REP", [])
+                # Extraer solo las descripciones (formato: "ID - DESCRIPCION")
+                tipo_rep_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_rep_raw]
+            else:
+                tipo_rep_values = ["Todos"] + sorted(list(tipo_rep_set))
 
             self.filter_red.configure(values=red_values)
             self.filter_tipo.configure(values=tipo_values)
