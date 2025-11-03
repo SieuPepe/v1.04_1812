@@ -35,7 +35,6 @@ class PartsTab(customtkinter.CTkFrame):
             # Campos de fechas (ocultos por defecto)
             "fecha_inicio": {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False},
             "fecha_fin": {"label": "Fecha Fin", "width": 110, "visible": False, "locked": False},
-            "fecha_prevista_fin": {"label": "Fecha Prevista Fin", "width": 130, "visible": False, "locked": False},
             "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
 
             # Campos de localización (ocultos por defecto)
@@ -459,7 +458,13 @@ class PartsListWindow(customtkinter.CTkToplevel):
         super().__init__(master)
         self.title("Listado de partes")
         self.geometry("1300x700")
+
+        # Asegurar que la ventana aparece al frente
+        self.attributes("-topmost", True)
+        self.lift()
         self.focus()
+        self.after(100, lambda: self.attributes("-topmost", False))  # Desactivar después de mostrarse
+
         tab = PartsTab(self, user, password, schema)
         tab.pack(fill="both", expand=True)
 

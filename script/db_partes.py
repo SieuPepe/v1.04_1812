@@ -344,7 +344,7 @@ def get_parts_list(user, password, schema, limit=100):
                     vpr.descripcion,
                     COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
                     COALESCE(vpr.total_certificado, 0)   AS certificado,
-                    COALESCE(pe.estado, 'Pendiente')     AS estado,
+                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
                     COALESCE(vpr.creado_en, NOW())       AS creado_en
                 FROM vw_partes_resumen vpr
                 LEFT JOIN tbl_partes p ON p.id = vpr.id
@@ -369,7 +369,7 @@ def get_parts_list(user, password, schema, limit=100):
                     COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
                     COALESCE(SUM(CASE WHEN pc.certificada = 1
                                  THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
-                    COALESCE(pe.estado, 'Pendiente')     AS estado,
+                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
                     p.creado_en
                 FROM tbl_partes p
                 LEFT JOIN dim_red            rd ON rd.id = p.red_id
@@ -380,7 +380,7 @@ def get_parts_list(user, password, schema, limit=100):
                 LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
                 LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
                 GROUP BY p.id, p.codigo, rd.red_codigo, tt.tipo_codigo, ct.codigo, ct.descripcion,
-                         tr.descripcion, p.descripcion, pe.estado, p.creado_en
+                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en
                 ORDER BY p.id DESC
                 LIMIT %s
             """, (limit,))
@@ -417,7 +417,7 @@ def get_partes_resumen(user: str, password: str, schema: str):
         try:
             cur.execute("""
                 SELECT
-                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
+                    id, codigo, descripcion, estado, red, tipo, cod_trabajo,
                     total_presupuesto, total_certificado, total_pendiente,
                     creado_en, actualizado_en
                 FROM vw_partes_resumen
@@ -428,7 +428,7 @@ def get_partes_resumen(user: str, password: str, schema: str):
             # Si falla (columnas no existen), intentar sin ellas
             cur.execute("""
                 SELECT
-                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
+                    id, codigo, descripcion, estado, red, tipo, cod_trabajo,
                     total_presupuesto, total_certificado, total_pendiente,
                     NULL as creado_en, NULL as actualizado_en
                 FROM vw_partes_resumen
@@ -447,9 +447,9 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
       0: id, 1: codigo, 2: descripcion, 3: estado, 4: codigo_ot,
       5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: tipo_rep_id, 9: municipio_id,
       10: observaciones, 11: creado_en, 12: actualizado_en,
-      13: titulo, 14: fecha_inicio, 15: fecha_fin, 16: fecha_prevista_fin,
-      17: localizacion, 18: latitud, 19: longitud, 20: trabajadores,
-      21: descripcion_corta, 22: descripcion_larga, 23: comarca_id, 24: id_municipio
+      13: titulo, 14: fecha_inicio, 15: fecha_fin,
+      16: localizacion, 17: latitud, 18: longitud, 19: trabajadores,
+      20: descripcion_corta, 21: descripcion_larga, 22: comarca_id, 23: id_municipio
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -501,7 +501,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
             select_cols.append('NULL as titulo')
 
         # Fechas del trabajo
-        for col in ['fecha_inicio', 'fecha_fin', 'fecha_prevista_fin']:
+        for col in ['fecha_inicio', 'fecha_fin']:
             if col in columns:
                 select_cols.append(col)
             else:
@@ -564,7 +564,7 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                    red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                    descripcion: str = None, estado: int = 1, observaciones: str = None,
                    municipio_id: int = None, tipo_rep_id: int = None,
-                   titulo: str = None, fecha_fin=None, fecha_prevista_fin=None,
+                   titulo: str = None, fecha_fin=None,
                    trabajadores: str = None, localizacion: str = None,
                    latitud: float = None, longitud: float = None):
     """
@@ -577,7 +577,7 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         municipio_id: ID del municipio
         tipo_rep_id: ID del tipo de reparación (FK a dim_tipos_rep)
         titulo, trabajadores, localizacion: Campos de texto
-        fecha_fin, fecha_prevista_fin: Fechas (date o str)
+        fecha_fin: Fecha de finalización (date o str)
         latitud, longitud: Coordenadas GPS (float)
 
     Nota: codigo_ot y fecha_inicio NO se modifican (se asignan solo al crear)
@@ -624,10 +624,6 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             if 'fecha_fin' in columns:
                 set_clauses.append("fecha_fin = %s")
                 values.append(fecha_fin)
-
-            if 'fecha_prevista_fin' in columns:
-                set_clauses.append("fecha_prevista_fin = %s")
-                values.append(fecha_prevista_fin)
 
             if 'trabajadores' in columns:
                 set_clauses.append("trabajadores = %s")
@@ -1162,7 +1158,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        descripcion_corta: str = None,
                        fecha_inicio: str = None,
                        fecha_fin: str = None,
-                       fecha_prevista_fin: str = None,
                        estado_id: int = 1,
                        tipo_rep_id: int = None,
                        localizacion: str = None,
@@ -1191,7 +1186,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         descripcion_corta: Resumen breve para listados
         fecha_inicio: Fecha de inicio (formato 'YYYY-MM-DD')
         fecha_fin: Fecha de finalización (formato 'YYYY-MM-DD')
-        fecha_prevista_fin: Fecha prevista de finalización
         estado_id: ID del estado (1=Pendiente por defecto)
         localizacion: Ubicación textual
         provincia_id: ID de provincia (FK)
@@ -1281,10 +1275,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         if 'fecha_fin' in columns and fecha_fin:
             insert_cols.append('fecha_fin')
             insert_vals.append(fecha_fin)
-
-        if 'fecha_prevista_fin' in columns and fecha_prevista_fin:
-            insert_cols.append('fecha_prevista_fin')
-            insert_vals.append(fecha_prevista_fin)
 
         if 'estado_id' in columns or 'id_estado' in columns:
             col = 'estado_id' if 'estado_id' in columns else 'id_estado'

@@ -284,14 +284,14 @@ class AppPartsManager(customtkinter.CTk):
         table_frame.grid_columnconfigure(0, weight=1)
 
         # Tabla de partes
-        cols = ("id", "codigo", "descripcion", "estado", "ot", "red", "tipo", "cod_trabajo",
+        cols = ("id", "codigo", "descripcion", "estado", "red", "tipo", "cod_trabajo",
                 "presupuesto", "certificado", "pendiente")
         self.tree_resumen = ttk.Treeview(table_frame, columns=cols, show="headings", height=20)
 
         # Configurar columnas
         col_widths = {
             "id": 40, "codigo": 80, "descripcion": 200, "estado": 80,
-            "ot": 70, "red": 70, "tipo": 80, "cod_trabajo": 80,
+            "red": 70, "tipo": 80, "cod_trabajo": 80,
             "presupuesto": 90, "certificado": 90, "pendiente": 90
         }
 
@@ -301,7 +301,6 @@ class AppPartsManager(customtkinter.CTk):
                 "codigo": "Código",
                 "descripcion": "Descripción",
                 "estado": "Estado",
-                "ot": "OT",
                 "red": "Red",
                 "tipo": "Tipo",
                 "cod_trabajo": "Cód.Trabajo",
@@ -353,20 +352,19 @@ class AppPartsManager(customtkinter.CTk):
         try:
             rows = get_partes_resumen(self.user, self.password, self.schema)
             for row in rows:
-                # row: id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
+                # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo,
                 #      total_presupuesto, total_certificado, total_pendiente, creado_en, actualizado_en
                 display_row = (
                     row[0],  # id
                     row[1],  # codigo
                     row[2] or "",  # descripcion
                     row[3] or "Pendiente",  # estado
-                    row[4] or "",  # ot
-                    row[5] or "",  # red
-                    row[6] or "",  # tipo
-                    row[7] or "",  # cod_trabajo
-                    f"{float(row[8]):.2f}€" if row[8] else "0.00€",  # presupuesto
-                    f"{float(row[9]):.2f}€" if row[9] else "0.00€",  # certificado
-                    f"{float(row[10]):.2f}€" if row[10] else "0.00€",  # pendiente
+                    row[4] or "",  # red (antes era row[5])
+                    row[5] or "",  # tipo (antes era row[6])
+                    row[6] or "",  # cod_trabajo (antes era row[7])
+                    f"{float(row[7]):.2f}€" if row[7] else "0.00€",  # presupuesto (antes era row[8])
+                    f"{float(row[8]):.2f}€" if row[8] else "0.00€",  # certificado (antes era row[9])
+                    f"{float(row[9]):.2f}€" if row[9] else "0.00€",  # pendiente (antes era row[10])
                 )
                 self.tree_resumen.insert("", "end", values=display_row)
         except Exception as e:
