@@ -976,6 +976,15 @@ class AppPartsManager(customtkinter.CTk):
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
 
+            # Tipo de reparación
+            tipo_rep_id = None
+            try:
+                tipo_rep_text = self.tipo_rep_menu.get()
+                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+            except:
+                pass
+
             # Municipio
             municipio_id = None
             try:
@@ -1026,7 +1035,7 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, Municipio={municipio_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}")
             print(f"  Título: {titulo}")
             print(f"  Estado: {estado_texto} (ID: {estado_id})")
             print(f"  Fechas: fin={fecha_fin}, prevista={fecha_prevista}")
@@ -1041,6 +1050,7 @@ class AppPartsManager(customtkinter.CTk):
                 estado=estado_id,
                 observaciones=observaciones,
                 municipio_id=municipio_id,
+                tipo_rep_id=tipo_rep_id,
                 titulo=titulo,
                 fecha_fin=fecha_fin,
                 fecha_prevista_fin=fecha_prevista,
@@ -1269,11 +1279,20 @@ class AppPartsManager(customtkinter.CTk):
         from script.modulo_db import mod_parte_item
 
         try:
-            # OT es código string ("OT-001"), los demás son IDs numéricos
-            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
+            # Extraer IDs de dimensiones
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
+
+            # Tipo de reparación
+            tipo_rep_id = None
+            try:
+                tipo_rep_text = self.tipo_rep_menu.get()
+                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+            except:
+                pass
+
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
             estado_texto = self.estado_var.get()
             # Convertir texto a ID numérico (según tbl_parte_estados)
@@ -1282,7 +1301,11 @@ class AppPartsManager(customtkinter.CTk):
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado_id, observaciones
+                red_id, tipo_id, cod_id,
+                descripcion=descripcion,
+                estado=estado_id,
+                observaciones=observaciones,
+                tipo_rep_id=tipo_rep_id
             )
 
             if result == "ok":
@@ -1501,13 +1524,24 @@ class AppPartsManager(customtkinter.CTk):
         from script.modulo_db import mod_parte_item
 
         try:
-            # OT es código string ("OT-001"), los demás son IDs numéricos
-            codigo_ot = self.ot_menu.get().split(" - ")[0] if self.ot_menu.get() else None
+            # Extraer IDs de dimensiones
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
+
+            # Tipo de reparación
+            tipo_rep_id = None
+            try:
+                tipo_rep_text = self.tipo_rep_menu.get()
+                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+            except:
+                pass
+
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
+            estado_texto = self.estado_var.get()
+            # Convertir texto a ID numérico (según tbl_parte_estados)
+            estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
 
             # Observaciones solo si existe el widget
             observaciones = None
@@ -1516,7 +1550,11 @@ class AppPartsManager(customtkinter.CTk):
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
+                red_id, tipo_id, cod_id,
+                descripcion=descripcion,
+                estado=estado_id,
+                observaciones=observaciones,
+                tipo_rep_id=tipo_rep_id
             )
 
             if result == "ok":

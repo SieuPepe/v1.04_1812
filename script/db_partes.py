@@ -407,7 +407,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                    red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                    descripcion: str = None, estado: int = 1, observaciones: str = None,
-                   municipio_id: int = None,
+                   municipio_id: int = None, tipo_rep_id: int = None,
                    titulo: str = None, fecha_fin=None, fecha_prevista_fin=None,
                    trabajadores: str = None, localizacion: str = None,
                    latitud: float = None, longitud: float = None):
@@ -419,6 +419,7 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         estado: ID numérico del estado (FK a tbl_parte_estados, por defecto 1=Pendiente)
         observaciones: Observaciones del parte
         municipio_id: ID del municipio
+        tipo_rep_id: ID del tipo de reparación (FK a dim_tipos_rep)
         titulo, trabajadores, localizacion: Campos de texto
         fecha_fin, fecha_prevista_fin: Fechas (date o str)
         latitud, longitud: Coordenadas GPS (float)
@@ -455,6 +456,10 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             if 'municipio_id' in columns:
                 set_clauses.append("municipio_id = %s")
                 values.append(municipio_id)
+
+            if 'tipo_rep_id' in columns:
+                set_clauses.append("tipo_rep_id = %s")
+                values.append(tipo_rep_id)
 
             if 'titulo' in columns:
                 set_clauses.append("titulo = %s")
