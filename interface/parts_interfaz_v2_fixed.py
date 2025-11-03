@@ -95,6 +95,12 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.cod_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
+        # Fila 3: Tipo de Reparación
+        customtkinter.CTkLabel(self, text="Tipo Reparación:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.tipo_rep_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
+        self.tipo_rep_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        row += 1
+
         # ====================================================================
         # DESCRIPCIONES
         # ====================================================================
@@ -209,14 +215,15 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 self.estado_menu.configure(values=["1 - Pendiente"])
                 self.estado_menu.set("1 - Pendiente")
 
-            # 2. Cargar dimensiones (RED, TIPO, COD)
+            # 2. Cargar dimensiones (RED, TIPO, COD, TIPOS_REP)
             dims = get_dim_all(self.user, self.password, self.schema)
             self.red_menu.configure(values=dims.get("RED", ["(sin datos)"]))
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["(sin datos)"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["(sin datos)"]))
+            self.tipo_rep_menu.configure(values=dims.get("TIPOS_REP", ["(sin datos)"]))
 
             # Preseleccionar primer elemento
-            for menu in (self.red_menu, self.tipo_menu, self.cod_menu):
+            for menu in (self.red_menu, self.tipo_menu, self.cod_menu, self.tipo_rep_menu):
                 vals = menu.cget("values")
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
@@ -402,6 +409,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
         cod_id = self._take_id(self.cod_menu.get())
+        tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
 
         if not all([red_id, tipo_id, cod_id]):
             CTkMessagebox(title="Campos obligatorios", message="Selecciona Red, Tipo y Código de Trabajo", icon="warning")
@@ -544,6 +552,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 provincia_id=provincia_id,
                 comarca_id=comarca_id,
                 municipio_id=municipio_id,
+                tipo_rep_id=tipo_rep_id,
                 trabajadores=trabajadores,
                 latitud=latitud,
                 longitud=longitud

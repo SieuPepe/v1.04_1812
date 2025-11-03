@@ -663,16 +663,24 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_content_frame = customtkinter.CTkFrame(self.partes_frame)
         self.partes_content_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=2)
         self.partes_content_frame.grid_columnconfigure(0, weight=1)
-        self.partes_content_frame.grid_rowconfigure(1, weight=1)
+        self.partes_content_frame.grid_rowconfigure(0, weight=1)
 
         # Sub-tabs
         self.partes_subtabs = customtkinter.CTkTabview(self.partes_content_frame)
         self.partes_subtabs.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.partes_subtabs.grid_rowconfigure(0, weight=1)
+        self.partes_subtabs.grid_columnconfigure(0, weight=1)
 
         # Crear las 3 pestañas
         self.partes_subtabs.add("📝 Datos Básicos")
         self.partes_subtabs.add("💰 Presupuesto")
         self.partes_subtabs.add("📅 Certificaciones")
+
+        # Configurar peso para cada pestaña creada
+        for tab_name in ["📝 Datos Básicos", "💰 Presupuesto", "📅 Certificaciones"]:
+            tab = self.partes_subtabs.tab(tab_name)
+            tab.grid_rowconfigure(0, weight=1)
+            tab.grid_columnconfigure(0, weight=1)
 
         # Cargar datos si hay partes
         if partes_list and partes_list[0] != "Sin partes":
