@@ -400,7 +400,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 
 def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                    red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
-                   descripcion: str = None, estado: str = 'Pendiente', observaciones: str = None,
+                   descripcion: str = None, estado: int = 1, observaciones: str = None,
                    municipio_id: int = None,
                    titulo: str = None, fecha_fin=None, fecha_prevista_fin=None,
                    trabajadores: str = None, localizacion: str = None,
@@ -409,7 +409,9 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
     Modifica los datos de un parte existente.
     Args:
         red_id, tipo_trabajo_id, cod_trabajo_id: IDs numéricos de dimensiones
-        descripcion, estado, observaciones: Campos básicos
+        descripcion: Descripción del parte
+        estado: ID numérico del estado (FK a tbl_parte_estados, por defecto 1=Pendiente)
+        observaciones: Observaciones del parte
         municipio_id: ID del municipio
         titulo, trabajadores, localizacion: Campos de texto
         fecha_fin, fecha_prevista_fin: Fechas (date o str)
@@ -425,13 +427,16 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             cur.execute(f"DESCRIBE {schema}.tbl_partes")
             columns = [row[0] for row in cur.fetchall()]
 
+            # Determinar si la columna es 'estado' o 'id_estado'
+            estado_column = 'id_estado' if 'id_estado' in columns else 'estado'
+
             # Construir UPDATE dinámicamente
             set_clauses = [
                 "red_id = %s",
                 "tipo_trabajo_id = %s",
                 "cod_trabajo_id = %s",
                 "descripcion = %s",
-                "estado = %s",
+                f"{estado_column} = %s",
                 "actualizado_en = NOW()"
             ]
             values = [red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado]

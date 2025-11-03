@@ -626,13 +626,32 @@ class AppPartsManager(customtkinter.CTk):
                 self.titulo_entry.insert(0, parte_data[12])
             row_left += 1
 
-            # Estado
+            # Estado - ComboBox con mapeo a IDs
             customtkinter.CTkLabel(left_frame, text="Estado:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.estado_var = customtkinter.StringVar(value=parte_data[3] or "Pendiente")
+
+            # Mapeo de estados: texto → ID (según tbl_parte_estados)
+            self.estados_map = {
+                "Pendiente": 1,
+                "En curso": 2,
+                "Finalizado": 3,
+                "Cancelado": 4
+            }
+            self.estados_reverse_map = {v: k for k, v in self.estados_map.items()}
+
+            # Obtener estado actual (puede ser ID o texto por compatibilidad)
+            estado_actual = parte_data[3] or 1  # Por defecto ID 1 (Pendiente)
+            if isinstance(estado_actual, int):
+                # Es un ID, convertir a texto
+                estado_texto = self.estados_reverse_map.get(estado_actual, "Pendiente")
+            else:
+                # Es texto, usar directamente
+                estado_texto = estado_actual if estado_actual in self.estados_map else "Pendiente"
+
+            self.estado_var = customtkinter.StringVar(value=estado_texto)
             self.estado_menu = customtkinter.CTkOptionMenu(
                 left_frame, variable=self.estado_var,
-                values=["Pendiente", "En curso", "Finalizado", "Cerrado"]
+                values=["Pendiente", "En curso", "Finalizado", "Cancelado"]
             )
             self.estado_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
@@ -958,7 +977,9 @@ class AppPartsManager(customtkinter.CTk):
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
+            estado_texto = self.estado_var.get()
+            # Convertir texto a ID numérico (según tbl_parte_estados)
+            estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
             trabajadores = self.trabajadores_entry.get().strip() or None
             localizacion = self.localizacion_entry.get().strip() or None
@@ -985,7 +1006,7 @@ class AppPartsManager(customtkinter.CTk):
                 pass
 
             # VALIDACIÓN: Fecha fin obligatoria si estado es "Finalizado"
-            if estado == "Finalizado" and not fecha_fin:
+            if estado_texto == "Finalizado" and not fecha_fin:
                 CTkMessagebox(
                     title="Campo obligatorio",
                     message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
@@ -996,7 +1017,7 @@ class AppPartsManager(customtkinter.CTk):
             print(f"DEBUG - Guardando parte {parte_id}:")
             print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, Municipio={municipio_id}")
             print(f"  Título: {titulo}")
-            print(f"  Estado: {estado}")
+            print(f"  Estado: {estado_texto} (ID: {estado_id})")
             print(f"  Fechas: fin={fecha_fin}, prevista={fecha_prevista}")
             print(f"  Trabajadores: {trabajadores}")
             print(f"  Localización: {localizacion}")
@@ -1006,7 +1027,7 @@ class AppPartsManager(customtkinter.CTk):
                 self.user, self.password, self.schema, parte_id,
                 red_id, tipo_id, cod_id,
                 descripcion=descripcion,
-                estado=estado,
+                estado=estado_id,
                 observaciones=observaciones,
                 municipio_id=municipio_id,
                 titulo=titulo,
@@ -1243,12 +1264,14 @@ class AppPartsManager(customtkinter.CTk):
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
+            estado_texto = self.estado_var.get()
+            # Convertir texto a ID numérico (según tbl_parte_estados)
+            estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
 
             result = mod_parte_item(
                 self.user, self.password, self.schema, parte_id,
-                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado, observaciones
+                codigo_ot, red_id, tipo_id, cod_id, descripcion, estado_id, observaciones
             )
 
             if result == "ok":
@@ -1315,14 +1338,33 @@ class AppPartsManager(customtkinter.CTk):
             codigo_label.grid(row=row, column=1, padx=10, pady=8, sticky="w")
             row += 1
 
-            # Estado
+            # Estado - ComboBox con mapeo a IDs
             customtkinter.CTkLabel(self.datos_parte_frame, text="Estado:",
                                    font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.estado_var = customtkinter.StringVar(value=parte_data[3] or "Pendiente")
+
+            # Mapeo de estados: texto → ID (según tbl_parte_estados)
+            self.estados_map = {
+                "Pendiente": 1,
+                "En curso": 2,
+                "Finalizado": 3,
+                "Cancelado": 4
+            }
+            self.estados_reverse_map = {v: k for k, v in self.estados_map.items()}
+
+            # Obtener estado actual (puede ser ID o texto por compatibilidad)
+            estado_actual = parte_data[3] or 1  # Por defecto ID 1 (Pendiente)
+            if isinstance(estado_actual, int):
+                # Es un ID, convertir a texto
+                estado_texto = self.estados_reverse_map.get(estado_actual, "Pendiente")
+            else:
+                # Es texto, usar directamente
+                estado_texto = estado_actual if estado_actual in self.estados_map else "Pendiente"
+
+            self.estado_var = customtkinter.StringVar(value=estado_texto)
             estado_menu = customtkinter.CTkOptionMenu(
                 self.datos_parte_frame,
                 variable=self.estado_var,
-                values=["Pendiente", "En curso", "Finalizado", "Cerrado"]
+                values=["Pendiente", "En curso", "Finalizado", "Cancelado"]
             )
             estado_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             row += 1
