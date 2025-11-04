@@ -73,13 +73,6 @@ class AppPartsV2(customtkinter.CTk):
 
         customtkinter.CTkLabel(frame_dims, text="** DIMENSIONES **", font=("Arial", 12, "bold")).pack(pady=5)
 
-        # OT *
-        frame_ot = customtkinter.CTkFrame(frame_dims, fg_color="transparent")
-        frame_ot.pack(fill="x", padx=10, pady=3)
-        customtkinter.CTkLabel(frame_ot, text="OT*:", width=120, anchor="e").pack(side="left")
-        self.ot_menu = customtkinter.CTkOptionMenu(frame_ot, values=["Cargando..."], width=420)
-        self.ot_menu.pack(side="left", padx=5)
-
         # Red *
         frame_red = customtkinter.CTkFrame(frame_dims, fg_color="transparent")
         frame_red.pack(fill="x", padx=10, pady=3)
@@ -100,6 +93,13 @@ class AppPartsV2(customtkinter.CTk):
         customtkinter.CTkLabel(frame_cod, text="Código Trabajo*:", width=120, anchor="e").pack(side="left")
         self.cod_menu = customtkinter.CTkOptionMenu(frame_cod, values=["Cargando..."], width=420)
         self.cod_menu.pack(side="left", padx=5)
+
+        # Tipo de Reparación (opcional)
+        frame_tipo_rep = customtkinter.CTkFrame(frame_dims, fg_color="transparent")
+        frame_tipo_rep.pack(fill="x", padx=10, pady=3)
+        customtkinter.CTkLabel(frame_tipo_rep, text="Tipo Reparación:", width=120, anchor="e").pack(side="left")
+        self.tipo_rep_menu = customtkinter.CTkOptionMenu(frame_tipo_rep, values=["Sin especificar"], width=420)
+        self.tipo_rep_menu.pack(side="left", padx=5)
 
         # ====================================================================
         # SECCIÓN: DESCRIPCIONES (OBLIGATORIO)
@@ -209,15 +209,20 @@ class AppPartsV2(customtkinter.CTk):
                 self.estado_menu.configure(values=["1 - Pendiente"])
                 self.estado_menu.set("1 - Pendiente")
 
-            # 2. Cargar dimensiones (OT, RED, TIPO, COD)
+            # 2. Cargar dimensiones (RED, TIPO, COD, TIPO_REP)
             dims = get_dim_all(self.user, self.password, self.schema)
-            self.ot_menu.configure(values=dims.get("OT", ["Sin datos"]))
             self.red_menu.configure(values=dims.get("RED", ["Sin datos"]))
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["Sin datos"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["Sin datos"]))
 
+            # Tipo de Reparación (opcional, agregar "Sin especificar" como primera opción)
+            tipos_rep = dims.get("TIPOS_REP", [])
+            tipo_rep_values = ["Sin especificar"] + tipos_rep
+            self.tipo_rep_menu.configure(values=tipo_rep_values)
+            self.tipo_rep_menu.set("Sin especificar")
+
             # Preseleccionar primer elemento
-            for menu in (self.ot_menu, self.red_menu, self.tipo_menu, self.cod_menu):
+            for menu in (self.red_menu, self.tipo_menu, self.cod_menu):
                 vals = menu.cget("values")
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
@@ -286,14 +291,19 @@ class AppPartsV2(customtkinter.CTk):
             CTkMessagebox(title="Campo obligatorio", message="El Estado es obligatorio", icon="warning")
             return
 
-        ot_id = self._take_id(self.ot_menu.get())
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
         cod_id = self._take_id(self.cod_menu.get())
 
-        if not all([ot_id, red_id, tipo_id, cod_id]):
-            CTkMessagebox(title="Campos obligatorios", message="Debes seleccionar OT, Red, Tipo y Código de Trabajo", icon="warning")
+        if not all([red_id, tipo_id, cod_id]):
+            CTkMessagebox(title="Campos obligatorios", message="Debes seleccionar Red, Tipo y Código de Trabajo", icon="warning")
             return
+
+        # Tipo de Reparación es opcional
+        tipo_rep_id = None
+        tipo_rep_val = self.tipo_rep_menu.get()
+        if tipo_rep_val and tipo_rep_val != "Sin especificar":
+            tipo_rep_id = self._take_id(tipo_rep_val)
 
         descripcion = self.descripcion_entry.get().strip()
         if not descripcion:
@@ -354,7 +364,7 @@ class AppPartsV2(customtkinter.CTk):
             # Usar función mejorada
             new_id, codigo = add_parte_mejorado(
                 self.user, self.password, self.schema,
-                ot_id, red_id, tipo_id, cod_id,
+                red_id, tipo_id, cod_id,
                 titulo=titulo,
                 descripcion=descripcion,
                 descripcion_larga=desc_larga,
@@ -362,9 +372,10 @@ class AppPartsV2(customtkinter.CTk):
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
                 fecha_prevista_fin=fecha_prevista,
-                id_estado=estado_id,
+                estado_id=estado_id,
+                tipo_rep_id=tipo_rep_id,
                 localizacion=localizacion,
-                id_municipio=municipio_id
+                municipio_id=municipio_id
             )
 
             CTkMessagebox(

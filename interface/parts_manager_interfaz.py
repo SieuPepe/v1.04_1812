@@ -244,6 +244,44 @@ class AppPartsManager(customtkinter.CTk):
         self.resumen_frame.grid_columnconfigure(0, weight=1)
         self.resumen_frame.grid_rowconfigure(2, weight=1)
 
+        # Definir TODAS las columnas disponibles para tbl_partes + presupuesto/certificado/pendiente
+        self.resumen_columns = {
+            # Columnas principales (visibles por defecto)
+            "codigo": {"label": "Código", "width": 80, "visible": True, "locked": True},
+            "descripcion": {"label": "Descripción", "width": 200, "visible": True, "locked": False},
+            "estado": {"label": "Estado", "width": 80, "visible": True, "locked": False},
+            "red": {"label": "Red", "width": 120, "visible": True, "locked": False},
+            "tipo": {"label": "Tipo Trabajo", "width": 120, "visible": True, "locked": False},
+            "cod_trabajo": {"label": "Cód.Trabajo", "width": 120, "visible": True, "locked": False},
+            "tipo_rep": {"label": "Tipo Reparación", "width": 130, "visible": True, "locked": False},
+            "presupuesto": {"label": "Presup.", "width": 90, "visible": True, "locked": False},
+            "certificado": {"label": "Certif.", "width": 90, "visible": True, "locked": False},
+            "pendiente": {"label": "Pendiente", "width": 90, "visible": True, "locked": False},
+
+            # Campos de descripción ampliada (ocultos por defecto)
+            "titulo": {"label": "Título", "width": 200, "visible": False, "locked": False},
+            "descripcion_corta": {"label": "Desc. Corta", "width": 150, "visible": False, "locked": False},
+            "descripcion_larga": {"label": "Desc. Larga", "width": 300, "visible": False, "locked": False},
+
+            # Fechas (ocultas por defecto excepto created_at)
+            "fecha_inicio": {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False},
+            "fecha_fin": {"label": "Fecha Fin", "width": 110, "visible": False, "locked": False},
+            "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
+            "updated_at": {"label": "Última Actualiz.", "width": 150, "visible": False, "locked": False},
+
+            # Localización (ocultos por defecto)
+            "localizacion": {"label": "Localización", "width": 200, "visible": False, "locked": False},
+            "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
+            "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
+            "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
+            "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
+            "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
+
+            # Otros campos (ocultos por defecto)
+            "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
+            "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
+        }
+
         # Título
         title = customtkinter.CTkLabel(
             self.resumen_frame,
@@ -275,51 +313,23 @@ class AppPartsManager(customtkinter.CTk):
             command=lambda: open_parts_list(self, self.user, self.password, self.schema),
             width=180
         )
-        btn_list.pack(side="left")
+        btn_list.pack(side="left", padx=(0, 10))
+
+        btn_columns = customtkinter.CTkButton(
+            btn_frame, text="⚙ Columnas",
+            command=self._show_resumen_column_selector,
+            width=100, fg_color="#1f6aa5"
+        )
+        btn_columns.pack(side="left")
 
         # Frame para tabla
-        table_frame = customtkinter.CTkFrame(self.resumen_frame)
-        table_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
-        table_frame.grid_rowconfigure(0, weight=1)
-        table_frame.grid_columnconfigure(0, weight=1)
+        self.resumen_table_frame = customtkinter.CTkFrame(self.resumen_frame)
+        self.resumen_table_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
+        self.resumen_table_frame.grid_rowconfigure(0, weight=1)
+        self.resumen_table_frame.grid_columnconfigure(0, weight=1)
 
-        # Tabla de partes
-        cols = ("id", "codigo", "descripcion", "estado", "ot", "red", "tipo", "cod_trabajo",
-                "presupuesto", "certificado", "pendiente")
-        self.tree_resumen = ttk.Treeview(table_frame, columns=cols, show="headings", height=20)
-
-        # Configurar columnas
-        col_widths = {
-            "id": 40, "codigo": 80, "descripcion": 200, "estado": 80,
-            "ot": 70, "red": 70, "tipo": 80, "cod_trabajo": 80,
-            "presupuesto": 90, "certificado": 90, "pendiente": 90
-        }
-
-        for col in cols:
-            header_text = {
-                "id": "ID",
-                "codigo": "Código",
-                "descripcion": "Descripción",
-                "estado": "Estado",
-                "ot": "OT",
-                "red": "Red",
-                "tipo": "Tipo",
-                "cod_trabajo": "Cód.Trabajo",
-                "presupuesto": "Presup.",
-                "certificado": "Certif.",
-                "pendiente": "Pendiente"
-            }
-            self.tree_resumen.heading(col, text=header_text.get(col, col.title()))
-
-        for col in cols:
-            self.tree_resumen.heading(col, text=col.replace("_", " ").title())
-            self.tree_resumen.column(col, width=col_widths.get(col, 100), anchor="center")  # ✅ center
-
-                # Scrollbar
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree_resumen.yview)
-        self.tree_resumen.configure(yscrollcommand=scrollbar.set)
-        self.tree_resumen.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
+        # Crear tabla con columnas seleccionadas
+        self._rebuild_resumen_tree()
 
         # Botones inferiores
         bottom_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
@@ -352,25 +362,175 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             rows = get_partes_resumen(self.user, self.password, self.schema)
-            for row in rows:
-                # row: id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
-                #      total_presupuesto, total_certificado, total_pendiente, creado_en, actualizado_en
-                display_row = (
-                    row[0],  # id
-                    row[1],  # codigo
-                    row[2] or "",  # descripcion
-                    row[3] or "Pendiente",  # estado
-                    row[4] or "",  # ot
-                    row[5] or "",  # red
-                    row[6] or "",  # tipo
-                    row[7] or "",  # cod_trabajo
-                    f"{float(row[8]):.2f}€" if row[8] else "0.00€",  # presupuesto
-                    f"{float(row[9]):.2f}€" if row[9] else "0.00€",  # certificado
-                    f"{float(row[10]):.2f}€" if row[10] else "0.00€",  # pendiente
-                )
-                self.tree_resumen.insert("", "end", values=display_row)
+
+            # Mapeo de índices del resultado SQL - TODAS las columnas
+            # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
+            #      presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
+            #      fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
+            #      provincia, latitud, longitud, trabajadores, observaciones
+            field_map = {
+                "id": 0,
+                "codigo": 1,
+                "descripcion": 2,
+                "estado": 3,
+                "red": 4,
+                "tipo": 5,
+                "cod_trabajo": 6,
+                "tipo_rep": 7,
+                "presupuesto": 8,
+                "certificado": 9,
+                "pendiente": 10,
+                "titulo": 11,
+                "descripcion_corta": 12,
+                "descripcion_larga": 13,
+                "fecha_inicio": 14,
+                "fecha_fin": 15,
+                "created_at": 16,
+                "updated_at": 17,
+                "localizacion": 18,
+                "municipio": 19,
+                "comarca": 20,
+                "provincia": 21,
+                "latitud": 22,
+                "longitud": 23,
+                "trabajadores": 24,
+                "observaciones": 25,
+            }
+
+            # Obtener columnas visibles actuales del tree
+            visible_cols = self.tree_resumen["columns"]
+
+            for row_data in rows:
+                # Construir fila con solo las columnas visibles
+                row_values = []
+                for col in visible_cols:
+                    idx = field_map.get(col)
+                    if idx is not None and idx < len(row_data):
+                        value = row_data[idx]
+                        # Formatear valores especiales
+                        if col in ["presupuesto", "certificado", "pendiente"] and value is not None:
+                            row_values.append(f"{float(value):.2f}€")
+                        elif col in ["created_at", "updated_at", "fecha_inicio", "fecha_fin"] and value is not None:
+                            row_values.append(str(value))
+                        elif col in ["latitud", "longitud"] and value is not None:
+                            row_values.append(f"{float(value):.6f}")
+                        elif col == "estado":
+                            row_values.append(value if value else "Pendiente")
+                        else:
+                            row_values.append(value if value is not None else "")
+                    else:
+                        row_values.append("")
+
+                self.tree_resumen.insert("", "end", values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
+
+    def _rebuild_resumen_tree(self):
+        """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""
+        from tkinter import ttk
+
+        # Eliminar tabla anterior si existe
+        if hasattr(self, 'tree_resumen'):
+            self.tree_resumen.destroy()
+            self.resumen_scrollbar.destroy()
+
+        # Obtener columnas visibles (codigo siempre primero)
+        visible_cols = ["id"]  # ID siempre incluido pero oculto
+        visible_cols.append("codigo")  # Codigo siempre primero y visible
+
+        # Agregar resto de columnas visibles
+        for col_name, col_info in self.resumen_columns.items():
+            if col_name != "codigo" and col_info["visible"]:
+                visible_cols.append(col_name)
+
+        # Crear nueva tabla
+        self.tree_resumen = ttk.Treeview(self.resumen_table_frame, columns=visible_cols, show="headings", height=20)
+
+        # Configurar columnas
+        self.tree_resumen.heading("id", text="ID")
+        self.tree_resumen.column("id", width=0, stretch=False)  # ID oculto
+
+        for col in visible_cols[1:]:  # Skip "id"
+            col_info = self.resumen_columns.get(col, {"label": col, "width": 100})
+            self.tree_resumen.heading(col, text=col_info["label"])
+            self.tree_resumen.column(col, width=col_info["width"], anchor="center")
+
+        # Scrollbar
+        self.resumen_scrollbar = ttk.Scrollbar(self.resumen_table_frame, orient="vertical", command=self.tree_resumen.yview)
+        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set)
+        self.tree_resumen.grid(row=0, column=0, sticky="nsew")
+        self.resumen_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Doble clic para ver detalles
+        self.tree_resumen.bind("<Double-1>", lambda e: self._view_parte_detail())
+
+        # Recargar datos
+        self._reload_resumen()
+
+    def _show_resumen_column_selector(self):
+        """Muestra ventana para seleccionar columnas visibles del resumen"""
+        selector_window = customtkinter.CTkToplevel(self)
+        selector_window.title("Seleccionar Columnas - Resumen")
+        selector_window.geometry("400x500")
+        selector_window.transient(self)
+        selector_window.grab_set()
+
+        # Título
+        title_label = customtkinter.CTkLabel(
+            selector_window,
+            text="Seleccionar Columnas Visibles",
+            font=("", 16, "bold")
+        )
+        title_label.pack(pady=(20, 10))
+
+        # Scroll frame para checkboxes
+        scroll_frame = customtkinter.CTkScrollableFrame(selector_window, width=350, height=350)
+        scroll_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Checkboxes
+        checkboxes = {}
+        for col_name, col_info in self.resumen_columns.items():
+            if col_info["locked"]:
+                # Columnas bloqueadas (siempre visibles)
+                label = customtkinter.CTkLabel(
+                    scroll_frame,
+                    text=f"✓ {col_info['label']} (siempre visible)",
+                    font=("", 12)
+                )
+                label.pack(anchor="w", pady=5, padx=10)
+            else:
+                # Columnas opcionales
+                var = customtkinter.BooleanVar(value=col_info["visible"])
+                cb = customtkinter.CTkCheckBox(
+                    scroll_frame,
+                    text=col_info["label"],
+                    variable=var,
+                    font=("", 12)
+                )
+                cb.pack(anchor="w", pady=5, padx=10)
+                checkboxes[col_name] = var
+
+        # Botones
+        btn_frame = customtkinter.CTkFrame(selector_window, fg_color="transparent")
+        btn_frame.pack(pady=20)
+
+        def aplicar():
+            # Actualizar visibilidad
+            for col_name, var in checkboxes.items():
+                self.resumen_columns[col_name]["visible"] = var.get()
+
+            # Reconstruir tabla
+            self._rebuild_resumen_tree()
+            selector_window.destroy()
+
+        def cancelar():
+            selector_window.destroy()
+
+        btn_aplicar = customtkinter.CTkButton(btn_frame, text="Aplicar", command=aplicar, width=120)
+        btn_aplicar.pack(side="left", padx=5)
+
+        btn_cancelar = customtkinter.CTkButton(btn_frame, text="Cancelar", command=cancelar, width=120)
+        btn_cancelar.pack(side="left", padx=5)
 
     def _add_parte_resumen(self):
         """
@@ -508,11 +668,19 @@ class AppPartsManager(customtkinter.CTk):
         # Sub-tabs
         self.partes_subtabs = customtkinter.CTkTabview(self.partes_content_frame)
         self.partes_subtabs.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.partes_subtabs.grid_rowconfigure(0, weight=1)
+        self.partes_subtabs.grid_columnconfigure(0, weight=1)
 
         # Crear las 3 pestañas
         self.partes_subtabs.add("📝 Datos Básicos")
         self.partes_subtabs.add("💰 Presupuesto")
         self.partes_subtabs.add("📅 Certificaciones")
+
+        # Configurar peso para cada pestaña creada
+        for tab_name in ["📝 Datos Básicos", "💰 Presupuesto", "📅 Certificaciones"]:
+            tab = self.partes_subtabs.tab(tab_name)
+            tab.grid_rowconfigure(0, weight=1)
+            tab.grid_columnconfigure(0, weight=1)
 
         # Cargar datos si hay partes
         if partes_list and partes_list[0] != "Sin partes":
@@ -569,9 +737,13 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
-        main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        # Frame scrollable para contener todo el contenido - usar pack para CTkScrollableFrame
+        scroll_frame = customtkinter.CTkScrollableFrame(tab, fg_color="transparent")
+        scroll_frame.pack(fill="both", expand=True, padx=0, pady=0)
+
+        # Frame principal dentro del scroll
+        main_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)
@@ -579,7 +751,7 @@ class AppPartsManager(customtkinter.CTk):
         try:
             parte_data = get_parte_detail(self.user, self.password, self.schema, parte_id)
             if not parte_data:
-                customtkinter.CTkLabel(main_frame, text="❌ No se encontró el parte").pack(pady=20)
+                customtkinter.CTkLabel(main_frame, text="❌ No se encontró el parte").grid(row=0, column=0, pady=20)
                 return
 
             dims = get_dim_all(self.user, self.password, self.schema)
@@ -629,13 +801,32 @@ class AppPartsManager(customtkinter.CTk):
                 self.titulo_entry.insert(0, parte_data[12])
             row_left += 1
 
-            # Estado
+            # Estado - ComboBox con mapeo a IDs
             customtkinter.CTkLabel(left_frame, text="Estado:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.estado_var = customtkinter.StringVar(value=parte_data[3] or "Pendiente")
+
+            # Mapeo de estados: texto → ID (según tbl_parte_estados)
+            self.estados_map = {
+                "Pendiente": 1,
+                "En curso": 2,
+                "Finalizado": 3,
+                "Cancelado": 4
+            }
+            self.estados_reverse_map = {v: k for k, v in self.estados_map.items()}
+
+            # Obtener estado actual (puede ser ID o texto por compatibilidad)
+            estado_actual = parte_data[3] or 1  # Por defecto ID 1 (Pendiente)
+            if isinstance(estado_actual, int):
+                # Es un ID, convertir a texto
+                estado_texto = self.estados_reverse_map.get(estado_actual, "Pendiente")
+            else:
+                # Es texto, usar directamente
+                estado_texto = estado_actual if estado_actual in self.estados_map else "Pendiente"
+
+            self.estado_var = customtkinter.StringVar(value=estado_texto)
             self.estado_menu = customtkinter.CTkOptionMenu(
                 left_frame, variable=self.estado_var,
-                values=["Pendiente", "En curso", "Finalizado", "Cerrado"]
+                values=["Pendiente", "En curso", "Finalizado", "Cancelado"]
             )
             self.estado_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
@@ -646,7 +837,7 @@ class AppPartsManager(customtkinter.CTk):
             self.red_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("RED", []))
             self.red_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("RED", []):
-                if item.startswith(f"{parte_data[5]} -"):
+                if item.startswith(f"{parte_data[4]} -"):  # Actualizado: era 5, ahora 4
                     self.red_menu.set(item)
                     break
             row_left += 1
@@ -657,7 +848,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []))
             self.tipo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[6]} -"):
+                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
                     self.tipo_menu.set(item)
                     break
             row_left += 1
@@ -668,8 +859,19 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []))
             self.cod_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
-                if item.startswith(f"{parte_data[7]} -"):
+                if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
                     self.cod_menu.set(item)
+                    break
+            row_left += 1
+
+            # Tipo de Reparación
+            customtkinter.CTkLabel(left_frame, text="Tipo Reparación:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []))
+            self.tipo_rep_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            for item in dims.get("TIPOS_REP", []):
+                if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
+                    self.tipo_rep_menu.set(item)
                     break
             row_left += 1
 
@@ -685,7 +887,7 @@ class AppPartsManager(customtkinter.CTk):
             self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
 
             # Intentar establecer la provincia actual
-            current_municipio_id = parte_data[8]
+            current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
             if current_municipio_id:
                 # Obtener provincia del municipio actual
                 try:
@@ -735,28 +937,28 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, columnspan=2, pady=15, sticky="ew")
             row_left += 1
 
-            # NUEVO: Fecha Fin
-            customtkinter.CTkLabel(left_frame, text="Fecha Fin:", font=("", 12, "bold")).grid(
+            # NUEVO: Fecha Inicio
+            customtkinter.CTkLabel(left_frame, text="Fecha Inicio:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.fecha_fin_entry = DateEntry(left_frame, width=20, background='darkblue',
+            self.fecha_inicio_entry = DateEntry(left_frame, width=20, background='darkblue',
                                              foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
-            self.fecha_fin_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
-            if parte_data[14]:
+            self.fecha_inicio_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[13]:
                 try:
-                    self.fecha_fin_entry.set_date(parte_data[14])
+                    self.fecha_inicio_entry.set_date(parte_data[13])
                 except:
                     pass
             row_left += 1
 
-            # NUEVO: Fecha Prevista Fin
-            customtkinter.CTkLabel(left_frame, text="Fecha Prevista:", font=("", 12, "bold")).grid(
+            # NUEVO: Fecha Fin
+            customtkinter.CTkLabel(left_frame, text="Fecha Fin:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.fecha_prevista_entry = DateEntry(left_frame, width=20, background='darkblue',
+            self.fecha_fin_entry = DateEntry(left_frame, width=20, background='darkblue',
                                                    foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
-            self.fecha_prevista_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
-            if parte_data[15]:
+            self.fecha_fin_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[14]:
                 try:
-                    self.fecha_prevista_entry.set_date(parte_data[15])
+                    self.fecha_fin_entry.set_date(parte_data[14])
                 except:
                     pass
             row_left += 1
@@ -766,8 +968,8 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.trabajadores_entry = customtkinter.CTkEntry(left_frame)
             self.trabajadores_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[19]:
-                self.trabajadores_entry.insert(0, parte_data[19])
+            if parte_data[18]:
+                self.trabajadores_entry.insert(0, parte_data[18])
             row_left += 1
 
             # NUEVO: Localización
@@ -775,8 +977,8 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.localizacion_entry = customtkinter.CTkEntry(left_frame)
             self.localizacion_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[16]:
-                self.localizacion_entry.insert(0, parte_data[16])
+            if parte_data[15]:
+                self.localizacion_entry.insert(0, parte_data[15])
             row_left += 1
 
             # NUEVO: Coordenadas GPS
@@ -784,16 +986,16 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.latitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="41.123456")
             self.latitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[17]:
-                self.latitud_entry.insert(0, str(parte_data[17]))
+            if parte_data[16]:
+                self.latitud_entry.insert(0, str(parte_data[16]))
             row_left += 1
 
             customtkinter.CTkLabel(left_frame, text="Longitud:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.longitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="2.123456")
             self.longitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[18]:
-                self.longitud_entry.insert(0, str(parte_data[18]))
+            if parte_data[17]:
+                self.longitud_entry.insert(0, str(parte_data[17]))
             row_left += 1
 
             # Separador
@@ -859,7 +1061,7 @@ class AppPartsManager(customtkinter.CTk):
         except Exception as e:
             import traceback
             print(f"ERROR:\n{traceback.format_exc()}")
-            customtkinter.CTkLabel(main_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(main_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _mark_as_changed(self, *args):
         """Marca que hay cambios pendientes y habilita el botón guardar"""
@@ -899,6 +1101,8 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'cod_menu'):
             self.cod_menu.configure(command=lambda _: self._mark_as_changed())
+        if hasattr(self, 'tipo_rep_menu'):
+            self.tipo_rep_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'municipio_menu'):
             self.municipio_menu.configure(command=lambda _: self._mark_as_changed())
         # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
@@ -910,10 +1114,10 @@ class AppPartsManager(customtkinter.CTk):
             self.obs_text.bind('<KeyRelease>', self._mark_as_changed)
 
         # DateEntry widgets (se activan cuando se selecciona una fecha)
+        if hasattr(self, 'fecha_inicio_entry'):
+            self.fecha_inicio_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
         if hasattr(self, 'fecha_fin_entry'):
             self.fecha_fin_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
-        if hasattr(self, 'fecha_prevista_entry'):
-            self.fecha_prevista_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
 
     def _on_provincia_change(self, selected_provincia):
         """Actualiza lista de municipios cuando cambia la provincia"""
@@ -968,6 +1172,15 @@ class AppPartsManager(customtkinter.CTk):
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
             cod_id = int(self.cod_menu.get().split(" - ")[0])
 
+            # Tipo de reparación
+            tipo_rep_id = None
+            try:
+                tipo_rep_text = self.tipo_rep_menu.get()
+                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+            except:
+                pass
+
             # Municipio
             municipio_id = None
             try:
@@ -980,14 +1193,16 @@ class AppPartsManager(customtkinter.CTk):
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado = self.estado_var.get()
+            estado_texto = self.estado_var.get()
+            # Convertir texto a ID numérico (según tbl_parte_estados)
+            estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
             trabajadores = self.trabajadores_entry.get().strip() or None
             localizacion = self.localizacion_entry.get().strip() or None
 
             # Fechas
+            fecha_inicio = self.fecha_inicio_entry.get_date() if hasattr(self.fecha_inicio_entry, 'get_date') else None
             fecha_fin = self.fecha_fin_entry.get_date() if hasattr(self.fecha_fin_entry, 'get_date') else None
-            fecha_prevista = self.fecha_prevista_entry.get_date() if hasattr(self.fecha_prevista_entry, 'get_date') else None
 
             # Coordenadas GPS
             latitud = None
@@ -1007,7 +1222,7 @@ class AppPartsManager(customtkinter.CTk):
                 pass
 
             # VALIDACIÓN: Fecha fin obligatoria si estado es "Finalizado"
-            if estado == "Finalizado" and not fecha_fin:
+            if estado_texto == "Finalizado" and not fecha_fin:
                 CTkMessagebox(
                     title="Campo obligatorio",
                     message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
@@ -1016,10 +1231,10 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, Municipio={municipio_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}")
             print(f"  Título: {titulo}")
-            print(f"  Estado: {estado}")
-            print(f"  Fechas: fin={fecha_fin}, prevista={fecha_prevista}")
+            print(f"  Estado: {estado_texto} (ID: {estado_id})")
+            print(f"  Fechas: inicio={fecha_inicio}, fin={fecha_fin}")
             print(f"  Trabajadores: {trabajadores}")
             print(f"  Localización: {localizacion}")
             print(f"  GPS: {latitud}, {longitud}")
@@ -1028,12 +1243,12 @@ class AppPartsManager(customtkinter.CTk):
                 self.user, self.password, self.schema, parte_id,
                 red_id, tipo_id, cod_id,
                 descripcion=descripcion,
-                estado=estado,
+                estado=estado_id,
                 observaciones=observaciones,
                 municipio_id=municipio_id,
+                tipo_rep_id=tipo_rep_id,
                 titulo=titulo,
                 fecha_fin=fecha_fin,
-                fecha_prevista_fin=fecha_prevista,
                 trabajadores=trabajadores,
                 localizacion=localizacion,
                 latitud=latitud,
@@ -1088,9 +1303,9 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
+        # Frame principal - usar pack para mejor expansión
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
@@ -1162,7 +1377,7 @@ class AppPartsManager(customtkinter.CTk):
                                    font=("", 16, "bold"), text_color="#4CAF50").pack(side="left")
 
         except Exception as e:
-            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _load_certificaciones_tab(self, parte_id):
         """Carga la pestaña de Certificaciones (solo lectura)"""
@@ -1175,9 +1390,9 @@ class AppPartsManager(customtkinter.CTk):
         for widget in tab.winfo_children():
             widget.destroy()
 
-        # Frame principal
+        # Frame principal - usar pack para mejor expansión
         main_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_rowconfigure(1, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
@@ -1252,7 +1467,7 @@ class AppPartsManager(customtkinter.CTk):
                                    font=("", 16, "bold"), text_color="#2196F3").pack(side="left")
 
         except Exception as e:
-            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").pack(pady=20)
+            customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
 
     def _load_parte_selected(self):
         """Carga los datos del parte seleccionado"""
@@ -1307,28 +1522,35 @@ class AppPartsManager(customtkinter.CTk):
             codigo_label.grid(row=row, column=1, padx=10, pady=8, sticky="w")
             row += 1
 
-            # Estado
+            # Estado - ComboBox con mapeo a IDs
             customtkinter.CTkLabel(self.datos_parte_frame, text="Estado:",
                                    font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.estado_var = customtkinter.StringVar(value=parte_data[3] or "Pendiente")
+
+            # Mapeo de estados: texto → ID (según tbl_parte_estados)
+            self.estados_map = {
+                "Pendiente": 1,
+                "En curso": 2,
+                "Finalizado": 3,
+                "Cancelado": 4
+            }
+            self.estados_reverse_map = {v: k for k, v in self.estados_map.items()}
+
+            # Obtener estado actual (puede ser ID o texto por compatibilidad)
+            estado_actual = parte_data[3] or 1  # Por defecto ID 1 (Pendiente)
+            if isinstance(estado_actual, int):
+                # Es un ID, convertir a texto
+                estado_texto = self.estados_reverse_map.get(estado_actual, "Pendiente")
+            else:
+                # Es texto, usar directamente
+                estado_texto = estado_actual if estado_actual in self.estados_map else "Pendiente"
+
+            self.estado_var = customtkinter.StringVar(value=estado_texto)
             estado_menu = customtkinter.CTkOptionMenu(
                 self.datos_parte_frame,
                 variable=self.estado_var,
-                values=["Pendiente", "En curso", "Finalizado", "Cerrado"]
+                values=["Pendiente", "En curso", "Finalizado", "Cancelado"]
             )
             estado_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            row += 1
-
-            # OT
-            customtkinter.CTkLabel(self.datos_parte_frame, text="OT:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.ot_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("OT", []))
-            self.ot_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            # Preseleccionar valor actual
-            for item in dims.get("OT", []):
-                if item.startswith(f"{parte_data[4]} -"):
-                    self.ot_menu.set(item)
-                    break
             row += 1
 
             # Red
@@ -1337,7 +1559,7 @@ class AppPartsManager(customtkinter.CTk):
             self.red_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("RED", []))
             self.red_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("RED", []):
-                if item.startswith(f"{parte_data[5]} -"):
+                if item.startswith(f"{parte_data[4]} -"):  # Actualizado: era 5, ahora 4
                     self.red_menu.set(item)
                     break
             row += 1
@@ -1348,7 +1570,7 @@ class AppPartsManager(customtkinter.CTk):
             self.tipo_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPO_TRABAJO", []))
             self.tipo_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[6]} -"):
+                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
                     self.tipo_menu.set(item)
                     break
             row += 1
@@ -1359,8 +1581,19 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("COD_TRABAJO", []))
             self.cod_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
-                if item.startswith(f"{parte_data[7]} -"):
+                if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
                     self.cod_menu.set(item)
+                    break
+            row += 1
+
+            # Tipo de Reparación
+            customtkinter.CTkLabel(self.datos_parte_frame, text="Tipo Reparación:",
+                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
+            self.tipo_rep_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPOS_REP", []))
+            self.tipo_rep_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
+            for item in dims.get("TIPOS_REP", []):
+                if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
+                    self.tipo_rep_menu.set(item)
                     break
             row += 1
 
@@ -1378,21 +1611,21 @@ class AppPartsManager(customtkinter.CTk):
                                    font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="ne")
             self.obs_text = customtkinter.CTkTextbox(self.datos_parte_frame, height=100)
             self.obs_text.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            if parte_data[9]:
-                self.obs_text.insert("1.0", parte_data[9])
+            if parte_data[10]:
+                self.obs_text.insert("1.0", parte_data[10])
             row += 1
 
             # Fechas (solo lectura)
             customtkinter.CTkLabel(self.datos_parte_frame, text="Creado:",
                                    font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            fecha_creado = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[10]))
+            fecha_creado = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[11]))
             fecha_creado.grid(row=row, column=1, padx=10, pady=8, sticky="w")
             row += 1
 
-            if parte_data[11]:
+            if parte_data[12]:
                 customtkinter.CTkLabel(self.datos_parte_frame, text="Actualizado:",
                                        font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-                fecha_act = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[11]))
+                fecha_act = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[12]))
                 fecha_act.grid(row=row, column=1, padx=10, pady=8, sticky="w")
                 row += 1
 
