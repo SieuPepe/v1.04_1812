@@ -604,7 +604,17 @@ class AppPartsManager(customtkinter.CTk):
         # Guardar el ID seleccionado y cambiar a pestaña Partes
         self.selected_parte_id = parte_id
         self.select_frame_by_name("partes")
-        self._load_parte_selected()
+
+        # Actualizar el selector para mostrar el parte seleccionado
+        if hasattr(self, 'partes_selector'):
+            # Buscar el item en el selector que corresponde a este parte_id
+            values = self.partes_selector.cget("values")
+            for item in values:
+                if item.startswith(f"{parte_id} -"):
+                    self.partes_selector.set(item)
+                    # Cargar las tabs del parte
+                    self._load_parte_tabs()
+                    break
 
     def main_partes(self):
         """Pestaña Partes - Con sub-tabs internas"""
@@ -1463,194 +1473,6 @@ class AppPartsManager(customtkinter.CTk):
 
         except Exception as e:
             customtkinter.CTkLabel(table_frame, text=f"❌ Error: {e}").grid(row=0, column=0, pady=20)
-
-    def _load_parte_selected(self):
-        """Carga los datos del parte seleccionado"""
-        from script.modulo_db import get_parte_detail, get_dim_all
-
-        # Limpiar frame
-        for widget in self.datos_parte_frame.winfo_children():
-            widget.destroy()
-
-        selected = self.partes_selector.get()
-        if selected == "Sin partes" or not selected:
-            return
-
-        try:
-            parte_id = int(selected.split(" - ")[0])
-        except:
-            return
-
-        try:
-            # Obtener datos del parte
-            parte_data = get_parte_detail(self.user, self.password, self.schema, parte_id)
-            if not parte_data:
-                CTkMessagebox(title="Error", message="No se encontró el parte", icon="warning")
-                return
-
-            # parte_data: id, codigo, descripcion, estado, codigo_ot, red_id, tipo_trabajo_id,
-            #             cod_trabajo_id, municipio_id, observaciones, creado_en, actualizado_en
-
-            # Obtener dimensiones
-            dims = get_dim_all(self.user, self.password, self.schema)
-
-            # Título
-            customtkinter.CTkLabel(
-                self.datos_parte_frame,
-                text=f"PARTE: {parte_data[1]}",
-                font=("", 16, "bold")
-            ).grid(row=0, column=0, columnspan=2, pady=(10, 20), sticky="w")
-
-            row = 1
-
-            # ID (solo lectura)
-            customtkinter.CTkLabel(self.datos_parte_frame, text="ID:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            id_label = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[0]))
-            id_label.grid(row=row, column=1, padx=10, pady=8, sticky="w")
-            row += 1
-
-            # Código (solo lectura)
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Código:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            codigo_label = customtkinter.CTkLabel(self.datos_parte_frame, text=parte_data[1])
-            codigo_label.grid(row=row, column=1, padx=10, pady=8, sticky="w")
-            row += 1
-
-            # Estado - ComboBox con mapeo a IDs
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Estado:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-
-            # Mapeo de estados: texto → ID (según tbl_parte_estados)
-            self.estados_map = {
-                "Pendiente": 1,
-                "En curso": 2,
-                "Finalizado": 3,
-                "Cancelado": 4
-            }
-            self.estados_reverse_map = {v: k for k, v in self.estados_map.items()}
-
-            # Obtener estado actual (puede ser ID o texto por compatibilidad)
-            estado_actual = parte_data[3] or 1  # Por defecto ID 1 (Pendiente)
-            if isinstance(estado_actual, int):
-                # Es un ID, convertir a texto
-                estado_texto = self.estados_reverse_map.get(estado_actual, "Pendiente")
-            else:
-                # Es texto, usar directamente
-                estado_texto = estado_actual if estado_actual in self.estados_map else "Pendiente"
-
-            self.estado_var = customtkinter.StringVar(value=estado_texto)
-            estado_menu = customtkinter.CTkOptionMenu(
-                self.datos_parte_frame,
-                variable=self.estado_var,
-                values=["Pendiente", "En curso", "Finalizado", "Cancelado"]
-            )
-            estado_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            row += 1
-
-            # Red
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Red:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.red_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("RED", []))
-            self.red_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            for item in dims.get("RED", []):
-                if item.startswith(f"{parte_data[4]} -"):  # Actualizado: era 5, ahora 4
-                    self.red_menu.set(item)
-                    break
-            row += 1
-
-            # Tipo trabajo
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Tipo Trabajo:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.tipo_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPO_TRABAJO", []))
-            self.tipo_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
-                    self.tipo_menu.set(item)
-                    break
-            row += 1
-
-            # Código trabajo
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Código Trabajo:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.cod_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("COD_TRABAJO", []))
-            self.cod_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            for item in dims.get("COD_TRABAJO", []):
-                if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
-                    self.cod_menu.set(item)
-                    break
-            row += 1
-
-            # Tipo de Reparación
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Tipo Reparación:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            self.tipo_rep_menu = customtkinter.CTkOptionMenu(self.datos_parte_frame, values=dims.get("TIPOS_REP", []))
-            self.tipo_rep_menu.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            for item in dims.get("TIPOS_REP", []):
-                if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
-                    self.tipo_rep_menu.set(item)
-                    break
-            row += 1
-
-            # Descripción
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Descripción:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="ne")
-            self.desc_text = customtkinter.CTkTextbox(self.datos_parte_frame, height=100)
-            self.desc_text.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            if parte_data[2]:
-                self.desc_text.insert("1.0", parte_data[2])
-            row += 1
-
-            # Observaciones
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Observaciones:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="ne")
-            self.obs_text = customtkinter.CTkTextbox(self.datos_parte_frame, height=100)
-            self.obs_text.grid(row=row, column=1, padx=10, pady=8, sticky="ew")
-            if parte_data[10]:
-                self.obs_text.insert("1.0", parte_data[10])
-            row += 1
-
-            # Fechas (solo lectura)
-            customtkinter.CTkLabel(self.datos_parte_frame, text="Creado:",
-                                   font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-            fecha_creado = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[11]))
-            fecha_creado.grid(row=row, column=1, padx=10, pady=8, sticky="w")
-            row += 1
-
-            if parte_data[12]:
-                customtkinter.CTkLabel(self.datos_parte_frame, text="Actualizado:",
-                                       font=("", 12, "bold")).grid(row=row, column=0, padx=10, pady=8, sticky="e")
-                fecha_act = customtkinter.CTkLabel(self.datos_parte_frame, text=str(parte_data[12]))
-                fecha_act.grid(row=row, column=1, padx=10, pady=8, sticky="w")
-                row += 1
-
-            # Botones
-            btn_frame = customtkinter.CTkFrame(self.datos_parte_frame, fg_color="transparent")
-            btn_frame.grid(row=row, column=0, columnspan=2, pady=20, sticky="ew")
-
-            btn_save = customtkinter.CTkButton(
-                btn_frame, text="💾 Guardar Cambios",
-                command=lambda: self._save_parte_changes(parte_id),
-                fg_color="green", hover_color="#006400", width=150
-            )
-            btn_save.pack(side="left", padx=(0, 10))
-
-            btn_presupuesto = customtkinter.CTkButton(
-                btn_frame, text="💰 Ver Presupuesto",
-                command=lambda: self._goto_presupuesto(parte_id),
-                width=150
-            )
-            btn_presupuesto.pack(side="left", padx=(0, 10))
-
-            btn_certificaciones = customtkinter.CTkButton(
-                btn_frame, text="📅 Ver Certificaciones",
-                command=lambda: self._goto_certificaciones(parte_id),
-                width=180
-            )
-            btn_certificaciones.pack(side="left")
-
-        except Exception as e:
-            CTkMessagebox(title="Error", message=f"Error cargando parte:\n{e}", icon="cancel")
 
     def _goto_presupuesto(self, parte_id):
         """Ir a pestaña Presupuesto con este parte"""
