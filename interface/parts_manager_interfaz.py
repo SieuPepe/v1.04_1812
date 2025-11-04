@@ -910,22 +910,28 @@ class AppPartsManager(customtkinter.CTk):
                         result = cur.fetchone()
                         if result:
                             provincia_id = result[0]
+
+                            # Cargar municipios de esta provincia ANTES de establecer provincia
+                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+                            self.municipio_menu.configure(values=municipios_list)
+
                             # Establecer provincia (esto dispara _on_provincia_change que actualiza lista de municipios)
                             for item in provincias_list:
                                 if item.startswith(f"{provincia_id} -"):
                                     self.provincia_menu.set(item)
                                     break
 
-                            # Establecer municipio
-                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
-                            self.municipio_menu.configure(values=municipios_list)
+                            # Establecer municipio DESPUES de establecer provincia
+                            # La lista ya fue actualizada por _on_provincia_change
                             for item in municipios_list:
                                 if item.startswith(f"{current_municipio_id} -"):
                                     self.municipio_menu.set(item)
                                     break
                         cur.close()
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error al cargar provincia/municipio: {e}")
+                    import traceback
+                    traceback.print_exc()
 
             # Separador
             customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
@@ -1118,6 +1124,11 @@ class AppPartsManager(customtkinter.CTk):
         """Actualiza lista de municipios cuando cambia la provincia"""
         from script.modulo_db import get_municipios_by_provincia
 
+        # Si estamos cargando datos iniciales, NO hacer nada
+        # La carga inicial se encarga de configurar todo correctamente
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
         try:
             provincia_id = int(selected_provincia.split(" - ")[0])
             municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
@@ -1127,17 +1138,14 @@ class AppPartsManager(customtkinter.CTk):
                 if municipios_list:
                     self.municipio_menu.configure(values=municipios_list)
 
-                    # SOLO borrar el municipio si NO estamos cargando datos iniciales
-                    # Durante la carga inicial, el municipio se establecerá después de esta función
-                    if not (hasattr(self, '_loading_initial_data') and self._loading_initial_data):
-                        # No estamos en carga inicial, es un cambio manual del usuario
-                        current_municipio = self.municipio_menu.get()
+                    # Es un cambio manual del usuario
+                    current_municipio = self.municipio_menu.get()
 
-                        # Solo mantener el municipio actual si está en la nueva lista
-                        if current_municipio not in municipios_list:
-                            # El municipio actual no pertenece a la nueva provincia seleccionada
-                            # No seleccionar automáticamente ninguno, dejar vacío
-                            self.municipio_menu.set("")
+                    # Solo mantener el municipio actual si está en la nueva lista
+                    if current_municipio not in municipios_list:
+                        # El municipio actual no pertenece a la nueva provincia seleccionada
+                        # No seleccionar automáticamente ninguno, dejar vacío
+                        self.municipio_menu.set("")
 
             # Marcar como cambiado
             self._mark_as_changed()
