@@ -890,8 +890,16 @@ class AppPartsManager(customtkinter.CTk):
                 command=self._on_provincia_change
             )
             self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
 
-            # Intentar establecer la provincia actual
+            # Municipio - CREAR ANTES de establecer la provincia
+            customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.municipio_menu = customtkinter.CTkOptionMenu(left_frame, values=["Seleccione provincia primero"])
+            self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
+
+            # AHORA establecer provincia y municipio
             current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
             if current_municipio_id:
                 # Obtener provincia del municipio actual
@@ -902,30 +910,13 @@ class AppPartsManager(customtkinter.CTk):
                         result = cur.fetchone()
                         if result:
                             provincia_id = result[0]
+                            # Establecer provincia (esto dispara _on_provincia_change que actualiza lista de municipios)
                             for item in provincias_list:
                                 if item.startswith(f"{provincia_id} -"):
                                     self.provincia_menu.set(item)
                                     break
-                        cur.close()
-                except:
-                    pass
-            row_left += 1
 
-            # Municipio
-            customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
-                row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.municipio_menu = customtkinter.CTkOptionMenu(left_frame, values=["Seleccione provincia primero"])
-            self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-
-            # Cargar municipios si hay provincia
-            if current_municipio_id:
-                try:
-                    with get_project_connection(self.user, self.password, self.schema) as cn:
-                        cur = cn.cursor()
-                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipio WHERE id = %s", (current_municipio_id,))
-                        result = cur.fetchone()
-                        if result:
-                            provincia_id = result[0]
+                            # Establecer municipio
                             municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
                             self.municipio_menu.configure(values=municipios_list)
                             for item in municipios_list:
@@ -935,7 +926,6 @@ class AppPartsManager(customtkinter.CTk):
                         cur.close()
                 except:
                     pass
-            row_left += 1
 
             # Separador
             customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
