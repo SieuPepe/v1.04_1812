@@ -56,6 +56,16 @@ def crear_tablas_dimension(cursor, schema):
         )
     """)
 
+    # Tabla dim_tipos_rep (Tipos de Reparación)
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {schema}.dim_tipos_rep (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            codigo VARCHAR(50),
+            descripcion VARCHAR(255) NOT NULL,
+            activo TINYINT DEFAULT 1
+        )
+    """)
+
     # Tabla dim_provincias
     cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS {schema}.dim_provincias (
@@ -109,6 +119,7 @@ def crear_tabla_partes(cursor, schema):
             red_id INT,
             tipo_trabajo_id INT,
             cod_trabajo_id INT,
+            tipo_rep_id INT,
             comarca_id INT,
             municipio_id INT,
             provincia_id INT,
@@ -121,6 +132,7 @@ def crear_tabla_partes(cursor, schema):
             FOREIGN KEY (red_id) REFERENCES {schema}.dim_red(id),
             FOREIGN KEY (tipo_trabajo_id) REFERENCES {schema}.dim_tipo_trabajo(id),
             FOREIGN KEY (cod_trabajo_id) REFERENCES {schema}.dim_codigo_trabajo(id),
+            FOREIGN KEY (tipo_rep_id) REFERENCES {schema}.dim_tipos_rep(id),
             FOREIGN KEY (comarca_id) REFERENCES {schema}.dim_comarcas(id),
             FOREIGN KEY (municipio_id) REFERENCES {schema}.dim_municipios(id),
             FOREIGN KEY (provincia_id) REFERENCES {schema}.dim_provincias(id)
@@ -364,6 +376,26 @@ def poblar_dim_codigo_trabajo(cursor, schema):
     print(f"✓ {len(codigos)} códigos de trabajo insertados")
 
 
+def poblar_dim_tipos_rep(cursor, schema):
+    """Pobla la tabla dim_tipos_rep con los tipos de reparación"""
+    print("Poblando dim_tipos_rep...")
+
+    tipos_rep = [
+        ("FUGA", "Fuga"),
+        ("ATASCO", "Atasco"),
+        ("OTROS", "Otros")
+    ]
+
+    for codigo, descripcion in tipos_rep:
+        cursor.execute(f"""
+            INSERT INTO {schema}.dim_tipos_rep (codigo, descripcion, activo)
+            VALUES (%s, %s, 1)
+            ON DUPLICATE KEY UPDATE descripcion = VALUES(descripcion)
+        """, (codigo, descripcion))
+
+    print(f"✓ {len(tipos_rep)} tipos de reparación insertados")
+
+
 def generar_codigo_parte(tipo_codigo, correlativo):
     """
     Genera código único del parte según tipo de intervención y correlativo.
@@ -389,6 +421,9 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
 
     cursor.execute(f"SELECT id FROM {schema}.dim_codigo_trabajo")
     cod_trabajo_ids = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute(f"SELECT id FROM {schema}.dim_tipos_rep")
+    tipo_rep_ids = [row[0] for row in cursor.fetchall()]
 
     cursor.execute(f"SELECT id FROM {schema}.dim_provincias")
     provincia_ids = [row[0] for row in cursor.fetchall()]
@@ -438,6 +473,7 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
         estado = random.choice(estados)
         red_id = random.choice(red_ids) if red_ids else None
         cod_trabajo_id = random.choice(cod_trabajo_ids) if cod_trabajo_ids else None
+        tipo_rep_id = random.choice(tipo_rep_ids) if tipo_rep_ids else None
         provincia_id = random.choice(provincia_ids) if provincia_ids else None
         comarca_id = random.choice(comarca_ids) if comarca_ids else None
         municipio_id = random.choice(municipio_ids) if municipio_ids else None
@@ -472,11 +508,11 @@ def poblar_tbl_partes(cursor, schema, num_partes=50):
         try:
             cursor.execute(f"""
                 INSERT INTO {schema}.tbl_partes
-                (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id,
+                (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id, tipo_rep_id,
                  comarca_id, municipio_id, provincia_id, presupuesto, certificado,
                  fecha_inicio, fecha_fin)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id,
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (codigo, descripcion, estado, red_id, tipo_trabajo_id, cod_trabajo_id, tipo_rep_id,
                   comarca_id, municipio_id, provincia_id, presupuesto, certificado,
                   fecha_inicio, fecha_fin))
             partes_insertados += 1
@@ -597,6 +633,7 @@ def main():
             poblar_dim_red(cursor, schema)
             poblar_dim_tipo_trabajo(cursor, schema)
             poblar_dim_codigo_trabajo(cursor, schema)
+            poblar_dim_tipos_rep(cursor, schema)
             conn.commit()
 
             # Poblar tabla de partes

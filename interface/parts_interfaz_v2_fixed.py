@@ -41,7 +41,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
-        self.geometry("900x850")
+        self.geometry("1050x850")
         self.resizable(False, False)
 
         # Asegurar que la ventana aparezca al frente
@@ -89,10 +89,14 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.tipo_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Fila 2: Código trabajo (solo habilitado para tipo_trabajo == 3)
+        # Fila 2: Código trabajo + Tipo de Reparación
         customtkinter.CTkLabel(self, text="Código trabajo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.cod_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300, state="disabled")
         self.cod_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+
+        customtkinter.CTkLabel(self, text="Tipo Reparación:").grid(row=row, column=2, padx=10, pady=10, sticky="e")
+        self.tipo_rep_menu = customtkinter.CTkOptionMenu(self, values=["(cargando...)"], width=300)
+        self.tipo_rep_menu.grid(row=row, column=3, padx=5, pady=10, sticky="w")
         row += 1
 
         # ====================================================================
@@ -204,19 +208,22 @@ class AppPartsV2(customtkinter.CTkToplevel):
             if estados:
                 estado_values = [f"{e['id']} - {e['nombre']}" for e in estados]
                 self.estado_menu.configure(values=estado_values)
-                self.estado_menu.set(estado_values[0] if estado_values else "1 - Pendiente")
+                # Buscar estado "3 - Finalizado" por defecto
+                estado_default = next((v for v in estado_values if v.startswith("3 -")), estado_values[0] if estado_values else "3 - Finalizado")
+                self.estado_menu.set(estado_default)
             else:
-                self.estado_menu.configure(values=["1 - Pendiente"])
-                self.estado_menu.set("1 - Pendiente")
+                self.estado_menu.configure(values=["3 - Finalizado"])
+                self.estado_menu.set("3 - Finalizado")
 
-            # 2. Cargar dimensiones (RED, TIPO, COD)
+            # 2. Cargar dimensiones (RED, TIPO, COD, TIPOS_REP)
             dims = get_dim_all(self.user, self.password, self.schema)
             self.red_menu.configure(values=dims.get("RED", ["(sin datos)"]))
             self.tipo_menu.configure(values=dims.get("TIPO_TRABAJO", ["(sin datos)"]))
             self.cod_menu.configure(values=dims.get("COD_TRABAJO", ["(sin datos)"]))
+            self.tipo_rep_menu.configure(values=dims.get("TIPOS_REP", ["(sin datos)"]))
 
             # Preseleccionar primer elemento
-            for menu in (self.red_menu, self.tipo_menu, self.cod_menu):
+            for menu in (self.red_menu, self.tipo_menu, self.cod_menu, self.tipo_rep_menu):
                 vals = menu.cget("values")
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
@@ -402,6 +409,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
         cod_id = self._take_id(self.cod_menu.get())
+        tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
 
         if not all([red_id, tipo_id, cod_id]):
             CTkMessagebox(title="Campos obligatorios", message="Selecciona Red, Tipo y Código de Trabajo", icon="warning")
@@ -544,6 +552,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 provincia_id=provincia_id,
                 comarca_id=comarca_id,
                 municipio_id=municipio_id,
+                tipo_rep_id=tipo_rep_id,
                 trabajadores=trabajadores,
                 latitud=latitud,
                 longitud=longitud

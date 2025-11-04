@@ -21,6 +21,7 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
         'dim_red': ['descripcion','red','nombre','desc','texto','codigo','cod'],
         'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
         'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
+        'dim_tipos_rep': ['descripcion','tipo_rep','tipo','nombre','desc','texto','codigo','cod'],
     }
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -67,6 +68,7 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     text_col = _guess_text_column(user, password, schema, table)
     if not text_col:
         return []
+
     rows = []
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -75,25 +77,27 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
             for rid, txt in cur.fetchall():
                 rows.append(f"{rid} - {txt}")
             cur.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"⚠️  Error al cargar {table} desde {schema}: {str(e)}")
     return rows
 
 
 def get_dim_all(user: str, password: str, schema: str):
     """
-    Devuelve dict con las 4 listas de dimensiones para la UI,
+    Devuelve dict con las listas de dimensiones para la UI,
     detectando automáticamente la columna visible:
       - dim_ot
       - dim_red
       - dim_tipo_trabajo
       - dim_codigo_trabajo
+      - dim_tipos_rep
     """
     return {
         'OT': _fetch_dim_list_guess(user, password, schema, 'dim_ot'),
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
+        'TIPOS_REP': _fetch_dim_list_guess(user, password, schema, 'dim_tipos_rep'),
     }
 
 
@@ -177,21 +181,20 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
 def list_partes(user: str, password: str, schema: str, limit: int = 200):
     """
     Devuelve una lista de dicts con los partes más recientes.
-    Campos: id, codigo, ot, red, tipo, cod_trabajo, descripcion, created_at
+    Campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
+    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute("""
             SELECT  p.id,
                     p.codigo,
-                    COALESCE(ot.ot_codigo, '')         AS ot,
-                    COALESCE(rd.red_codigo, '')        AS red,
-                    COALESCE(tt.tipo_codigo, '')       AS tipo,
-                    COALESCE(ct.cod_trabajo,'')        AS cod_trabajo,
+                    COALESCE(rd.descripcion, '')       AS red,
+                    COALESCE(tt.descripcion, '')       AS tipo,
+                    COALESCE(ct.descripcion, '')       AS cod_trabajo,
                     p.descripcion,
                     p.creado_en
             FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
             LEFT JOIN dim_red            rd ON rd.id = p.red_id
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
@@ -201,34 +204,99 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         rows = cur.fetchall()
         cur.close()
 
-        cols = ["id","codigo","ot","red","tipo","cod_trabajo","descripcion","created_at"]
+        cols = ["id","codigo","red","tipo","cod_trabajo","descripcion","created_at"]
         return [dict(zip(cols, r)) for r in rows]
 
 
 def get_parts_list(user, password, schema, limit=100):
     """
-    Devuelve lista de partes.
+    Devuelve lista de partes con todos los campos disponibles.
+    Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
+             descripcion, presupuesto, certificado, estado, creado_en, municipio
+    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
+
+        # Detectar columna de nombre del municipio (puede variar entre esquemas)
+        cur.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'dim_municipios'
+            AND COLUMN_NAME IN ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
+            ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio_nombre', 'municipio', 'descripcion')
+            LIMIT 1
+        """, (schema,))
+        col_result = cur.fetchone()
+        municipio_col = col_result[0] if col_result else 'nombre'
+
+        # Verificar si existe la vista vw_partes_resumen
         cur.execute("""
-            SELECT
-                p.id,
-                p.codigo,
-                COALESCE(ot.ot_codigo, '')         AS ot,
-                COALESCE(rd.red_codigo, '')        AS red,
-                COALESCE(tt.tipo_codigo, '')       AS tipo,
-                COALESCE(ct.cod_trabajo, '')       AS cod_trabajo,
-                p.descripcion,
-                p.creado_en
-            FROM tbl_partes p
-            LEFT JOIN dim_ot             ot ON ot.id = p.ot_id
-            LEFT JOIN dim_red            rd ON rd.id = p.red_id
-            LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
-            LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-            ORDER BY p.id DESC
-            LIMIT %s
-        """, (limit,))
+            SELECT COUNT(*) FROM information_schema.VIEWS
+            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'vw_partes_resumen'
+        """, (schema,))
+        tiene_vista = cur.fetchone()[0] > 0
+
+        if tiene_vista:
+            # Usar la vista que ya tiene los totales calculados
+            cur.execute(f"""
+                SELECT
+                    vpr.id,
+                    vpr.codigo,
+                    vpr.red,
+                    vpr.tipo,
+                    vpr.cod_trabajo,
+                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                    COALESCE(tr.descripcion, '')         AS tipo_rep,
+                    vpr.descripcion,
+                    COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
+                    COALESCE(vpr.total_certificado, 0)   AS certificado,
+                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
+                    COALESCE(vpr.creado_en, NOW())       AS creado_en,
+                    COALESCE(m.{municipio_col}, '')      AS municipio
+                FROM vw_partes_resumen vpr
+                LEFT JOIN tbl_partes p ON p.id = vpr.id
+                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+                LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id
+                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+                LEFT JOIN dim_municipios m ON m.id = p.municipio_id
+                ORDER BY vpr.id DESC
+                LIMIT %s
+            """, (limit,))
+        else:
+            # Fallback sin vista: calcular manualmente - USAR DESCRIPCIONES
+            cur.execute(f"""
+                SELECT
+                    p.id,
+                    p.codigo,
+                    COALESCE(rd.descripcion, '')         AS red,
+                    COALESCE(tt.descripcion, '')         AS tipo,
+                    COALESCE(ct.codigo, '')              AS cod_trabajo,
+                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                    COALESCE(tr.descripcion, '')         AS tipo_rep,
+                    p.descripcion,
+                    COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
+                    COALESCE(SUM(CASE WHEN pc.certificada = 1
+                                 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
+                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
+                    p.creado_en,
+                    COALESCE(m.{municipio_col}, '')      AS municipio
+                FROM tbl_partes p
+                LEFT JOIN dim_red            rd ON rd.id = p.red_id
+                LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
+                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+                LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
+                LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
+                LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
+                LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
+                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+                GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
+                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col}
+                ORDER BY p.id DESC
+                LIMIT %s
+            """, (limit,))
+
         rows = cur.fetchall()
         cur.close()
         return rows
@@ -251,34 +319,123 @@ def delete_parte(user: str, password: str, schema: str, parte_id: int):
 
 def get_partes_resumen(user: str, password: str, schema: str):
     """
-    Devuelve lista de partes con totales de presupuesto y certificación.
-    Usa la vista vw_partes_resumen.
+    Devuelve lista de partes con TODAS las columnas de tbl_partes + totales calculados.
+    Usa JOIN directo con dimensiones para obtener descripciones.
+    Devuelve: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
+              presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
+              fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
+              provincia, latitud, longitud, trabajadores, observaciones
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Intentar con las columnas timestamp
-        try:
-            cur.execute("""
-                SELECT
-                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
-                    total_presupuesto, total_certificado, total_pendiente,
-                    creado_en, actualizado_en
-                FROM vw_partes_resumen
-                ORDER BY id DESC
-            """)
-            rows = cur.fetchall()
-        except Exception:
-            # Si falla (columnas no existen), intentar sin ellas
-            cur.execute("""
-                SELECT
-                    id, codigo, descripcion, estado, ot, red, tipo, cod_trabajo,
-                    total_presupuesto, total_certificado, total_pendiente,
-                    NULL as creado_en, NULL as actualizado_en
-                FROM vw_partes_resumen
-                ORDER BY id DESC
-            """)
-            rows = cur.fetchall()
+        # Verificar qué columnas existen en tbl_partes
+        cur.execute(f"DESCRIBE {schema}.tbl_partes")
+        columns = [row[0] for row in cur.fetchall()]
+
+        # Detectar columnas de texto en tablas dimensionales
+        municipio_col = _guess_text_column(user, password, schema, 'dim_municipios') if 'municipio_id' in columns else None
+        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'comarca_id' in columns else None
+        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'provincia_id' in columns else None
+
+        # Construir SELECT dinámicamente con todas las columnas disponibles
+        query_parts = []
+        query_parts.append("SELECT p.id, p.codigo, p.descripcion, p.estado")
+        query_parts.append("COALESCE(rd.descripcion, '') AS red")
+        query_parts.append("COALESCE(tt.descripcion, '') AS tipo")
+        query_parts.append("COALESCE(ct.descripcion, '') AS cod_trabajo")
+        query_parts.append("COALESCE(tr.descripcion, '') AS tipo_rep" if 'tipo_rep_id' in columns else "'' AS tipo_rep")
+        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto")
+        query_parts.append("COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado")
+        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS pendiente")
+        query_parts.append("p.titulo" if 'titulo' in columns else "NULL AS titulo")
+        query_parts.append("p.descripcion_corta" if 'descripcion_corta' in columns else "NULL AS descripcion_corta")
+        query_parts.append("p.descripcion_larga" if 'descripcion_larga' in columns else "NULL AS descripcion_larga")
+        query_parts.append("p.fecha_inicio" if 'fecha_inicio' in columns else "NULL AS fecha_inicio")
+        query_parts.append("p.fecha_fin" if 'fecha_fin' in columns else "NULL AS fecha_fin")
+        query_parts.append("p.creado_en" if 'creado_en' in columns else "NULL AS creado_en")
+        query_parts.append("p.actualizado_en" if 'actualizado_en' in columns else "NULL AS actualizado_en")
+        query_parts.append("p.localizacion" if 'localizacion' in columns else "NULL AS localizacion")
+
+        # Usar columna detectada dinámicamente para municipio
+        if 'municipio_id' in columns and municipio_col:
+            query_parts.append(f"COALESCE(m.{municipio_col}, '') AS municipio")
+        else:
+            query_parts.append("'' AS municipio")
+
+        # Usar columna detectada dinámicamente para comarca
+        if 'comarca_id' in columns and comarca_col:
+            query_parts.append(f"COALESCE(cm.{comarca_col}, '') AS comarca")
+        else:
+            query_parts.append("'' AS comarca")
+
+        # Usar columna detectada dinámicamente para provincia
+        if 'provincia_id' in columns and provincia_col:
+            query_parts.append(f"COALESCE(pr.{provincia_col}, '') AS provincia")
+        else:
+            query_parts.append("'' AS provincia")
+
+        query_parts.append("p.latitud" if 'latitud' in columns else "NULL AS latitud")
+        query_parts.append("p.longitud" if 'longitud' in columns else "NULL AS longitud")
+        query_parts.append("p.trabajadores" if 'trabajadores' in columns else "NULL AS trabajadores")
+        query_parts.append("p.observaciones" if 'observaciones' in columns else "NULL AS observaciones")
+
+        # FROM y JOINs
+        from_clause = "FROM tbl_partes p"
+        from_clause += " LEFT JOIN dim_red rd ON rd.id = p.red_id"
+        from_clause += " LEFT JOIN dim_tipo_trabajo tt ON tt.id = p.tipo_trabajo_id"
+        from_clause += " LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id"
+        if 'tipo_rep_id' in columns:
+            from_clause += " LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id"
+        from_clause += " LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id"
+        from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
+        if 'municipio_id' in columns and municipio_col:
+            from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
+        if 'comarca_id' in columns and comarca_col:
+            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = p.comarca_id"
+        if 'provincia_id' in columns and provincia_col:
+            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = p.provincia_id"
+
+        # GROUP BY
+        group_by = "GROUP BY p.id, p.codigo, p.descripcion, p.estado"
+        group_by += ", rd.descripcion, tt.descripcion, ct.descripcion"
+        if 'tipo_rep_id' in columns:
+            group_by += ", tr.descripcion"
+        if 'titulo' in columns:
+            group_by += ", p.titulo"
+        if 'descripcion_corta' in columns:
+            group_by += ", p.descripcion_corta"
+        if 'descripcion_larga' in columns:
+            group_by += ", p.descripcion_larga"
+        if 'fecha_inicio' in columns:
+            group_by += ", p.fecha_inicio"
+        if 'fecha_fin' in columns:
+            group_by += ", p.fecha_fin"
+        if 'creado_en' in columns:
+            group_by += ", p.creado_en"
+        if 'actualizado_en' in columns:
+            group_by += ", p.actualizado_en"
+        if 'localizacion' in columns:
+            group_by += ", p.localizacion"
+        if 'municipio_id' in columns and municipio_col:
+            group_by += f", m.{municipio_col}"
+        if 'comarca_id' in columns and comarca_col:
+            group_by += f", cm.{comarca_col}"
+        if 'provincia_id' in columns and provincia_col:
+            group_by += f", pr.{provincia_col}"
+        if 'latitud' in columns:
+            group_by += ", p.latitud"
+        if 'longitud' in columns:
+            group_by += ", p.longitud"
+        if 'trabajadores' in columns:
+            group_by += ", p.trabajadores"
+        if 'observaciones' in columns:
+            group_by += ", p.observaciones"
+
+        # Ejecutar query completa
+        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC"
+        cur.execute(full_query)
+        rows = cur.fetchall()
 
         cur.close()
         return rows
@@ -288,12 +445,12 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve todos los datos de un parte específico.
     Retorna tupla con índices:
-      0: id, 1: codigo, 2: descripcion, 3: estado, 4: codigo_ot,
-      5: red_id, 6: tipo_trabajo_id, 7: cod_trabajo_id, 8: municipio_id,
+      0: id, 1: codigo, 2: descripcion, 3: estado,
+      4: red_id, 5: tipo_trabajo_id, 6: cod_trabajo_id, 7: tipo_rep_id, 8: municipio_id,
       9: observaciones, 10: creado_en, 11: actualizado_en,
-      12: titulo, 13: fecha_inicio, 14: fecha_fin, 15: fecha_prevista_fin,
-      16: localizacion, 17: latitud, 18: longitud, 19: trabajadores,
-      20: descripcion_corta, 21: descripcion_larga, 22: comarca_id, 23: id_municipio
+      12: titulo, 13: fecha_inicio, 14: fecha_fin,
+      15: localizacion, 16: latitud, 17: longitud, 18: trabajadores,
+      19: descripcion_corta, 20: descripcion_larga, 21: comarca_id, 22: id_municipio
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -305,16 +462,14 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
         select_cols = ['id', 'codigo', 'descripcion', 'estado']
 
-        # Añadir codigo_ot (la tabla usa codigo_ot en lugar de ot_id)
-        if 'codigo_ot' in columns:
-            select_cols.append('codigo_ot')
-        elif 'ot_id' in columns:
-            select_cols.append('ot_id')
-        else:
-            select_cols.append('NULL as codigo_ot')
-
-        # Continuar con red, tipo, cod
+        # Continuar con red, tipo, cod, tipo_rep
         select_cols.extend(['red_id', 'tipo_trabajo_id', 'cod_trabajo_id'])
+
+        # Añadir tipo_rep_id
+        if 'tipo_rep_id' in columns:
+            select_cols.append('tipo_rep_id')
+        else:
+            select_cols.append('NULL as tipo_rep_id')
 
         # Añadir municipio_id
         if 'municipio_id' in columns:
@@ -339,7 +494,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
             select_cols.append('NULL as titulo')
 
         # Fechas del trabajo
-        for col in ['fecha_inicio', 'fecha_fin', 'fecha_prevista_fin']:
+        for col in ['fecha_inicio', 'fecha_fin']:
             if col in columns:
                 select_cols.append(col)
             else:
@@ -400,19 +555,22 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 
 def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                    red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
-                   descripcion: str = None, estado: str = 'Pendiente', observaciones: str = None,
-                   municipio_id: int = None,
-                   titulo: str = None, fecha_fin=None, fecha_prevista_fin=None,
+                   descripcion: str = None, estado: int = 1, observaciones: str = None,
+                   municipio_id: int = None, tipo_rep_id: int = None,
+                   titulo: str = None, fecha_fin=None,
                    trabajadores: str = None, localizacion: str = None,
                    latitud: float = None, longitud: float = None):
     """
     Modifica los datos de un parte existente.
     Args:
         red_id, tipo_trabajo_id, cod_trabajo_id: IDs numéricos de dimensiones
-        descripcion, estado, observaciones: Campos básicos
+        descripcion: Descripción del parte
+        estado: ID numérico del estado (FK a tbl_parte_estados, por defecto 1=Pendiente)
+        observaciones: Observaciones del parte
         municipio_id: ID del municipio
+        tipo_rep_id: ID del tipo de reparación (FK a dim_tipos_rep)
         titulo, trabajadores, localizacion: Campos de texto
-        fecha_fin, fecha_prevista_fin: Fechas (date o str)
+        fecha_fin: Fecha de finalización (date o str)
         latitud, longitud: Coordenadas GPS (float)
 
     Nota: codigo_ot y fecha_inicio NO se modifican (se asignan solo al crear)
@@ -425,13 +583,16 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             cur.execute(f"DESCRIBE {schema}.tbl_partes")
             columns = [row[0] for row in cur.fetchall()]
 
+            # Determinar si la columna es 'estado' o 'id_estado'
+            estado_column = 'id_estado' if 'id_estado' in columns else 'estado'
+
             # Construir UPDATE dinámicamente
             set_clauses = [
                 "red_id = %s",
                 "tipo_trabajo_id = %s",
                 "cod_trabajo_id = %s",
                 "descripcion = %s",
-                "estado = %s",
+                f"{estado_column} = %s",
                 "actualizado_en = NOW()"
             ]
             values = [red_id, tipo_trabajo_id, cod_trabajo_id, descripcion, estado]
@@ -445,6 +606,10 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                 set_clauses.append("municipio_id = %s")
                 values.append(municipio_id)
 
+            if 'tipo_rep_id' in columns:
+                set_clauses.append("tipo_rep_id = %s")
+                values.append(tipo_rep_id)
+
             if 'titulo' in columns:
                 set_clauses.append("titulo = %s")
                 values.append(titulo)
@@ -452,10 +617,6 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             if 'fecha_fin' in columns:
                 set_clauses.append("fecha_fin = %s")
                 values.append(fecha_fin)
-
-            if 'fecha_prevista_fin' in columns:
-                set_clauses.append("fecha_prevista_fin = %s")
-                values.append(fecha_prevista_fin)
 
             if 'trabajadores' in columns:
                 set_clauses.append("trabajadores = %s")
@@ -610,7 +771,7 @@ def get_part_cert_certificadas(user: str, password: str, schema: str, parte_id: 
             cur.execute("""
                 SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
                        cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
-                       certificada, ot, red, tipo, cod_trabajo, creado_en
+                       certificada, red, tipo, cod_trabajo, creado_en
                 FROM vw_part_certificaciones
                 WHERE parte_id = %s AND certificada = 1
                 ORDER BY fecha_certificacion DESC, codigo_partida
@@ -621,7 +782,7 @@ def get_part_cert_certificadas(user: str, password: str, schema: str, parte_id: 
             cur.execute("""
                 SELECT id, parte_id, codigo_parte, codigo_partida, resumen, unidad,
                        cantidad_cert, precio_unit, coste_cert, fecha_certificacion,
-                       certificada, ot, red, tipo, cod_trabajo, NULL as creado_en
+                       certificada, red, tipo, cod_trabajo, NULL as creado_en
                 FROM vw_part_certificaciones
                 WHERE parte_id = %s AND certificada = 1
                 ORDER BY fecha_certificacion DESC, codigo_partida
@@ -990,8 +1151,8 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        descripcion_corta: str = None,
                        fecha_inicio: str = None,
                        fecha_fin: str = None,
-                       fecha_prevista_fin: str = None,
                        estado_id: int = 1,
+                       tipo_rep_id: int = None,
                        localizacion: str = None,
                        provincia_id: int = None,
                        comarca_id: int = None,
@@ -1018,7 +1179,6 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         descripcion_corta: Resumen breve para listados
         fecha_inicio: Fecha de inicio (formato 'YYYY-MM-DD')
         fecha_fin: Fecha de finalización (formato 'YYYY-MM-DD')
-        fecha_prevista_fin: Fecha prevista de finalización
         estado_id: ID del estado (1=Pendiente por defecto)
         localizacion: Ubicación textual
         provincia_id: ID de provincia (FK)
@@ -1109,14 +1269,14 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             insert_cols.append('fecha_fin')
             insert_vals.append(fecha_fin)
 
-        if 'fecha_prevista_fin' in columns and fecha_prevista_fin:
-            insert_cols.append('fecha_prevista_fin')
-            insert_vals.append(fecha_prevista_fin)
-
         if 'estado_id' in columns or 'id_estado' in columns:
             col = 'estado_id' if 'estado_id' in columns else 'id_estado'
             insert_cols.append(col)
             insert_vals.append(estado_id)
+
+        if 'tipo_rep_id' in columns and tipo_rep_id:
+            insert_cols.append('tipo_rep_id')
+            insert_vals.append(tipo_rep_id)
 
         if 'localizacion' in columns and localizacion:
             insert_cols.append('localizacion')

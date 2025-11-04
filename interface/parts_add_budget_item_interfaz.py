@@ -19,6 +19,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.password = select_data[1]
         self.schema = select_data[2]
         self.parte_id = parte_id
+        self._after_ids = []  # Lista para guardar IDs de callbacks .after()
 
         self.title("Añadir Partida al Presupuesto del Parte")
         self.geometry("900x500")
@@ -274,7 +275,12 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                             f"Total: {total:.2f}€",
                     icon="check"
                 )
-                self.destroy()
+                # Liberar grab y procesar eventos pendientes antes de destruir
+                if self.grab_current() == self:
+                    self.grab_release()
+                self.update_idletasks()
+                # Destruir con un pequeño delay para evitar errores de focus
+                self.after(10, self.destroy)
             else:
                 CTkMessagebox(title="Error", message=f"Error guardando:\n\n{result}", icon="cancel")
 
@@ -285,3 +291,26 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             error_detail = traceback.format_exc()
             print(f"ERROR completo en _save:\n{error_detail}")
             CTkMessagebox(title="Error", message=f"Error inesperado:\n\n{str(e)}", icon="cancel")
+
+    def destroy(self):
+        """Sobrescribe destroy para cancelar callbacks pendientes antes de destruir"""
+        try:
+            # Cancelar todos los callbacks pendientes registrados con .after()
+            for after_id in getattr(self, '_after_ids', []):
+                try:
+                    self.after_cancel(after_id)
+                except:
+                    pass
+
+            # Liberar grab si está activo
+            if self.grab_current() == self:
+                self.grab_release()
+
+            # Llamar al destroy original
+            super().destroy()
+        except Exception as e:
+            # Si hay error, forzar destrucción
+            try:
+                super().destroy()
+            except:
+                pass
