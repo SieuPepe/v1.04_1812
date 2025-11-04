@@ -906,7 +906,8 @@ class AppPartsManager(customtkinter.CTk):
                 try:
                     with get_project_connection(self.user, self.password, self.schema) as cn:
                         cur = cn.cursor()
-                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipio WHERE id = %s", (current_municipio_id,))
+                        # FIX: Tabla correcta es dim_municipios (con 's'), no dim_municipio
+                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipios WHERE id = %s", (current_municipio_id,))
                         result = cur.fetchone()
                         if result:
                             provincia_id = result[0]
