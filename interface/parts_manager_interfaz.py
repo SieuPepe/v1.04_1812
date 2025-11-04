@@ -743,6 +743,7 @@ class AppPartsManager(customtkinter.CTk):
         main_frame.pack(fill="both", expand=True, padx=10, pady=5)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_rowconfigure(0, weight=1)
 
         try:
             parte_data = get_parte_detail(self.user, self.password, self.schema, parte_id)
@@ -793,8 +794,8 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.titulo_entry = customtkinter.CTkEntry(left_frame)
             self.titulo_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[13]:
-                self.titulo_entry.insert(0, parte_data[13])
+            if parte_data[12]:
+                self.titulo_entry.insert(0, parte_data[12])
             row_left += 1
 
             # Estado - ComboBox con mapeo a IDs
@@ -933,28 +934,28 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, columnspan=2, pady=15, sticky="ew")
             row_left += 1
 
-            # NUEVO: Fecha Fin
-            customtkinter.CTkLabel(left_frame, text="Fecha Fin:", font=("", 12, "bold")).grid(
+            # NUEVO: Fecha Inicio
+            customtkinter.CTkLabel(left_frame, text="Fecha Inicio:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.fecha_fin_entry = DateEntry(left_frame, width=20, background='darkblue',
+            self.fecha_inicio_entry = DateEntry(left_frame, width=20, background='darkblue',
                                              foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
-            self.fecha_fin_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
-            if parte_data[15]:
+            self.fecha_inicio_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[13]:
                 try:
-                    self.fecha_fin_entry.set_date(parte_data[15])
+                    self.fecha_inicio_entry.set_date(parte_data[13])
                 except:
                     pass
             row_left += 1
 
-            # NUEVO: Fecha Prevista Fin
-            customtkinter.CTkLabel(left_frame, text="Fecha Prevista:", font=("", 12, "bold")).grid(
+            # NUEVO: Fecha Fin
+            customtkinter.CTkLabel(left_frame, text="Fecha Fin:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.fecha_prevista_entry = DateEntry(left_frame, width=20, background='darkblue',
+            self.fecha_fin_entry = DateEntry(left_frame, width=20, background='darkblue',
                                                    foreground='white', borderwidth=2, date_pattern='yyyy-mm-dd')
-            self.fecha_prevista_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
-            if parte_data[16]:
+            self.fecha_fin_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            if parte_data[14]:
                 try:
-                    self.fecha_prevista_entry.set_date(parte_data[16])
+                    self.fecha_fin_entry.set_date(parte_data[14])
                 except:
                     pass
             row_left += 1
@@ -964,8 +965,8 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.trabajadores_entry = customtkinter.CTkEntry(left_frame)
             self.trabajadores_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[20]:
-                self.trabajadores_entry.insert(0, parte_data[20])
+            if parte_data[18]:
+                self.trabajadores_entry.insert(0, parte_data[18])
             row_left += 1
 
             # NUEVO: Localización
@@ -973,8 +974,8 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.localizacion_entry = customtkinter.CTkEntry(left_frame)
             self.localizacion_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[17]:
-                self.localizacion_entry.insert(0, parte_data[17])
+            if parte_data[15]:
+                self.localizacion_entry.insert(0, parte_data[15])
             row_left += 1
 
             # NUEVO: Coordenadas GPS
@@ -982,16 +983,16 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.latitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="41.123456")
             self.latitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[18]:
-                self.latitud_entry.insert(0, str(parte_data[18]))
+            if parte_data[16]:
+                self.latitud_entry.insert(0, str(parte_data[16]))
             row_left += 1
 
             customtkinter.CTkLabel(left_frame, text="Longitud:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.longitud_entry = customtkinter.CTkEntry(left_frame, placeholder_text="2.123456")
             self.longitud_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            if parte_data[19]:
-                self.longitud_entry.insert(0, str(parte_data[19]))
+            if parte_data[17]:
+                self.longitud_entry.insert(0, str(parte_data[17]))
             row_left += 1
 
             # Separador
@@ -1001,14 +1002,14 @@ class AppPartsManager(customtkinter.CTk):
 
             # Fechas de auditoría (info solo lectura)
             customtkinter.CTkLabel(
-                left_frame, text=f"📅 Creado: {parte_data[11]}",
+                left_frame, text=f"📅 Creado: {parte_data[10]}",
                 font=("", 10), text_color="gray"
             ).grid(row=row_left, column=0, columnspan=2, padx=5, pady=3, sticky="w")
             row_left += 1
 
-            if parte_data[12]:
+            if parte_data[11]:
                 customtkinter.CTkLabel(
-                    left_frame, text=f"🔄 Actualizado: {parte_data[12]}",
+                    left_frame, text=f"🔄 Actualizado: {parte_data[11]}",
                     font=("", 10), text_color="gray"
                 ).grid(row=row_left, column=0, columnspan=2, padx=5, pady=3, sticky="w")
 
@@ -1035,8 +1036,8 @@ class AppPartsManager(customtkinter.CTk):
 
             self.obs_text = customtkinter.CTkTextbox(right_frame, height=120)
             self.obs_text.grid(row=3, column=0, padx=5, pady=(0, 15), sticky="ew")
-            if parte_data[10]:
-                self.obs_text.insert("1.0", parte_data[10])
+            if parte_data[9]:
+                self.obs_text.insert("1.0", parte_data[9])
 
             # Botón guardar (span completo) - inicialmente deshabilitado
             self.btn_save_parte = customtkinter.CTkButton(
@@ -1103,10 +1104,10 @@ class AppPartsManager(customtkinter.CTk):
             self.obs_text.bind('<KeyRelease>', self._mark_as_changed)
 
         # DateEntry widgets (se activan cuando se selecciona una fecha)
+        if hasattr(self, 'fecha_inicio_entry'):
+            self.fecha_inicio_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
         if hasattr(self, 'fecha_fin_entry'):
             self.fecha_fin_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
-        if hasattr(self, 'fecha_prevista_entry'):
-            self.fecha_prevista_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
 
     def _on_provincia_change(self, selected_provincia):
         """Actualiza lista de municipios cuando cambia la provincia"""
@@ -1178,8 +1179,8 @@ class AppPartsManager(customtkinter.CTk):
             localizacion = self.localizacion_entry.get().strip() or None
 
             # Fechas
+            fecha_inicio = self.fecha_inicio_entry.get_date() if hasattr(self.fecha_inicio_entry, 'get_date') else None
             fecha_fin = self.fecha_fin_entry.get_date() if hasattr(self.fecha_fin_entry, 'get_date') else None
-            fecha_prevista = self.fecha_prevista_entry.get_date() if hasattr(self.fecha_prevista_entry, 'get_date') else None
 
             # Coordenadas GPS
             latitud = None
@@ -1211,7 +1212,7 @@ class AppPartsManager(customtkinter.CTk):
             print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}")
             print(f"  Título: {titulo}")
             print(f"  Estado: {estado_texto} (ID: {estado_id})")
-            print(f"  Fechas: fin={fecha_fin}, prevista={fecha_prevista}")
+            print(f"  Fechas: inicio={fecha_inicio}, fin={fecha_fin}")
             print(f"  Trabajadores: {trabajadores}")
             print(f"  Localización: {localizacion}")
             print(f"  GPS: {latitud}, {longitud}")
@@ -1226,7 +1227,6 @@ class AppPartsManager(customtkinter.CTk):
                 tipo_rep_id=tipo_rep_id,
                 titulo=titulo,
                 fecha_fin=fecha_fin,
-                fecha_prevista_fin=fecha_prevista,
                 trabajadores=trabajadores,
                 localizacion=localizacion,
                 latitud=latitud,
