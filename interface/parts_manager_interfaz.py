@@ -668,19 +668,14 @@ class AppPartsManager(customtkinter.CTk):
         # Sub-tabs
         self.partes_subtabs = customtkinter.CTkTabview(self.partes_content_frame)
         self.partes_subtabs.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-        self.partes_subtabs.grid_rowconfigure(0, weight=1)
-        self.partes_subtabs.grid_columnconfigure(0, weight=1)
+        # CTkTabview gestiona su propio layout interno, no necesita configuración de grid
 
         # Crear las 3 pestañas
         self.partes_subtabs.add("📝 Datos Básicos")
         self.partes_subtabs.add("💰 Presupuesto")
         self.partes_subtabs.add("📅 Certificaciones")
 
-        # Configurar peso para cada pestaña creada
-        for tab_name in ["📝 Datos Básicos", "💰 Presupuesto", "📅 Certificaciones"]:
-            tab = self.partes_subtabs.tab(tab_name)
-            tab.grid_rowconfigure(0, weight=1)
-            tab.grid_columnconfigure(0, weight=1)
+        # NOTA: No configurar grid para los tabs individuales porque usan pack() para el contenido
 
         # Cargar datos si hay partes
         if partes_list and partes_list[0] != "Sin partes":
@@ -1131,18 +1126,16 @@ class AppPartsManager(customtkinter.CTk):
                 # Guardar el municipio actual antes de cambiar
                 current_municipio = self.municipio_menu.get()
 
-                # Actualizar la lista de municipios
+                # Actualizar la lista de municipios disponibles para esta provincia
                 if municipios_list:
                     self.municipio_menu.configure(values=municipios_list)
+
                     # Solo mantener el municipio actual si está en la nueva lista
-                    # Si no está, mostrar el primer municipio pero sin seleccionarlo
                     if current_municipio not in municipios_list:
-                        # Si hay municipios disponibles, mostrar el primero como placeholder
-                        # pero NO marcarlo como seleccionado
-                        if municipios_list and not current_municipio:
-                            self.municipio_menu.set("Seleccione municipio")
-                    # Si el municipio actual está en la lista, mantenerlo
-                    # (no hacer nada, ya está establecido)
+                        # El municipio actual no pertenece a la nueva provincia seleccionada
+                        # No seleccionar automáticamente ninguno, dejar vacío
+                        self.municipio_menu.set("")
+                    # Si el municipio actual SÍ está en la lista, se mantiene automáticamente
 
             # Marcar como cambiado
             self._mark_as_changed()
