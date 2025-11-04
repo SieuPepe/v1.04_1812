@@ -503,7 +503,7 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_content_frame = customtkinter.CTkFrame(self.partes_frame)
         self.partes_content_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=2)
         self.partes_content_frame.grid_columnconfigure(0, weight=1)
-        self.partes_content_frame.grid_rowconfigure(1, weight=1)
+        self.partes_content_frame.grid_rowconfigure(0, weight=1)  # FIX: era 1, debe ser 0 para que el tabview se expanda
 
         # Sub-tabs
         self.partes_subtabs = customtkinter.CTkTabview(self.partes_content_frame)
@@ -559,6 +559,9 @@ class AppPartsManager(customtkinter.CTk):
         """Carga la pestaña de Datos Básicos - Layout optimizado en 2 columnas"""
         from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia
         from tkcalendar import DateEntry
+
+        # Bandera para evitar marcar como cambiado durante la carga inicial
+        self._loading_initial_data = True
 
         tab = self.partes_subtabs.tab("📝 Datos Básicos")
 
@@ -850,6 +853,9 @@ class AppPartsManager(customtkinter.CTk):
             # Conectar eventos de cambio a todos los widgets
             self._connect_change_events()
 
+            # Desactivar bandera de carga inicial
+            self._loading_initial_data = False
+
         except Exception as e:
             import traceback
             print(f"ERROR:\n{traceback.format_exc()}")
@@ -857,6 +863,10 @@ class AppPartsManager(customtkinter.CTk):
 
     def _mark_as_changed(self, *args):
         """Marca que hay cambios pendientes y habilita el botón guardar"""
+        # No marcar como cambiado si estamos cargando datos iniciales
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
         if not self.has_changes:
             self.has_changes = True
             if hasattr(self, 'btn_save_parte'):
@@ -914,9 +924,21 @@ class AppPartsManager(customtkinter.CTk):
             municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
 
             if hasattr(self, 'municipio_menu'):
-                self.municipio_menu.configure(values=municipios_list)
+                # Guardar el municipio actual antes de cambiar
+                current_municipio = self.municipio_menu.get()
+
+                # Actualizar la lista de municipios
                 if municipios_list:
-                    self.municipio_menu.set(municipios_list[0])
+                    self.municipio_menu.configure(values=municipios_list)
+                    # Solo mantener el municipio actual si está en la nueva lista
+                    # Si no está, mostrar el primer municipio pero sin seleccionarlo
+                    if current_municipio not in municipios_list:
+                        # Si hay municipios disponibles, mostrar el primero como placeholder
+                        # pero NO marcarlo como seleccionado
+                        if municipios_list and not current_municipio:
+                            self.municipio_menu.set("Seleccione municipio")
+                    # Si el municipio actual está en la lista, mantenerlo
+                    # (no hacer nada, ya está establecido)
 
             # Marcar como cambiado
             self._mark_as_changed()
