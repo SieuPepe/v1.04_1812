@@ -35,9 +35,9 @@ SELECT
     (pc.cantidad_cert * pc.precio_unit) AS coste_cert,
     pc.fecha_certificacion,
     pc.certificada,
-    COALESCE(rd.red_codigo, '''') AS red,
-    COALESCE(tt.tipo_codigo, '''') AS tipo,
-    COALESCE(ct.cod_trabajo, '''') AS cod_trabajo,
+    COALESCE(rd.descripcion, '''') AS red,
+    COALESCE(tt.descripcion, '''') AS tipo,
+    COALESCE(ct.descripcion, '''') AS cod_trabajo,
     ', IF(@has_creado_en > 0, 'pc.creado_en', 'NULL as creado_en'), '
 FROM tbl_part_certificacion pc
 INNER JOIN tbl_partes p ON p.id = pc.parte_id

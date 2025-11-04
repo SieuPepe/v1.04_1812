@@ -21,9 +21,9 @@ SELECT
     p.codigo,
     p.descripcion,
     p.estado,
-    COALESCE(rd.red_codigo, '') AS red,
-    COALESCE(tt.tipo_codigo, '') AS tipo,
-    COALESCE(ct.cod_trabajo, '') AS cod_trabajo,
+    COALESCE(rd.descripcion, '') AS red,
+    COALESCE(tt.descripcion, '') AS tipo,
+    COALESCE(ct.descripcion, '') AS cod_trabajo,
     COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS total_presupuesto,
     COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_certificado,
     COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS total_pendiente,
@@ -35,6 +35,6 @@ LEFT JOIN dim_tipo_trabajo tt ON tt.id = p.tipo_trabajo_id
 LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
 LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
 LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
-GROUP BY p.id, p.codigo, p.descripcion, p.estado, rd.red_codigo, tt.tipo_codigo, ct.cod_trabajo, p.creado_en, p.actualizado_en;
+GROUP BY p.id, p.codigo, p.descripcion, p.estado, rd.descripcion, tt.descripcion, ct.descripcion, p.creado_en, p.actualizado_en;
 
 SELECT '✓ Vista vw_partes_resumen recreada correctamente' AS Resultado;

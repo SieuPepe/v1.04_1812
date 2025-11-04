@@ -189,9 +189,9 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         cur.execute("""
             SELECT  p.id,
                     p.codigo,
-                    COALESCE(rd.red_codigo, '')        AS red,
-                    COALESCE(tt.tipo_codigo, '')       AS tipo,
-                    COALESCE(ct.cod_trabajo,'')        AS cod_trabajo,
+                    COALESCE(rd.descripcion, '')       AS red,
+                    COALESCE(tt.descripcion, '')       AS tipo,
+                    COALESCE(ct.descripcion, '')       AS cod_trabajo,
                     p.descripcion,
                     p.creado_en
             FROM tbl_partes p
