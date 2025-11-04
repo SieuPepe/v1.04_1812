@@ -240,12 +240,14 @@ def get_parts_list(user, password, schema, limit=100):
                     COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
                     COALESCE(vpr.total_certificado, 0)   AS certificado,
                     COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    COALESCE(vpr.creado_en, NOW())       AS creado_en
+                    COALESCE(vpr.creado_en, NOW())       AS creado_en,
+                    COALESCE(m.nombre, '')               AS municipio
                 FROM vw_partes_resumen vpr
                 LEFT JOIN tbl_partes p ON p.id = vpr.id
                 LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
                 LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id
                 LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+                LEFT JOIN dim_municipios m ON m.id = p.municipio_id
                 ORDER BY vpr.id DESC
                 LIMIT %s
             """, (limit,))
@@ -265,17 +267,19 @@ def get_parts_list(user, password, schema, limit=100):
                     COALESCE(SUM(CASE WHEN pc.certificada = 1
                                  THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
                     COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    p.creado_en
+                    p.creado_en,
+                    COALESCE(m.nombre, '')               AS municipio
                 FROM tbl_partes p
                 LEFT JOIN dim_red            rd ON rd.id = p.red_id
                 LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
                 LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
                 LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
+                LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
                 LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
                 LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
                 LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
                 GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
-                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en
+                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.nombre
                 ORDER BY p.id DESC
                 LIMIT %s
             """, (limit,))

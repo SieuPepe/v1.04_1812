@@ -39,7 +39,7 @@ class PartsTab(customtkinter.CTkFrame):
 
             # Campos de localización (ocultos por defecto)
             "localizacion": {"label": "Localización", "width": 200, "visible": False, "locked": False},
-            "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
+            "municipio": {"label": "Municipio", "width": 150, "visible": True, "locked": False},
             "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
             "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
             "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
@@ -294,7 +294,7 @@ class PartsTab(customtkinter.CTkFrame):
 
             # Mapeo de índices del resultado SQL
             # 0:id, 1:codigo, 2:red, 3:tipo, 4:cod_trabajo, 5:cod_trabajo_desc,
-            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:creado_en
+            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:creado_en, 12:municipio
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -307,7 +307,8 @@ class PartsTab(customtkinter.CTkFrame):
                 "presupuesto": 8,
                 "certificado": 9,
                 "estado": 10,
-                "created_at": 11
+                "created_at": 11,
+                "municipio": 12
             }
 
             # Obtener columnas visibles actuales del tree
