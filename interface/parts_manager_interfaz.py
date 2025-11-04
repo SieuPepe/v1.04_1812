@@ -1123,19 +1123,21 @@ class AppPartsManager(customtkinter.CTk):
             municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
 
             if hasattr(self, 'municipio_menu'):
-                # Guardar el municipio actual antes de cambiar
-                current_municipio = self.municipio_menu.get()
-
                 # Actualizar la lista de municipios disponibles para esta provincia
                 if municipios_list:
                     self.municipio_menu.configure(values=municipios_list)
 
-                    # Solo mantener el municipio actual si está en la nueva lista
-                    if current_municipio not in municipios_list:
-                        # El municipio actual no pertenece a la nueva provincia seleccionada
-                        # No seleccionar automáticamente ninguno, dejar vacío
-                        self.municipio_menu.set("")
-                    # Si el municipio actual SÍ está en la lista, se mantiene automáticamente
+                    # SOLO borrar el municipio si NO estamos cargando datos iniciales
+                    # Durante la carga inicial, el municipio se establecerá después de esta función
+                    if not (hasattr(self, '_loading_initial_data') and self._loading_initial_data):
+                        # No estamos en carga inicial, es un cambio manual del usuario
+                        current_municipio = self.municipio_menu.get()
+
+                        # Solo mantener el municipio actual si está en la nueva lista
+                        if current_municipio not in municipios_list:
+                            # El municipio actual no pertenece a la nueva provincia seleccionada
+                            # No seleccionar automáticamente ninguno, dejar vacío
+                            self.municipio_menu.set("")
 
             # Marcar como cambiado
             self._mark_as_changed()
