@@ -136,6 +136,21 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.navigation_frame_label.grid(row=1, column=0, padx=20, pady=5)
 
+        # Botón Añadir Parte (destacado en verde)
+        add_parte_path = os.path.join(parent_path, "source/guardar.png")
+        self.add_parte_image = customtkinter.CTkImage(Image.open(add_parte_path), size=(25, 25))
+
+        self.add_parte_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=5, height=50,
+            border_spacing=10, text="➕ Añadir Parte",
+            fg_color="green", hover_color="#006400",
+            text_color="white",
+            image=self.add_parte_image,
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            anchor="center", command=self._add_parte_resumen
+        )
+        self.add_parte_button.grid(row=2, column=0, sticky="ew", padx=20, pady=(10, 15))
+
         # Botón Resumen
         self.resumen_button = customtkinter.CTkButton(
             self.navigation_frame, corner_radius=0, height=40,
@@ -144,7 +159,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.resumen_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("resumen")
         )
-        self.resumen_button.grid(row=2, column=0, sticky="ew")
+        self.resumen_button.grid(row=3, column=0, sticky="ew")
 
         # Botón Partes
         self.partes_button = customtkinter.CTkButton(
@@ -154,7 +169,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.partes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("partes")
         )
-        self.partes_button.grid(row=3, column=0, sticky="ew")
+        self.partes_button.grid(row=4, column=0, sticky="ew")
 
         # Botón Presupuesto
         self.presupuesto_button = customtkinter.CTkButton(
@@ -164,7 +179,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("presupuesto")
         )
-        self.presupuesto_button.grid(row=4, column=0, sticky="ew")
+        self.presupuesto_button.grid(row=5, column=0, sticky="ew")
 
         # Botón Certificaciones
         self.certificaciones_button = customtkinter.CTkButton(
@@ -174,7 +189,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("certificaciones")
         )
-        self.certificaciones_button.grid(row=5, column=0, sticky="ew")
+        self.certificaciones_button.grid(row=6, column=0, sticky="ew")
 
         # Botón Informes
         self.informes_button = customtkinter.CTkButton(
@@ -184,10 +199,10 @@ class AppPartsManager(customtkinter.CTk):
             image=self.informes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("informes")
         )
-        self.informes_button.grid(row=6, column=0, sticky="ew")
+        self.informes_button.grid(row=7, column=0, sticky="ew")
 
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(7, weight=1)
+        self.navigation_frame.grid_rowconfigure(8, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -197,7 +212,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=8, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=9, padx=30, pady=(15, 15), sticky="nsew")
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
