@@ -86,8 +86,8 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             placeholder_text="0.00",
             width=250,
             state="readonly",
-            fg_color="gray90",
-            text_color="gray30"
+            fg_color="gray20",
+            text_color="gray60"
         )
         self.precio_entry.grid(row=2, column=1, padx=20, pady=15, sticky="w")
 
@@ -188,7 +188,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
                 self.precio_entry.insert(0, f"{precio_catalogo:.2f}")
-                self.precio_entry.configure(state="readonly")
+                self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
 
                 self.precio_catalogo_label.configure(
                     text=f"📋 Precio catálogo: {precio_catalogo:.2f}€",
@@ -205,7 +205,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 self.item_option.set("Sin partidas en este capítulo")
                 self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
-                self.precio_entry.configure(state="readonly")
+                self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
                 self.precio_catalogo_label.configure(text="")
 
                 CTkMessagebox(
@@ -247,7 +247,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                     self.precio_entry.configure(state="normal")
                     self.precio_entry.delete(0, 'end')
                     self.precio_entry.insert(0, f"{precio_catalogo:.2f}")
-                    self.precio_entry.configure(state="readonly")
+                    self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
 
                     # Actualizar label informativo
                     self.precio_catalogo_label.configure(
