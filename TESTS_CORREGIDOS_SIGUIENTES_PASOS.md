@@ -1,26 +1,55 @@
 # Tests Corregidos - Siguientes Pasos para Producción
 
-**Fecha:** 2025-11-05
+**Fecha:** 2025-11-05 (Actualizado)
 **Branch:** `claude/review-pull-request-011CUqVesYVLqb4uEzcP1DqY`
-**Commit:** `46cdc98`
+**Commit:** `b806e64` ⚠️ **NUEVA CORRECCIÓN CRÍTICA**
+
+---
+
+## 🔧 CORRECCIÓN CRÍTICA APLICADA
+
+### Problema Detectado
+Los tests fallaban con error: **"Unknown column 'precio_unit' in 'field list'"**
+
+### Solución
+La tabla `tbl_pres_precios` usa nombres de columna diferentes:
+- ❌ `precio_unit` → ✅ **`coste`** (nombre real)
+- ❌ `descripcion` → ✅ **`resumen`** (descripción corta)
+
+### Estructura Real de tbl_pres_precios
+```sql
+CREATE TABLE tbl_pres_precios (
+  id INT,
+  codigo TEXT,
+  resumen TEXT,        -- Descripción corta
+  descripcion TEXT,    -- Descripción larga
+  coste DOUBLE,        -- Precio unitario
+  id_unidades INT,
+  id_capitulo INT,
+  id_naturaleza INT
+);
+```
 
 ---
 
 ## ✅ Trabajo Completado
 
-### 1. Tests Corregidos (3 archivos)
+### 1. Tests Corregidos (3 archivos) - COMMIT b806e64
 
-Todos los tests ahora utilizan la **estructura real de BD cert_dev** detectada con `detectar_estructura_bd.py`:
+Todos los tests ahora utilizan la **estructura real de BD cert_dev**:
 
 #### **test_presupuestos.py**
 - ✅ Actualizado a `tbl_part_presupuesto` (no `tbl_presupuesto`)
-- ✅ Usa catálogo `tbl_pres_precios`
+- ✅ Usa catálogo `tbl_pres_precios` con columnas **`coste`** y **`resumen`**
+- ✅ Query corregido: `SELECT id, codigo, resumen, coste FROM tbl_pres_precios`
 - ✅ Relación correcta vía `parte_id` y `precio_id`
 - ✅ Verifica vista `vw_part_presupuesto`
 - **Tests:** 6 (crear parte, agregar conceptos, calcular totales, modificar cantidades, verificar vista, limpiar)
 
 #### **test_certificaciones.py**
 - ✅ Actualizado a `tbl_part_certificacion`
+- ✅ Usa catálogo con columnas **`coste`** y **`resumen`**
+- ✅ Query corregido: `SELECT id, resumen, coste FROM tbl_pres_precios`
 - ✅ JOIN correcto con `tbl_part_presupuesto`
 - ✅ Certificación parcial (50%) y marcado de certificadas
 - ✅ Verifica vista `vw_part_certificaciones`
@@ -28,13 +57,22 @@ Todos los tests ahora utilizan la **estructura real de BD cert_dev** detectada c
 
 #### **test_flujo_completo.py**
 - ✅ Flujo end-to-end completo de 8 pasos
-- ✅ Todas las tablas corregidas
+- ✅ Todas las tablas y columnas corregidas
+- ✅ Query corregido: `SELECT id, resumen, coste FROM tbl_pres_precios`
 - ✅ Limpieza automática si falla
 - **Pasos:** Crear parte → Verificar → Presupuesto → Verificar → Certificación → Verificar → Informe → Limpiar
 
 ### 2. Commits y Push
 ```bash
-Commit: 46cdc98 - "fix: Corregir tests con estructura real de BD cert_dev"
+Commit 1: 46cdc98 - "fix: Corregir tests con estructura real de BD cert_dev"
+         (Corrigió tablas: tbl_part_presupuesto, tbl_part_certificacion)
+
+Commit 2: 5329d17 - "docs: Agregar guía de siguientes pasos"
+         (Agregó documentación y scripts de detección)
+
+Commit 3: b806e64 - "fix: Corregir columnas de tbl_pres_precios en tests" ⭐ NUEVO
+         (Corrigió: precio_unit→coste, descripcion→resumen)
+
 Push: ✅ Exitoso a origin/claude/review-pull-request-011CUqVesYVLqb4uEzcP1DqY
 ```
 
