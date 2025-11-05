@@ -268,6 +268,19 @@ def get_parts_list(user, password, schema, limit=100):
         col_result = cur.fetchone()
         estado_col = col_result[0] if col_result else 'estado'
 
+        # Detectar columna de texto en dim_codigo_trabajo
+        cur.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'dim_codigo_trabajo'
+            AND COLUMN_NAME IN ('descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
+            ORDER BY FIELD(COLUMN_NAME, 'descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
+            LIMIT 1
+        """, (schema,))
+        col_result = cur.fetchone()
+        cod_trabajo_col = col_result[0] if col_result else 'descripcion'
+
         # Query completa con TODOS los campos
         cur.execute(f"""
             SELECT
@@ -275,8 +288,8 @@ def get_parts_list(user, password, schema, limit=100):
                 p.codigo,
                 COALESCE(rd.descripcion, '')         AS red,
                 COALESCE(tt.descripcion, '')         AS tipo,
-                COALESCE(ct.codigo, '')              AS cod_trabajo,
-                COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                COALESCE(ct.{cod_trabajo_col}, '')   AS cod_trabajo,
+                COALESCE(ct.{cod_trabajo_col}, '')   AS cod_trabajo_desc,
                 COALESCE(tr.descripcion, '')         AS tipo_rep,
                 p.descripcion,
                 COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
@@ -309,7 +322,7 @@ def get_parts_list(user, password, schema, limit=100):
             LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
             LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
             LEFT JOIN tbl_parte_estados pe ON pe.id = p.{estado_col}
-            GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
+            GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.{cod_trabajo_col},
                      tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col},
                      p.titulo, p.descripcion_corta, p.descripcion_larga, p.fecha_inicio, p.fecha_fin,
                      p.localizacion, co.{comarca_col}, pr.{provincia_col}, p.latitud, p.longitud,
