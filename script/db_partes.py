@@ -49,6 +49,32 @@ def _detect_text_column_cached(user: str, password: str, schema: str, table: str
         return candidates[0]
 
 
+@lru_cache(maxsize=64)
+def _get_table_columns_cached(user: str, password: str, schema: str, table: str) -> tuple:
+    """
+    Obtiene la lista de columnas de una tabla. Usa caché para evitar queries DESCRIBE repetidas.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema
+        table: Nombre de la tabla
+
+    Returns:
+        Tupla de nombres de columnas
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute(f"DESCRIBE {schema}.{table}")
+            columns = tuple([row[0] for row in cur.fetchall()])
+            cur.close()
+            return columns
+    except Exception as e:
+        logger.error(f"Error obteniendo columnas de {table}: {e}")
+        return tuple()
+
+
 # ==================== DIMENSIONES DE CERTIFICACIÓN (OT/RED/TIPO/CÓDIGO) ====================
 
 def _guess_text_column(user: str, password: str, schema: str, table: str):
@@ -362,9 +388,8 @@ def get_partes_resumen(user: str, password: str, schema: str):
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Verificar qué columnas existen en tbl_partes
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
-        columns = [row[0] for row in cur.fetchall()]
+        # Verificar qué columnas existen en tbl_partes (con caché)
+        columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
         # Detectar columnas de texto en tablas dimensionales
         # Nota: comarca y provincia se obtienen a través del municipio, no directamente del parte
@@ -489,9 +514,8 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Verificar qué columnas existen
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
-        columns = [row[0] for row in cur.fetchall()]
+        # Verificar qué columnas existen (con caché)
+        columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
         # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
         select_cols = ['id', 'codigo', 'descripcion', 'estado']
@@ -613,9 +637,8 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
 
-            # Verificar columnas disponibles
-            cur.execute(f"DESCRIBE {schema}.tbl_partes")
-            columns = [row[0] for row in cur.fetchall()]
+            # Verificar columnas disponibles (con caché)
+            columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
             # Determinar si la columna es 'estado' o 'id_estado'
             estado_column = 'id_estado' if 'id_estado' in columns else 'estado'
@@ -1248,9 +1271,8 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         next_num = int(cur.fetchone()[0])
         codigo = f"{prefix}-{next_num:04d}"
 
-        # Verificar qué columnas existen en tbl_partes
-        cur.execute("DESCRIBE " + schema + ".tbl_partes")
-        columns = {row[0] for row in cur.fetchall()}
+        # Verificar qué columnas existen en tbl_partes (con caché)
+        columns = set(_get_table_columns_cached(user, password, schema, 'tbl_partes'))
 
         # Construir INSERT dinámicamente según columnas disponibles
         insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
