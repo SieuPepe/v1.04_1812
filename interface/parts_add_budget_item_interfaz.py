@@ -120,7 +120,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         ).pack(side="left", padx=10)
 
         customtkinter.CTkButton(
-            btn_frame, text="❌ Cancelar", command=self.destroy,
+            btn_frame, text="❌ Cerrar ventana", command=self.destroy,
             fg_color="red", hover_color="#8B0000", width=180, height=40,
             font=("", 14, "bold")
         ).pack(side="left", padx=10)
@@ -325,12 +325,9 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                             f"Total: {total:.2f}€",
                     icon="check"
                 )
-                # Liberar grab y procesar eventos pendientes antes de destruir
-                if self.grab_current() == self:
-                    self.grab_release()
-                self.update_idletasks()
-                # Destruir con un pequeño delay para evitar errores de focus
-                self.after(10, self.destroy)
+                # Limpiar campo de cantidad para permitir añadir más partidas sin cerrar ventana
+                self.cantidad_entry.delete(0, 'end')
+                self.cantidad_entry.focus()
             else:
                 CTkMessagebox(title="Error", message=f"Error guardando:\n\n{result}", icon="cancel")
 
