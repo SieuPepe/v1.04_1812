@@ -735,14 +735,20 @@ def add_part_presupuesto_item(user: str, password: str, schema: str,
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("""
-                INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
-                VALUES (%s, %s, %s, %s)
-            """, (parte_id, precio_id, cantidad, precio_unit))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("""
+                    INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
+                    VALUES (%s, %s, %s, %s)
+                """, (parte_id, precio_id, cantidad, precio_unit))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error añadiendo partida a presupuesto: {e}")
         return str(e)
 
 
@@ -753,15 +759,21 @@ def mod_amount_part_budget_item(user: str, password: str, schema: str, item_id: 
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("""
-                UPDATE tbl_part_presupuesto
-                SET cantidad = %s
-                WHERE id = %s
-            """, (cantidad, item_id))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("""
+                    UPDATE tbl_part_presupuesto
+                    SET cantidad = %s
+                    WHERE id = %s
+                """, (cantidad, item_id))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error modificando cantidad en presupuesto: {e}")
         return str(e)
 
 
@@ -772,11 +784,17 @@ def delete_part_presupuesto_item(user: str, password: str, schema: str, item_id:
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("DELETE FROM tbl_part_presupuesto WHERE id = %s", (item_id,))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("DELETE FROM tbl_part_presupuesto WHERE id = %s", (item_id,))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error eliminando partida de presupuesto: {e}")
         return str(e)
 
 
