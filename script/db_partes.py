@@ -1,10 +1,52 @@
 import mysql.connector
 import logging
+from functools import lru_cache
 from .db_config import get_config
 from .db_connection import get_connection, get_project_connection
 
 # Configurar logger para este módulo
 logger = logging.getLogger(__name__)
+
+
+# ==================== FUNCIONES DE UTILIDAD CON CACHÉ ====================
+
+@lru_cache(maxsize=128)
+def _detect_text_column_cached(user: str, password: str, schema: str, table: str, candidates: tuple) -> str:
+    """
+    Detecta la columna de texto preferida para una tabla. Usa caché para evitar queries repetidas.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema
+        table: Nombre de la tabla
+        candidates: Tupla de nombres de columnas candidatas en orden de preferencia
+
+    Returns:
+        Nombre de la columna detectada o la primera candidata como fallback
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            placeholders = ', '.join(['%s'] * len(candidates))
+            field_order = ', '.join([f"'{c}'" for c in candidates])
+
+            query = f"""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = %s
+                AND COLUMN_NAME IN ({placeholders})
+                ORDER BY FIELD(COLUMN_NAME, {field_order})
+                LIMIT 1
+            """
+            cur.execute(query, (schema, table) + candidates)
+            result = cur.fetchone()
+            cur.close()
+            return result[0] if result else candidates[0]
+    except Exception as e:
+        logger.error(f"Error detectando columna para {table}: {e}")
+        return candidates[0]
 
 
 # ==================== DIMENSIONES DE CERTIFICACIÓN (OT/RED/TIPO/CÓDIGO) ====================
@@ -227,67 +269,27 @@ def get_parts_list(user, password, schema, limit=100):
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Detectar columnas de texto en tablas dimensionales
-        cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'dim_municipios'
-            AND COLUMN_NAME IN ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
-            ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio_nombre', 'municipio', 'descripcion')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        municipio_col = col_result[0] if col_result else 'nombre'
-
-        cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'dim_comarcas'
-            AND COLUMN_NAME IN ('comarca_nombre', 'nombre', 'comarca', 'descripcion')
-            ORDER BY FIELD(COLUMN_NAME, 'comarca_nombre', 'nombre', 'comarca', 'descripcion')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        comarca_col = col_result[0] if col_result else 'comarca_nombre'
-
-        cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'dim_provincias'
-            AND COLUMN_NAME IN ('nombre', 'provincia_nombre', 'provincia', 'descripcion')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        provincia_col = col_result[0] if col_result else 'nombre'
-
-        # Detectar columna de estado en tbl_partes (puede ser 'estado' o 'id_estado')
-        cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'tbl_partes'
-            AND COLUMN_NAME IN ('id_estado', 'estado')
-            ORDER BY FIELD(COLUMN_NAME, 'id_estado', 'estado')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        estado_col = col_result[0] if col_result else 'estado'
-
-        # Detectar columna de texto en dim_codigo_trabajo
-        cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'dim_codigo_trabajo'
-            AND COLUMN_NAME IN ('descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
-            ORDER BY FIELD(COLUMN_NAME, 'descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        cod_trabajo_col = col_result[0] if col_result else 'descripcion'
+        # Detectar columnas de texto en tablas dimensionales (con caché)
+        municipio_col = _detect_text_column_cached(
+            user, password, schema, 'dim_municipios',
+            ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
+        )
+        comarca_col = _detect_text_column_cached(
+            user, password, schema, 'dim_comarcas',
+            ('comarca_nombre', 'nombre', 'comarca', 'descripcion')
+        )
+        provincia_col = _detect_text_column_cached(
+            user, password, schema, 'dim_provincias',
+            ('nombre', 'provincia_nombre', 'provincia', 'descripcion')
+        )
+        estado_col = _detect_text_column_cached(
+            user, password, schema, 'tbl_partes',
+            ('id_estado', 'estado')
+        )
+        cod_trabajo_col = _detect_text_column_cached(
+            user, password, schema, 'dim_codigo_trabajo',
+            ('descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
+        )
 
         # Query completa con TODOS los campos
         cur.execute(f"""
