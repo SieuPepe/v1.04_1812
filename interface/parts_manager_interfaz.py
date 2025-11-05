@@ -622,7 +622,7 @@ class AppPartsManager(customtkinter.CTk):
 
             # Callback para cuando se crea un parte nuevo
             def on_parte_created(parte_id):
-                # Guardar el ID del parte seleccionado
+                # Guardar el ID del parte seleccionado para Presupuesto
                 self.selected_parte_id = parte_id
 
                 # Recargar el resumen
@@ -646,6 +646,10 @@ class AppPartsManager(customtkinter.CTk):
                 # Ir directamente a la función de Presupuesto del sidebar
                 # (no a la pestaña interna de presupuesto)
                 self.select_frame_by_name("presupuesto")
+
+                # Recargar el selector de presupuesto para que seleccione el parte nuevo
+                if hasattr(self, 'presupuesto_selector'):
+                    self._reload_presupuesto_selector()
 
             # Crear ventana independiente con el formulario mejorado
             parts_window = AppPartsV2(
@@ -2165,30 +2169,63 @@ class AppPartsManager(customtkinter.CTk):
         selector_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew")
         selector_frame.grid_columnconfigure(1, weight=1)
 
-        customtkinter.CTkLabel(selector_frame, text="Seleccionar Parte:",
+        customtkinter.CTkLabel(selector_frame, text="Buscar Parte:",
                                font=("", 14, "bold")).grid(row=0, column=0, padx=(0, 10), sticky="e")
 
-        # Cargar lista de partes
+        # Cargar lista de partes completa para búsqueda
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list_full = self.cert_list.copy()
         except:
-            partes_list = ["Sin partes"]
+            self.cert_list = ["Sin partes"]
+            self.cert_list_full = self.cert_list.copy()
 
-        self.cert_selector = customtkinter.CTkOptionMenu(
-            selector_frame,
-            values=partes_list if partes_list else ["Sin partes"],
-            command=lambda x: self._load_certificaciones_data()
+        # Frame contenedor para Entry + Dropdown
+        search_container_cert = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
+        search_container_cert.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        search_container_cert.grid_rowconfigure(0, weight=1)
+        search_container_cert.grid_columnconfigure(0, weight=1)
+
+        # Entry para búsqueda con dropdown
+        self.cert_search_entry = customtkinter.CTkEntry(
+            search_container_cert,
+            placeholder_text="Escriba para buscar parte..."
         )
-        self.cert_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        self.cert_search_entry.grid(row=0, column=0, sticky="ew")
+        self.cert_search_entry.bind('<KeyRelease>', self._filter_cert_list)
+        self.cert_search_entry.bind('<Return>', lambda e: self._select_first_cert_match())
 
-        if partes_list and hasattr(self, 'selected_parte_id'):
-            for item in partes_list:
-                if item.startswith(f"{self.selected_parte_id} -"):
-                    self.cert_selector.set(item)
-                    break
-        elif partes_list:
-            self.cert_selector.set(partes_list[0])
+        # Frame flotante para dropdown (inicialmente oculto)
+        self.cert_dropdown_frame = customtkinter.CTkFrame(
+            search_container_cert,
+            fg_color="#2b2b2b",
+            border_width=1,
+            border_color="gray"
+        )
+        self.cert_dropdown_frame.grid_remove()  # Oculto inicialmente
+
+        # Listbox para mostrar resultados filtrados
+        self.cert_listbox = ttk.Treeview(
+            self.cert_dropdown_frame,
+            columns=("partes",),
+            show="tree",
+            selectmode="browse",
+            height=10
+        )
+        self.cert_listbox.pack(fill="both", expand=True)
+        self.cert_listbox.bind("<ButtonRelease-1>", self._on_cert_select)
+        self.cert_listbox.bind("<Return>", self._on_cert_select)
+
+        # Seleccionar primer parte si hay selected_parte_id
+        if self.cert_list and self.cert_list[0] != "Sin partes":
+            if hasattr(self, 'selected_parte_id'):
+                for item in self.cert_list:
+                    if item.startswith(f"{self.selected_parte_id} -"):
+                        self._set_selected_cert(item)
+                        break
+            else:
+                self._set_selected_cert(self.cert_list[0])
 
         btn_reload = customtkinter.CTkButton(
             selector_frame, text="🔄", width=40,
@@ -2368,21 +2405,73 @@ class AppPartsManager(customtkinter.CTk):
         if partes_list and partes_list[0] != "Sin partes":
             self._load_certificaciones_data()
 
+    def _filter_cert_list(self, event=None):
+        """Filtra la lista de partes en certificaciones según el texto de búsqueda"""
+        search_text = self.cert_search_entry.get().lower()
+
+        if not search_text:
+            # Si está vacío, ocultar dropdown
+            self.cert_dropdown_frame.grid_remove()
+            return
+
+        # Filtrar partes que contengan el texto de búsqueda
+        filtered = [p for p in self.cert_list_full if search_text in p.lower()]
+
+        # Limpiar listbox
+        for item in self.cert_listbox.get_children():
+            self.cert_listbox.delete(item)
+
+        # Mostrar dropdown solo si hay resultados
+        if filtered:
+            # Limitar a 10 resultados para no sobrecargar
+            for parte in filtered[:10]:
+                self.cert_listbox.insert("", "end", text=parte, values=(parte,))
+
+            # Mostrar dropdown debajo del entry
+            self.cert_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+        else:
+            self.cert_dropdown_frame.grid_remove()
+
+    def _on_cert_select(self, event=None):
+        """Maneja la selección de un parte del dropdown en certificaciones"""
+        selection = self.cert_listbox.selection()
+        if selection:
+            item = selection[0]
+            parte_text = self.cert_listbox.item(item, "text")
+            self._set_selected_cert(parte_text)
+            self.cert_dropdown_frame.grid_remove()
+            self._load_certificaciones_data()
+
+    def _select_first_cert_match(self):
+        """Selecciona el primer resultado del filtro en certificaciones"""
+        search_text = self.cert_search_entry.get().lower()
+        if search_text:
+            filtered = [p for p in self.cert_list_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_cert(filtered[0])
+                self.cert_dropdown_frame.grid_remove()
+                self._load_certificaciones_data()
+
+    def _set_selected_cert(self, parte_text):
+        """Establece el parte seleccionado en certificaciones"""
+        self.selected_cert_text = parte_text
+        self.cert_search_entry.delete(0, 'end')
+        self.cert_search_entry.insert(0, parte_text)
+
     def _reload_cert_selector(self):
         """Recarga el selector de partes en certificaciones"""
         from script.modulo_db import get_partes_resumen
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list_full = self.cert_list.copy()
 
-            if partes_list:
-                self.cert_selector.configure(values=partes_list)
-                self.cert_selector.set(partes_list[0])
+            if self.cert_list:
+                self._set_selected_cert(self.cert_list[0])
                 self._load_certificaciones_data()
             else:
-                self.cert_selector.configure(values=["Sin partes"])
-                self.cert_selector.set("Sin partes")
+                self.cert_search_entry.delete(0, 'end')
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
 
@@ -2396,8 +2485,9 @@ class AppPartsManager(customtkinter.CTk):
         for item in self.tree_cert_certificadas.get_children():
             self.tree_cert_certificadas.delete(item)
 
-        selected = self.cert_selector.get()
-        if selected == "Sin partes" or not selected:
+        # Usar el texto seleccionado del sistema de búsqueda incremental
+        selected = getattr(self, 'selected_cert_text', '')
+        if not selected or selected == "Sin partes":
             self.total_cert_label.configure(text="TOTAL CERTIFICADO: 0.00€")
             return
 

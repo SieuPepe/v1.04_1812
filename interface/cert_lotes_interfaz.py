@@ -39,7 +39,6 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self.focus_force()
 
         # Variables
-        self.current_filter = "sin_certificar"  # Filtro por defecto
         self.selected_columns = ["codigo", "red", "presupuesto", "certificado"]
         self.all_columns = []
         self.partes_data = []
@@ -58,7 +57,7 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self._load_data()
 
     def _create_header(self):
-        """Crea el encabezado con título"""
+        """Crea el encabezado con título y advertencia"""
         header_frame = customtkinter.CTkFrame(self, fg_color="transparent")
         header_frame.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="ew")
         header_frame.grid_columnconfigure(0, weight=1)
@@ -70,19 +69,22 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         )
         title.pack(side="left")
 
-        # Info
-        info = customtkinter.CTkLabel(
-            header_frame,
-            text="Selecciona partes completos para certificar",
-            font=customtkinter.CTkFont(size=12),
-            text_color="gray"
+        # Advertencia
+        warning_frame = customtkinter.CTkFrame(self, fg_color="#8B4513", corner_radius=10)
+        warning_frame.grid(row=1, column=0, padx=20, pady=(0, 10), sticky="ew")
+
+        warning = customtkinter.CTkLabel(
+            warning_frame,
+            text="⚠️ ADVERTENCIA: Esta función certifica el parte completo. Solo usar con partes sin certificaciones previas.",
+            font=customtkinter.CTkFont(size=13, weight="bold"),
+            text_color="white"
         )
-        info.pack(side="left", padx=(20, 0))
+        warning.pack(padx=15, pady=12)
 
     def _create_filters(self):
         """Crea la barra de filtros y calendario"""
         filter_frame = customtkinter.CTkFrame(self)
-        filter_frame.grid(row=1, column=0, padx=20, pady=(0, 10), sticky="ew")
+        filter_frame.grid(row=2, column=0, padx=20, pady=(0, 10), sticky="ew")
 
         # Fecha de certificación
         customtkinter.CTkLabel(
@@ -103,49 +105,28 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self.fecha_cert.set_date(date.today())
         self.fecha_cert.grid(row=0, column=1, padx=(0, 20), pady=10, sticky="w")
 
-        # Filtro
-        customtkinter.CTkLabel(
-            filter_frame,
-            text="Filtro:",
-            font=customtkinter.CTkFont(size=14, weight="bold")
-        ).grid(row=0, column=2, padx=(10, 5), pady=10, sticky="w")
-
-        self.filter_menu = customtkinter.CTkOptionMenu(
-            filter_frame,
-            values=[
-                "Sin certificar",
-                "Parcialmente certificados",
-                "Completamente certificados",
-                "Todos"
-            ],
-            command=self._apply_filter,
-            width=220
-        )
-        self.filter_menu.set("Sin certificar")
-        self.filter_menu.grid(row=0, column=3, padx=(0, 20), pady=10, sticky="w")
-
         # Botón de búsqueda
         customtkinter.CTkLabel(
             filter_frame,
             text="Buscar:",
             font=customtkinter.CTkFont(size=14, weight="bold")
-        ).grid(row=0, column=4, padx=(10, 5), pady=10, sticky="w")
+        ).grid(row=0, column=2, padx=(20, 5), pady=10, sticky="w")
 
-        self.search_entry = customtkinter.CTkEntry(filter_frame, width=250, placeholder_text="Buscar por código, red...")
-        self.search_entry.grid(row=0, column=5, padx=(0, 10), pady=10, sticky="w")
+        self.search_entry = customtkinter.CTkEntry(filter_frame, width=300, placeholder_text="Buscar por código, red, descripción...")
+        self.search_entry.grid(row=0, column=3, padx=(0, 10), pady=10, sticky="w")
         self.search_entry.bind("<KeyRelease>", lambda e: self._apply_search())
 
         # Botón selector de columnas
         btn_columns = customtkinter.CTkButton(
             filter_frame,
-            text="Columnas",
-            width=100,
+            text="📋 Columnas",
+            width=120,
             command=self._open_column_selector
         )
-        btn_columns.grid(row=0, column=6, padx=(10, 10), pady=10)
+        btn_columns.grid(row=0, column=4, padx=(20, 10), pady=10)
 
     def _create_table(self):
-        """Crea la tabla con los partes"""
+        """Crea la tabla con los partes (selección por filas)"""
         table_frame = customtkinter.CTkFrame(self)
         table_frame.grid(row=3, column=0, padx=20, pady=(0, 10), sticky="nsew")
         table_frame.grid_rowconfigure(0, weight=1)
@@ -158,8 +139,8 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self.tree = ttk.Treeview(
             table_frame,
             columns=(),  # Se definirán dinámicamente
-            show="tree headings",
-            selectmode="extended",  # Selección múltiple
+            show="headings",  # Solo columnas, sin tree column
+            selectmode="extended",  # Selección múltiple de filas
             yscrollcommand=scroll_y.set,
             xscrollcommand=scroll_x.set
         )
@@ -186,53 +167,27 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         style.map("Treeview",
                  background=[('selected', '#1f6aa5')])
 
-        # Checkbox en primera columna
-        self.tree.heading("#0", text="☐", anchor="center")
-        self.tree.column("#0", width=40, stretch=False)
-        self.tree.bind("<ButtonRelease-1>", self._on_tree_click)
-
     def _create_buttons(self):
         """Crea los botones de acción"""
         btn_frame = customtkinter.CTkFrame(self, fg_color="transparent")
         btn_frame.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="ew")
         btn_frame.grid_columnconfigure(0, weight=1)
 
-        # Estadísticas
+        # Estadísticas (ahora solo total de partes mostrados)
         self.stats_label = customtkinter.CTkLabel(
             btn_frame,
-            text="Seleccionados: 0 | Total: 0",
+            text="Total de partes: 0",
             font=customtkinter.CTkFont(size=13, weight="bold")
         )
         self.stats_label.pack(side="left", padx=(0, 20))
 
-        # Botón Seleccionar Todos
-        btn_select_all = customtkinter.CTkButton(
-            btn_frame,
-            text="Seleccionar Todos Visibles",
-            command=self._select_all_visible,
-            width=200,
-            height=35
-        )
-        btn_select_all.pack(side="left", padx=5)
-
-        # Botón Deseleccionar Todos
-        btn_deselect_all = customtkinter.CTkButton(
-            btn_frame,
-            text="Deseleccionar Todos",
-            command=self._deselect_all,
-            width=180,
-            height=35,
-            fg_color="gray"
-        )
-        btn_deselect_all.pack(side="left", padx=5)
-
         # Botón Certificar Seleccionados
         btn_cert_selected = customtkinter.CTkButton(
             btn_frame,
-            text="✅ Certificar Seleccionados",
+            text="✅ Certificar Partes Seleccionados",
             command=self._cert_selected,
-            width=220,
-            height=35,
+            width=250,
+            height=40,
             fg_color="#4CAF50",
             hover_color="#45a049",
             font=customtkinter.CTkFont(size=14, weight="bold")
@@ -242,10 +197,10 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         # Botón Cerrar
         btn_close = customtkinter.CTkButton(
             btn_frame,
-            text="Cerrar",
+            text="❌ Cerrar",
             command=self.destroy,
-            width=100,
-            height=35,
+            width=120,
+            height=40,
             fg_color="gray"
         )
         btn_close.pack(side="right", padx=5)
@@ -274,15 +229,12 @@ class CertLotesWindow(customtkinter.CTkToplevel):
                     'tipo_rep': row[7] or '',
                     'presupuesto': float(row[8]) if row[8] else 0.0,
                     'certificado': float(row[9]) if row[9] else 0.0,
-                    'pendiente': float(row[10]) if row[10] else 0.0,
-                    'selected': False
+                    'pendiente': float(row[10]) if row[10] else 0.0
                 }
                 self.partes_data.append(parte)
 
             # Definir todas las columnas disponibles
             self.all_columns = list(self.partes_data[0].keys()) if self.partes_data else []
-            if 'selected' in self.all_columns:
-                self.all_columns.remove('selected')
 
             # Actualizar tabla
             self._update_table()
@@ -328,29 +280,17 @@ class CertLotesWindow(customtkinter.CTkToplevel):
                 else:
                     formatted_values.append(str(val))
 
-            # Icono de checkbox
-            check_icon = "☑" if parte['selected'] else "☐"
-            self.tree.insert("", "end", text=check_icon, values=formatted_values, tags=(parte['id'],))
+            # Insertar fila (tags con ID del parte para referencia)
+            self.tree.insert("", "end", values=formatted_values, tags=(parte['id'],))
 
         # Actualizar estadísticas
-        selected_count = sum(1 for p in filtered_data if p['selected'])
-        self.stats_label.configure(text=f"Seleccionados: {selected_count} | Total: {len(filtered_data)}")
+        self.stats_label.configure(text=f"Total de partes: {len(filtered_data)}")
 
     def _filter_data(self, data):
-        """Aplica filtros a los datos"""
+        """Aplica búsqueda de texto a los datos"""
         filtered = data
 
-        # Filtro por estado de certificación
-        filter_value = self.filter_menu.get()
-        if filter_value == "Sin certificar":
-            filtered = [p for p in filtered if p['certificado'] == 0]
-        elif filter_value == "Parcialmente certificados":
-            filtered = [p for p in filtered if 0 < p['certificado'] < p['presupuesto']]
-        elif filter_value == "Completamente certificados":
-            filtered = [p for p in filtered if p['certificado'] >= p['presupuesto'] and p['presupuesto'] > 0]
-        # "Todos" no filtra nada
-
-        # Filtro de búsqueda
+        # Búsqueda por texto (código, red, descripción)
         search_text = self.search_entry.get().lower()
         if search_text:
             filtered = [
@@ -362,42 +302,8 @@ class CertLotesWindow(customtkinter.CTkToplevel):
 
         return filtered
 
-    def _apply_filter(self, choice):
-        """Aplica el filtro seleccionado"""
-        self._update_table()
-
     def _apply_search(self):
         """Aplica el filtro de búsqueda"""
-        self._update_table()
-
-    def _on_tree_click(self, event):
-        """Maneja clics en la tabla para selección"""
-        region = self.tree.identify_region(event.x, event.y)
-        if region == "tree":
-            # Click en checkbox
-            item = self.tree.identify_row(event.y)
-            if item:
-                tags = self.tree.item(item, 'tags')
-                if tags:
-                    parte_id = int(tags[0])
-                    # Toggle selección
-                    for parte in self.partes_data:
-                        if parte['id'] == parte_id:
-                            parte['selected'] = not parte['selected']
-                            break
-                    self._update_table()
-
-    def _select_all_visible(self):
-        """Selecciona todos los partes visibles"""
-        filtered = self._filter_data(self.partes_data)
-        for parte in filtered:
-            parte['selected'] = True
-        self._update_table()
-
-    def _deselect_all(self):
-        """Deselecciona todos los partes"""
-        for parte in self.partes_data:
-            parte['selected'] = False
         self._update_table()
 
     def _open_column_selector(self):
@@ -441,22 +347,34 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         btn_apply.pack(pady=(10, 20))
 
     def _cert_selected(self):
-        """Certifica los partes seleccionados"""
-        selected = [p for p in self.partes_data if p['selected']]
+        """Certifica los partes seleccionados (basado en selección de filas del TreeView)"""
+        # Obtener filas seleccionadas del TreeView
+        selected_items = self.tree.selection()
 
-        if not selected:
+        if not selected_items:
             CTkMessagebox(
                 title="Advertencia",
-                message="No has seleccionado ningún parte",
+                message="No has seleccionado ningún parte.\n\nSelecciona filas de la tabla haciendo click.",
                 icon="warning"
             )
             return
 
         fecha = self.fecha_cert.get_date().strftime('%Y-%m-%d')
 
+        # Obtener datos de partes seleccionados
+        selected_partes = []
+        for item in selected_items:
+            tags = self.tree.item(item, 'tags')
+            if tags:
+                parte_id = int(tags[0])
+                # Buscar el parte en partes_data
+                parte = next((p for p in self.partes_data if p['id'] == parte_id), None)
+                if parte:
+                    selected_partes.append(parte)
+
         msg = CTkMessagebox(
             title="Confirmar",
-            message=f"¿Certificar {len(selected)} parte(s) completo(s) con fecha {fecha}?\n\n" +
+            message=f"¿Certificar {len(selected_partes)} parte(s) completo(s) con fecha {fecha}?\n\n" +
                     "Esto certificará TODAS las partidas presupuestadas de cada parte.",
             icon="question",
             option_1="Cancelar",
@@ -473,7 +391,7 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         error_count = 0
         errors = []
 
-        for parte in selected:
+        for parte in selected_partes:
             try:
                 result = cert_parte_completo(
                     self.user,
@@ -484,7 +402,6 @@ class CertLotesWindow(customtkinter.CTkToplevel):
                 )
                 if result == "ok":
                     success_count += 1
-                    parte['selected'] = False  # Deseleccionar
                 else:
                     error_count += 1
                     errors.append(f"Parte {parte['codigo']}: {result}")
