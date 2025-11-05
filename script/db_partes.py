@@ -3,6 +3,7 @@ import logging
 from functools import lru_cache
 from .db_config import get_config
 from .db_connection import get_connection, get_project_connection
+from .db_cache import cached_dimension_query
 
 # Configurar logger para este módulo
 logger = logging.getLogger(__name__)
@@ -974,12 +975,16 @@ def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo
         return "PT"
 
 
+@cached_dimension_query('tbl_parte_estados')
 def get_estados_parte(user: str, password: str, schema: str):
     """
     Obtiene la lista de estados disponibles para los partes.
 
     Returns:
         list: Lista de dicts {'id': int, 'nombre': str, 'descripcion': str, 'orden': int}
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 15 minutos.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -1005,12 +1010,16 @@ def get_estados_parte(user: str, password: str, schema: str):
         ]
 
 
+@cached_dimension_query('dim_provincias')
 def get_provincias(user: str, password: str, schema: str):
     """
     Obtiene lista de provincias en formato "id - nombre_euskera"
 
     Returns:
         list: Lista de strings formato "id - nombre_euskera"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -1063,6 +1072,7 @@ def get_provincias(user: str, password: str, schema: str):
         return []
 
 
+@cached_dimension_query('dim_comarcas')
 def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
     """
     Obtiene lista de comarcas filtradas por provincia
@@ -1075,6 +1085,9 @@ def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_i
 
     Returns:
         list: Lista de strings formato "id - nombre"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -1144,6 +1157,7 @@ def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_i
         return []
 
 
+@cached_dimension_query('dim_municipios')
 def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None, comarca_id: int = None):
     """
     Obtiene lista de municipios filtrados por provincia y/o comarca
@@ -1157,6 +1171,9 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
 
     Returns:
         list: Lista de strings formato "id - nombre"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
