@@ -547,7 +547,6 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 descripcion_corta=desc_corta,
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
-                fecha_prevista_fin=fecha_prevista,
                 estado_id=estado_id,
                 localizacion=localizacion,
                 provincia_id=provincia_id,
@@ -558,6 +557,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 latitud=latitud,
                 longitud=longitud
             )
+            # Nota: fecha_prevista se ignoró porque add_parte_mejorado no tiene ese parámetro
 
             CTkMessagebox(
                 title="Parte guardado",
