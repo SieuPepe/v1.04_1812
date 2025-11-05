@@ -210,15 +210,17 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
 
 def get_parts_list(user, password, schema, limit=100):
     """
-    Devuelve lista de partes con todos los campos disponibles.
+    Devuelve lista de partes con TODOS los campos disponibles.
     Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
-             descripcion, presupuesto, certificado, estado, creado_en, municipio
-    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
+             descripcion, presupuesto, certificado, estado, created_at, municipio,
+             titulo, descripcion_corta, descripcion_larga, fecha_inicio, fecha_fin,
+             localizacion, comarca, provincia, latitud, longitud, trabajadores,
+             observaciones, finalizada
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Detectar columna de nombre del municipio (puede variar entre esquemas)
+        # Detectar columnas de texto en tablas dimensionales
         cur.execute(f"""
             SELECT COLUMN_NAME
             FROM information_schema.COLUMNS
@@ -231,71 +233,77 @@ def get_parts_list(user, password, schema, limit=100):
         col_result = cur.fetchone()
         municipio_col = col_result[0] if col_result else 'nombre'
 
-        # Verificar si existe la vista vw_partes_resumen
-        cur.execute("""
-            SELECT COUNT(*) FROM information_schema.VIEWS
-            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'vw_partes_resumen'
+        cur.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'dim_comarcas'
+            AND COLUMN_NAME IN ('nombre', 'comarca_nombre', 'comarca', 'descripcion')
+            LIMIT 1
         """, (schema,))
-        tiene_vista = cur.fetchone()[0] > 0
+        col_result = cur.fetchone()
+        comarca_col = col_result[0] if col_result else 'nombre'
 
-        if tiene_vista:
-            # Usar la vista que ya tiene los totales calculados
-            cur.execute(f"""
-                SELECT
-                    vpr.id,
-                    vpr.codigo,
-                    vpr.red,
-                    vpr.tipo,
-                    vpr.cod_trabajo,
-                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
-                    COALESCE(tr.descripcion, '')         AS tipo_rep,
-                    vpr.descripcion,
-                    COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
-                    COALESCE(vpr.total_certificado, 0)   AS certificado,
-                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    COALESCE(vpr.creado_en, NOW())       AS creado_en,
-                    COALESCE(m.{municipio_col}, '')      AS municipio
-                FROM vw_partes_resumen vpr
-                LEFT JOIN tbl_partes p ON p.id = vpr.id
-                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-                LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id
-                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
-                LEFT JOIN dim_municipios m ON m.id = p.municipio_id
-                ORDER BY vpr.id DESC
-                LIMIT %s
-            """, (limit,))
-        else:
-            # Fallback sin vista: calcular manualmente - USAR DESCRIPCIONES
-            cur.execute(f"""
-                SELECT
-                    p.id,
-                    p.codigo,
-                    COALESCE(rd.descripcion, '')         AS red,
-                    COALESCE(tt.descripcion, '')         AS tipo,
-                    COALESCE(ct.codigo, '')              AS cod_trabajo,
-                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
-                    COALESCE(tr.descripcion, '')         AS tipo_rep,
-                    p.descripcion,
-                    COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
-                    COALESCE(SUM(CASE WHEN pc.certificada = 1
-                                 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
-                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    p.creado_en,
-                    COALESCE(m.{municipio_col}, '')      AS municipio
-                FROM tbl_partes p
-                LEFT JOIN dim_red            rd ON rd.id = p.red_id
-                LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
-                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-                LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
-                LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
-                LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
-                LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
-                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
-                GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
-                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col}
-                ORDER BY p.id DESC
-                LIMIT %s
-            """, (limit,))
+        cur.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'dim_provincias'
+            AND COLUMN_NAME IN ('nombre', 'provincia_nombre', 'provincia', 'descripcion')
+            LIMIT 1
+        """, (schema,))
+        col_result = cur.fetchone()
+        provincia_col = col_result[0] if col_result else 'nombre'
+
+        # Query completa con TODOS los campos
+        cur.execute(f"""
+            SELECT
+                p.id,
+                p.codigo,
+                COALESCE(rd.descripcion, '')         AS red,
+                COALESCE(tt.descripcion, '')         AS tipo,
+                COALESCE(ct.codigo, '')              AS cod_trabajo,
+                COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
+                COALESCE(tr.descripcion, '')         AS tipo_rep,
+                p.descripcion,
+                COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
+                COALESCE(SUM(CASE WHEN pc.certificada = 1
+                             THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
+                COALESCE(pe.nombre, 'Pendiente')     AS estado,
+                p.creado_en                          AS created_at,
+                COALESCE(m.{municipio_col}, '')      AS municipio,
+                p.titulo,
+                p.descripcion_corta,
+                p.descripcion_larga,
+                p.fecha_inicio,
+                p.fecha_fin,
+                p.localizacion,
+                COALESCE(co.{comarca_col}, '')       AS comarca,
+                COALESCE(pr.{provincia_col}, '')     AS provincia,
+                p.latitud,
+                p.longitud,
+                p.trabajadores,
+                p.observaciones,
+                p.finalizada
+            FROM tbl_partes p
+            LEFT JOIN dim_red            rd ON rd.id = p.red_id
+            LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
+            LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+            LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
+            LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
+            LEFT JOIN dim_comarcas       co ON co.id = p.comarca_id
+            LEFT JOIN dim_provincias     pr ON pr.id = p.provincia_id
+            LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
+            LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
+            LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+            GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
+                     tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col},
+                     p.titulo, p.descripcion_corta, p.descripcion_larga, p.fecha_inicio, p.fecha_fin,
+                     p.localizacion, co.{comarca_col}, pr.{provincia_col}, p.latitud, p.longitud,
+                     p.trabajadores, p.observaciones, p.finalizada
+            ORDER BY p.id DESC
+            LIMIT %s
+        """, (limit,))
 
         rows = cur.fetchall()
         cur.close()

@@ -162,17 +162,22 @@ class PartsTab(customtkinter.CTkFrame):
         customtkinter.CTkLabel(search_frame, text="Buscar en:",
                                font=("", 12, "bold")).grid(row=0, column=0, padx=(0, 5), sticky="e")
 
-        # Dropdown para seleccionar campo de búsqueda
+        # Dropdown para seleccionar campo de búsqueda (TODOS los campos de tbl_partes)
         search_fields = {
             "Código": "codigo",
+            "Título": "titulo",
             "Descripción": "descripcion",
+            "Descripción Corta": "descripcion_corta",
+            "Descripción Larga": "descripcion_larga",
             "Estado": "estado",
             "Red": "red",
             "Tipo Trabajo": "tipo",
             "Cód. Trabajo": "cod_trabajo",
             "Tipo Reparación": "tipo_rep",
-            "Municipio": "municipio",
             "Localización": "localizacion",
+            "Municipio": "municipio",
+            "Comarca": "comarca",
+            "Provincia": "provincia",
             "Trabajadores": "trabajadores",
             "Observaciones": "observaciones"
         }
@@ -385,9 +390,12 @@ class PartsTab(customtkinter.CTkFrame):
             else:
                 rows = filtered_rows
 
-            # Mapeo de índices del resultado SQL
+            # Mapeo de índices del resultado SQL (actualizado con todos los campos)
             # 0:id, 1:codigo, 2:red, 3:tipo, 4:cod_trabajo, 5:cod_trabajo_desc,
-            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:creado_en, 12:municipio
+            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:created_at, 12:municipio,
+            # 13:titulo, 14:descripcion_corta, 15:descripcion_larga, 16:fecha_inicio, 17:fecha_fin,
+            # 18:localizacion, 19:comarca, 20:provincia, 21:latitud, 22:longitud,
+            # 23:trabajadores, 24:observaciones, 25:finalizada
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -401,7 +409,20 @@ class PartsTab(customtkinter.CTkFrame):
                 "certificado": 9,
                 "estado": 10,
                 "created_at": 11,
-                "municipio": 12
+                "municipio": 12,
+                "titulo": 13,
+                "descripcion_corta": 14,
+                "descripcion_larga": 15,
+                "fecha_inicio": 16,
+                "fecha_fin": 17,
+                "localizacion": 18,
+                "comarca": 19,
+                "provincia": 20,
+                "latitud": 21,
+                "longitud": 22,
+                "trabajadores": 23,
+                "observaciones": 24,
+                "finalizada": 25
             }
 
             # Obtener columnas visibles actuales del tree
@@ -476,7 +497,7 @@ class PartsTab(customtkinter.CTkFrame):
                     selected_field_name = self.search_field_selector.get()
                     selected_field_key = self.search_field_map.get(selected_field_name, "codigo")
 
-                    # Mapeo de campos a índices en la fila
+                    # Mapeo de campos a índices en la fila (actualizado con todos los campos)
                     field_to_index = {
                         "codigo": 1,
                         "red": 2,
@@ -486,11 +507,14 @@ class PartsTab(customtkinter.CTkFrame):
                         "descripcion": 7,
                         "estado": 10,
                         "municipio": 12,
-                        # Campos que no están en get_parts_list necesitan búsqueda completa
-                        # (se manejarían con otra query, por ahora se ignoran)
-                        "localizacion": None,
-                        "trabajadores": None,
-                        "observaciones": None
+                        "titulo": 13,
+                        "descripcion_corta": 14,
+                        "descripcion_larga": 15,
+                        "localizacion": 18,
+                        "comarca": 19,
+                        "provincia": 20,
+                        "trabajadores": 23,
+                        "observaciones": 24
                     }
 
                     field_index = field_to_index.get(selected_field_key)
@@ -500,10 +524,6 @@ class PartsTab(customtkinter.CTkFrame):
                         field_value = str(row[field_index]).lower() if row[field_index] else ""
                         if search_text not in field_value:
                             continue
-                    else:
-                        # Campo no disponible en esta query, saltar este filtro
-                        # (o podríamos hacer una consulta más completa)
-                        pass
 
                 filtered.append(row)
 
