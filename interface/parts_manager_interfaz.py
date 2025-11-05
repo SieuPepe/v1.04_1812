@@ -622,7 +622,7 @@ class AppPartsManager(customtkinter.CTk):
 
             # Callback para cuando se crea un parte nuevo
             def on_parte_created(parte_id):
-                # Guardar el ID del parte seleccionado
+                # Guardar el ID del parte seleccionado para Presupuesto
                 self.selected_parte_id = parte_id
 
                 # Recargar el resumen
@@ -646,6 +646,10 @@ class AppPartsManager(customtkinter.CTk):
                 # Ir directamente a la función de Presupuesto del sidebar
                 # (no a la pestaña interna de presupuesto)
                 self.select_frame_by_name("presupuesto")
+
+                # Recargar el selector de presupuesto para que seleccione el parte nuevo
+                if hasattr(self, 'presupuesto_selector'):
+                    self._reload_presupuesto_selector()
 
             # Crear ventana independiente con el formulario mejorado
             parts_window = AppPartsV2(
