@@ -6,6 +6,7 @@ from tkinter import ttk, font as tkfont
 from script.modulo_db import get_schemas_db, project_directory_db
 from script.db_connection import get_project_connection
 import os
+import json
 
 # Obtener rutas
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -198,6 +199,64 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.back_button.grid(row=8, padx=30, pady=(15, 15), sticky="nsew")
 
+    def _get_config_path(self):
+        """Retorna la ruta del archivo de configuración de columnas"""
+        config_dir = os.path.join(parent_path, ".config")
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+        return os.path.join(config_dir, f"columns_config_{self.schema}.json")
+
+    def _save_column_config(self, section, columns_dict):
+        """
+        Guarda la configuración de columnas visibles
+        section: 'resumen' o 'listado'
+        columns_dict: diccionario con la configuración de columnas
+        """
+        try:
+            config_path = self._get_config_path()
+
+            # Leer configuración existente o crear nueva
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+
+            # Guardar solo el estado de visibilidad de cada columna
+            config[section] = {
+                col_name: col_info["visible"]
+                for col_name, col_info in columns_dict.items()
+            }
+
+            # Escribir archivo
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+
+        except Exception as e:
+            print(f"Error guardando configuración de columnas: {e}")
+
+    def _load_column_config(self, section, columns_dict):
+        """
+        Carga la configuración de columnas visibles
+        section: 'resumen' o 'listado'
+        columns_dict: diccionario con la configuración de columnas (se modifica in-place)
+        """
+        try:
+            config_path = self._get_config_path()
+
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+                if section in config:
+                    # Aplicar configuración guardada
+                    for col_name, visible in config[section].items():
+                        if col_name in columns_dict:
+                            columns_dict[col_name]["visible"] = visible
+
+        except Exception as e:
+            print(f"Error cargando configuración de columnas: {e}")
+
     def select_frame_by_name(self, name):
         """Cambia entre frames/pestañas"""
         # Actualizar colores de botones
@@ -281,6 +340,9 @@ class AppPartsManager(customtkinter.CTk):
             "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
             "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
         }
+
+        # Cargar configuración guardada de columnas visibles
+        self._load_column_config("resumen", self.resumen_columns)
 
         # Título
         title = customtkinter.CTkLabel(
@@ -518,6 +580,9 @@ class AppPartsManager(customtkinter.CTk):
             # Actualizar visibilidad
             for col_name, var in checkboxes.items():
                 self.resumen_columns[col_name]["visible"] = var.get()
+
+            # Guardar configuración
+            self._save_column_config("resumen", self.resumen_columns)
 
             # Reconstruir tabla
             self._rebuild_resumen_tree()
