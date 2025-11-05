@@ -243,11 +243,23 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
         return new_id, codigo
 
 
-def list_partes(user: str, password: str, schema: str, limit: int = 200):
+def list_partes(user: str, password: str, schema: str, limit: int = 200, offset: int = 0):
     """
     Devuelve una lista de dicts con los partes más recientes.
-    Campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
-    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 200)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Lista de dicts con campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente.
+        ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -264,8 +276,8 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
             ORDER BY p.id DESC
-            LIMIT %s
-        """, (limit,))
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
         rows = cur.fetchall()
         cur.close()
 
@@ -273,14 +285,28 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         return [dict(zip(cols, r)) for r in rows]
 
 
-def get_parts_list(user, password, schema, limit=100):
+def get_parts_list(user, password, schema, limit=100, offset=0):
     """
     Devuelve lista de partes con TODOS los campos disponibles.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 100)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Lista de dicts con todos los campos del parte
+
     Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
              descripcion, presupuesto, certificado, estado, created_at, municipio,
              titulo, descripcion_corta, descripcion_larga, fecha_inicio, fecha_fin,
              localizacion, comarca, provincia, latitud, longitud, trabajadores,
              observaciones, finalizada
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente en listados grandes.
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -354,8 +380,8 @@ def get_parts_list(user, password, schema, limit=100):
                      p.localizacion, co.{comarca_col}, pr.{provincia_col}, p.latitud, p.longitud,
                      p.trabajadores, p.observaciones, p.finalizada
             ORDER BY p.id DESC
-            LIMIT %s
-        """, (limit,))
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
 
         rows = cur.fetchall()
         cur.close()
@@ -377,9 +403,23 @@ def delete_parte(user: str, password: str, schema: str, parte_id: int):
         return str(e)
 
 
-def get_partes_resumen(user: str, password: str, schema: str):
+def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000, offset: int = 0):
     """
     Devuelve lista de partes con TODAS las columnas de tbl_partes + totales calculados.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 1000)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Tuplas con todos los campos del resumen
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente.
+
     Usa JOIN directo con dimensiones para obtener descripciones.
     Devuelve: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
               presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
@@ -492,9 +532,9 @@ def get_partes_resumen(user: str, password: str, schema: str):
         if 'observaciones' in columns:
             group_by += ", p.observaciones"
 
-        # Ejecutar query completa
-        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC"
-        cur.execute(full_query)
+        # Ejecutar query completa con paginación
+        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC LIMIT %s OFFSET %s"
+        cur.execute(full_query, (limit, offset))
         rows = cur.fetchall()
 
         cur.close()
