@@ -605,15 +605,40 @@ class AppPartsManager(customtkinter.CTk):
         try:
             from interface.parts_interfaz_v2_fixed import AppPartsV2
 
-            # Crear ventana independiente con el formulario mejorado
-            parts_window = AppPartsV2(user=self.user, password=self.password, default_schema=self.schema)
+            # Callback para cuando se crea un parte nuevo
+            def on_parte_created(parte_id):
+                # Guardar el ID del parte seleccionado
+                self.selected_parte_id = parte_id
 
-            # Configurar para que recargue la lista cuando se cierre
-            def on_closing():
-                parts_window.destroy()
+                # Recargar el resumen
                 self._reload_resumen()
 
-            parts_window.protocol("WM_DELETE_WINDOW", on_closing)
+                # Cambiar a la pestaña de "Partes" (que contiene los subtabs)
+                self.select_frame_by_name("partes")
+
+                # Recargar el selector de partes
+                self._reload_partes_selector()
+
+                # Seleccionar el nuevo parte
+                from script.modulo_db import get_partes_resumen
+                partes_data = get_partes_resumen(self.user, self.password, self.schema)
+                for row in partes_data:
+                    if row[0] == parte_id:  # row[0] es el ID
+                        parte_text = f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+                        self._set_selected_parte(parte_text)
+                        break
+
+                # Cargar las pestañas del parte y cambiar a Presupuesto
+                self._load_parte_tabs()
+                self.partes_subtabs.set("💰 Presupuesto")
+
+            # Crear ventana independiente con el formulario mejorado
+            parts_window = AppPartsV2(
+                user=self.user,
+                password=self.password,
+                default_schema=self.schema,
+                on_parte_created=on_parte_created
+            )
 
             # Hacer que la ventana aparezca al frente
             parts_window.lift()
