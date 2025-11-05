@@ -70,8 +70,14 @@ Commit 1: 46cdc98 - "fix: Corregir tests con estructura real de BD cert_dev"
 Commit 2: 5329d17 - "docs: Agregar guía de siguientes pasos"
          (Agregó documentación y scripts de detección)
 
-Commit 3: b806e64 - "fix: Corregir columnas de tbl_pres_precios en tests" ⭐ NUEVO
+Commit 3: b806e64 - "fix: Corregir columnas de tbl_pres_precios en tests"
          (Corrigió: precio_unit→coste, descripcion→resumen)
+
+Commit 4: 3acf0b3 - "docs: Actualizar guía con corrección de columnas"
+         (Documentación actualizada)
+
+Commit 5: 54feb6c - "fix: Corregir formato de filtros en test_flujo_completo" ⭐ NUEVO
+         (Filtros debe ser lista directa, no dict con clave 'filtros')
 
 Push: ✅ Exitoso a origin/claude/review-pull-request-011CUqVesYVLqb4uEzcP1DqY
 ```
