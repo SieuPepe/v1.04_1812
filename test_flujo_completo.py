@@ -151,7 +151,7 @@ def paso_3_agregar_presupuesto():
             cursor = conn.cursor()
 
             # Obtener 3 precios del catálogo
-            cursor.execute(f"SELECT id, descripcion, precio_unit FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
+            cursor.execute(f"SELECT id, resumen, coste FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
             precios = cursor.fetchall()
 
             if not precios:
@@ -161,9 +161,9 @@ def paso_3_agregar_presupuesto():
 
             # Agregar líneas al presupuesto
             for precio in precios:
-                precio_id, desc, precio_unit = precio
+                precio_id, desc, coste = precio
                 cantidad = 10.0
-                precio_unit = float(precio_unit if precio_unit else 100.0)
+                precio_unit = float(coste if coste else 100.0)
 
                 cursor.execute(f"""
                     INSERT INTO {SCHEMA}.tbl_part_presupuesto

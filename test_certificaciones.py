@@ -60,7 +60,7 @@ def test_01_crear_presupuesto_completo():
             print(f"   ✓ Parte creado: ID={parte_id}")
 
             # Obtener 5 precios del catálogo
-            cursor.execute(f"SELECT id, descripcion, precio_unit FROM {SCHEMA}.tbl_pres_precios LIMIT 5")
+            cursor.execute(f"SELECT id, resumen, coste FROM {SCHEMA}.tbl_pres_precios LIMIT 5")
             precios = cursor.fetchall()
 
             if not precios:
@@ -70,9 +70,9 @@ def test_01_crear_presupuesto_completo():
 
             # Crear líneas de presupuesto
             for precio in precios:
-                precio_id, desc, precio_unit = precio
+                precio_id, desc, coste = precio
                 cantidad = 20.0
-                precio_unit = float(precio_unit if precio_unit else 100.0)
+                precio_unit = float(coste if coste else 100.0)
 
                 cursor.execute(f"""
                     INSERT INTO {SCHEMA}.tbl_part_presupuesto

@@ -76,7 +76,7 @@ def test_02_agregar_conceptos():
             cursor = conn.cursor()
 
             # Obtener 3 precios del catálogo
-            cursor.execute(f"SELECT id, codigo, descripcion, precio_unit, unidad FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
+            cursor.execute(f"SELECT id, codigo, resumen, coste FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
             precios = cursor.fetchall()
 
             if not precios:
@@ -86,9 +86,9 @@ def test_02_agregar_conceptos():
 
             # Agregar cada precio al presupuesto del parte
             for precio in precios:
-                precio_id, codigo, desc, precio_unit, unidad = precio
+                precio_id, codigo, desc, coste = precio
                 cantidad = 10.0
-                precio_unit = float(precio_unit if precio_unit else 100.0)
+                precio_unit = float(coste if coste else 100.0)
 
                 cursor.execute(f"""
                     INSERT INTO {SCHEMA}.tbl_part_presupuesto
