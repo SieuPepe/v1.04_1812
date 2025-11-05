@@ -10,6 +10,11 @@ Valida:
 - Eliminar presupuesto
 
 Ejecutar: python test_presupuestos.py
+
+ACTUALIZADO: Adaptado a la estructura real de cert_dev
+- Tabla: tbl_part_presupuesto (no tbl_presupuesto)
+- Columnas: id, parte_id, precio_id, cantidad, precio_unit, created_at
+- Catálogo: tbl_pres_precios
 """
 
 import os
@@ -22,17 +27,17 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Configuración
 USER = os.getenv('DB_USER', 'root')
 PASSWORD = os.getenv('DB_PASSWORD', 'TU_PASSWORD_AQUI')  # ⚠️ CAMBIAR
-SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'proyecto_tipo')  # ⚠️ CAMBIAR
+SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'cert_dev')  # ⚠️ CAMBIAR
 
 try:
-    from script.db_connection import get_project_connection, get_manager_connection
+    from script.db_connection import get_project_connection
 except ImportError as e:
     print(f"❌ ERROR: {e}")
     sys.exit(1)
 
 # Variables globales
 parte_id = None
-presupuesto_id = None
+presupuesto_items = []
 
 def test_01_crear_parte_base():
     """Crear parte para asociar presupuesto"""
@@ -59,67 +64,46 @@ def test_01_crear_parte_base():
         print(f"❌ Error: {e}")
         return False
 
-def test_02_crear_presupuesto():
-    """Crear presupuesto vinculado al parte"""
-    global presupuesto_id
+def test_02_agregar_conceptos():
+    """Agregar conceptos del catálogo al presupuesto del parte"""
+    global presupuesto_items
     print("\n" + "=" * 70)
-    print("TEST 2: Crear presupuesto")
-    print("=" * 70)
-
-    try:
-        with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
-            cursor = conn.cursor()
-            cursor.execute(f"""
-                INSERT INTO {SCHEMA}.tbl_presupuesto
-                (parte_id, codigo, descripcion, fecha_creacion, estado)
-                VALUES ({parte_id}, 'PRES-TEST-001', 'Presupuesto de prueba', CURDATE(), 'Pendiente')
-            """)
-            presupuesto_id = cursor.lastrowid
-            conn.commit()
-            cursor.close()
-
-        print(f"✅ Presupuesto creado: ID={presupuesto_id}")
-        return True
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        return False
-
-def test_03_agregar_conceptos():
-    """Agregar conceptos del catálogo al presupuesto"""
-    print("\n" + "=" * 70)
-    print("TEST 3: Agregar conceptos del catálogo")
+    print("TEST 2: Agregar conceptos del catálogo")
     print("=" * 70)
 
     try:
         with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
             cursor = conn.cursor()
 
-            # Obtener 3 conceptos del catálogo
-            cursor.execute("SELECT id, codigo, descripcion, precio_unitario, unidad FROM manager.tbl_catalogo LIMIT 3")
-            conceptos = cursor.fetchall()
+            # Obtener 3 precios del catálogo
+            cursor.execute(f"SELECT id, codigo, descripcion, precio_unit, unidad FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
+            precios = cursor.fetchall()
 
-            if not conceptos:
-                print("⚠️  No hay conceptos en el catálogo")
+            if not precios:
+                print("⚠️  No hay precios en el catálogo tbl_pres_precios")
                 cursor.close()
                 return False
 
-            # Agregar cada concepto
-            for concepto in conceptos:
-                cat_id, codigo, desc, precio, unidad = concepto
+            # Agregar cada precio al presupuesto del parte
+            for precio in precios:
+                precio_id, codigo, desc, precio_unit, unidad = precio
                 cantidad = 10.0
-                precio = float(precio if precio else 100.0)
-                importe = cantidad * precio
+                precio_unit = float(precio_unit if precio_unit else 100.0)
 
                 cursor.execute(f"""
-                    INSERT INTO {SCHEMA}.tbl_pres_precios
-                    (presupuesto_id, catalogo_id, descripcion, cantidad, precio_unitario, unidad, importe)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """, (presupuesto_id, cat_id, desc, cantidad, precio, unidad or 'ud', importe))
+                    INSERT INTO {SCHEMA}.tbl_part_presupuesto
+                    (parte_id, precio_id, cantidad, precio_unit)
+                    VALUES (%s, %s, %s, %s)
+                """, (parte_id, precio_id, cantidad, precio_unit))
+
+                presupuesto_items.append(cursor.lastrowid)
 
             conn.commit()
             cursor.close()
 
-        print(f"✅ {len(conceptos)} conceptos agregados")
+        print(f"✅ {len(precios)} conceptos agregados al presupuesto")
+        for precio in precios:
+            print(f"   - {precio[1]}: {precio[2][:40]}")
         return True
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -127,19 +111,19 @@ def test_03_agregar_conceptos():
         traceback.print_exc()
         return False
 
-def test_04_calcular_totales():
+def test_03_calcular_totales():
     """Calcular y verificar totales del presupuesto"""
     print("\n" + "=" * 70)
-    print("TEST 4: Calcular totales")
+    print("TEST 3: Calcular totales")
     print("=" * 70)
 
     try:
         with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
             cursor = conn.cursor()
             cursor.execute(f"""
-                SELECT COUNT(*), SUM(importe)
-                FROM {SCHEMA}.tbl_pres_precios
-                WHERE presupuesto_id = {presupuesto_id}
+                SELECT COUNT(*), SUM(cantidad * precio_unit)
+                FROM {SCHEMA}.tbl_part_presupuesto
+                WHERE parte_id = {parte_id}
             """)
             lineas, total = cursor.fetchone()
             cursor.close()
@@ -150,10 +134,10 @@ def test_04_calcular_totales():
         print(f"❌ Error: {e}")
         return False
 
-def test_05_modificar_cantidades():
+def test_04_modificar_cantidades():
     """Modificar cantidades y recalcular"""
     print("\n" + "=" * 70)
-    print("TEST 5: Modificar cantidades")
+    print("TEST 4: Modificar cantidades")
     print("=" * 70)
 
     try:
@@ -162,9 +146,9 @@ def test_05_modificar_cantidades():
 
             # Obtener primera línea
             cursor.execute(f"""
-                SELECT id, cantidad, precio_unitario
-                FROM {SCHEMA}.tbl_pres_precios
-                WHERE presupuesto_id = {presupuesto_id}
+                SELECT id, cantidad, precio_unit
+                FROM {SCHEMA}.tbl_part_presupuesto
+                WHERE parte_id = {parte_id}
                 LIMIT 1
             """)
             linea = cursor.fetchone()
@@ -174,14 +158,13 @@ def test_05_modificar_cantidades():
                 cursor.close()
                 return False
 
-            linea_id, cant_ant, precio = linea
+            linea_id, cant_ant, precio_unit = linea
             nueva_cant = 25.0
-            nuevo_importe = nueva_cant * float(precio)
 
             # Actualizar
             cursor.execute(f"""
-                UPDATE {SCHEMA}.tbl_pres_precios
-                SET cantidad = {nueva_cant}, importe = {nuevo_importe}
+                UPDATE {SCHEMA}.tbl_part_presupuesto
+                SET cantidad = {nueva_cant}
                 WHERE id = {linea_id}
             """)
             conn.commit()
@@ -191,6 +174,38 @@ def test_05_modificar_cantidades():
         return True
     except Exception as e:
         print(f"❌ Error: {e}")
+        return False
+
+def test_05_verificar_vista():
+    """Verificar vista vw_part_presupuesto"""
+    print("\n" + "=" * 70)
+    print("TEST 5: Verificar vista vw_part_presupuesto")
+    print("=" * 70)
+
+    try:
+        with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
+            cursor = conn.cursor()
+
+            # Verificar que la vista existe y devuelve datos
+            cursor.execute(f"""
+                SELECT COUNT(*)
+                FROM {SCHEMA}.vw_part_presupuesto
+                WHERE parte_id = {parte_id}
+            """)
+            count = cursor.fetchone()[0]
+            cursor.close()
+
+        if count > 0:
+            print(f"✅ Vista funciona correctamente: {count} registros")
+            return True
+        else:
+            print(f"⚠️  Vista no devolvió registros")
+            return False
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def test_06_limpiar():
@@ -204,16 +219,15 @@ def test_06_limpiar():
             cursor = conn.cursor()
 
             # Eliminar líneas de presupuesto
-            if presupuesto_id:
-                cursor.execute(f"DELETE FROM {SCHEMA}.tbl_pres_precios WHERE presupuesto_id = {presupuesto_id}")
-
-            # Eliminar presupuesto
-            if presupuesto_id:
-                cursor.execute(f"DELETE FROM {SCHEMA}.tbl_presupuesto WHERE id = {presupuesto_id}")
+            if parte_id:
+                cursor.execute(f"DELETE FROM {SCHEMA}.tbl_part_presupuesto WHERE parte_id = {parte_id}")
+                deleted = cursor.rowcount
+                print(f"   - Eliminadas {deleted} líneas de presupuesto")
 
             # Eliminar parte
             if parte_id:
                 cursor.execute(f"DELETE FROM {SCHEMA}.tbl_partes WHERE id = {parte_id}")
+                print(f"   - Eliminado parte ID {parte_id}")
 
             conn.commit()
             cursor.close()
@@ -229,6 +243,8 @@ def main():
     print("\n" + "=" * 70)
     print(" TEST DE MÓDULO DE PRESUPUESTOS")
     print("=" * 70)
+    print(f"\nEsquema: {SCHEMA}")
+    print(f"Usuario: {USER}")
 
     if PASSWORD == 'TU_PASSWORD_AQUI':
         print("❌ ERROR: Configurar PASSWORD en la sección CONFIGURACIÓN")
@@ -236,10 +252,10 @@ def main():
 
     tests = [
         ("Crear parte base", test_01_crear_parte_base),
-        ("Crear presupuesto", test_02_crear_presupuesto),
-        ("Agregar conceptos", test_03_agregar_conceptos),
-        ("Calcular totales", test_04_calcular_totales),
-        ("Modificar cantidades", test_05_modificar_cantidades),
+        ("Agregar conceptos", test_02_agregar_conceptos),
+        ("Calcular totales", test_03_calcular_totales),
+        ("Modificar cantidades", test_04_modificar_cantidades),
+        ("Verificar vista", test_05_verificar_vista),
         ("Limpiar datos", test_06_limpiar),
     ]
 
@@ -269,6 +285,13 @@ def main():
     for nombre, resultado in resultados:
         print(f"{'✅' if resultado else '❌'} {nombre}")
     print(f"\nResultado: {passed}/{total} tests pasados ({(passed/total)*100:.1f}%)")
+
+    if passed == total:
+        print("\n🎉 ¡TODOS LOS TESTS PASARON!")
+        print("   El módulo de presupuestos funciona correctamente")
+    else:
+        print("\n⚠️  ALGUNOS TESTS FALLARON")
+        print("   Revisar los errores arriba")
 
     return passed == total
 
