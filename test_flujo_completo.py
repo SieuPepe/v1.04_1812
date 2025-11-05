@@ -298,16 +298,13 @@ def paso_7_generar_informe():
 
     try:
         # Filtrar por el código del parte de prueba
-        filtros = {
-            'logica': 'AND',
-            'filtros': [
-                {
-                    'campo': 'codigo',
-                    'operador': 'Igual a',
-                    'valor': TEST_CODIGO
-                }
-            ]
-        }
+        filtros = [
+            {
+                'campo': 'codigo',
+                'operador': 'Igual a',
+                'valor': TEST_CODIGO
+            }
+        ]
 
         query = build_query(
             "Resumen de Partes",
