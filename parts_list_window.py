@@ -4,6 +4,8 @@ from CTkMessagebox import CTkMessagebox
 from script.modulo_db import get_parts_list, get_dim_all, delete_parte
 import pandas as pd
 from datetime import datetime
+import json
+import os
 
 
 class PartsTab(customtkinter.CTkFrame):
@@ -51,9 +53,64 @@ class PartsTab(customtkinter.CTkFrame):
             "finalizada": {"label": "Finalizada", "width": 80, "visible": False, "locked": False},
         }
 
+        # Cargar configuración guardada de columnas visibles
+        self._load_column_config()
+
         self._build_ui()
         self._load_filters()
         self._load_data()
+
+    def _get_config_path(self):
+        """Retorna la ruta del archivo de configuración de columnas"""
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        parent_path = os.path.dirname(current_path)
+        config_dir = os.path.join(parent_path, ".config")
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+        return os.path.join(config_dir, f"columns_config_{self.schema}.json")
+
+    def _save_column_config(self):
+        """Guarda la configuración de columnas visibles"""
+        try:
+            config_path = self._get_config_path()
+
+            # Leer configuración existente o crear nueva
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+
+            # Guardar solo el estado de visibilidad de cada columna
+            config["listado"] = {
+                col_name: col_info["visible"]
+                for col_name, col_info in self.all_columns.items()
+            }
+
+            # Escribir archivo
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+
+        except Exception as e:
+            print(f"Error guardando configuración de columnas: {e}")
+
+    def _load_column_config(self):
+        """Carga la configuración de columnas visibles"""
+        try:
+            config_path = self._get_config_path()
+
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+                if "listado" in config:
+                    # Aplicar configuración guardada
+                    for col_name, visible in config["listado"].items():
+                        if col_name in self.all_columns:
+                            self.all_columns[col_name]["visible"] = visible
+
+        except Exception as e:
+            print(f"Error cargando configuración de columnas: {e}")
 
     def _build_ui(self):
         # Título
@@ -225,6 +282,9 @@ class PartsTab(customtkinter.CTkFrame):
             # Actualizar visibilidad de columnas
             for col_name, var in checkboxes.items():
                 self.all_columns[col_name]["visible"] = var.get()
+
+            # Guardar configuración
+            self._save_column_config()
 
             # Reconstruir tabla
             self._rebuild_table()
