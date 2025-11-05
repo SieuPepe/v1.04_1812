@@ -22,6 +22,9 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
         'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
         'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
         'dim_tipos_rep': ['descripcion','tipo_rep','tipo','nombre','desc','texto','codigo','cod'],
+        'dim_comarcas': ['comarca_nombre','comarca','nombre','desc','descripcion','texto'],
+        'dim_municipios': ['nombre','municipio_nombre','municipio','desc','descripcion','texto'],
+        'dim_provincias': ['nombre','provincia_nombre','provincia','desc','descripcion','texto'],
     }
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -238,11 +241,12 @@ def get_parts_list(user, password, schema, limit=100):
             FROM information_schema.COLUMNS
             WHERE TABLE_SCHEMA = %s
             AND TABLE_NAME = 'dim_comarcas'
-            AND COLUMN_NAME IN ('nombre', 'comarca_nombre', 'comarca', 'descripcion')
+            AND COLUMN_NAME IN ('comarca_nombre', 'nombre', 'comarca', 'descripcion')
+            ORDER BY FIELD(COLUMN_NAME, 'comarca_nombre', 'nombre', 'comarca', 'descripcion')
             LIMIT 1
         """, (schema,))
         col_result = cur.fetchone()
-        comarca_col = col_result[0] if col_result else 'nombre'
+        comarca_col = col_result[0] if col_result else 'comarca_nombre'
 
         cur.execute(f"""
             SELECT COLUMN_NAME
