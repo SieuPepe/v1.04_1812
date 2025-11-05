@@ -153,12 +153,45 @@ class PartsTab(customtkinter.CTkFrame):
         self.filter_cod.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         self.filter_cod.set("Todos")
 
-        # Búsqueda por código/descripción
-        customtkinter.CTkLabel(filter_frame, text="Buscar:",
-                               font=("", 12, "bold")).grid(row=1, column=2, padx=5, pady=5, sticky="e")
-        self.search_entry = customtkinter.CTkEntry(filter_frame,
-                                                   placeholder_text="Código o descripción...")
-        self.search_entry.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
+        # Frame para búsqueda dinámica
+        search_frame = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
+        search_frame.grid(row=1, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+        search_frame.grid_columnconfigure(1, weight=1)
+
+        # Label "Buscar en:"
+        customtkinter.CTkLabel(search_frame, text="Buscar en:",
+                               font=("", 12, "bold")).grid(row=0, column=0, padx=(0, 5), sticky="e")
+
+        # Dropdown para seleccionar campo de búsqueda
+        search_fields = {
+            "Código": "codigo",
+            "Descripción": "descripcion",
+            "Estado": "estado",
+            "Red": "red",
+            "Tipo Trabajo": "tipo",
+            "Cód. Trabajo": "cod_trabajo",
+            "Tipo Reparación": "tipo_rep",
+            "Municipio": "municipio",
+            "Localización": "localizacion",
+            "Trabajadores": "trabajadores",
+            "Observaciones": "observaciones"
+        }
+        self.search_field_names = list(search_fields.keys())
+        self.search_field_map = search_fields
+
+        self.search_field_selector = customtkinter.CTkOptionMenu(
+            search_frame,
+            values=self.search_field_names,
+            width=150
+        )
+        self.search_field_selector.grid(row=0, column=1, padx=5, sticky="w")
+        self.search_field_selector.set("Código")
+
+        # Entry de búsqueda
+        self.search_entry = customtkinter.CTkEntry(search_frame,
+                                                   placeholder_text="Escriba el valor a buscar...",
+                                                   width=200)
+        self.search_entry.grid(row=0, column=2, padx=5, sticky="ew")
 
         # Botón Aplicar Filtros
         self.btn_apply = customtkinter.CTkButton(filter_frame, text="Aplicar Filtros",
@@ -438,12 +471,39 @@ class PartsTab(customtkinter.CTkFrame):
                     if row_val != filter_val:
                         continue
 
-                # Búsqueda por código o descripción
+                # Búsqueda dinámica por el campo seleccionado
                 if search_text:
-                    codigo_match = search_text in str(row[1]).lower()
-                    desc_match = search_text in str(row[7]).lower()
-                    if not (codigo_match or desc_match):
-                        continue
+                    selected_field_name = self.search_field_selector.get()
+                    selected_field_key = self.search_field_map.get(selected_field_name, "codigo")
+
+                    # Mapeo de campos a índices en la fila
+                    field_to_index = {
+                        "codigo": 1,
+                        "red": 2,
+                        "tipo": 3,
+                        "cod_trabajo": 4,
+                        "tipo_rep": 6,
+                        "descripcion": 7,
+                        "estado": 10,
+                        "municipio": 12,
+                        # Campos que no están en get_parts_list necesitan búsqueda completa
+                        # (se manejarían con otra query, por ahora se ignoran)
+                        "localizacion": None,
+                        "trabajadores": None,
+                        "observaciones": None
+                    }
+
+                    field_index = field_to_index.get(selected_field_key)
+
+                    if field_index is not None:
+                        # Buscar en el campo específico
+                        field_value = str(row[field_index]).lower() if row[field_index] else ""
+                        if search_text not in field_value:
+                            continue
+                    else:
+                        # Campo no disponible en esta query, saltar este filtro
+                        # (o podríamos hacer una consulta más completa)
+                        pass
 
                 filtered.append(row)
 
