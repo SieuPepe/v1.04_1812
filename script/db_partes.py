@@ -1015,14 +1015,13 @@ def cert_parte_completo(user: str, password: str, schema: str, parte_id: int, fe
                 # Insertar certificación
                 cur.execute("""
                     INSERT INTO tbl_part_certificacion
-                    (parte_id, precio_id, cantidad_cert, precio_unit, coste_cert, fecha_certificacion, certificada)
-                    VALUES (%s, %s, %s, %s, %s, %s, 1)
+                    (parte_id, precio_id, cantidad_cert, precio_unit, fecha_certificacion, certificada)
+                    VALUES (%s, %s, %s, %s, %s, 1)
                 """, (
                     parte_id,
                     precio_id,
                     cantidad_pendiente,
                     precio_unit,
-                    cantidad_pendiente * precio_unit,
                     fecha_certificacion
                 ))
 
