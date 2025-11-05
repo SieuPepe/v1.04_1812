@@ -372,9 +372,10 @@ def get_partes_resumen(user: str, password: str, schema: str):
         columns = [row[0] for row in cur.fetchall()]
 
         # Detectar columnas de texto en tablas dimensionales
+        # Nota: comarca y provincia se obtienen a través del municipio, no directamente del parte
         municipio_col = _guess_text_column(user, password, schema, 'dim_municipios') if 'municipio_id' in columns else None
-        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'comarca_id' in columns else None
-        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'provincia_id' in columns else None
+        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'municipio_id' in columns else None
+        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'municipio_id' in columns else None
 
         # Construir SELECT dinámicamente con todas las columnas disponibles
         query_parts = []
@@ -401,14 +402,14 @@ def get_partes_resumen(user: str, password: str, schema: str):
         else:
             query_parts.append("'' AS municipio")
 
-        # Usar columna detectada dinámicamente para comarca
-        if 'comarca_id' in columns and comarca_col:
+        # Usar columna detectada dinámicamente para comarca (a través del municipio)
+        if 'municipio_id' in columns and comarca_col:
             query_parts.append(f"COALESCE(cm.{comarca_col}, '') AS comarca")
         else:
             query_parts.append("'' AS comarca")
 
-        # Usar columna detectada dinámicamente para provincia
-        if 'provincia_id' in columns and provincia_col:
+        # Usar columna detectada dinámicamente para provincia (a través del municipio)
+        if 'municipio_id' in columns and provincia_col:
             query_parts.append(f"COALESCE(pr.{provincia_col}, '') AS provincia")
         else:
             query_parts.append("'' AS provincia")
@@ -429,10 +430,10 @@ def get_partes_resumen(user: str, password: str, schema: str):
         from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
         if 'municipio_id' in columns and municipio_col:
             from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
-        if 'comarca_id' in columns and comarca_col:
-            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = p.comarca_id"
-        if 'provincia_id' in columns and provincia_col:
-            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = p.provincia_id"
+        if 'municipio_id' in columns and comarca_col:
+            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = m.comarca_id"
+        if 'municipio_id' in columns and provincia_col:
+            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = m.provincia_id"
 
         # GROUP BY
         group_by = "GROUP BY p.id, p.codigo, p.descripcion, p.estado"
@@ -457,9 +458,9 @@ def get_partes_resumen(user: str, password: str, schema: str):
             group_by += ", p.localizacion"
         if 'municipio_id' in columns and municipio_col:
             group_by += f", m.{municipio_col}"
-        if 'comarca_id' in columns and comarca_col:
+        if 'municipio_id' in columns and comarca_col:
             group_by += f", cm.{comarca_col}"
-        if 'provincia_id' in columns and provincia_col:
+        if 'municipio_id' in columns and provincia_col:
             group_by += f", pr.{provincia_col}"
         if 'latitud' in columns:
             group_by += ", p.latitud"
