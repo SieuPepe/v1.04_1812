@@ -54,24 +54,25 @@ def _detect_text_column_cached(user: str, password: str, schema: str, table: str
 def _guess_text_column(user: str, password: str, schema: str, table: str):
     """
     Intenta detectar automáticamente la columna 'de texto' para mostrar en menús.
-    Estrategia:
-      1) Preferir nombres que contengan alguna keyword según tabla:
-         - dim_ot:         ['ot','nombre','desc','texto','codigo','cod']
-         - dim_red:        ['red','nombre','desc','texto','codigo','cod']
-         - dim_tipo_trabajo: ['tipo','nombre','desc','texto','codigo','cod']
-      2) Si no hay match por nombre, elegir la primera columna tipo VARCHAR/TEXT distinta de 'id'.
-    Devuelve nombre de columna o None si no encuentra.
+    Usa caché cuando hay mapeo definido, o lógica completa para tablas desconocidas.
     """
-    keywords_map = {
-        'dim_ot': ['descripcion','ot','nombre','desc','texto','codigo','cod'],
-        'dim_red': ['descripcion','red','nombre','desc','texto','codigo','cod'],
-        'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
-        'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
-        'dim_tipos_rep': ['descripcion','tipo_rep','tipo','nombre','desc','texto','codigo','cod'],
-        'dim_comarcas': ['comarca_nombre','comarca','nombre','desc','descripcion','texto'],
-        'dim_municipios': ['nombre','municipio_nombre','municipio','desc','descripcion','texto'],
-        'dim_provincias': ['nombre','provincia_nombre','provincia','desc','descripcion','texto'],
+    # Mapeo de candidatos por tabla (orden de preferencia)
+    candidates_map = {
+        'dim_ot': ('descripcion', 'ot', 'nombre', 'codigo'),
+        'dim_red': ('descripcion', 'red', 'nombre', 'codigo'),
+        'dim_tipo_trabajo': ('descripcion', 'tipo', 'nombre', 'codigo'),
+        'dim_codigo_trabajo': ('descripcion', 'cod_trabajo', 'codigo', 'nombre'),
+        'dim_tipos_rep': ('descripcion', 'tipo_rep', 'tipo', 'nombre'),
+        'dim_comarcas': ('comarca_nombre', 'comarca', 'nombre', 'descripcion'),
+        'dim_municipios': ('nombre', 'municipio_nombre', 'municipio', 'descripcion'),
+        'dim_provincias': ('nombre', 'provincia_nombre', 'provincia', 'descripcion'),
     }
+
+    # Si hay mapeo definido, usar función con caché
+    if table in candidates_map:
+        return _detect_text_column_cached(user, password, schema, table, candidates_map[table])
+
+    # Fallback: lógica completa para tablas sin mapeo
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
@@ -80,29 +81,17 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
                 "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s ORDER BY ORDINAL_POSITION",
                 (schema, table)
             )
-            cols = cur.fetchall()  # [(col, type), ...]
+            cols = cur.fetchall()
             cur.close()
     except Exception:
         return None
 
-    # 1) por keywords
-    keys = keywords_map.get(table, ['nombre','desc','texto','codigo','cod'])
-    names = [c[0].lower() for c in cols]
-    for k in keys:
-        for col, dtype in cols:
-            if col.lower() == 'id':
-                continue
-            if k in col.lower():  # match por substring
-                return col
-
-    # 2) primera VARCHAR/TEXT distinta de id
+    # Buscar primera columna VARCHAR/TEXT que no sea 'id'
     for col, dtype in cols:
-        if col.lower() == 'id':
-            continue
-        if dtype and dtype.lower() in ('varchar','text','char','tinytext','mediumtext','longtext'):
+        if col.lower() != 'id' and dtype and dtype.lower() in ('varchar', 'text', 'char', 'tinytext', 'mediumtext', 'longtext'):
             return col
 
-    # 3) fallback: primera que no sea id
+    # Fallback final: primera columna que no sea 'id'
     for col, dtype in cols:
         if col.lower() != 'id':
             return col
