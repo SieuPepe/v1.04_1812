@@ -255,6 +255,19 @@ def get_parts_list(user, password, schema, limit=100):
         col_result = cur.fetchone()
         provincia_col = col_result[0] if col_result else 'nombre'
 
+        # Detectar columna de estado en tbl_partes (puede ser 'estado' o 'id_estado')
+        cur.execute(f"""
+            SELECT COLUMN_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'tbl_partes'
+            AND COLUMN_NAME IN ('id_estado', 'estado')
+            ORDER BY FIELD(COLUMN_NAME, 'id_estado', 'estado')
+            LIMIT 1
+        """, (schema,))
+        col_result = cur.fetchone()
+        estado_col = col_result[0] if col_result else 'estado'
+
         # Query completa con TODOS los campos
         cur.execute(f"""
             SELECT
@@ -295,7 +308,7 @@ def get_parts_list(user, password, schema, limit=100):
             LEFT JOIN dim_provincias     pr ON pr.id = p.provincia_id
             LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
             LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
-            LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
+            LEFT JOIN tbl_parte_estados pe ON pe.id = p.{estado_col}
             GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
                      tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col},
                      p.titulo, p.descripcion_corta, p.descripcion_larga, p.fecha_inicio, p.fecha_fin,
