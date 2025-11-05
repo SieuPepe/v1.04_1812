@@ -636,32 +636,62 @@ class AppPartsManager(customtkinter.CTk):
         selector_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=2)
         selector_frame.grid_columnconfigure(1, weight=1)
 
-        customtkinter.CTkLabel(selector_frame, text="Seleccionar Parte:",
+        customtkinter.CTkLabel(selector_frame, text="Buscar Parte:",
                                font=("", 14, "bold")).grid(row=0, column=0, padx=(0, 10), sticky="e")
 
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
                            for row in partes_data]  # id - codigo | ot | red | descripcion
+            self.partes_list_full = self.partes_list.copy()  # Guardar lista completa
         except:
-            partes_list = ["Sin partes"]
+            self.partes_list = ["Sin partes"]
+            self.partes_list_full = ["Sin partes"]
 
-        self.partes_selector = customtkinter.CTkOptionMenu(
-            selector_frame,
-            values=partes_list if partes_list else ["Sin partes"],
-            command=lambda x: self._load_parte_tabs()
+        # Frame contenedor para entry + dropdown
+        search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
+        search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        search_container.grid_columnconfigure(0, weight=1)
+
+        # Entry de búsqueda
+        self.partes_search_entry = customtkinter.CTkEntry(
+            search_container,
+            placeholder_text="Escriba para buscar parte..."
         )
-        self.partes_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        self.partes_search_entry.grid(row=0, column=0, sticky="ew")
+        self.partes_search_entry.bind('<KeyRelease>', self._filter_partes_list)
+        self.partes_search_entry.bind('<Return>', lambda e: self._select_first_match())
 
-        if partes_list and hasattr(self, 'selected_parte_id'):
-            # Si viene desde Resumen con un parte seleccionado
-            for item in partes_list:
-                if item.startswith(f"{self.selected_parte_id} -"):
-                    self.partes_selector.set(item)
-                    break
-        elif partes_list:
-            self.partes_selector.set(partes_list[0])
+        # Frame flotante para dropdown (inicialmente oculto)
+        self.partes_dropdown_frame = customtkinter.CTkFrame(
+            search_container,
+            fg_color="#2b2b2b",
+            border_width=1,
+            border_color="gray"
+        )
+        self.partes_dropdown_frame.grid_remove()  # Oculto inicialmente
+
+        # Scrollable frame para lista de partes
+        self.partes_listbox_frame = customtkinter.CTkScrollableFrame(
+            self.partes_dropdown_frame,
+            height=200,
+            fg_color="transparent"
+        )
+        self.partes_listbox_frame.pack(fill="both", expand=True)
+
+        # Variable para almacenar el parte seleccionado
+        self.selected_parte_text = None
+
+        # Seleccionar primer parte por defecto
+        if self.partes_list and self.partes_list[0] != "Sin partes":
+            self._set_selected_parte(self.partes_list[0])
+            if hasattr(self, 'selected_parte_id'):
+                # Si viene desde Resumen con un parte seleccionado
+                for item in self.partes_list:
+                    if item.startswith(f"{self.selected_parte_id} -"):
+                        self._set_selected_parte(item)
+                        break
 
         btn_reload = customtkinter.CTkButton(
             selector_frame, text="🔄", width=40,
@@ -688,8 +718,75 @@ class AppPartsManager(customtkinter.CTk):
         # NOTA: No configurar grid para los tabs individuales porque usan pack() para el contenido
 
         # Cargar datos si hay partes
-        if partes_list and partes_list[0] != "Sin partes":
+        if self.partes_list and self.partes_list[0] != "Sin partes":
             self._load_parte_tabs()
+
+    def _filter_partes_list(self, event=None):
+        """Filtra la lista de partes según el texto de búsqueda"""
+        search_text = self.partes_search_entry.get().lower()
+
+        if not search_text:
+            # Si está vacío, ocultar dropdown
+            self.partes_dropdown_frame.grid_remove()
+            return
+
+        # Filtrar partes que contengan el texto de búsqueda
+        filtered = [p for p in self.partes_list_full if search_text in p.lower()]
+
+        # Limpiar listbox
+        for widget in self.partes_listbox_frame.winfo_children():
+            widget.destroy()
+
+        if filtered:
+            # Mostrar dropdown
+            self.partes_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+            # Crear botones para cada resultado (máximo 10)
+            for parte in filtered[:10]:
+                btn = customtkinter.CTkButton(
+                    self.partes_listbox_frame,
+                    text=parte,
+                    anchor="w",
+                    fg_color="transparent",
+                    hover_color="#1f6aa5",
+                    command=lambda p=parte: self._select_parte_from_dropdown(p)
+                )
+                btn.pack(fill="x", padx=2, pady=1)
+
+            # Mostrar contador si hay más resultados
+            if len(filtered) > 10:
+                info_label = customtkinter.CTkLabel(
+                    self.partes_listbox_frame,
+                    text=f"... y {len(filtered) - 10} más. Refine su búsqueda.",
+                    text_color="gray",
+                    font=("", 10)
+                )
+                info_label.pack(pady=5)
+        else:
+            # Ocultar si no hay resultados
+            self.partes_dropdown_frame.grid_remove()
+
+    def _select_parte_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown"""
+        self._set_selected_parte(parte_text)
+        self.partes_dropdown_frame.grid_remove()
+        self._load_parte_tabs()
+
+    def _select_first_match(self):
+        """Selecciona el primer resultado cuando se presiona Enter"""
+        search_text = self.partes_search_entry.get().lower()
+        if search_text:
+            filtered = [p for p in self.partes_list_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_parte(filtered[0])
+                self.partes_dropdown_frame.grid_remove()
+                self._load_parte_tabs()
+
+    def _set_selected_parte(self, parte_text):
+        """Establece el parte seleccionado"""
+        self.selected_parte_text = parte_text
+        self.partes_search_entry.delete(0, 'end')
+        self.partes_search_entry.insert(0, parte_text)
 
     def _reload_partes_selector(self):
         """Recarga el selector de partes"""
@@ -697,23 +794,24 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
                            for row in partes_data]
+            self.partes_list_full = self.partes_list.copy()
 
-            if partes_list:
-                self.partes_selector.configure(values=partes_list)
-                self.partes_selector.set(partes_list[0])
+            if self.partes_list:
+                self._set_selected_parte(self.partes_list[0])
                 self._load_parte_tabs()
             else:
-                self.partes_selector.configure(values=["Sin partes"])
-                self.partes_selector.set("Sin partes")
+                self.partes_list = ["Sin partes"]
+                self.partes_list_full = ["Sin partes"]
+                self.partes_search_entry.delete(0, 'end')
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
 
     def _load_parte_tabs(self):
         """Carga el contenido de las 3 sub-pestañas"""
-        selected = self.partes_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_parte_text if hasattr(self, 'selected_parte_text') else None
+        if not selected or selected == "Sin partes":
             return
 
         try:
