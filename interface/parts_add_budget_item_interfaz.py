@@ -20,6 +20,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.schema = select_data[2]
         self.parte_id = parte_id
         self._after_ids = []  # Lista para guardar IDs de callbacks .after()
+        self.current_items = []  # Almacenar datos de partidas actuales
 
         self.title("Añadir Partida al Presupuesto del Parte")
         self.geometry("900x500")
@@ -52,7 +53,11 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(filter_frame, text="Partida:",
                                font=("", 13, "bold")).grid(row=0, column=2, padx=10, pady=10, sticky="e")
 
-        self.item_option = customtkinter.CTkOptionMenu(filter_frame, values=["Seleccione capítulo y presione Filtrar"])
+        self.item_option = customtkinter.CTkOptionMenu(
+            filter_frame,
+            values=["Seleccione capítulo y presione Filtrar"],
+            command=self._on_item_changed
+        )
         self.item_option.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
 
         # Botón filtrar
@@ -72,11 +77,18 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.cantidad_entry = customtkinter.CTkEntry(self, placeholder_text="0.000", width=250)
         self.cantidad_entry.grid(row=1, column=1, padx=20, pady=15, sticky="w")
 
-        # Precio unitario
+        # Precio unitario (readonly)
         customtkinter.CTkLabel(self, text="Precio Unitario (€):",
                                font=("", 14, "bold")).grid(row=2, column=0, padx=20, pady=15, sticky="e")
 
-        self.precio_entry = customtkinter.CTkEntry(self, placeholder_text="0.00", width=250)
+        self.precio_entry = customtkinter.CTkEntry(
+            self,
+            placeholder_text="0.00",
+            width=250,
+            state="readonly",
+            fg_color="gray20",
+            text_color="gray60"
+        )
         self.precio_entry.grid(row=2, column=1, padx=20, pady=15, sticky="w")
 
         # Info sobre precio del catálogo
@@ -91,7 +103,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         # Info general
         self.info_label = customtkinter.CTkLabel(
             self,
-            text="💡 El precio se toma del catálogo, pero puede modificarlo si es necesario",
+            text="💡 Precio obtenido de la Base de Precios y no puede modificarse",
             font=("", 11),
             text_color="#4CAF50"
         )
@@ -155,6 +167,9 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             print(f"DEBUG - Partidas encontradas: {len(items)}")
 
             if items:
+                # Guardar datos completos de partidas para uso posterior
+                self.current_items = items
+
                 # Crear lista de partidas: "codigo - resumen"
                 item_values = []
                 for item in items:
@@ -170,8 +185,10 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
 
                 # Autocompletar precio del catálogo de la primera partida
                 precio_catalogo = float(items[0][6])  # coste
+                self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
                 self.precio_entry.insert(0, f"{precio_catalogo:.2f}")
+                self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
 
                 self.precio_catalogo_label.configure(
                     text=f"📋 Precio catálogo: {precio_catalogo:.2f}€",
@@ -186,7 +203,9 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             else:
                 self.item_option.configure(values=["Sin partidas en este capítulo"])
                 self.item_option.set("Sin partidas en este capítulo")
+                self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
+                self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
                 self.precio_catalogo_label.configure(text="")
 
                 CTkMessagebox(
@@ -208,6 +227,37 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 message=f"Error cargando partidas:\n\n{str(e)}",
                 icon="cancel"
             )
+
+    def _on_item_changed(self, selected_item):
+        """Actualiza el precio unitario cuando cambia la selección de partida"""
+        try:
+            if not self.current_items:
+                return
+
+            # Extraer código de la partida seleccionada
+            codigo_seleccionado = selected_item.split(" - ")[0].strip()
+
+            # Buscar la partida en los datos actuales
+            for item in self.current_items:
+                codigo = item[1]  # codigo
+                if codigo == codigo_seleccionado:
+                    precio_catalogo = float(item[6])  # coste
+
+                    # Actualizar precio en el entry (readonly)
+                    self.precio_entry.configure(state="normal")
+                    self.precio_entry.delete(0, 'end')
+                    self.precio_entry.insert(0, f"{precio_catalogo:.2f}")
+                    self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
+
+                    # Actualizar label informativo
+                    self.precio_catalogo_label.configure(
+                        text=f"📋 Precio catálogo: {precio_catalogo:.2f}€",
+                        text_color="gray"
+                    )
+                    break
+
+        except Exception as e:
+            print(f"Error al actualizar precio: {e}")
 
     def _save(self):
         """Guarda la partida en el presupuesto del parte"""

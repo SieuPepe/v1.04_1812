@@ -1,6 +1,79 @@
 import mysql.connector
+import logging
+from functools import lru_cache
 from .db_config import get_config
 from .db_connection import get_connection, get_project_connection
+from .db_cache import cached_dimension_query
+
+# Configurar logger para este módulo
+logger = logging.getLogger(__name__)
+
+
+# ==================== FUNCIONES DE UTILIDAD CON CACHÉ ====================
+
+@lru_cache(maxsize=128)
+def _detect_text_column_cached(user: str, password: str, schema: str, table: str, candidates: tuple) -> str:
+    """
+    Detecta la columna de texto preferida para una tabla. Usa caché para evitar queries repetidas.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema
+        table: Nombre de la tabla
+        candidates: Tupla de nombres de columnas candidatas en orden de preferencia
+
+    Returns:
+        Nombre de la columna detectada o la primera candidata como fallback
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            placeholders = ', '.join(['%s'] * len(candidates))
+            field_order = ', '.join([f"'{c}'" for c in candidates])
+
+            query = f"""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = %s
+                AND COLUMN_NAME IN ({placeholders})
+                ORDER BY FIELD(COLUMN_NAME, {field_order})
+                LIMIT 1
+            """
+            cur.execute(query, (schema, table) + candidates)
+            result = cur.fetchone()
+            cur.close()
+            return result[0] if result else candidates[0]
+    except Exception as e:
+        logger.error(f"Error detectando columna para {table}: {e}")
+        return candidates[0]
+
+
+@lru_cache(maxsize=64)
+def _get_table_columns_cached(user: str, password: str, schema: str, table: str) -> tuple:
+    """
+    Obtiene la lista de columnas de una tabla. Usa caché para evitar queries DESCRIBE repetidas.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema
+        table: Nombre de la tabla
+
+    Returns:
+        Tupla de nombres de columnas
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute(f"DESCRIBE {schema}.{table}")
+            columns = tuple([row[0] for row in cur.fetchall()])
+            cur.close()
+            return columns
+    except Exception as e:
+        logger.error(f"Error obteniendo columnas de {table}: {e}")
+        return tuple()
 
 
 # ==================== DIMENSIONES DE CERTIFICACIÓN (OT/RED/TIPO/CÓDIGO) ====================
@@ -8,21 +81,25 @@ from .db_connection import get_connection, get_project_connection
 def _guess_text_column(user: str, password: str, schema: str, table: str):
     """
     Intenta detectar automáticamente la columna 'de texto' para mostrar en menús.
-    Estrategia:
-      1) Preferir nombres que contengan alguna keyword según tabla:
-         - dim_ot:         ['ot','nombre','desc','texto','codigo','cod']
-         - dim_red:        ['red','nombre','desc','texto','codigo','cod']
-         - dim_tipo_trabajo: ['tipo','nombre','desc','texto','codigo','cod']
-      2) Si no hay match por nombre, elegir la primera columna tipo VARCHAR/TEXT distinta de 'id'.
-    Devuelve nombre de columna o None si no encuentra.
+    Usa caché cuando hay mapeo definido, o lógica completa para tablas desconocidas.
     """
-    keywords_map = {
-        'dim_ot': ['descripcion','ot','nombre','desc','texto','codigo','cod'],
-        'dim_red': ['descripcion','red','nombre','desc','texto','codigo','cod'],
-        'dim_tipo_trabajo': ['descripcion','tipo','nombre','desc','texto','codigo','cod'],
-        'dim_codigo_trabajo': ['descripcion','cod_trabajo','codigo','cod','nombre','desc','texto'],
-        'dim_tipos_rep': ['descripcion','tipo_rep','tipo','nombre','desc','texto','codigo','cod'],
+    # Mapeo de candidatos por tabla (orden de preferencia)
+    candidates_map = {
+        'dim_ot': ('descripcion', 'ot', 'nombre', 'codigo'),
+        'dim_red': ('descripcion', 'red', 'nombre', 'codigo'),
+        'dim_tipo_trabajo': ('descripcion', 'tipo', 'nombre', 'codigo'),
+        'dim_codigo_trabajo': ('descripcion', 'cod_trabajo', 'codigo', 'nombre'),
+        'dim_tipos_rep': ('descripcion', 'tipo_rep', 'tipo', 'nombre'),
+        'dim_comarcas': ('comarca_nombre', 'comarca', 'nombre', 'descripcion'),
+        'dim_municipios': ('nombre', 'municipio_nombre', 'municipio', 'descripcion'),
+        'dim_provincias': ('nombre', 'provincia_nombre', 'provincia', 'descripcion'),
     }
+
+    # Si hay mapeo definido, usar función con caché
+    if table in candidates_map:
+        return _detect_text_column_cached(user, password, schema, table, candidates_map[table])
+
+    # Fallback: lógica completa para tablas sin mapeo
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
@@ -31,29 +108,17 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
                 "WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s ORDER BY ORDINAL_POSITION",
                 (schema, table)
             )
-            cols = cur.fetchall()  # [(col, type), ...]
+            cols = cur.fetchall()
             cur.close()
     except Exception:
         return None
 
-    # 1) por keywords
-    keys = keywords_map.get(table, ['nombre','desc','texto','codigo','cod'])
-    names = [c[0].lower() for c in cols]
-    for k in keys:
-        for col, dtype in cols:
-            if col.lower() == 'id':
-                continue
-            if k in col.lower():  # match por substring
-                return col
-
-    # 2) primera VARCHAR/TEXT distinta de id
+    # Buscar primera columna VARCHAR/TEXT que no sea 'id'
     for col, dtype in cols:
-        if col.lower() == 'id':
-            continue
-        if dtype and dtype.lower() in ('varchar','text','char','tinytext','mediumtext','longtext'):
+        if col.lower() != 'id' and dtype and dtype.lower() in ('varchar', 'text', 'char', 'tinytext', 'mediumtext', 'longtext'):
             return col
 
-    # 3) fallback: primera que no sea id
+    # Fallback final: primera columna que no sea 'id'
     for col, dtype in cols:
         if col.lower() != 'id':
             return col
@@ -78,7 +143,7 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
                 rows.append(f"{rid} - {txt}")
             cur.close()
     except Exception as e:
-        print(f"⚠️  Error al cargar {table} desde {schema}: {str(e)}")
+        logger.error(f"Error al cargar {table} desde {schema}: {str(e)}")
     return rows
 
 
@@ -178,11 +243,23 @@ def add_parte_with_code(user, password, schema, ot_id, red_id, tipo_trabajo_id, 
         return new_id, codigo
 
 
-def list_partes(user: str, password: str, schema: str, limit: int = 200):
+def list_partes(user: str, password: str, schema: str, limit: int = 200, offset: int = 0):
     """
     Devuelve una lista de dicts con los partes más recientes.
-    Campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
-    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 200)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Lista de dicts con campos: id, codigo, red, tipo, cod_trabajo, descripcion, created_at
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente.
+        ot_id fue eliminado, el código está en el campo 'codigo'
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -199,8 +276,8 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
             LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
             LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
             ORDER BY p.id DESC
-            LIMIT %s
-        """, (limit,))
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
         rows = cur.fetchall()
         cur.close()
 
@@ -208,94 +285,103 @@ def list_partes(user: str, password: str, schema: str, limit: int = 200):
         return [dict(zip(cols, r)) for r in rows]
 
 
-def get_parts_list(user, password, schema, limit=100):
+def get_parts_list(user, password, schema, limit=100, offset=0):
     """
-    Devuelve lista de partes con todos los campos disponibles.
+    Devuelve lista de partes con TODOS los campos disponibles.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 100)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Lista de dicts con todos los campos del parte
+
     Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
-             descripcion, presupuesto, certificado, estado, creado_en, municipio
-    Nota: ot_id fue eliminado, el código está en el campo 'codigo'
+             descripcion, presupuesto, certificado, estado, created_at, municipio,
+             titulo, descripcion_corta, descripcion_larga, fecha_inicio, fecha_fin,
+             localizacion, comarca, provincia, latitud, longitud, trabajadores,
+             observaciones, finalizada
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente en listados grandes.
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Detectar columna de nombre del municipio (puede variar entre esquemas)
+        # Detectar columnas de texto en tablas dimensionales (con caché)
+        municipio_col = _detect_text_column_cached(
+            user, password, schema, 'dim_municipios',
+            ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
+        )
+        comarca_col = _detect_text_column_cached(
+            user, password, schema, 'dim_comarcas',
+            ('comarca_nombre', 'nombre', 'comarca', 'descripcion')
+        )
+        provincia_col = _detect_text_column_cached(
+            user, password, schema, 'dim_provincias',
+            ('nombre', 'provincia_nombre', 'provincia', 'descripcion')
+        )
+        estado_col = _detect_text_column_cached(
+            user, password, schema, 'tbl_partes',
+            ('id_estado', 'estado')
+        )
+        cod_trabajo_col = _detect_text_column_cached(
+            user, password, schema, 'dim_codigo_trabajo',
+            ('descripcion', 'cod_trabajo', 'codigo', 'cod', 'nombre')
+        )
+
+        # Query completa con TODOS los campos
         cur.execute(f"""
-            SELECT COLUMN_NAME
-            FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = %s
-            AND TABLE_NAME = 'dim_municipios'
-            AND COLUMN_NAME IN ('nombre', 'municipio_nombre', 'municipio', 'descripcion')
-            ORDER BY FIELD(COLUMN_NAME, 'nombre', 'municipio_nombre', 'municipio', 'descripcion')
-            LIMIT 1
-        """, (schema,))
-        col_result = cur.fetchone()
-        municipio_col = col_result[0] if col_result else 'nombre'
-
-        # Verificar si existe la vista vw_partes_resumen
-        cur.execute("""
-            SELECT COUNT(*) FROM information_schema.VIEWS
-            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'vw_partes_resumen'
-        """, (schema,))
-        tiene_vista = cur.fetchone()[0] > 0
-
-        if tiene_vista:
-            # Usar la vista que ya tiene los totales calculados
-            cur.execute(f"""
-                SELECT
-                    vpr.id,
-                    vpr.codigo,
-                    vpr.red,
-                    vpr.tipo,
-                    vpr.cod_trabajo,
-                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
-                    COALESCE(tr.descripcion, '')         AS tipo_rep,
-                    vpr.descripcion,
-                    COALESCE(vpr.total_presupuesto, 0)   AS presupuesto,
-                    COALESCE(vpr.total_certificado, 0)   AS certificado,
-                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    COALESCE(vpr.creado_en, NOW())       AS creado_en,
-                    COALESCE(m.{municipio_col}, '')      AS municipio
-                FROM vw_partes_resumen vpr
-                LEFT JOIN tbl_partes p ON p.id = vpr.id
-                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-                LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id
-                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
-                LEFT JOIN dim_municipios m ON m.id = p.municipio_id
-                ORDER BY vpr.id DESC
-                LIMIT %s
-            """, (limit,))
-        else:
-            # Fallback sin vista: calcular manualmente - USAR DESCRIPCIONES
-            cur.execute(f"""
-                SELECT
-                    p.id,
-                    p.codigo,
-                    COALESCE(rd.descripcion, '')         AS red,
-                    COALESCE(tt.descripcion, '')         AS tipo,
-                    COALESCE(ct.codigo, '')              AS cod_trabajo,
-                    COALESCE(ct.descripcion, '')         AS cod_trabajo_desc,
-                    COALESCE(tr.descripcion, '')         AS tipo_rep,
-                    p.descripcion,
-                    COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
-                    COALESCE(SUM(CASE WHEN pc.certificada = 1
-                                 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
-                    COALESCE(pe.nombre, 'Pendiente')     AS estado,
-                    p.creado_en,
-                    COALESCE(m.{municipio_col}, '')      AS municipio
-                FROM tbl_partes p
-                LEFT JOIN dim_red            rd ON rd.id = p.red_id
-                LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
-                LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
-                LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
-                LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
-                LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
-                LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
-                LEFT JOIN tbl_parte_estados pe ON pe.id = p.id_estado OR pe.id = p.estado
-                GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.codigo, ct.descripcion,
-                         tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col}
-                ORDER BY p.id DESC
-                LIMIT %s
-            """, (limit,))
+            SELECT
+                p.id,
+                p.codigo,
+                COALESCE(rd.descripcion, '')         AS red,
+                COALESCE(tt.descripcion, '')         AS tipo,
+                COALESCE(ct.{cod_trabajo_col}, '')   AS cod_trabajo,
+                COALESCE(ct.{cod_trabajo_col}, '')   AS cod_trabajo_desc,
+                COALESCE(tr.descripcion, '')         AS tipo_rep,
+                p.descripcion,
+                COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto,
+                COALESCE(SUM(CASE WHEN pc.certificada = 1
+                             THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado,
+                COALESCE(pe.nombre, 'Pendiente')     AS estado,
+                p.creado_en                          AS created_at,
+                COALESCE(m.{municipio_col}, '')      AS municipio,
+                p.titulo,
+                p.descripcion_corta,
+                p.descripcion_larga,
+                p.fecha_inicio,
+                p.fecha_fin,
+                p.localizacion,
+                COALESCE(co.{comarca_col}, '')       AS comarca,
+                COALESCE(pr.{provincia_col}, '')     AS provincia,
+                p.latitud,
+                p.longitud,
+                p.trabajadores,
+                p.observaciones,
+                p.finalizada
+            FROM tbl_partes p
+            LEFT JOIN dim_red            rd ON rd.id = p.red_id
+            LEFT JOIN dim_tipo_trabajo   tt ON tt.id = p.tipo_trabajo_id
+            LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id
+            LEFT JOIN dim_tipos_rep      tr ON tr.id = p.tipo_rep_id
+            LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
+            LEFT JOIN dim_comarcas       co ON co.id = m.comarca_id
+            LEFT JOIN dim_provincias     pr ON pr.id = m.provincia_id
+            LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
+            LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
+            LEFT JOIN tbl_parte_estados pe ON pe.id = p.{estado_col}
+            GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.{cod_trabajo_col},
+                     tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col},
+                     p.titulo, p.descripcion_corta, p.descripcion_larga, p.fecha_inicio, p.fecha_fin,
+                     p.localizacion, co.{comarca_col}, pr.{provincia_col}, p.latitud, p.longitud,
+                     p.trabajadores, p.observaciones, p.finalizada
+            ORDER BY p.id DESC
+            LIMIT %s OFFSET %s
+        """, (limit, offset))
 
         rows = cur.fetchall()
         cur.close()
@@ -317,9 +403,23 @@ def delete_parte(user: str, password: str, schema: str, parte_id: int):
         return str(e)
 
 
-def get_partes_resumen(user: str, password: str, schema: str):
+def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000, offset: int = 0):
     """
     Devuelve lista de partes con TODAS las columnas de tbl_partes + totales calculados.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        limit: Número máximo de registros a devolver (default: 1000)
+        offset: Número de registros a saltar para paginación (default: 0)
+
+    Returns:
+        list: Tuplas con todos los campos del resumen
+
+    Note:
+        Usa LIMIT y OFFSET para paginación eficiente.
+
     Usa JOIN directo con dimensiones para obtener descripciones.
     Devuelve: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
               presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
@@ -329,14 +429,14 @@ def get_partes_resumen(user: str, password: str, schema: str):
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Verificar qué columnas existen en tbl_partes
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
-        columns = [row[0] for row in cur.fetchall()]
+        # Verificar qué columnas existen en tbl_partes (con caché)
+        columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
         # Detectar columnas de texto en tablas dimensionales
+        # Nota: comarca y provincia se obtienen a través del municipio, no directamente del parte
         municipio_col = _guess_text_column(user, password, schema, 'dim_municipios') if 'municipio_id' in columns else None
-        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'comarca_id' in columns else None
-        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'provincia_id' in columns else None
+        comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'municipio_id' in columns else None
+        provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'municipio_id' in columns else None
 
         # Construir SELECT dinámicamente con todas las columnas disponibles
         query_parts = []
@@ -363,14 +463,14 @@ def get_partes_resumen(user: str, password: str, schema: str):
         else:
             query_parts.append("'' AS municipio")
 
-        # Usar columna detectada dinámicamente para comarca
-        if 'comarca_id' in columns and comarca_col:
+        # Usar columna detectada dinámicamente para comarca (a través del municipio)
+        if 'municipio_id' in columns and comarca_col:
             query_parts.append(f"COALESCE(cm.{comarca_col}, '') AS comarca")
         else:
             query_parts.append("'' AS comarca")
 
-        # Usar columna detectada dinámicamente para provincia
-        if 'provincia_id' in columns and provincia_col:
+        # Usar columna detectada dinámicamente para provincia (a través del municipio)
+        if 'municipio_id' in columns and provincia_col:
             query_parts.append(f"COALESCE(pr.{provincia_col}, '') AS provincia")
         else:
             query_parts.append("'' AS provincia")
@@ -391,10 +491,10 @@ def get_partes_resumen(user: str, password: str, schema: str):
         from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
         if 'municipio_id' in columns and municipio_col:
             from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
-        if 'comarca_id' in columns and comarca_col:
-            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = p.comarca_id"
-        if 'provincia_id' in columns and provincia_col:
-            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = p.provincia_id"
+        if 'municipio_id' in columns and comarca_col:
+            from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = m.comarca_id"
+        if 'municipio_id' in columns and provincia_col:
+            from_clause += " LEFT JOIN dim_provincias pr ON pr.id = m.provincia_id"
 
         # GROUP BY
         group_by = "GROUP BY p.id, p.codigo, p.descripcion, p.estado"
@@ -419,9 +519,9 @@ def get_partes_resumen(user: str, password: str, schema: str):
             group_by += ", p.localizacion"
         if 'municipio_id' in columns and municipio_col:
             group_by += f", m.{municipio_col}"
-        if 'comarca_id' in columns and comarca_col:
+        if 'municipio_id' in columns and comarca_col:
             group_by += f", cm.{comarca_col}"
-        if 'provincia_id' in columns and provincia_col:
+        if 'municipio_id' in columns and provincia_col:
             group_by += f", pr.{provincia_col}"
         if 'latitud' in columns:
             group_by += ", p.latitud"
@@ -432,9 +532,9 @@ def get_partes_resumen(user: str, password: str, schema: str):
         if 'observaciones' in columns:
             group_by += ", p.observaciones"
 
-        # Ejecutar query completa
-        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC"
-        cur.execute(full_query)
+        # Ejecutar query completa con paginación
+        full_query = ", ".join(query_parts) + " " + from_clause + " " + group_by + " ORDER BY p.id DESC LIMIT %s OFFSET %s"
+        cur.execute(full_query, (limit, offset))
         rows = cur.fetchall()
 
         cur.close()
@@ -455,9 +555,8 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
 
-        # Verificar qué columnas existen
-        cur.execute(f"DESCRIBE {schema}.tbl_partes")
-        columns = [row[0] for row in cur.fetchall()]
+        # Verificar qué columnas existen (con caché)
+        columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
         # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
         select_cols = ['id', 'codigo', 'descripcion', 'estado']
@@ -579,9 +678,8 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
 
-            # Verificar columnas disponibles
-            cur.execute(f"DESCRIBE {schema}.tbl_partes")
-            columns = [row[0] for row in cur.fetchall()]
+            # Verificar columnas disponibles (con caché)
+            columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
             # Determinar si la columna es 'estado' o 'id_estado'
             estado_column = 'id_estado' if 'id_estado' in columns else 'estado'
@@ -678,14 +776,20 @@ def add_part_presupuesto_item(user: str, password: str, schema: str,
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("""
-                INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
-                VALUES (%s, %s, %s, %s)
-            """, (parte_id, precio_id, cantidad, precio_unit))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("""
+                    INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
+                    VALUES (%s, %s, %s, %s)
+                """, (parte_id, precio_id, cantidad, precio_unit))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error añadiendo partida a presupuesto: {e}")
         return str(e)
 
 
@@ -696,15 +800,21 @@ def mod_amount_part_budget_item(user: str, password: str, schema: str, item_id: 
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("""
-                UPDATE tbl_part_presupuesto
-                SET cantidad = %s
-                WHERE id = %s
-            """, (cantidad, item_id))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("""
+                    UPDATE tbl_part_presupuesto
+                    SET cantidad = %s
+                    WHERE id = %s
+                """, (cantidad, item_id))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error modificando cantidad en presupuesto: {e}")
         return str(e)
 
 
@@ -715,11 +825,17 @@ def delete_part_presupuesto_item(user: str, password: str, schema: str, item_id:
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute("DELETE FROM tbl_part_presupuesto WHERE id = %s", (item_id,))
-            cn.commit()
-            cur.close()
-            return "ok"
+            try:
+                cur.execute("DELETE FROM tbl_part_presupuesto WHERE id = %s", (item_id,))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
     except Exception as e:
+        logger.error(f"Error eliminando partida de presupuesto: {e}")
         return str(e)
 
 
@@ -899,12 +1015,16 @@ def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo
         return "PT"
 
 
+@cached_dimension_query('tbl_parte_estados')
 def get_estados_parte(user: str, password: str, schema: str):
     """
     Obtiene la lista de estados disponibles para los partes.
 
     Returns:
         list: Lista de dicts {'id': int, 'nombre': str, 'descripcion': str, 'orden': int}
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 15 minutos.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -930,12 +1050,16 @@ def get_estados_parte(user: str, password: str, schema: str):
         ]
 
 
+@cached_dimension_query('dim_provincias')
 def get_provincias(user: str, password: str, schema: str):
     """
     Obtiene lista de provincias en formato "id - nombre_euskera"
 
     Returns:
         list: Lista de strings formato "id - nombre_euskera"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -984,10 +1108,11 @@ def get_provincias(user: str, password: str, schema: str):
             cur.close()
             return [f"{row[0]} - {row[1]}" for row in rows]
     except Exception as e:
-        print(f"Error al obtener provincias: {e}")
+        logger.error(f"Error al obtener provincias: {e}")
         return []
 
 
+@cached_dimension_query('dim_comarcas')
 def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_id: int = None):
     """
     Obtiene lista de comarcas filtradas por provincia
@@ -1000,6 +1125,9 @@ def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_i
 
     Returns:
         list: Lista de strings formato "id - nombre"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -1065,10 +1193,11 @@ def get_comarcas_by_provincia(user: str, password: str, schema: str, provincia_i
             cur.close()
             return [f"{row[0]} - {row[1]}" for row in rows]
     except Exception as e:
-        print(f"Error al obtener comarcas: {e}")
+        logger.error(f"Error al obtener comarcas: {e}")
         return []
 
 
+@cached_dimension_query('dim_municipios')
 def get_municipios_by_provincia(user: str, password: str, schema: str, provincia_id: int = None, comarca_id: int = None):
     """
     Obtiene lista de municipios filtrados por provincia y/o comarca
@@ -1082,6 +1211,9 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
 
     Returns:
         list: Lista de strings formato "id - nombre"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -1139,7 +1271,7 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
             cur.close()
             return [f"{row[0]} - {row[1]}" for row in rows]
     except Exception as e:
-        print(f"Error al obtener municipios: {e}")
+        logger.error(f"Error al obtener municipios: {e}")
         return []
 
 
@@ -1193,23 +1325,13 @@ def add_parte_mejorado(user: str, password: str, schema: str,
     Raises:
         Exception: Si hay error en la inserción
     """
-    print(f"[DEBUG] Iniciando add_parte_mejorado...")
-    print(f"[DEBUG] red_id={red_id}, tipo_trabajo_id={tipo_trabajo_id}, cod_trabajo_id={cod_trabajo_id}")
-
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
-        print(f"[DEBUG] Conexión establecida")
 
         # Obtener prefijo del tipo de trabajo (OT, GF o TP)
-        print(f"[DEBUG] Obteniendo prefijo para tipo_trabajo_id={tipo_trabajo_id}")
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
-        print(f"[DEBUG] Prefijo obtenido: {prefix}")
 
-        # Generar código único para este prefijo
-        # Formato: PREFIX-NNNN (sin año)
-        # Usar .format() para evitar conflictos entre f-string y placeholders MySQL
-        print(f"[DEBUG] Generando código con prefijo {prefix}")
-        # Construir query sin .format() ni f-strings, solo concatenación simple
+        # Generar código único para este prefijo (formato: PREFIX-NNNN)
         query_next = (
             "SELECT COALESCE(MAX("
             "CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)"
@@ -1218,31 +1340,18 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             "WHERE codigo LIKE %s"
         )
         pattern = f"{prefix}-%"
-        print(f"[DEBUG] Query construido: {query_next}")
-        print(f"[DEBUG] Pattern: {pattern}")
-        print(f"[DEBUG] Ejecutando query next_num...")
         cur.execute(query_next, (pattern,))
-        print(f"[DEBUG] Query ejecutado, obteniendo resultado...")
 
-        next_num = cur.fetchone()[0]
-        print(f"[DEBUG] next_num obtenido: {next_num} (tipo: {type(next_num)})")
         # Convertir a int explícitamente para evitar problemas con Decimal
-        next_num = int(next_num)
-        print(f"[DEBUG] next_num convertido a int: {next_num}")
+        next_num = int(cur.fetchone()[0])
         codigo = f"{prefix}-{next_num:04d}"
-        print(f"[DEBUG] Código generado: {codigo}")
 
-        # Verificar qué columnas existen en tbl_partes
-        print(f"[DEBUG] Verificando columnas de tbl_partes")
-        cur.execute("DESCRIBE " + schema + ".tbl_partes")
-        columns = {row[0] for row in cur.fetchall()}
-        print(f"[DEBUG] Columnas encontradas: {len(columns)} columnas")
+        # Verificar qué columnas existen en tbl_partes (con caché)
+        columns = set(_get_table_columns_cached(user, password, schema, 'tbl_partes'))
 
         # Construir INSERT dinámicamente según columnas disponibles
-        print(f"[DEBUG] Construyendo INSERT dinámico")
         insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
         insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
-        print(f"[DEBUG] Columnas base: {insert_cols}")
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:
@@ -1309,18 +1418,13 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             insert_cols.append('longitud')
             insert_vals.append(longitud)
 
-        # Construir query sin f-strings para evitar conflicto con %s
+        # Construir query
         placeholders = ', '.join(['%s'] * len(insert_vals))
         query = (
             "INSERT INTO " + schema + ".tbl_partes (" +
             ', '.join(insert_cols) + ") VALUES (" +
             placeholders + ")"
         )
-
-        # Debug: imprimir query y valores
-        print(f"[DEBUG] Query: {query}")
-        print(f"[DEBUG] Columnas: {insert_cols}")
-        print(f"[DEBUG] Valores: {insert_vals}")
 
         try:
             cur.execute(query, tuple(insert_vals))
@@ -1330,7 +1434,7 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             cur.close()
             return new_id, codigo
         except Exception as e:
-            print(f"[ERROR] Error ejecutando query: {e}")
-            print(f"[ERROR] Query: {query}")
-            print(f"[ERROR] Valores: {insert_vals}")
+            logger.error(f"Error ejecutando INSERT en tbl_partes: {e}")
+            logger.debug(f"Query: {query}")
+            logger.debug(f"Valores: {insert_vals}")
             raise

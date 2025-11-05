@@ -573,15 +573,6 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         pdf_btn.grid(row=0, column=5, padx=5)
 
-        print_btn = customtkinter.CTkButton(
-            buttons_frame,
-            text="🖨️ Imprimir",
-            width=120,
-            height=35,
-            command=self._print_report
-        )
-        print_btn.grid(row=0, column=6, padx=5)
-
     def _add_clasificacion(self):
         """Añade un nuevo selector de clasificación dinámico"""
         if not self.definicion_actual:
@@ -2123,24 +2114,6 @@ class InformesFrame(customtkinter.CTkFrame):
                 message=f"Error al exportar a PDF:\n\n{str(e)}",
                 icon="cancel"
             )
-
-    def _print_report(self):
-        """Imprime el informe"""
-        from CTkMessagebox import CTkMessagebox
-
-        if not self.informe_seleccionado:
-            CTkMessagebox(
-                title="Aviso",
-                message="Por favor, seleccione un informe del menú izquierdo.",
-                icon="warning"
-            )
-            return
-
-        CTkMessagebox(
-            title="Imprimir",
-            message="Funcionalidad de impresión en desarrollo.",
-            icon="info"
-        )
 
     def _export_message(self, format_name):
         """Muestra mensaje de exportación"""

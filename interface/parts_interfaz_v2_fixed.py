@@ -37,7 +37,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
     secundaria desde AppPartsManager. CustomTkinter solo permite una ventana
     CTk (principal) por aplicación.
     """
-    def __init__(self, user: str, password: str, default_schema: str = "cert_dev"):
+    def __init__(self, user: str, password: str, default_schema: str = "cert_dev", on_parte_created=None):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
@@ -52,6 +52,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.user = user
         self.password = password
         self.schema = default_schema
+        self.on_parte_created = on_parte_created  # Callback para cuando se crea un parte
 
         row = 0
 
@@ -546,7 +547,6 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 descripcion_corta=desc_corta,
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
-                fecha_prevista_fin=fecha_prevista,
                 estado_id=estado_id,
                 localizacion=localizacion,
                 provincia_id=provincia_id,
@@ -557,6 +557,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 latitud=latitud,
                 longitud=longitud
             )
+            # Nota: fecha_prevista se ignoró porque add_parte_mejorado no tiene ese parámetro
 
             CTkMessagebox(
                 title="Parte guardado",
@@ -564,8 +565,13 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 icon="check"
             )
 
-            # Limpiar formulario
-            self._clear_form()
+            # Si hay callback, llamarlo con el ID del parte nuevo y cerrar ventana
+            if self.on_parte_created:
+                self.on_parte_created(new_id)
+                self.destroy()
+            else:
+                # Sin callback, limpiar formulario (comportamiento original)
+                self._clear_form()
 
         except Exception as e:
             CTkMessagebox(

@@ -4,6 +4,8 @@ from CTkMessagebox import CTkMessagebox
 from script.modulo_db import get_parts_list, get_dim_all, delete_parte
 import pandas as pd
 from datetime import datetime
+import json
+import os
 
 
 class PartsTab(customtkinter.CTkFrame):
@@ -51,9 +53,64 @@ class PartsTab(customtkinter.CTkFrame):
             "finalizada": {"label": "Finalizada", "width": 80, "visible": False, "locked": False},
         }
 
+        # Cargar configuración guardada de columnas visibles
+        self._load_column_config()
+
         self._build_ui()
         self._load_filters()
         self._load_data()
+
+    def _get_config_path(self):
+        """Retorna la ruta del archivo de configuración de columnas"""
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        parent_path = os.path.dirname(current_path)
+        config_dir = os.path.join(parent_path, ".config")
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+        return os.path.join(config_dir, f"columns_config_{self.schema}.json")
+
+    def _save_column_config(self):
+        """Guarda la configuración de columnas visibles"""
+        try:
+            config_path = self._get_config_path()
+
+            # Leer configuración existente o crear nueva
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+
+            # Guardar solo el estado de visibilidad de cada columna
+            config["listado"] = {
+                col_name: col_info["visible"]
+                for col_name, col_info in self.all_columns.items()
+            }
+
+            # Escribir archivo
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+
+        except Exception as e:
+            print(f"Error guardando configuración de columnas: {e}")
+
+    def _load_column_config(self):
+        """Carga la configuración de columnas visibles"""
+        try:
+            config_path = self._get_config_path()
+
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+                if "listado" in config:
+                    # Aplicar configuración guardada
+                    for col_name, visible in config["listado"].items():
+                        if col_name in self.all_columns:
+                            self.all_columns[col_name]["visible"] = visible
+
+        except Exception as e:
+            print(f"Error cargando configuración de columnas: {e}")
 
     def _build_ui(self):
         # Título
@@ -96,12 +153,50 @@ class PartsTab(customtkinter.CTkFrame):
         self.filter_cod.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         self.filter_cod.set("Todos")
 
-        # Búsqueda por código/descripción
-        customtkinter.CTkLabel(filter_frame, text="Buscar:",
-                               font=("", 12, "bold")).grid(row=1, column=2, padx=5, pady=5, sticky="e")
-        self.search_entry = customtkinter.CTkEntry(filter_frame,
-                                                   placeholder_text="Código o descripción...")
-        self.search_entry.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
+        # Frame para búsqueda dinámica
+        search_frame = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
+        search_frame.grid(row=1, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+        search_frame.grid_columnconfigure(1, weight=1)
+
+        # Label "Buscar en:"
+        customtkinter.CTkLabel(search_frame, text="Buscar en:",
+                               font=("", 12, "bold")).grid(row=0, column=0, padx=(0, 5), sticky="e")
+
+        # Dropdown para seleccionar campo de búsqueda (TODOS los campos de tbl_partes)
+        search_fields = {
+            "Código": "codigo",
+            "Título": "titulo",
+            "Descripción": "descripcion",
+            "Descripción Corta": "descripcion_corta",
+            "Descripción Larga": "descripcion_larga",
+            "Estado": "estado",
+            "Red": "red",
+            "Tipo Trabajo": "tipo",
+            "Cód. Trabajo": "cod_trabajo",
+            "Tipo Reparación": "tipo_rep",
+            "Localización": "localizacion",
+            "Municipio": "municipio",
+            "Comarca": "comarca",
+            "Provincia": "provincia",
+            "Trabajadores": "trabajadores",
+            "Observaciones": "observaciones"
+        }
+        self.search_field_names = list(search_fields.keys())
+        self.search_field_map = search_fields
+
+        self.search_field_selector = customtkinter.CTkOptionMenu(
+            search_frame,
+            values=self.search_field_names,
+            width=150
+        )
+        self.search_field_selector.grid(row=0, column=1, padx=5, sticky="w")
+        self.search_field_selector.set("Código")
+
+        # Entry de búsqueda
+        self.search_entry = customtkinter.CTkEntry(search_frame,
+                                                   placeholder_text="Escriba el valor a buscar...",
+                                                   width=200)
+        self.search_entry.grid(row=0, column=2, padx=5, sticky="ew")
 
         # Botón Aplicar Filtros
         self.btn_apply = customtkinter.CTkButton(filter_frame, text="Aplicar Filtros",
@@ -226,6 +321,9 @@ class PartsTab(customtkinter.CTkFrame):
             for col_name, var in checkboxes.items():
                 self.all_columns[col_name]["visible"] = var.get()
 
+            # Guardar configuración
+            self._save_column_config()
+
             # Reconstruir tabla
             self._rebuild_table()
             # Recargar datos
@@ -292,9 +390,12 @@ class PartsTab(customtkinter.CTkFrame):
             else:
                 rows = filtered_rows
 
-            # Mapeo de índices del resultado SQL
+            # Mapeo de índices del resultado SQL (actualizado con todos los campos)
             # 0:id, 1:codigo, 2:red, 3:tipo, 4:cod_trabajo, 5:cod_trabajo_desc,
-            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:creado_en, 12:municipio
+            # 6:tipo_rep, 7:descripcion, 8:presupuesto, 9:certificado, 10:estado, 11:created_at, 12:municipio,
+            # 13:titulo, 14:descripcion_corta, 15:descripcion_larga, 16:fecha_inicio, 17:fecha_fin,
+            # 18:localizacion, 19:comarca, 20:provincia, 21:latitud, 22:longitud,
+            # 23:trabajadores, 24:observaciones, 25:finalizada
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -308,7 +409,20 @@ class PartsTab(customtkinter.CTkFrame):
                 "certificado": 9,
                 "estado": 10,
                 "created_at": 11,
-                "municipio": 12
+                "municipio": 12,
+                "titulo": 13,
+                "descripcion_corta": 14,
+                "descripcion_larga": 15,
+                "fecha_inicio": 16,
+                "fecha_fin": 17,
+                "localizacion": 18,
+                "comarca": 19,
+                "provincia": 20,
+                "latitud": 21,
+                "longitud": 22,
+                "trabajadores": 23,
+                "observaciones": 24,
+                "finalizada": 25
             }
 
             # Obtener columnas visibles actuales del tree
@@ -378,12 +492,38 @@ class PartsTab(customtkinter.CTkFrame):
                     if row_val != filter_val:
                         continue
 
-                # Búsqueda por código o descripción
+                # Búsqueda dinámica por el campo seleccionado
                 if search_text:
-                    codigo_match = search_text in str(row[1]).lower()
-                    desc_match = search_text in str(row[7]).lower()
-                    if not (codigo_match or desc_match):
-                        continue
+                    selected_field_name = self.search_field_selector.get()
+                    selected_field_key = self.search_field_map.get(selected_field_name, "codigo")
+
+                    # Mapeo de campos a índices en la fila (actualizado con todos los campos)
+                    field_to_index = {
+                        "codigo": 1,
+                        "red": 2,
+                        "tipo": 3,
+                        "cod_trabajo": 4,
+                        "tipo_rep": 6,
+                        "descripcion": 7,
+                        "estado": 10,
+                        "municipio": 12,
+                        "titulo": 13,
+                        "descripcion_corta": 14,
+                        "descripcion_larga": 15,
+                        "localizacion": 18,
+                        "comarca": 19,
+                        "provincia": 20,
+                        "trabajadores": 23,
+                        "observaciones": 24
+                    }
+
+                    field_index = field_to_index.get(selected_field_key)
+
+                    if field_index is not None:
+                        # Buscar en el campo específico
+                        field_value = str(row[field_index]).lower() if row[field_index] else ""
+                        if search_text not in field_value:
+                            continue
 
                 filtered.append(row)
 

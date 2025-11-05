@@ -6,6 +6,7 @@ from tkinter import ttk, font as tkfont
 from script.modulo_db import get_schemas_db, project_directory_db
 from script.db_connection import get_project_connection
 import os
+import json
 
 # Obtener rutas
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -135,6 +136,21 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.navigation_frame_label.grid(row=1, column=0, padx=20, pady=5)
 
+        # Botón Añadir Parte (destacado en verde)
+        add_parte_path = os.path.join(parent_path, "source/guardar.png")
+        self.add_parte_image = customtkinter.CTkImage(Image.open(add_parte_path), size=(25, 25))
+
+        self.add_parte_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=5, height=50,
+            border_spacing=10, text="➕ Añadir Parte",
+            fg_color="green", hover_color="#006400",
+            text_color="white",
+            image=self.add_parte_image,
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            anchor="center", command=self._add_parte_resumen
+        )
+        self.add_parte_button.grid(row=2, column=0, sticky="ew", padx=20, pady=(10, 15))
+
         # Botón Resumen
         self.resumen_button = customtkinter.CTkButton(
             self.navigation_frame, corner_radius=0, height=40,
@@ -143,7 +159,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.resumen_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("resumen")
         )
-        self.resumen_button.grid(row=2, column=0, sticky="ew")
+        self.resumen_button.grid(row=3, column=0, sticky="ew")
 
         # Botón Partes
         self.partes_button = customtkinter.CTkButton(
@@ -153,7 +169,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.partes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("partes")
         )
-        self.partes_button.grid(row=3, column=0, sticky="ew")
+        self.partes_button.grid(row=4, column=0, sticky="ew")
 
         # Botón Presupuesto
         self.presupuesto_button = customtkinter.CTkButton(
@@ -163,7 +179,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("presupuesto")
         )
-        self.presupuesto_button.grid(row=4, column=0, sticky="ew")
+        self.presupuesto_button.grid(row=5, column=0, sticky="ew")
 
         # Botón Certificaciones
         self.certificaciones_button = customtkinter.CTkButton(
@@ -173,7 +189,7 @@ class AppPartsManager(customtkinter.CTk):
             image=self.budget_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("certificaciones")
         )
-        self.certificaciones_button.grid(row=5, column=0, sticky="ew")
+        self.certificaciones_button.grid(row=6, column=0, sticky="ew")
 
         # Botón Informes
         self.informes_button = customtkinter.CTkButton(
@@ -183,10 +199,10 @@ class AppPartsManager(customtkinter.CTk):
             image=self.informes_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("informes")
         )
-        self.informes_button.grid(row=6, column=0, sticky="ew")
+        self.informes_button.grid(row=7, column=0, sticky="ew")
 
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(7, weight=1)
+        self.navigation_frame.grid_rowconfigure(8, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -196,7 +212,65 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=8, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=9, padx=30, pady=(15, 15), sticky="nsew")
+
+    def _get_config_path(self):
+        """Retorna la ruta del archivo de configuración de columnas"""
+        config_dir = os.path.join(parent_path, ".config")
+        if not os.path.exists(config_dir):
+            os.makedirs(config_dir)
+        return os.path.join(config_dir, f"columns_config_{self.schema}.json")
+
+    def _save_column_config(self, section, columns_dict):
+        """
+        Guarda la configuración de columnas visibles
+        section: 'resumen' o 'listado'
+        columns_dict: diccionario con la configuración de columnas
+        """
+        try:
+            config_path = self._get_config_path()
+
+            # Leer configuración existente o crear nueva
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            else:
+                config = {}
+
+            # Guardar solo el estado de visibilidad de cada columna
+            config[section] = {
+                col_name: col_info["visible"]
+                for col_name, col_info in columns_dict.items()
+            }
+
+            # Escribir archivo
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+
+        except Exception as e:
+            print(f"Error guardando configuración de columnas: {e}")
+
+    def _load_column_config(self, section, columns_dict):
+        """
+        Carga la configuración de columnas visibles
+        section: 'resumen' o 'listado'
+        columns_dict: diccionario con la configuración de columnas (se modifica in-place)
+        """
+        try:
+            config_path = self._get_config_path()
+
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+                if section in config:
+                    # Aplicar configuración guardada
+                    for col_name, visible in config[section].items():
+                        if col_name in columns_dict:
+                            columns_dict[col_name]["visible"] = visible
+
+        except Exception as e:
+            print(f"Error cargando configuración de columnas: {e}")
 
     def select_frame_by_name(self, name):
         """Cambia entre frames/pestañas"""
@@ -281,6 +355,9 @@ class AppPartsManager(customtkinter.CTk):
             "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
             "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
         }
+
+        # Cargar configuración guardada de columnas visibles
+        self._load_column_config("resumen", self.resumen_columns)
 
         # Título
         title = customtkinter.CTkLabel(
@@ -519,6 +596,9 @@ class AppPartsManager(customtkinter.CTk):
             for col_name, var in checkboxes.items():
                 self.resumen_columns[col_name]["visible"] = var.get()
 
+            # Guardar configuración
+            self._save_column_config("resumen", self.resumen_columns)
+
             # Reconstruir tabla
             self._rebuild_resumen_tree()
             selector_window.destroy()
@@ -540,15 +620,40 @@ class AppPartsManager(customtkinter.CTk):
         try:
             from interface.parts_interfaz_v2_fixed import AppPartsV2
 
-            # Crear ventana independiente con el formulario mejorado
-            parts_window = AppPartsV2(user=self.user, password=self.password, default_schema=self.schema)
+            # Callback para cuando se crea un parte nuevo
+            def on_parte_created(parte_id):
+                # Guardar el ID del parte seleccionado
+                self.selected_parte_id = parte_id
 
-            # Configurar para que recargue la lista cuando se cierre
-            def on_closing():
-                parts_window.destroy()
+                # Recargar el resumen
                 self._reload_resumen()
 
-            parts_window.protocol("WM_DELETE_WINDOW", on_closing)
+                # Cambiar a la pestaña de "Partes" (que contiene los subtabs)
+                self.select_frame_by_name("partes")
+
+                # Recargar el selector de partes
+                self._reload_partes_selector()
+
+                # Seleccionar el nuevo parte
+                from script.modulo_db import get_partes_resumen
+                partes_data = get_partes_resumen(self.user, self.password, self.schema)
+                for row in partes_data:
+                    if row[0] == parte_id:  # row[0] es el ID
+                        parte_text = f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+                        self._set_selected_parte(parte_text)
+                        break
+
+                # Cargar las pestañas del parte y cambiar a Presupuesto
+                self._load_parte_tabs()
+                self.partes_subtabs.set("💰 Presupuesto")
+
+            # Crear ventana independiente con el formulario mejorado
+            parts_window = AppPartsV2(
+                user=self.user,
+                password=self.password,
+                default_schema=self.schema,
+                on_parte_created=on_parte_created
+            )
 
             # Hacer que la ventana aparezca al frente
             parts_window.lift()
@@ -636,32 +741,62 @@ class AppPartsManager(customtkinter.CTk):
         selector_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=2)
         selector_frame.grid_columnconfigure(1, weight=1)
 
-        customtkinter.CTkLabel(selector_frame, text="Seleccionar Parte:",
+        customtkinter.CTkLabel(selector_frame, text="Buscar Parte:",
                                font=("", 14, "bold")).grid(row=0, column=0, padx=(0, 10), sticky="e")
 
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
                            for row in partes_data]  # id - codigo | ot | red | descripcion
+            self.partes_list_full = self.partes_list.copy()  # Guardar lista completa
         except:
-            partes_list = ["Sin partes"]
+            self.partes_list = ["Sin partes"]
+            self.partes_list_full = ["Sin partes"]
 
-        self.partes_selector = customtkinter.CTkOptionMenu(
-            selector_frame,
-            values=partes_list if partes_list else ["Sin partes"],
-            command=lambda x: self._load_parte_tabs()
+        # Frame contenedor para entry + dropdown
+        search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
+        search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        search_container.grid_columnconfigure(0, weight=1)
+
+        # Entry de búsqueda
+        self.partes_search_entry = customtkinter.CTkEntry(
+            search_container,
+            placeholder_text="Escriba para buscar parte..."
         )
-        self.partes_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        self.partes_search_entry.grid(row=0, column=0, sticky="ew")
+        self.partes_search_entry.bind('<KeyRelease>', self._filter_partes_list)
+        self.partes_search_entry.bind('<Return>', lambda e: self._select_first_match())
 
-        if partes_list and hasattr(self, 'selected_parte_id'):
-            # Si viene desde Resumen con un parte seleccionado
-            for item in partes_list:
-                if item.startswith(f"{self.selected_parte_id} -"):
-                    self.partes_selector.set(item)
-                    break
-        elif partes_list:
-            self.partes_selector.set(partes_list[0])
+        # Frame flotante para dropdown (inicialmente oculto)
+        self.partes_dropdown_frame = customtkinter.CTkFrame(
+            search_container,
+            fg_color="#2b2b2b",
+            border_width=1,
+            border_color="gray"
+        )
+        self.partes_dropdown_frame.grid_remove()  # Oculto inicialmente
+
+        # Scrollable frame para lista de partes
+        self.partes_listbox_frame = customtkinter.CTkScrollableFrame(
+            self.partes_dropdown_frame,
+            height=200,
+            fg_color="transparent"
+        )
+        self.partes_listbox_frame.pack(fill="both", expand=True)
+
+        # Variable para almacenar el parte seleccionado
+        self.selected_parte_text = None
+
+        # Seleccionar primer parte por defecto
+        if self.partes_list and self.partes_list[0] != "Sin partes":
+            self._set_selected_parte(self.partes_list[0])
+            if hasattr(self, 'selected_parte_id'):
+                # Si viene desde Resumen con un parte seleccionado
+                for item in self.partes_list:
+                    if item.startswith(f"{self.selected_parte_id} -"):
+                        self._set_selected_parte(item)
+                        break
 
         btn_reload = customtkinter.CTkButton(
             selector_frame, text="🔄", width=40,
@@ -688,8 +823,75 @@ class AppPartsManager(customtkinter.CTk):
         # NOTA: No configurar grid para los tabs individuales porque usan pack() para el contenido
 
         # Cargar datos si hay partes
-        if partes_list and partes_list[0] != "Sin partes":
+        if self.partes_list and self.partes_list[0] != "Sin partes":
             self._load_parte_tabs()
+
+    def _filter_partes_list(self, event=None):
+        """Filtra la lista de partes según el texto de búsqueda"""
+        search_text = self.partes_search_entry.get().lower()
+
+        if not search_text:
+            # Si está vacío, ocultar dropdown
+            self.partes_dropdown_frame.grid_remove()
+            return
+
+        # Filtrar partes que contengan el texto de búsqueda
+        filtered = [p for p in self.partes_list_full if search_text in p.lower()]
+
+        # Limpiar listbox
+        for widget in self.partes_listbox_frame.winfo_children():
+            widget.destroy()
+
+        if filtered:
+            # Mostrar dropdown
+            self.partes_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+
+            # Crear botones para cada resultado (máximo 10)
+            for parte in filtered[:10]:
+                btn = customtkinter.CTkButton(
+                    self.partes_listbox_frame,
+                    text=parte,
+                    anchor="w",
+                    fg_color="transparent",
+                    hover_color="#1f6aa5",
+                    command=lambda p=parte: self._select_parte_from_dropdown(p)
+                )
+                btn.pack(fill="x", padx=2, pady=1)
+
+            # Mostrar contador si hay más resultados
+            if len(filtered) > 10:
+                info_label = customtkinter.CTkLabel(
+                    self.partes_listbox_frame,
+                    text=f"... y {len(filtered) - 10} más. Refine su búsqueda.",
+                    text_color="gray",
+                    font=("", 10)
+                )
+                info_label.pack(pady=5)
+        else:
+            # Ocultar si no hay resultados
+            self.partes_dropdown_frame.grid_remove()
+
+    def _select_parte_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown"""
+        self._set_selected_parte(parte_text)
+        self.partes_dropdown_frame.grid_remove()
+        self._load_parte_tabs()
+
+    def _select_first_match(self):
+        """Selecciona el primer resultado cuando se presiona Enter"""
+        search_text = self.partes_search_entry.get().lower()
+        if search_text:
+            filtered = [p for p in self.partes_list_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_parte(filtered[0])
+                self.partes_dropdown_frame.grid_remove()
+                self._load_parte_tabs()
+
+    def _set_selected_parte(self, parte_text):
+        """Establece el parte seleccionado"""
+        self.selected_parte_text = parte_text
+        self.partes_search_entry.delete(0, 'end')
+        self.partes_search_entry.insert(0, parte_text)
 
     def _reload_partes_selector(self):
         """Recarga el selector de partes"""
@@ -697,23 +899,24 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
                            for row in partes_data]
+            self.partes_list_full = self.partes_list.copy()
 
-            if partes_list:
-                self.partes_selector.configure(values=partes_list)
-                self.partes_selector.set(partes_list[0])
+            if self.partes_list:
+                self._set_selected_parte(self.partes_list[0])
                 self._load_parte_tabs()
             else:
-                self.partes_selector.configure(values=["Sin partes"])
-                self.partes_selector.set("Sin partes")
+                self.partes_list = ["Sin partes"]
+                self.partes_list_full = ["Sin partes"]
+                self.partes_search_entry.delete(0, 'end')
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
 
     def _load_parte_tabs(self):
         """Carga el contenido de las 3 sub-pestañas"""
-        selected = self.partes_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_parte_text if hasattr(self, 'selected_parte_text') else None
+        if not selected or selected == "Sin partes":
             return
 
         try:
