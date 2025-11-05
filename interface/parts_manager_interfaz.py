@@ -643,9 +643,9 @@ class AppPartsManager(customtkinter.CTk):
                         self._set_selected_parte(parte_text)
                         break
 
-                # Cargar las pestañas del parte y cambiar a Presupuesto
-                self._load_parte_tabs()
-                self.partes_subtabs.set("💰 Presupuesto")
+                # Ir directamente a la función de Presupuesto del sidebar
+                # (no a la pestaña interna de presupuesto)
+                self.select_frame_by_name("presupuesto")
 
             # Crear ventana independiente con el formulario mejorado
             parts_window = AppPartsV2(
