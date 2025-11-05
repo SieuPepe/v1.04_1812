@@ -12,53 +12,39 @@ Este test valida el flujo completo de trabajo:
 
 CRÍTICO: Este test valida que todo el sistema funciona de forma integrada
 
-IMPORTANTE: Antes de ejecutar, configurar las credenciales en la sección CONFIGURACIÓN
-
 Ejecutar: python test_flujo_completo.py
+
+ACTUALIZADO: Adaptado a la estructura real de cert_dev
+- Tabla presupuesto: tbl_part_presupuesto
+- Tabla certificación: tbl_part_certificacion
+- Catálogo: tbl_pres_precios
 """
 
 import os
 import sys
 from pathlib import Path
 from datetime import date
-from decimal import Decimal
 
 # Agregar el directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent))
 
-# ============================================================================
-# CONFIGURACIÓN
-# ============================================================================
-# TODO: Cambiar estas credenciales antes de ejecutar
+# Configuración
 USER = os.getenv('DB_USER', 'root')
 PASSWORD = os.getenv('DB_PASSWORD', 'TU_PASSWORD_AQUI')  # ⚠️ CAMBIAR
-SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'proyecto_tipo')  # ⚠️ CAMBIAR
+SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'cert_dev')  # ⚠️ CAMBIAR
 
 # Código único para el parte de prueba
 TEST_CODIGO = f'TEST-FLUJO-{date.today().strftime("%Y%m%d%H%M%S")}'
 
-# ============================================================================
-# IMPORTS
-# ============================================================================
+# Imports
 try:
-    from script.db_connection import get_project_connection, get_manager_connection
-    from script.db_partes import (
-        add_part_presupuesto_item,
-        get_parte_detail,
-        get_parts_list
-    )
+    from script.db_connection import get_project_connection
     from script.informes import build_query
 except ImportError as e:
     print(f"❌ ERROR: No se pudo importar módulos necesarios: {e}")
-    print("\nAsegúrate de que:")
-    print("  1. Los módulos script/db_*.py existen")
-    print("  2. El módulo script/informes.py existe")
-    print("  3. Todas las dependencias están instaladas")
     sys.exit(1)
 
-# ============================================================================
-# UTILIDADES
-# ============================================================================
+# Utilidades
 def print_test_header(step, title):
     """Imprime encabezado de paso"""
     print("\n" + "=" * 80)
@@ -77,16 +63,11 @@ def print_info(message):
     """Imprime mensaje informativo"""
     print(f"ℹ️  {message}")
 
-# ============================================================================
-# VARIABLES GLOBALES PARA EL TEST
-# ============================================================================
+# Variables globales
 parte_id = None
-presupuesto_id = None
-certificacion_id = None
+presupuesto_items = []
 
-# ============================================================================
-# TESTS
-# ============================================================================
+# Tests
 
 def paso_1_crear_parte():
     """Paso 1: Crear un parte nuevo"""
@@ -162,56 +143,43 @@ def paso_2_verificar_parte():
 
 def paso_3_agregar_presupuesto():
     """Paso 3: Agregar presupuesto al parte"""
-    global presupuesto_id
+    global presupuesto_items
     print_test_header(3, "Agregar presupuesto al parte")
 
     try:
         with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
             cursor = conn.cursor()
 
-            # 1. Crear presupuesto
-            cursor.execute(f"""
-                INSERT INTO {SCHEMA}.tbl_presupuesto
-                (parte_id, codigo, descripcion, fecha_creacion, estado)
-                VALUES ({parte_id}, '{TEST_CODIGO}-PRES', 'Presupuesto de prueba', CURDATE(), 'Pendiente')
-            """)
-            presupuesto_id = cursor.lastrowid
+            # Obtener 3 precios del catálogo
+            cursor.execute(f"SELECT id, descripcion, precio_unit FROM {SCHEMA}.tbl_pres_precios LIMIT 3")
+            precios = cursor.fetchall()
 
-            # 2. Obtener un concepto del catálogo para agregar
-            cursor.execute(f"""
-                SELECT id, codigo, descripcion, precio_unitario, unidad
-                FROM manager.tbl_catalogo
-                LIMIT 1
-            """)
-            concepto = cursor.fetchone()
-
-            if concepto is None:
-                print_error("No hay conceptos en el catálogo")
+            if not precios:
+                print_error("No hay precios en el catálogo")
                 cursor.close()
                 return False
 
-            # 3. Agregar línea al presupuesto
-            cursor.execute(f"""
-                INSERT INTO {SCHEMA}.tbl_pres_precios
-                (presupuesto_id, catalogo_id, descripcion, cantidad, precio_unitario, unidad, importe)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                presupuesto_id,
-                concepto[0],  # catalogo_id
-                concepto[2],  # descripcion
-                10.0,         # cantidad
-                float(concepto[3] if concepto[3] else 100.0),  # precio_unitario
-                concepto[4] if concepto[4] else 'ud',  # unidad
-                10.0 * float(concepto[3] if concepto[3] else 100.0)  # importe
-            ))
+            # Agregar líneas al presupuesto
+            for precio in precios:
+                precio_id, desc, precio_unit = precio
+                cantidad = 10.0
+                precio_unit = float(precio_unit if precio_unit else 100.0)
+
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.tbl_part_presupuesto
+                    (parte_id, precio_id, cantidad, precio_unit)
+                    VALUES (%s, %s, %s, %s)
+                """, (parte_id, precio_id, cantidad, precio_unit))
+
+                presupuesto_items.append((cursor.lastrowid, precio_id, cantidad, precio_unit))
 
             conn.commit()
             cursor.close()
 
         print_success("Presupuesto agregado exitosamente")
-        print_info(f"  Presupuesto ID: {presupuesto_id}")
-        print_info(f"  Código: {TEST_CODIGO}-PRES")
-        print_info(f"  Concepto agregado: {concepto[2][:50]}")
+        print_info(f"  Conceptos agregados: {len(precios)}")
+        for precio in precios:
+            print_info(f"  - {precio[1][:50]}")
         return True
 
     except Exception as e:
@@ -228,19 +196,19 @@ def paso_4_verificar_presupuesto():
         with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
             cursor = conn.cursor()
 
-            # Verificar presupuesto
+            # Contar líneas
             cursor.execute(f"""
                 SELECT COUNT(*)
-                FROM {SCHEMA}.tbl_pres_precios
-                WHERE presupuesto_id = {presupuesto_id}
+                FROM {SCHEMA}.tbl_part_presupuesto
+                WHERE parte_id = {parte_id}
             """)
             total_lineas = cursor.fetchone()[0]
 
             # Calcular total
             cursor.execute(f"""
-                SELECT SUM(importe)
-                FROM {SCHEMA}.tbl_pres_precios
-                WHERE presupuesto_id = {presupuesto_id}
+                SELECT SUM(cantidad * precio_unit)
+                FROM {SCHEMA}.tbl_part_presupuesto
+                WHERE parte_id = {parte_id}
             """)
             total_importe = cursor.fetchone()[0]
 
@@ -259,40 +227,25 @@ def paso_4_verificar_presupuesto():
 
 def paso_5_crear_certificacion():
     """Paso 5: Crear certificación del presupuesto"""
-    global certificacion_id
     print_test_header(5, "Crear certificación del presupuesto")
 
     try:
         with get_project_connection(USER, PASSWORD, SCHEMA) as conn:
             cursor = conn.cursor()
 
-            # 1. Crear certificación
-            cursor.execute(f"""
-                INSERT INTO {SCHEMA}.tbl_certificacion
-                (parte_id, presupuesto_id, numero, fecha, descripcion, certificada)
-                VALUES ({parte_id}, {presupuesto_id}, 1, CURDATE(), 'Certificación de prueba', 0)
-            """)
-            certificacion_id = cursor.lastrowid
-
-            # 2. Copiar líneas del presupuesto a certificación
-            cursor.execute(f"""
-                INSERT INTO {SCHEMA}.tbl_cert_lineas
-                (certificacion_id, precio_id, cantidad_certificada, importe_certificado)
-                SELECT
-                    {certificacion_id},
-                    pp.id,
-                    pp.cantidad,
-                    pp.importe
-                FROM {SCHEMA}.tbl_pres_precios pp
-                WHERE pp.presupuesto_id = {presupuesto_id}
-            """)
+            # Certificar 100% de cada línea de presupuesto
+            for presup_id, precio_id, cantidad, precio_unit in presupuesto_items:
+                cursor.execute(f"""
+                    INSERT INTO {SCHEMA}.tbl_part_certificacion
+                    (parte_id, precio_id, cantidad_cert, certificada)
+                    VALUES (%s, %s, %s, %s)
+                """, (parte_id, precio_id, cantidad, 1))  # 1 = certificada
 
             conn.commit()
             cursor.close()
 
         print_success("Certificación creada exitosamente")
-        print_info(f"  Certificación ID: {certificacion_id}")
-        print_info(f"  Número: 1")
+        print_info(f"  Líneas certificadas: {len(presupuesto_items)}")
         return True
 
     except Exception as e:
@@ -312,16 +265,17 @@ def paso_6_verificar_certificacion():
             # Contar líneas certificadas
             cursor.execute(f"""
                 SELECT COUNT(*)
-                FROM {SCHEMA}.tbl_cert_lineas
-                WHERE certificacion_id = {certificacion_id}
+                FROM {SCHEMA}.tbl_part_certificacion
+                WHERE parte_id = {parte_id}
             """)
             total_lineas = cursor.fetchone()[0]
 
             # Calcular total certificado
             cursor.execute(f"""
-                SELECT SUM(importe_certificado)
-                FROM {SCHEMA}.tbl_cert_lineas
-                WHERE certificacion_id = {certificacion_id}
+                SELECT SUM(pc.cantidad_cert * pp.precio_unit)
+                FROM {SCHEMA}.tbl_part_certificacion pc
+                INNER JOIN {SCHEMA}.tbl_part_presupuesto pp ON pc.precio_id = pp.precio_id AND pc.parte_id = pp.parte_id
+                WHERE pc.parte_id = {parte_id}
             """)
             total_certificado = cursor.fetchone()[0]
 
@@ -398,39 +352,23 @@ def paso_8_limpiar_datos():
 
             # Eliminar en orden inverso por foreign keys
 
-            # 1. Eliminar líneas de certificación
-            if certificacion_id:
+            # 1. Eliminar certificaciones
+            if parte_id:
                 cursor.execute(f"""
-                    DELETE FROM {SCHEMA}.tbl_cert_lineas
-                    WHERE certificacion_id = {certificacion_id}
+                    DELETE FROM {SCHEMA}.tbl_part_certificacion
+                    WHERE parte_id = {parte_id}
                 """)
-                print_info("  ✓ Líneas de certificación eliminadas")
+                print_info("  ✓ Certificaciones eliminadas")
 
-            # 2. Eliminar certificación
-            if certificacion_id:
+            # 2. Eliminar presupuesto
+            if parte_id:
                 cursor.execute(f"""
-                    DELETE FROM {SCHEMA}.tbl_certificacion
-                    WHERE id = {certificacion_id}
-                """)
-                print_info("  ✓ Certificación eliminada")
-
-            # 3. Eliminar líneas de presupuesto
-            if presupuesto_id:
-                cursor.execute(f"""
-                    DELETE FROM {SCHEMA}.tbl_pres_precios
-                    WHERE presupuesto_id = {presupuesto_id}
-                """)
-                print_info("  ✓ Líneas de presupuesto eliminadas")
-
-            # 4. Eliminar presupuesto
-            if presupuesto_id:
-                cursor.execute(f"""
-                    DELETE FROM {SCHEMA}.tbl_presupuesto
-                    WHERE id = {presupuesto_id}
+                    DELETE FROM {SCHEMA}.tbl_part_presupuesto
+                    WHERE parte_id = {parte_id}
                 """)
                 print_info("  ✓ Presupuesto eliminado")
 
-            # 5. Eliminar parte
+            # 3. Eliminar parte
             if parte_id:
                 cursor.execute(f"""
                     DELETE FROM {SCHEMA}.tbl_partes
@@ -450,9 +388,7 @@ def paso_8_limpiar_datos():
         traceback.print_exc()
         return False
 
-# ============================================================================
-# EJECUCIÓN PRINCIPAL
-# ============================================================================
+# Ejecución principal
 
 def main():
     """Ejecutar test de flujo completo"""
