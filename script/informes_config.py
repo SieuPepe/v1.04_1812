@@ -156,6 +156,58 @@ INFORMES_DEFINICIONES = {
                 "tipo": "fecha",
                 "columna_bd": "fecha_fin",
                 "grupo": "Fechas"
+            },
+            "localizacion": {
+                "nombre": "Localización",
+                "tipo": "texto",
+                "columna_bd": "localizacion",
+                "grupo": "Ubicación Geográfica"
+            },
+            "latitud": {
+                "nombre": "Latitud",
+                "tipo": "numerico",
+                "columna_bd": "latitud",
+                "formato": "decimal",
+                "grupo": "Ubicación Geográfica"
+            },
+            "longitud": {
+                "nombre": "Longitud",
+                "tipo": "numerico",
+                "columna_bd": "longitud",
+                "formato": "decimal",
+                "grupo": "Ubicación Geográfica"
+            },
+            "trabajadores": {
+                "nombre": "Trabajadores",
+                "tipo": "texto",
+                "columna_bd": "trabajadores",
+                "grupo": "Recursos Humanos"
+            },
+            "tipo_rep": {
+                "nombre": "Tipo de Reparación",
+                "tipo": "dimension",
+                "columna_bd": "tipo_rep_id",
+                "tabla_dimension": "dim_tipos_rep",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "creado_en": {
+                "nombre": "Fecha Creación",
+                "tipo": "fecha",
+                "columna_bd": "creado_en",
+                "grupo": "Fechas"
+            },
+            "actualizado_en": {
+                "nombre": "Fecha Actualización",
+                "tipo": "fecha",
+                "columna_bd": "actualizado_en",
+                "grupo": "Fechas"
+            },
+            "finalizada": {
+                "nombre": "Finalizada",
+                "tipo": "booleano",
+                "columna_bd": "finalizada",
+                "grupo": "Información Básica"
             }
         },
 
@@ -206,6 +258,47 @@ INFORMES_DEFINICIONES = {
                 "campo": "fecha_inicio",
                 "tipo": "fecha",
                 "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "localizacion": {
+                "campo": "localizacion",
+                "tipo": "texto",
+                "operadores": ["Igual a", "Diferente de", "Contiene", "No contiene"]
+            },
+            "latitud": {
+                "campo": "latitud",
+                "tipo": "numerico",
+                "operadores": ["Igual a", "Mayor a", "Menor a", "Mayor o igual a", "Menor o igual a", "Entre"]
+            },
+            "longitud": {
+                "campo": "longitud",
+                "tipo": "numerico",
+                "operadores": ["Igual a", "Mayor a", "Menor a", "Mayor o igual a", "Menor o igual a", "Entre"]
+            },
+            "trabajadores": {
+                "campo": "trabajadores",
+                "tipo": "texto",
+                "operadores": ["Igual a", "Diferente de", "Contiene", "No contiene"]
+            },
+            "tipo_rep": {
+                "campo": "tipo_rep",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipos_rep"
+            },
+            "creado_en": {
+                "campo": "creado_en",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "actualizado_en": {
+                "campo": "actualizado_en",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "finalizada": {
+                "campo": "finalizada",
+                "tipo": "booleano",
+                "operadores": ["Sí", "No"]
             }
         },
 
@@ -217,7 +310,11 @@ INFORMES_DEFINICIONES = {
             "provincia",
             "comarca",
             "municipio",
-            "fecha_inicio"
+            "fecha_inicio",
+            "tipo_rep",
+            "creado_en",
+            "actualizado_en",
+            "finalizada"
         ],
 
         # Campos por defecto seleccionados

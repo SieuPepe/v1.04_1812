@@ -643,9 +643,9 @@ class AppPartsManager(customtkinter.CTk):
                         self._set_selected_parte(parte_text)
                         break
 
-                # Cargar las pestañas del parte y cambiar a Presupuesto
-                self._load_parte_tabs()
-                self.partes_subtabs.set("💰 Presupuesto")
+                # Ir directamente a la función de Presupuesto del sidebar
+                # (no a la pestaña interna de presupuesto)
+                self.select_frame_by_name("presupuesto")
 
             # Crear ventana independiente con el formulario mejorado
             parts_window = AppPartsV2(
@@ -2136,13 +2136,29 @@ class AppPartsManager(customtkinter.CTk):
         self.certificaciones_frame.grid_rowconfigure(4, weight=1)
         self.certificaciones_frame.grid_rowconfigure(7, weight=1)
 
-        # Título
+        # Título y botón de certificación por lotes
+        title_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
+        title_frame.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="ew")
+        title_frame.grid_columnconfigure(0, weight=1)
+
         title = customtkinter.CTkLabel(
-            self.certificaciones_frame,
+            title_frame,
             text="CERTIFICACIONES POR PARTE",
             font=customtkinter.CTkFont(size=20, weight="bold")
         )
-        title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w")
+        title.pack(side="left")
+
+        btn_cert_lotes = customtkinter.CTkButton(
+            title_frame,
+            text="📦 Certificación por Lotes",
+            command=self._open_cert_lotes,
+            font=customtkinter.CTkFont(size=14, weight="bold"),
+            fg_color="#FF9800",
+            hover_color="#F57C00",
+            height=35,
+            width=220
+        )
+        btn_cert_lotes.pack(side="right", padx=(10, 0))
 
         # Selector de parte
         selector_frame = customtkinter.CTkFrame(self.certificaciones_frame, fg_color="transparent")
@@ -2635,6 +2651,32 @@ class AppPartsManager(customtkinter.CTk):
                     CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
             except Exception as e:
                 CTkMessagebox(title="Error", message=f"Error:\n{e}", icon="cancel")
+
+    def _open_cert_lotes(self):
+        """Abre la ventana de Certificación por Lotes"""
+        try:
+            from interface.cert_lotes_interfaz import CertLotesWindow
+
+            # Crear ventana de certificación por lotes
+            cert_window = CertLotesWindow(
+                parent=self,
+                user=self.user,
+                password=self.password,
+                schema=self.schema
+            )
+
+            # Hacer que la ventana aparezca al frente
+            cert_window.lift()
+            cert_window.focus()
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            CTkMessagebox(
+                title="Error",
+                message=f"No se pudo abrir Certificación por Lotes:\n{e}",
+                icon="cancel"
+            )
 
     def main_informes(self):
         """Pestaña Informes - Generación de informes personalizados"""

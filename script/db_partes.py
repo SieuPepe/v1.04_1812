@@ -967,6 +967,74 @@ def delete_part_cert_item(user: str, password: str, schema: str, cert_id: int):
         return str(e)
 
 
+def cert_parte_completo(user: str, password: str, schema: str, parte_id: int, fecha_certificacion: str):
+    """
+    Certifica TODAS las partidas presupuestadas de un parte completo.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        parte_id: ID del parte a certificar
+        fecha_certificacion: Fecha de certificación (formato YYYY-MM-DD)
+
+    Returns:
+        str: "ok" si fue exitoso, mensaje de error en caso contrario
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Obtener todas las partidas presupuestadas del parte que aún tienen cantidad pendiente
+            cur.execute("""
+                SELECT
+                    pp.id,
+                    pp.parte_id,
+                    pp.precio_id,
+                    pp.cantidad,
+                    pp.precio_unit,
+                    COALESCE(SUM(pc.cantidad_cert), 0) AS ya_certificado
+                FROM tbl_part_presupuesto pp
+                LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = pp.parte_id AND pc.precio_id = pp.precio_id
+                WHERE pp.parte_id = %s
+                GROUP BY pp.id, pp.parte_id, pp.precio_id, pp.cantidad, pp.precio_unit
+                HAVING pp.cantidad > COALESCE(SUM(pc.cantidad_cert), 0)
+            """, (parte_id,))
+
+            partidas = cur.fetchall()
+
+            if not partidas:
+                cur.close()
+                return "ok"  # No hay nada que certificar
+
+            # Certificar cada partida pendiente
+            for partida in partidas:
+                presup_id, parte_id_db, precio_id, cantidad_total, precio_unit, ya_certificado = partida
+                cantidad_pendiente = cantidad_total - ya_certificado
+
+                # Insertar certificación
+                cur.execute("""
+                    INSERT INTO tbl_part_certificacion
+                    (parte_id, precio_id, cantidad_cert, precio_unit, coste_cert, fecha_certificacion, certificada)
+                    VALUES (%s, %s, %s, %s, %s, %s, 1)
+                """, (
+                    parte_id,
+                    precio_id,
+                    cantidad_pendiente,
+                    precio_unit,
+                    cantidad_pendiente * precio_unit,
+                    fecha_certificacion
+                ))
+
+            cn.commit()
+            cur.close()
+            return "ok"
+
+    except Exception as e:
+        logger.error(f"Error certificando parte completo {parte_id}: {e}")
+        return str(e)
+
+
 # ==================== FUNCIONES AUXILIARES PARA FORMULARIO MEJORADO ====================
 
 def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo_id: int):
