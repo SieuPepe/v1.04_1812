@@ -313,7 +313,7 @@ class AppPartsManager(customtkinter.CTk):
         """Pestaña Resumen - Lista de partes con KPIs"""
         from tkinter import ttk
         from script.modulo_db import get_partes_resumen
-        from parts_list_window import open_parts_list
+        # from parts_list_window import open_parts_list  # Módulo no existe - funcionalidad pendiente
 
         self.resumen_frame.grid_columnconfigure(0, weight=1)
         self.resumen_frame.grid_rowconfigure(2, weight=1)
@@ -385,12 +385,13 @@ class AppPartsManager(customtkinter.CTk):
         )
         btn_refresh.pack(side="left", padx=(0, 10))
 
-        btn_list = customtkinter.CTkButton(
-            btn_frame, text="📋 Ver Listado Completo",
-            command=lambda: open_parts_list(self, self.user, self.password, self.schema),
-            width=180
-        )
-        btn_list.pack(side="left", padx=(0, 10))
+        # COMENTADO: Funcionalidad no implementada
+        # btn_list = customtkinter.CTkButton(
+        #     btn_frame, text="📋 Ver Listado Completo",
+        #     command=lambda: open_parts_list(self, self.user, self.password, self.schema),
+        #     width=180
+        # )
+        # btn_list.pack(side="left", padx=(0, 10))
 
         btn_columns = customtkinter.CTkButton(
             btn_frame, text="⚙ Columnas",
