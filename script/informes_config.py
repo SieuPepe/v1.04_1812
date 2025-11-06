@@ -302,7 +302,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        # Clasificaciones disponibles
+        # Clasificaciones disponibles (ORDER BY)
         "clasificaciones": [
             "estado",
             "red",
@@ -316,6 +316,72 @@ INFORMES_DEFINICIONES = {
             "actualizado_en",
             "finalizada"
         ],
+
+        # Agrupaciones disponibles (GROUP BY visual)
+        "agrupaciones": {
+            # Campos permitidos para agrupar
+            "campos_permitidos": [
+                "estado",
+                "red",
+                "tipo_trabajo",
+                "provincia",
+                "comarca",
+                "municipio",
+                "tipo_rep"
+            ],
+
+            # Máximo de niveles de agrupación permitidos
+            "max_niveles": 3,
+
+            # Modo de visualización por defecto
+            "modo_default": "detalle"  # "detalle" o "resumen"
+        },
+
+        # Agregaciones disponibles (funciones)
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "descripcion": "Cuenta el número de registros",
+                "aplicable_a": ["*"],  # Aplicable a cualquier campo
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "COUNT_DISTINCT": {
+                "nombre": "Contar valores únicos",
+                "descripcion": "Cuenta valores únicos del campo",
+                "aplicable_a": ["texto", "dimension"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "descripcion": "Suma los valores del campo",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "descripcion": "Calcula el promedio de los valores",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            },
+            "MIN": {
+                "nombre": "Mínimo",
+                "descripcion": "Encuentra el valor mínimo",
+                "aplicable_a": ["numerico", "calculado", "fecha"],
+                "tipo_resultado": "original",
+                "formato": "original"
+            },
+            "MAX": {
+                "nombre": "Máximo",
+                "descripcion": "Encuentra el valor máximo",
+                "aplicable_a": ["numerico", "calculado", "fecha"],
+                "tipo_resultado": "original",
+                "formato": "original"
+            }
+        },
 
         # Campos por defecto seleccionados
         "campos_default": [

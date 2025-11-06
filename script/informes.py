@@ -432,6 +432,176 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
     return query
 
 
+def calcular_agregacion(funcion, datos, campo_idx, campo_def):
+    """
+    Calcula una función de agregación sobre un conjunto de datos
+
+    Args:
+        funcion: Nombre de la función (COUNT, SUM, AVG, MIN, MAX, COUNT_DISTINCT)
+        datos: Lista de filas (tuplas)
+        campo_idx: Índice de la columna en las tuplas (None para COUNT)
+        campo_def: Definición del campo para validar tipos
+
+    Returns:
+        Valor calculado de la agregación
+    """
+    if not datos:
+        return 0
+
+    if funcion == "COUNT":
+        return len(datos)
+
+    if funcion == "COUNT_DISTINCT":
+        valores = [fila[campo_idx] for fila in datos if fila[campo_idx] is not None]
+        return len(set(valores))
+
+    # Para el resto de funciones, necesitamos los valores numéricos
+    valores = []
+    for fila in datos:
+        valor = fila[campo_idx] if campo_idx is not None else None
+        if valor is not None:
+            try:
+                valores.append(float(valor))
+            except (ValueError, TypeError):
+                pass
+
+    if not valores:
+        return 0
+
+    if funcion == "SUM":
+        return sum(valores)
+    elif funcion == "AVG":
+        return sum(valores) / len(valores)
+    elif funcion == "MIN":
+        return min(valores)
+    elif funcion == "MAX":
+        return max(valores)
+
+    return 0
+
+
+def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, campos_def):
+    """
+    Procesa los datos aplicando agrupación visual y agregaciones
+
+    Args:
+        datos: Lista de tuplas con los datos
+        columnas: Lista de nombres de columnas
+        agrupaciones: Lista de campos por los que agrupar (en orden jerárquico)
+        agregaciones_config: Lista de dicts con configuración de agregaciones
+                            [{"funcion": "SUM", "campo": "presupuesto"}, ...]
+        campos_def: Diccionario con definiciones de campos
+
+    Returns:
+        Dict con estructura:
+        {
+            "grupos": [
+                {
+                    "nivel": 0,
+                    "clave": "Saneamiento",
+                    "campo": "red",
+                    "datos": [...],  # Filas de este grupo
+                    "subtotales": {"presupuesto": 12345.67, ...},
+                    "subgrupos": [...]  # Grupos de nivel inferior
+                }
+            ],
+            "totales_generales": {"presupuesto": 50000.00, ...}
+        }
+    """
+    if not agrupaciones:
+        # Sin agrupaciones, devolver datos planos con totales
+        totales = {}
+        if agregaciones_config:
+            for agg in agregaciones_config:
+                funcion = agg['funcion']
+                campo = agg.get('campo')
+                campo_idx = columnas.index(campo) if campo and campo in columnas else None
+                campo_def = campos_def.get(campo, {})
+                totales[f"{funcion}({campo or '*'})"] = calcular_agregacion(funcion, datos, campo_idx, campo_def)
+
+        return {
+            "grupos": [],
+            "datos_planos": datos,
+            "totales_generales": totales
+        }
+
+    # Crear índices de columnas para agrupación
+    indices_agrupacion = []
+    for campo in agrupaciones:
+        if campo in columnas:
+            indices_agrupacion.append((campo, columnas.index(campo)))
+
+    if not indices_agrupacion:
+        # No hay campos válidos de agrupación
+        return {
+            "grupos": [],
+            "datos_planos": datos,
+            "totales_generales": {}
+        }
+
+    def agrupar_recursivo(datos_grupo, nivel=0):
+        """Agrupa datos recursivamente por niveles"""
+        if nivel >= len(indices_agrupacion):
+            return None
+
+        campo, idx = indices_agrupacion[nivel]
+        grupos_dict = {}
+
+        # Agrupar por el campo actual
+        for fila in datos_grupo:
+            clave = fila[idx] if fila[idx] is not None else "(vacío)"
+            if clave not in grupos_dict:
+                grupos_dict[clave] = []
+            grupos_dict[clave].append(fila)
+
+        # Procesar cada grupo
+        grupos_resultado = []
+        for clave, filas in grupos_dict.items():
+            # Calcular subtotales para este grupo
+            subtotales = {}
+            if agregaciones_config:
+                for agg in agregaciones_config:
+                    funcion = agg['funcion']
+                    campo_agg = agg.get('campo')
+                    campo_idx = columnas.index(campo_agg) if campo_agg and campo_agg in columnas else None
+                    campo_def = campos_def.get(campo_agg, {})
+                    subtotales[f"{funcion}({campo_agg or '*'})"] = calcular_agregacion(funcion, filas, campo_idx, campo_def)
+
+            # Procesar subgrupos si hay más niveles
+            subgrupos = None
+            if nivel + 1 < len(indices_agrupacion):
+                subgrupos = agrupar_recursivo(filas, nivel + 1)
+
+            grupos_resultado.append({
+                "nivel": nivel,
+                "clave": clave,
+                "campo": campo,
+                "datos": filas,
+                "subtotales": subtotales,
+                "subgrupos": subgrupos
+            })
+
+        return grupos_resultado
+
+    # Agrupar todos los datos
+    grupos = agrupar_recursivo(datos)
+
+    # Calcular totales generales (sobre TODOS los datos, no suma de subtotales)
+    totales_generales = {}
+    if agregaciones_config:
+        for agg in agregaciones_config:
+            funcion = agg['funcion']
+            campo = agg.get('campo')
+            campo_idx = columnas.index(campo) if campo and campo in columnas else None
+            campo_def = campos_def.get(campo, {})
+            totales_generales[f"{funcion}({campo or '*'})"] = calcular_agregacion(funcion, datos, campo_idx, campo_def)
+
+    return {
+        "grupos": grupos,
+        "totales_generales": totales_generales
+    }
+
+
 def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None):
     """
     Ejecuta un informe y devuelve los datos con totales
@@ -503,3 +673,69 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         import traceback
         traceback.print_exc()
         return [], [], {}
+
+
+def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filtros=None,
+                                     clasificaciones=None, campos_seleccionados=None,
+                                     agrupaciones=None, agregaciones=None, modo="detalle"):
+    """
+    Ejecuta un informe con agrupaciones y agregaciones
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña de BD
+        schema: Nombre del schema/proyecto
+        informe_nombre: Nombre del informe
+        filtros: Lista de filtros
+        clasificaciones: Lista de clasificaciones
+        campos_seleccionados: Lista de campos a mostrar
+        agrupaciones: Lista de campos por los que agrupar (ej: ["red", "provincia"])
+        agregaciones: Lista de agregaciones (ej: [{"funcion": "SUM", "campo": "presupuesto"}])
+        modo: "detalle" (mostrar registros + subtotales) o "resumen" (solo subtotales)
+
+    Returns:
+        Tuple (columnas, datos, resultado_agrupacion)
+        - columnas: Lista de nombres de columnas
+        - datos: Lista de tuplas con los datos originales
+        - resultado_agrupacion: Dict con estructura de grupos y totales
+    """
+    try:
+        # Primero ejecutar el informe normal para obtener los datos
+        columnas, datos, totales = ejecutar_informe(
+            user, password, schema, informe_nombre,
+            filtros, clasificaciones, campos_seleccionados
+        )
+
+        # Si no hay datos, devolver vacío
+        if not datos:
+            return columnas, datos, {
+                "grupos": [],
+                "datos_planos": [],
+                "totales_generales": {},
+                "modo": modo
+            }
+
+        # Obtener definición del informe para las definiciones de campos
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        campos_def = definicion.get('campos', {}) if definicion else {}
+
+        # Procesar agrupación si se especificó
+        resultado_agrupacion = procesar_agrupacion(
+            datos, columnas, agrupaciones or [], agregaciones or [], campos_def
+        )
+
+        # Añadir el modo al resultado
+        resultado_agrupacion['modo'] = modo
+
+        return columnas, datos, resultado_agrupacion
+
+    except Exception as e:
+        print(f"Error al ejecutar informe con agrupación: {e}")
+        import traceback
+        traceback.print_exc()
+        return [], [], {
+            "grupos": [],
+            "datos_planos": [],
+            "totales_generales": {},
+            "modo": modo
+        }

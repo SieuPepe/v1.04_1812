@@ -32,7 +32,7 @@ from script.informes_config import (
     LOGICA_FILTROS,
     CONFIG_CABECERA_DEFAULT
 )
-from script.informes import get_dimension_values, ejecutar_informe
+from script.informes import get_dimension_values, ejecutar_informe, ejecutar_informe_con_agrupacion
 from script.informes_storage import InformesConfigStorage
 
 
@@ -53,6 +53,9 @@ class InformesFrame(customtkinter.CTkFrame):
         self.clasificaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
+        self.agrupaciones = []  # Lista de campos por los que agrupar
+        self.agregaciones = []  # Lista de agregaciones configuradas
+        self.modo_visualizacion = "detalle"  # "detalle" o "resumen"
 
         # Gestor de almacenamiento de configuraciones
         self.storage = InformesConfigStorage()
@@ -261,22 +264,36 @@ class InformesFrame(customtkinter.CTkFrame):
         separator2 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
         separator2.grid(row=3, column=0, sticky="ew", padx=15, pady=10)
 
-        # Sección FILTROS
-        self._create_filtros_section(right_frame, row=4)
+        # Sección AGRUPACIÓN (GROUP BY)
+        self._create_agrupacion_section(right_frame, row=4)
 
         # Separador
         separator3 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
         separator3.grid(row=5, column=0, sticky="ew", padx=15, pady=10)
 
-        # Sección CAMPOS A MOSTRAR
-        self._create_campos_section(right_frame, row=6)
+        # Sección AGREGACIONES (funciones)
+        self._create_agregaciones_section(right_frame, row=6)
 
         # Separador
         separator4 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
         separator4.grid(row=7, column=0, sticky="ew", padx=15, pady=10)
 
+        # Sección FILTROS
+        self._create_filtros_section(right_frame, row=8)
+
+        # Separador
+        separator5 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
+        separator5.grid(row=9, column=0, sticky="ew", padx=15, pady=10)
+
+        # Sección CAMPOS A MOSTRAR
+        self._create_campos_section(right_frame, row=10)
+
+        # Separador
+        separator6 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
+        separator6.grid(row=11, column=0, sticky="ew", padx=15, pady=10)
+
         # Sección OPCIONES DE PRESENTACIÓN
-        self._create_opciones_section(right_frame, row=8)
+        self._create_opciones_section(right_frame, row=12)
 
     def _create_clasificacion_section(self, parent, row):
         """Crea la sección de clasificación"""
@@ -314,6 +331,122 @@ class InformesFrame(customtkinter.CTkFrame):
         self.clasificaciones_frame = customtkinter.CTkFrame(self.clasificaciones_container, fg_color="transparent")
         self.clasificaciones_frame.pack(fill="both", expand=True)
         self.clasificaciones_frame.grid_columnconfigure(0, weight=1)
+
+    def _create_agrupacion_section(self, parent, row):
+        """Crea la sección de agrupación (GROUP BY visual)"""
+        # Frame contenedor
+        agrup_frame = customtkinter.CTkFrame(parent, fg_color="transparent", height=150)
+        agrup_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
+        agrup_frame.grid_columnconfigure(0, weight=1)
+
+        # Título y descripción
+        title = customtkinter.CTkLabel(
+            agrup_frame,
+            text="📊 AGRUPACIÓN (Organizar visualmente)",
+            font=customtkinter.CTkFont(size=12, weight="bold")
+        )
+        title.grid(row=0, column=0, sticky="w", pady=(0, 3))
+
+        desc = customtkinter.CTkLabel(
+            agrup_frame,
+            text="Organiza los registros en grupos visuales. Los subtotales se calcularán por cada grupo.",
+            font=customtkinter.CTkFont(size=10),
+            text_color="gray60"
+        )
+        desc.grid(row=1, column=0, sticky="w", pady=(0, 8))
+
+        # Frame horizontal para botón y selector de modo
+        controls_frame = customtkinter.CTkFrame(agrup_frame, fg_color="transparent")
+        controls_frame.grid(row=2, column=0, sticky="ew", pady=(0, 8))
+        controls_frame.grid_columnconfigure(1, weight=1)
+
+        # Botón añadir
+        add_button = customtkinter.CTkButton(
+            controls_frame,
+            text="+ Añadir nivel de agrupación",
+            width=180,
+            height=28,
+            command=self._add_agrupacion
+        )
+        add_button.grid(row=0, column=0, sticky="w", padx=(0, 10))
+
+        # Selector de modo (Detalle vs Resumen)
+        modo_frame = customtkinter.CTkFrame(controls_frame, fg_color="transparent")
+        modo_frame.grid(row=0, column=1, sticky="e")
+
+        modo_label = customtkinter.CTkLabel(
+            modo_frame,
+            text="Modo:",
+            font=customtkinter.CTkFont(size=10)
+        )
+        modo_label.pack(side="left", padx=(0, 5))
+
+        self.modo_selector = customtkinter.CTkSegmentedButton(
+            modo_frame,
+            values=["Detalle", "Resumen"],
+            width=180,
+            height=28,
+            command=self._on_modo_changed
+        )
+        self.modo_selector.set("Detalle")
+        self.modo_selector.pack(side="left")
+
+        # Frame para agrupaciones con scroll
+        self.agrupaciones_container = customtkinter.CTkScrollableFrame(
+            agrup_frame,
+            height=180,
+            fg_color="transparent"
+        )
+        self.agrupaciones_container.grid(row=3, column=0, sticky="ew")
+
+        self.agrupaciones_frame = customtkinter.CTkFrame(self.agrupaciones_container, fg_color="transparent")
+        self.agrupaciones_frame.pack(fill="both", expand=True)
+        self.agrupaciones_frame.grid_columnconfigure(0, weight=1)
+
+    def _create_agregaciones_section(self, parent, row):
+        """Crea la sección de agregaciones (funciones SUM, AVG, etc.)"""
+        # Frame contenedor
+        agreg_frame = customtkinter.CTkFrame(parent, fg_color="transparent", height=150)
+        agreg_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
+        agreg_frame.grid_columnconfigure(0, weight=1)
+
+        # Título y descripción
+        title = customtkinter.CTkLabel(
+            agreg_frame,
+            text="🔢 AGREGACIONES (Funciones de cálculo)",
+            font=customtkinter.CTkFont(size=12, weight="bold")
+        )
+        title.grid(row=0, column=0, sticky="w", pady=(0, 3))
+
+        desc = customtkinter.CTkLabel(
+            agreg_frame,
+            text="Calcula totales, promedios, etc. Se mostrarán como subtotales por grupo y total general.",
+            font=customtkinter.CTkFont(size=10),
+            text_color="gray60"
+        )
+        desc.grid(row=1, column=0, sticky="w", pady=(0, 8))
+
+        # Botón añadir
+        add_button = customtkinter.CTkButton(
+            agreg_frame,
+            text="+ Añadir agregación",
+            width=150,
+            height=28,
+            command=self._add_agregacion
+        )
+        add_button.grid(row=2, column=0, sticky="w", pady=(0, 8))
+
+        # Frame para agregaciones con scroll
+        self.agregaciones_container = customtkinter.CTkScrollableFrame(
+            agreg_frame,
+            height=180,
+            fg_color="transparent"
+        )
+        self.agregaciones_container.grid(row=3, column=0, sticky="ew")
+
+        self.agregaciones_frame = customtkinter.CTkFrame(self.agregaciones_container, fg_color="transparent")
+        self.agregaciones_frame.pack(fill="both", expand=True)
+        self.agregaciones_frame.grid_columnconfigure(0, weight=1)
 
     def _create_filtros_section(self, parent, row):
         """Crea la sección de filtros"""
@@ -673,6 +806,265 @@ class InformesFrame(customtkinter.CTkFrame):
         container.destroy()
         # Actualizar lista
         self.clasificaciones = [c for c in self.clasificaciones if c['container'].winfo_exists()]
+
+    def _add_agrupacion(self):
+        """Añade un nuevo nivel de agrupación"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe para poder configurar agrupaciones",
+                icon="warning"
+            )
+            return
+
+        # Verificar límite de niveles
+        agrupaciones_config = self.definicion_actual.get('agrupaciones', {})
+        max_niveles = agrupaciones_config.get('max_niveles', 3)
+
+        if len(self.agrupaciones) >= max_niveles:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Límite alcanzado",
+                message=f"Máximo {max_niveles} niveles de agrupación permitidos",
+                icon="warning"
+            )
+            return
+
+        row = len(self.agrupaciones)
+
+        agrup_container = customtkinter.CTkFrame(self.agrupaciones_frame, fg_color="gray25")
+        agrup_container.grid(row=row, column=0, sticky="ew", pady=5, padx=5)
+        agrup_container.grid_columnconfigure(1, weight=1)
+
+        # Label de nivel
+        nivel_label = customtkinter.CTkLabel(
+            agrup_container,
+            text=f"Nivel {row + 1}:",
+            font=customtkinter.CTkFont(size=11, weight="bold")
+        )
+        nivel_label.grid(row=0, column=0, padx=(10, 10), sticky="w")
+
+        # Campo para agrupar
+        campo_label = customtkinter.CTkLabel(agrup_container, text="Agrupar por:")
+        campo_label.grid(row=0, column=1, sticky="w", padx=(0, 5))
+
+        # Obtener campos permitidos para agrupación
+        campos_permitidos = agrupaciones_config.get('campos_permitidos', [])
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        nombres_campos = [
+            campos_informe[campo_key]['nombre']
+            for campo_key in campos_permitidos
+            if campo_key in campos_informe
+        ]
+
+        # Crear objeto de agrupación
+        agrup_obj = {
+            'container': agrup_container,
+            'combo': None,
+            'campo_actual': None
+        }
+
+        campo_combo = customtkinter.CTkComboBox(
+            agrup_container,
+            values=nombres_campos if nombres_campos else ["Sin campos"],
+            width=220,
+            command=lambda choice: self._on_agrupacion_campo_change(agrup_obj, choice)
+        )
+        campo_combo.grid(row=0, column=2, sticky="w", padx=(0, 20))
+        agrup_obj['combo'] = campo_combo
+
+        # Botón eliminar
+        del_btn = customtkinter.CTkButton(
+            agrup_container,
+            text="🗑️",
+            width=40,
+            fg_color="darkred",
+            hover_color="red",
+            command=lambda: self._remove_agrupacion(agrup_container)
+        )
+        del_btn.grid(row=0, column=3, padx=(0, 10))
+
+        # Añadir a la lista
+        self.agrupaciones.append(agrup_obj)
+
+        # Auto-seleccionar primer campo
+        if nombres_campos:
+            campo_combo.set(nombres_campos[0])
+            self._on_agrupacion_campo_change(agrup_obj, nombres_campos[0])
+
+    def _on_agrupacion_campo_change(self, agrup_obj, campo_nombre):
+        """Maneja el cambio de campo en una agrupación"""
+        if not self.definicion_actual:
+            return
+
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        # Buscar el campo_key que corresponde al nombre seleccionado
+        for campo_key, campo_def in campos_informe.items():
+            if campo_def['nombre'] == campo_nombre:
+                agrup_obj['campo_actual'] = campo_key
+                break
+
+    def _remove_agrupacion(self, container):
+        """Elimina un nivel de agrupación"""
+        container.destroy()
+        # Actualizar lista
+        self.agrupaciones = [a for a in self.agrupaciones if a['container'].winfo_exists()]
+
+    def _add_agregacion(self):
+        """Añade una nueva agregación (función de cálculo)"""
+        if not self.definicion_actual:
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title="Aviso",
+                message="Selecciona primero un informe para poder configurar agregaciones",
+                icon="warning"
+            )
+            return
+
+        row = len(self.agregaciones)
+
+        agreg_container = customtkinter.CTkFrame(self.agregaciones_frame, fg_color="gray25")
+        agreg_container.grid(row=row, column=0, sticky="ew", pady=5, padx=5)
+        agreg_container.grid_columnconfigure(1, weight=1)
+        agreg_container.grid_columnconfigure(3, weight=1)
+
+        # Label
+        label = customtkinter.CTkLabel(
+            agreg_container,
+            text=f"Agregación {row + 1}:",
+            font=customtkinter.CTkFont(size=11)
+        )
+        label.grid(row=0, column=0, padx=(10, 10), sticky="w")
+
+        # Función
+        funcion_label = customtkinter.CTkLabel(agreg_container, text="Función:")
+        funcion_label.grid(row=0, column=1, sticky="w", padx=(0, 5))
+
+        agregaciones_config = self.definicion_actual.get('agregaciones', {})
+        funciones = list(agregaciones_config.keys())
+
+        # Crear objeto de agregación
+        agreg_obj = {
+            'container': agreg_container,
+            'funcion_combo': None,
+            'campo_combo': None,
+            'funcion_actual': None,
+            'campo_actual': None
+        }
+
+        funcion_combo = customtkinter.CTkComboBox(
+            agreg_container,
+            values=funciones if funciones else ["COUNT"],
+            width=150,
+            command=lambda choice: self._on_agregacion_funcion_change(agreg_obj, choice)
+        )
+        funcion_combo.grid(row=0, column=2, sticky="w", padx=(0, 20))
+        agreg_obj['funcion_combo'] = funcion_combo
+
+        # Campo
+        campo_label = customtkinter.CTkLabel(agreg_container, text="Campo:")
+        campo_label.grid(row=0, column=3, sticky="w", padx=(0, 5))
+
+        # Inicialmente vacío, se llenará cuando seleccione función
+        campo_combo = customtkinter.CTkComboBox(
+            agreg_container,
+            values=["(Selecciona función)"],
+            width=180,
+            state="disabled"
+        )
+        campo_combo.grid(row=0, column=4, sticky="w", padx=(0, 10))
+        agreg_obj['campo_combo'] = campo_combo
+
+        # Botón eliminar
+        del_btn = customtkinter.CTkButton(
+            agreg_container,
+            text="🗑️",
+            width=40,
+            fg_color="darkred",
+            hover_color="red",
+            command=lambda: self._remove_agregacion(agreg_container)
+        )
+        del_btn.grid(row=0, column=5, padx=(0, 10))
+
+        # Añadir a la lista
+        self.agregaciones.append(agreg_obj)
+
+        # Auto-seleccionar primera función
+        if funciones:
+            funcion_combo.set(funciones[0])
+            self._on_agregacion_funcion_change(agreg_obj, funciones[0])
+
+    def _on_agregacion_funcion_change(self, agreg_obj, funcion):
+        """Maneja el cambio de función en una agregación"""
+        if not self.definicion_actual:
+            return
+
+        agreg_obj['funcion_actual'] = funcion
+
+        # Obtener campos aplicables según la función
+        agregaciones_config = self.definicion_actual.get('agregaciones', {})
+        funcion_config = agregaciones_config.get(funcion, {})
+        aplicable_a = funcion_config.get('aplicable_a', [])
+
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        # Si aplica a todo (*), mostrar todos los campos numéricos/calculados
+        if "*" in aplicable_a:
+            nombres_campos = ["(Todos los registros)"]
+            agreg_obj['campo_combo'].configure(values=nombres_campos, state="disabled")
+            agreg_obj['campo_combo'].set(nombres_campos[0])
+            agreg_obj['campo_actual'] = None
+        else:
+            # Filtrar campos según el tipo
+            nombres_campos = []
+            for campo_key, campo_def in campos_informe.items():
+                tipo_campo = campo_def.get('tipo')
+                if tipo_campo in aplicable_a:
+                    nombres_campos.append(campo_def['nombre'])
+
+            if nombres_campos:
+                agreg_obj['campo_combo'].configure(values=nombres_campos, state="normal")
+                agreg_obj['campo_combo'].set(nombres_campos[0])
+                # Guardar campo_key
+                for campo_key, campo_def in campos_informe.items():
+                    if campo_def['nombre'] == nombres_campos[0]:
+                        agreg_obj['campo_actual'] = campo_key
+                        break
+            else:
+                agreg_obj['campo_combo'].configure(values=["(No aplicable)"], state="disabled")
+                agreg_obj['campo_combo'].set("(No aplicable)")
+                agreg_obj['campo_actual'] = None
+
+        # Añadir comando para detectar cambios de campo
+        agreg_obj['campo_combo'].configure(
+            command=lambda choice: self._on_agregacion_campo_change(agreg_obj, choice)
+        )
+
+    def _on_agregacion_campo_change(self, agreg_obj, campo_nombre):
+        """Maneja el cambio de campo en una agregación"""
+        if not self.definicion_actual:
+            return
+
+        campos_informe = self.definicion_actual.get('campos', {})
+
+        # Buscar el campo_key que corresponde al nombre seleccionado
+        for campo_key, campo_def in campos_informe.items():
+            if campo_def['nombre'] == campo_nombre:
+                agreg_obj['campo_actual'] = campo_key
+                break
+
+    def _remove_agregacion(self, container):
+        """Elimina una agregación"""
+        container.destroy()
+        # Actualizar lista
+        self.agregaciones = [a for a in self.agregaciones if a['container'].winfo_exists()]
+
+    def _on_modo_changed(self, modo):
+        """Maneja el cambio de modo de visualización (Detalle/Resumen)"""
+        self.modo_visualizacion = modo.lower()
 
     def _add_filtro(self):
         """Añade un nuevo selector de filtro dinámico"""
@@ -1213,28 +1605,67 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
+        # Recopilar agrupaciones aplicadas
+        agrupaciones_aplicadas = []
+        for agrup_obj in self.agrupaciones:
+            campo_actual = agrup_obj.get('campo_actual')
+            if campo_actual:
+                agrupaciones_aplicadas.append(campo_actual)
+
+        # Recopilar agregaciones aplicadas
+        agregaciones_aplicadas = []
+        for agreg_obj in self.agregaciones:
+            funcion = agreg_obj.get('funcion_actual')
+            campo = agreg_obj.get('campo_actual')  # Puede ser None para COUNT
+            if funcion:
+                agregaciones_aplicadas.append({
+                    'funcion': funcion,
+                    'campo': campo
+                })
+
         # Ejecutar informe
         print(f"\n{'='*70}")
         print(f"EJECUTANDO INFORME: {self.informe_seleccionado}")
         print(f"Filtros aplicados: {len(filtros_aplicados)}")
         print(f"Clasificaciones aplicadas: {len(clasificaciones_aplicadas)}")
         print(f"Campos seleccionados: {len(campos_seleccionados)}")
+        print(f"Agrupaciones aplicadas: {len(agrupaciones_aplicadas)}")
+        print(f"Agregaciones aplicadas: {len(agregaciones_aplicadas)}")
+        print(f"Modo visualización: {self.modo_visualizacion}")
         print(f"{'='*70}\n")
 
         try:
-            columnas, datos, totales = ejecutar_informe(
-                self.user,
-                self.password,
-                self.schema,
-                self.informe_seleccionado,
-                filtros=filtros_aplicados,
-                clasificaciones=clasificaciones_aplicadas,
-                campos_seleccionados=campos_seleccionados
-            )
+            # Si hay agrupaciones o agregaciones, usar la versión extendida
+            if agrupaciones_aplicadas or agregaciones_aplicadas:
+                columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    clasificaciones=clasificaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados,
+                    agrupaciones=agrupaciones_aplicadas,
+                    agregaciones=agregaciones_aplicadas,
+                    modo=self.modo_visualizacion
+                )
+                # Convertir resultado_agrupacion a totales para compatibilidad
+                totales = resultado_agrupacion.get('totales_generales', {})
+            else:
+                columnas, datos, totales = ejecutar_informe(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    clasificaciones=clasificaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados
+                )
+                resultado_agrupacion = None
 
             # Mostrar resultados
             if datos:
-                self._show_results_window(columnas, datos, totales)
+                self._show_results_window(columnas, datos, totales, resultado_agrupacion)
             else:
                 # Mensaje más claro dependiendo de si hay filtros o no
                 if filtros_aplicados:
@@ -1259,8 +1690,109 @@ class InformesFrame(customtkinter.CTkFrame):
                 icon="cancel"
             )
 
-    def _show_results_window(self, columnas, datos, totales=None):
-        """Muestra una ventana con los resultados del informe"""
+    def _crear_fila_totales(self, columnas, totales_dict, texto_primera_col="═══ TOTAL ═══"):
+        """Crea una fila de totales formateada
+
+        Args:
+            columnas: Lista de nombres de columnas
+            totales_dict: Dict con los totales {función(campo): valor}
+            texto_primera_col: Texto para la primera columna
+
+        Returns:
+            Lista de valores formateados para la fila de totales
+        """
+        fila = []
+        for i, col in enumerate(columnas):
+            # Buscar si hay un total para esta columna
+            total_encontrado = False
+            for key, valor in totales_dict.items():
+                # key tiene formato "FUNCION(campo)" o "FUNCION(*)"
+                if f"({col})" in key or (col in totales_dict):
+                    fila.append(f"{valor:,.2f}" if isinstance(valor, (int, float)) else str(valor))
+                    total_encontrado = True
+                    break
+
+            if not total_encontrado:
+                if i == 0:
+                    fila.append(texto_primera_col)
+                else:
+                    fila.append("")
+
+        return fila
+
+    def _render_grupos_recursivo(self, tree, grupos, columnas, parent="", nivel=0, modo='detalle'):
+        """Renderiza grupos de forma recursiva en el TreeView
+
+        Args:
+            tree: Widget TreeView
+            grupos: Lista de grupos a renderizar
+            columnas: Lista de nombres de columnas
+            parent: ID del nodo padre ("" para raíz)
+            nivel: Nivel de profundidad del grupo (0 = primer nivel)
+            modo: 'detalle' o 'resumen'
+        """
+        if not grupos:
+            return
+
+        for grupo in grupos:
+            clave = grupo['clave']
+            campo = grupo['campo']
+            datos = grupo['datos']
+            subtotales = grupo.get('subtotales', {})
+            subgrupos = grupo.get('subgrupos')
+
+            # ENCABEZADO DEL GRUPO
+            # Crear fila de encabezado con el nombre del grupo y subtotales
+            indent = "    " * nivel  # Indentación visual
+            titulo_grupo = f"{indent}📁 {campo.upper()}: {clave}"
+
+            # Añadir información de subtotales al título
+            if subtotales:
+                info_subtotales = []
+                for key, valor in subtotales.items():
+                    if isinstance(valor, (int, float)):
+                        info_subtotales.append(f"{key}={valor:,.2f}")
+                    else:
+                        info_subtotales.append(f"{key}={valor}")
+
+                if info_subtotales:
+                    titulo_grupo += f"  │  {' • '.join(info_subtotales[:3])}"  # Mostrar max 3 totales
+
+            # Crear fila de encabezado
+            fila_header = [titulo_grupo] + [""] * (len(columnas) - 1)
+            header_id = tree.insert(parent, "end", values=fila_header, tags=(f'grupo_header_nivel{nivel}',))
+
+            # Configurar estilo según nivel
+            if nivel == 0:
+                tree.tag_configure(f'grupo_header_nivel{nivel}', background='#4A6FA5', foreground='white', font=('TkDefaultFont', 10, 'bold'))
+            elif nivel == 1:
+                tree.tag_configure(f'grupo_header_nivel{nivel}', background='#6B8FB8', foreground='white', font=('TkDefaultFont', 9, 'bold'))
+            else:
+                tree.tag_configure(f'grupo_header_nivel{nivel}', background='#8AADC7', foreground='white', font=('TkDefaultFont', 9))
+
+            # SUBGRUPOS (si existen)
+            if subgrupos:
+                self._render_grupos_recursivo(tree, subgrupos, columnas, header_id, nivel + 1, modo)
+            elif modo == 'detalle':
+                # DATOS DEL GRUPO (solo si estamos en modo detalle y no hay subgrupos)
+                for fila_datos in datos:
+                    tree.insert(header_id, "end", values=fila_datos, tags=(f'datos_nivel{nivel}',))
+
+                # Estilo para datos
+                if nivel == 0:
+                    tree.tag_configure(f'datos_nivel{nivel}', background='gray20')
+                else:
+                    tree.tag_configure(f'datos_nivel{nivel}', background='gray15')
+
+    def _show_results_window(self, columnas, datos, totales=None, resultado_agrupacion=None):
+        """Muestra una ventana con los resultados del informe
+
+        Args:
+            columnas: Lista de nombres de columnas
+            datos: Lista de tuplas con los datos
+            totales: Dict con totales por columna
+            resultado_agrupacion: Dict con estructura de grupos y agregaciones (opcional)
+        """
         # Crear ventana toplevel
         results_window = customtkinter.CTkToplevel(self)
         results_window.title(f"Vista Previa: {self.informe_seleccionado}")
@@ -1318,12 +1850,30 @@ class InformesFrame(customtkinter.CTkFrame):
             tree.heading(col, text=col)
             tree.column(col, width=150, anchor="w")
 
-        # Insertar datos
-        for fila in datos:
-            tree.insert("", "end", values=fila)
+        # Insertar datos con soporte para agrupaciones
+        if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+            # MODO AGRUPADO: Renderizar grupos jerárquicos
+            modo = resultado_agrupacion.get('modo', 'detalle')
+            self._render_grupos_recursivo(tree, resultado_agrupacion['grupos'], columnas, "", nivel=0, modo=modo)
 
-        # Insertar fila de totales si hay totales y la opción está activada
-        if totales and self.totales_var.get():
+            # Añadir fila de totales generales al final
+            if resultado_agrupacion.get('totales_generales') and self.totales_var.get():
+                tree.insert("", "end", values=[""] * len(columnas), tags=('separador',))
+                fila_totales = self._crear_fila_totales(
+                    columnas,
+                    resultado_agrupacion['totales_generales'],
+                    "═══ TOTAL GENERAL ═══"
+                )
+                tree.insert("", "end", values=fila_totales, tags=('total_general',))
+                tree.tag_configure('separador', background='gray40')
+                tree.tag_configure('total_general', background='#2E5C8A', foreground='white', font=('TkDefaultFont', 10, 'bold'))
+        else:
+            # MODO NORMAL: Insertar datos sin agrupación
+            for fila in datos:
+                tree.insert("", "end", values=fila)
+
+        # Insertar fila de totales si hay totales y la opción está activada (modo normal)
+        if not resultado_agrupacion and totales and self.totales_var.get():
             # Crear fila de totales
             fila_totales = []
             for i, col in enumerate(columnas):
