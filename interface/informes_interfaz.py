@@ -1979,10 +1979,11 @@ class InformesFrame(customtkinter.CTkFrame):
         results_window.after(100, lambda: results_window.attributes('-topmost', False))
 
     def _export_word(self):
-        """Exporta el informe a formato Word (.docx)"""
+        """Exporta el informe a formato Word (.docx) con formato profesional"""
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        from script.informes_exportacion import InformesExportador
 
         # Validaciones
         if not self.informe_seleccionado:
@@ -2001,7 +2002,7 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
-        # Recopilar filtros aplicados
+        # Recopilar filtros aplicados (con soporte para operador "Entre")
         filtros_aplicados = []
         for filtro_obj in self.filtros:
             campo_actual = filtro_obj.get('campo_actual')
@@ -2011,242 +2012,12 @@ class InformesFrame(customtkinter.CTkFrame):
             operador = filtro_obj['operador_combo'].get()
             valor_widget = filtro_obj['valor_widget']
 
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
-            else:
-                valor = ""
-
-            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
-                continue
-
-            # Obtener lógica (Y/O) del combo - por defecto 'Y'
-            logica = 'Y'
-            if filtro_obj.get('logica_combo'):
-                logica = filtro_obj['logica_combo'].get()
-
-            filtros_aplicados.append({
-                'campo': campo_actual,
-                'operador': operador,
-                'valor': valor,
-                'logica': logica
-            })
-
-        # Recopilar ordenaciones aplicadas
-        ordenaciones_aplicadas = []
-        for clasif_obj in self.ordenaciones:
-            campo_actual = clasif_obj.get('campo_actual')
-            if not campo_actual:
-                continue
-
-            orden = clasif_obj['orden_combo'].get()
-            if not orden or orden == "Seleccionar...":
-                orden = "Ascendente"
-
-            ordenaciones_aplicadas.append({
-                'campo': campo_actual,
-                'orden': orden
-            })
-
-        # Recopilar campos seleccionados
-        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
-
-        if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
-
-        # Ejecutar informe para obtener datos
-        try:
-            columnas, datos, totales = ejecutar_informe(
-                self.user,
-                self.password,
-                self.schema,
-                self.informe_seleccionado,
-                filtros=filtros_aplicados,
-                ordenaciones=ordenaciones_aplicadas,
-                campos_seleccionados=campos_seleccionados
-            )
-
-            if not datos:
-                # Mensaje más claro dependiendo de si hay filtros o no
-                if filtros_aplicados:
-                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
-                else:
-                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
-
-                CTkMessagebox(
-                    title="Sin Resultados",
-                    message=mensaje,
-                    icon="info"
-                )
-                return
-
-        except Exception as e:
-            import traceback
-            error_msg = str(e)
-            print(f"Error al generar informe:\n{traceback.format_exc()}")
-
-            CTkMessagebox(
-                title="Error",
-                message=f"Error al generar el informe:\n\n{error_msg}",
-                icon="cancel"
-            )
-            return
-
-        # Pedir ubicación de guardado
-        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.docx"
-
-        archivo = filedialog.asksaveasfilename(
-            defaultextension=".docx",
-            filetypes=[("Word files", "*.docx"), ("All files", "*.*")],
-            initialfile=nombre_archivo,
-            title="Guardar informe como..."
-        )
-
-        if not archivo:
-            return  # Usuario canceló
-
-        # Crear archivo Word
-        try:
-            from docx import Document
-            from docx.shared import Inches, Pt, RGBColor
-            from docx.enum.text import WD_ALIGN_PARAGRAPH
-
-            doc = Document()
-
-            # Título del informe
-            titulo = doc.add_heading(f"📊 {self.informe_seleccionado}", level=0)
-            titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            titulo_run = titulo.runs[0]
-            titulo_run.font.color.rgb = RGBColor(31, 78, 120)  # Azul oscuro
-
-            # Información de fecha y filtros
-            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            if filtros_aplicados:
-                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
-            if ordenaciones_aplicadas:
-                info_text += f" | Ordenaciones: {len(ordenaciones_aplicadas)}"
-
-            info_para = doc.add_paragraph(info_text)
-            info_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            info_run = info_para.runs[0]
-            info_run.font.size = Pt(10)
-            info_run.font.italic = True
-            info_run.font.color.rgb = RGBColor(102, 102, 102)  # Gris
-
-            # Espacio
-            doc.add_paragraph()
-
-            # Tabla con datos
-            tabla = doc.add_table(rows=1, cols=len(columnas))
-            tabla.style = 'Light Grid Accent 1'
-
-            # Encabezados
-            header_cells = tabla.rows[0].cells
-            for idx, columna in enumerate(columnas):
-                header_cells[idx].text = str(columna)
-                # Formatear encabezado
-                for paragraph in header_cells[idx].paragraphs:
-                    for run in paragraph.runs:
-                        run.font.bold = True
-                        run.font.size = Pt(11)
-                        run.font.color.rgb = RGBColor(255, 255, 255)
-                # Color de fondo se maneja con el estilo de tabla
-
-            # Datos
-            for fila in datos:
-                row_cells = tabla.add_row().cells
-                for idx, valor in enumerate(fila):
-                    row_cells[idx].text = str(valor) if valor is not None else ""
-                    # Formatear dato
-                    for paragraph in row_cells[idx].paragraphs:
-                        for run in paragraph.runs:
-                            run.font.size = Pt(10)
-
-            # Espacio
-            doc.add_paragraph()
-
-            # Resumen
-            resumen_para = doc.add_paragraph(f"Total de registros: {len(datos)}")
-            resumen_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-            resumen_run = resumen_para.runs[0]
-            resumen_run.font.bold = True
-            resumen_run.font.size = Pt(11)
-
-            # Guardar archivo
-            doc.save(archivo)
-
-            CTkMessagebox(
-                title="Exportación Exitosa",
-                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
-                        f"Registros exportados: {len(datos)}",
-                icon="check"
-            )
-
-        except ImportError:
-            CTkMessagebox(
-                title="Error",
-                message="La librería 'python-docx' no está instalada.\n\n"
-                        "Por favor, instálala con:\n"
-                        "pip install python-docx",
-                icon="cancel"
-            )
-        except Exception as e:
-            import traceback
-            print(f"Error al exportar a Word:\n{traceback.format_exc()}")
-            CTkMessagebox(
-                title="Error",
-                message=f"Error al exportar a Word:\n\n{str(e)}",
-                icon="cancel"
-            )
-
-    def _export_excel(self):
-        """Exporta el informe a formato Excel (.xlsx)"""
-        from CTkMessagebox import CTkMessagebox
-        from tkinter import filedialog
-        import datetime
-
-        # Validaciones
-        if not self.informe_seleccionado:
-            CTkMessagebox(
-                title="Aviso",
-                message="Por favor, seleccione un informe del menú izquierdo.",
-                icon="warning"
-            )
-            return
-
-        if not self.definicion_actual:
-            CTkMessagebox(
-                title="Aviso",
-                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
-                icon="warning"
-            )
-            return
-
-        # Recopilar filtros aplicados
-        filtros_aplicados = []
-        for filtro_obj in self.filtros:
-            campo_actual = filtro_obj.get('campo_actual')
-            if not campo_actual:
-                continue
-
-            operador = filtro_obj['operador_combo'].get()
-            valor_widget = filtro_obj['valor_widget']
-
-            # Obtener valor según tipo de widget
             # Caso especial: operador "Entre" requiere dos valores
             if filtro_obj.get('is_range') and operador == "Entre":
                 widget1 = filtro_obj.get('valor_widget')
                 widget2 = filtro_obj.get('valor_widget2')
 
                 if widget1 and widget2:
-                    # Obtener valor según tipo de widget
                     if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
                         valor1 = widget1.get()
                     else:
@@ -2260,7 +2031,6 @@ class InformesFrame(customtkinter.CTkFrame):
                     if not valor1 or not valor2:
                         continue
 
-                    # Para "Entre", pasar tupla (min, max)
                     valor = (valor1, valor2)
                 else:
                     continue
@@ -2315,17 +2085,52 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
+        # Recopilar agrupaciones aplicadas
+        agrupaciones_aplicadas = []
+        for agrup_obj in self.agrupaciones:
+            campo_actual = agrup_obj.get('campo_actual')
+            if campo_actual:
+                agrupaciones_aplicadas.append(campo_actual)
+
+        # Recopilar agregaciones aplicadas
+        agregaciones_aplicadas = []
+        for agreg_obj in self.agregaciones:
+            funcion = agreg_obj.get('funcion_actual')
+            campo = agreg_obj.get('campo_actual')  # Puede ser None para COUNT
+            if funcion:
+                agregaciones_aplicadas.append({
+                    'funcion': funcion,
+                    'campo': campo
+                })
+
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos, totales = ejecutar_informe(
-                self.user,
-                self.password,
-                self.schema,
-                self.informe_seleccionado,
-                filtros=filtros_aplicados,
-                ordenaciones=ordenaciones_aplicadas,
-                campos_seleccionados=campos_seleccionados
-            )
+            # Si hay agrupaciones o agregaciones, usar la versión extendida
+            if agrupaciones_aplicadas or agregaciones_aplicadas:
+                columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados,
+                    agrupaciones=agrupaciones_aplicadas,
+                    agregaciones=agregaciones_aplicadas,
+                    modo=self.modo_visualizacion
+                )
+            else:
+                # Sin agrupaciones: informe simple
+                columnas, datos, totales = ejecutar_informe(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados
+                )
+                resultado_agrupacion = None
 
             if not datos:
                 # Mensaje más claro dependiendo de si hay filtros o no
@@ -2355,11 +2160,11 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Pedir ubicación de guardado
         fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.xlsx"
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.docx"
 
         archivo = filedialog.asksaveasfilename(
-            defaultextension=".xlsx",
-            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            defaultextension=".docx",
+            filetypes=[("Word files", "*.docx"), ("All files", "*.*")],
             initialfile=nombre_archivo,
             title="Guardar informe como..."
         )
@@ -2367,112 +2172,57 @@ class InformesFrame(customtkinter.CTkFrame):
         if not archivo:
             return  # Usuario canceló
 
-        # Crear archivo Excel
+        # Crear archivo Word usando el exportador profesional
         try:
-            from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            exportador = InformesExportador(self.schema)
 
-            wb = Workbook()
-            ws = wb.active
-            ws.title = self.informe_seleccionado[:31]  # Límite de 31 caracteres para nombre de hoja
-
-            # Título del informe (fila 1)
-            ws.merge_cells('A1:' + chr(64 + len(columnas)) + '1')
-            titulo_cell = ws['A1']
-            titulo_cell.value = f"📊 {self.informe_seleccionado}"
-            titulo_cell.font = Font(size=16, bold=True, color="FFFFFF")
-            titulo_cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-            titulo_cell.alignment = Alignment(horizontal="center", vertical="center")
-            ws.row_dimensions[1].height = 30
-
-            # Información de fecha y filtros (fila 2)
-            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            if filtros_aplicados:
-                info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
-            ws.merge_cells('A2:' + chr(64 + len(columnas)) + '2')
-            info_cell = ws['A2']
-            info_cell.value = info_text
-            info_cell.font = Font(size=10, italic=True, color="666666")
-            info_cell.alignment = Alignment(horizontal="center")
-            ws.row_dimensions[2].height = 20
-
-            # Encabezados de columnas (fila 4)
-            header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-            header_font = Font(bold=True, color="FFFFFF", size=12)
-            header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-            border = Border(
-                left=Side(style='thin'),
-                right=Side(style='thin'),
-                top=Side(style='thin'),
-                bottom=Side(style='thin')
+            exito = exportador.exportar_a_word(
+                filepath=archivo,
+                informe_nombre=self.informe_seleccionado,
+                columnas=columnas,
+                datos=datos,
+                resultado_agrupacion=resultado_agrupacion,
+                proyecto_nombre=self.schema,
+                proyecto_codigo=self.schema
             )
 
-            for col_idx, columna in enumerate(columnas, start=1):
-                cell = ws.cell(row=4, column=col_idx)
-                cell.value = columna
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = header_alignment
-                cell.border = border
-                # Ajustar ancho de columna
-                ws.column_dimensions[chr(64 + col_idx)].width = max(15, len(str(columna)) + 2)
+            if exito:
+                CTkMessagebox(
+                    title="Exportación Exitosa",
+                    message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                            f"Registros exportados: {len(datos)}",
+                    icon="check"
+                )
+            else:
+                CTkMessagebox(
+                    title="Error",
+                    message="Error al exportar el informe. Revise la consola para más detalles.",
+                    icon="cancel"
+                )
 
-            ws.row_dimensions[4].height = 25
-
-            # Datos (desde fila 5)
-            data_alignment = Alignment(horizontal="left", vertical="center")
-            for row_idx, fila in enumerate(datos, start=5):
-                for col_idx, valor in enumerate(fila, start=1):
-                    cell = ws.cell(row=row_idx, column=col_idx)
-                    cell.value = valor
-                    cell.alignment = data_alignment
-                    cell.border = border
-
-                    # Alternar color de fila
-                    if row_idx % 2 == 0:
-                        cell.fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-
-            # Resumen al final
-            ultima_fila = 5 + len(datos)
-            ws.merge_cells(f'A{ultima_fila}:' + chr(64 + len(columnas)) + str(ultima_fila))
-            resumen_cell = ws[f'A{ultima_fila}']
-            resumen_cell.value = f"Total de registros: {len(datos)}"
-            resumen_cell.font = Font(bold=True, size=11)
-            resumen_cell.alignment = Alignment(horizontal="right")
-            resumen_cell.fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
-
-            # Guardar archivo
-            wb.save(archivo)
-
-            CTkMessagebox(
-                title="Exportación Exitosa",
-                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
-                        f"Registros exportados: {len(datos)}",
-                icon="check"
-            )
-
-        except ImportError:
+        except ImportError as e:
             CTkMessagebox(
                 title="Error",
-                message="La librería 'openpyxl' no está instalada.\n\n"
-                        "Por favor, instálala con:\n"
-                        "pip install openpyxl",
+                message=f"Falta instalar una librería requerida:\n\n{str(e)}\n\n"
+                        "Por favor, instala las dependencias con:\n"
+                        "pip install python-docx xlsxwriter",
                 icon="cancel"
             )
         except Exception as e:
             import traceback
-            print(f"Error al exportar a Excel:\n{traceback.format_exc()}")
+            print(f"Error al exportar a Word:\n{traceback.format_exc()}")
             CTkMessagebox(
                 title="Error",
-                message=f"Error al exportar a Excel:\n\n{str(e)}",
+                message=f"Error al exportar a Word:\n\n{str(e)}",
                 icon="cancel"
             )
 
-    def _export_pdf(self):
-        """Exporta el informe a formato PDF"""
+    def _export_excel(self):
+        """Exporta el informe a formato Excel (.xlsx) con formato profesional"""
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        from script.informes_exportacion import InformesExportador
 
         # Validaciones
         if not self.informe_seleccionado:
@@ -2491,7 +2241,7 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
-        # Recopilar filtros aplicados
+        # Recopilar filtros aplicados (con soporte para operador "Entre")
         filtros_aplicados = []
         for filtro_obj in self.filtros:
             campo_actual = filtro_obj.get('campo_actual')
@@ -2501,12 +2251,36 @@ class InformesFrame(customtkinter.CTkFrame):
             operador = filtro_obj['operador_combo'].get()
             valor_widget = filtro_obj['valor_widget']
 
-            if isinstance(valor_widget, customtkinter.CTkComboBox):
-                valor = valor_widget.get()
-            elif isinstance(valor_widget, customtkinter.CTkEntry):
-                valor = valor_widget.get()
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    valor = (valor1, valor2)
+                else:
+                    continue
             else:
-                valor = ""
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
 
             if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
                 continue
@@ -2550,17 +2324,291 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
+        # Recopilar agrupaciones aplicadas
+        agrupaciones_aplicadas = []
+        for agrup_obj in self.agrupaciones:
+            campo_actual = agrup_obj.get('campo_actual')
+            if campo_actual:
+                agrupaciones_aplicadas.append(campo_actual)
+
+        # Recopilar agregaciones aplicadas
+        agregaciones_aplicadas = []
+        for agreg_obj in self.agregaciones:
+            funcion = agreg_obj.get('funcion_actual')
+            campo = agreg_obj.get('campo_actual')  # Puede ser None para COUNT
+            if funcion:
+                agregaciones_aplicadas.append({
+                    'funcion': funcion,
+                    'campo': campo
+                })
+
         # Ejecutar informe para obtener datos
         try:
-            columnas, datos, totales = ejecutar_informe(
-                self.user,
-                self.password,
-                self.schema,
-                self.informe_seleccionado,
-                filtros=filtros_aplicados,
-                ordenaciones=ordenaciones_aplicadas,
-                campos_seleccionados=campos_seleccionados
+            # Si hay agrupaciones o agregaciones, usar la versión extendida
+            if agrupaciones_aplicadas or agregaciones_aplicadas:
+                columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados,
+                    agrupaciones=agrupaciones_aplicadas,
+                    agregaciones=agregaciones_aplicadas,
+                    modo=self.modo_visualizacion
+                )
+            else:
+                # Sin agrupaciones: informe simple
+                columnas, datos, totales = ejecutar_informe(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados
+                )
+                resultado_agrupacion = None
+
+            if not datos:
+                # Mensaje más claro dependiendo de si hay filtros o no
+                if filtros_aplicados:
+                    mensaje = "No se encontraron datos con los filtros aplicados.\n\nIntente modificar o eliminar algunos filtros."
+                else:
+                    mensaje = "No se encontraron datos en la base de datos para este informe.\n\nVerifique que la tabla contenga registros."
+
+                CTkMessagebox(
+                    title="Sin Resultados",
+                    message=mensaje,
+                    icon="info"
+                )
+                return
+
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            print(f"Error al generar informe:\n{traceback.format_exc()}")
+
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al generar el informe:\n\n{error_msg}",
+                icon="cancel"
             )
+            return
+
+        # Pedir ubicación de guardado
+        fecha_actual = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = f"{self.informe_seleccionado.replace(' ', '_')}_{fecha_actual}.xlsx"
+
+        archivo = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+            initialfile=nombre_archivo,
+            title="Guardar informe como..."
+        )
+
+        if not archivo:
+            return  # Usuario canceló
+
+        # Crear archivo Excel usando el exportador profesional
+        try:
+            exportador = InformesExportador(self.schema)
+
+            exito = exportador.exportar_a_excel(
+                filepath=archivo,
+                informe_nombre=self.informe_seleccionado,
+                columnas=columnas,
+                datos=datos,
+                resultado_agrupacion=resultado_agrupacion,
+                proyecto_nombre=self.schema,
+                proyecto_codigo=self.schema
+            )
+
+            if exito:
+                CTkMessagebox(
+                    title="Exportación Exitosa",
+                    message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                            f"Registros exportados: {len(datos)}",
+                    icon="check"
+                )
+            else:
+                CTkMessagebox(
+                    title="Error",
+                    message="Error al exportar el informe. Revise la consola para más detalles.",
+                    icon="cancel"
+                )
+
+        except ImportError as e:
+            CTkMessagebox(
+                title="Error",
+                message=f"Falta instalar una librería requerida:\n\n{str(e)}\n\n"
+                        "Por favor, instala las dependencias con:\n"
+                        "pip install python-docx xlsxwriter",
+                icon="cancel"
+            )
+        except Exception as e:
+            import traceback
+            print(f"Error al exportar a Excel:\n{traceback.format_exc()}")
+            CTkMessagebox(
+                title="Error",
+                message=f"Error al exportar a Excel:\n\n{str(e)}",
+                icon="cancel"
+            )
+
+    def _export_pdf(self):
+        """Exporta el informe a formato PDF con formato profesional"""
+        from CTkMessagebox import CTkMessagebox
+        from tkinter import filedialog
+        import datetime
+        from script.informes_exportacion import InformesExportador
+
+        # Validaciones
+        if not self.informe_seleccionado:
+            CTkMessagebox(
+                title="Aviso",
+                message="Por favor, seleccione un informe del menú izquierdo.",
+                icon="warning"
+            )
+            return
+
+        if not self.definicion_actual:
+            CTkMessagebox(
+                title="Aviso",
+                message=f"El informe '{self.informe_seleccionado}' aún no está implementado.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar filtros aplicados (con soporte para operador "Entre")
+        filtros_aplicados = []
+        for filtro_obj in self.filtros:
+            campo_actual = filtro_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            operador = filtro_obj['operador_combo'].get()
+            valor_widget = filtro_obj['valor_widget']
+
+            # Caso especial: operador "Entre" requiere dos valores
+            if filtro_obj.get('is_range') and operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if widget1 and widget2:
+                    if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
+                        valor1 = widget1.get()
+                    else:
+                        valor1 = ""
+
+                    if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
+                        valor2 = widget2.get()
+                    else:
+                        valor2 = ""
+
+                    if not valor1 or not valor2:
+                        continue
+
+                    valor = (valor1, valor2)
+                else:
+                    continue
+            else:
+                # Caso normal: un solo valor
+                if isinstance(valor_widget, customtkinter.CTkComboBox):
+                    valor = valor_widget.get()
+                elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
+                    valor = valor_widget.get()
+                else:
+                    valor = ""
+
+            if not valor or valor == "Seleccionar..." or not operador or operador == "Seleccionar...":
+                continue
+
+            # Obtener lógica (Y/O) del combo - por defecto 'Y'
+            logica = 'Y'
+            if filtro_obj.get('logica_combo'):
+                logica = filtro_obj['logica_combo'].get()
+
+            filtros_aplicados.append({
+                'campo': campo_actual,
+                'operador': operador,
+                'valor': valor,
+                'logica': logica
+            })
+
+        # Recopilar ordenaciones aplicadas
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
+            campo_actual = clasif_obj.get('campo_actual')
+            if not campo_actual:
+                continue
+
+            orden = clasif_obj['orden_combo'].get()
+            if not orden or orden == "Seleccionar...":
+                orden = "Ascendente"
+
+            ordenaciones_aplicadas.append({
+                'campo': campo_actual,
+                'orden': orden
+            })
+
+        # Recopilar campos seleccionados
+        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+
+        if not campos_seleccionados:
+            CTkMessagebox(
+                title="Aviso",
+                message="Seleccione al menos un campo para incluir en el informe.",
+                icon="warning"
+            )
+            return
+
+        # Recopilar agrupaciones aplicadas
+        agrupaciones_aplicadas = []
+        for agrup_obj in self.agrupaciones:
+            campo_actual = agrup_obj.get('campo_actual')
+            if campo_actual:
+                agrupaciones_aplicadas.append(campo_actual)
+
+        # Recopilar agregaciones aplicadas
+        agregaciones_aplicadas = []
+        for agreg_obj in self.agregaciones:
+            funcion = agreg_obj.get('funcion_actual')
+            campo = agreg_obj.get('campo_actual')  # Puede ser None para COUNT
+            if funcion:
+                agregaciones_aplicadas.append({
+                    'funcion': funcion,
+                    'campo': campo
+                })
+
+        # Ejecutar informe para obtener datos
+        try:
+            # Si hay agrupaciones o agregaciones, usar la versión extendida
+            if agrupaciones_aplicadas or agregaciones_aplicadas:
+                columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados,
+                    agrupaciones=agrupaciones_aplicadas,
+                    agregaciones=agregaciones_aplicadas,
+                    modo=self.modo_visualizacion
+                )
+            else:
+                # Sin agrupaciones: informe simple
+                columnas, datos, totales = ejecutar_informe(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    campos_seleccionados=campos_seleccionados
+                )
+                resultado_agrupacion = None
 
             if not datos:
                 # Mensaje más claro dependiendo de si hay filtros o no
@@ -2602,122 +2650,41 @@ class InformesFrame(customtkinter.CTkFrame):
         if not archivo:
             return  # Usuario canceló
 
-        # Crear archivo PDF
+        # Crear archivo PDF usando el exportador profesional
         try:
-            from reportlab.lib import colors
-            from reportlab.lib.pagesizes import letter, A4, landscape
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.units import inch
-            from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+            exportador = InformesExportador(self.schema)
 
-            # Determinar orientación según número de columnas
-            if len(columnas) > 6:
-                pagesize = landscape(A4)
+            exito = exportador.exportar_a_pdf(
+                filepath=archivo,
+                informe_nombre=self.informe_seleccionado,
+                columnas=columnas,
+                datos=datos,
+                resultado_agrupacion=resultado_agrupacion,
+                proyecto_nombre=self.schema,
+                proyecto_codigo=self.schema
+            )
+
+            if exito:
+                CTkMessagebox(
+                    title="Exportación Exitosa",
+                    message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
+                            f"Registros exportados: {len(datos)}\n\n"
+                            f"Nota: Si LibreOffice no está disponible, se habrá generado un archivo Word.",
+                    icon="check"
+                )
             else:
-                pagesize = A4
+                CTkMessagebox(
+                    title="Error",
+                    message="Error al exportar el informe. Revise la consola para más detalles.",
+                    icon="cancel"
+                )
 
-            # Crear documento
-            doc = SimpleDocTemplate(archivo, pagesize=pagesize)
-            story = []
-            styles = getSampleStyleSheet()
-
-            # Título personalizado
-            titulo_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Heading1'],
-                fontSize=18,
-                textColor=colors.HexColor('#1F4E78'),
-                spaceAfter=12,
-                alignment=TA_CENTER
-            )
-            titulo = Paragraph(f"📊 {self.informe_seleccionado}", titulo_style)
-            story.append(titulo)
-
-            # Información de fecha y filtros
-            info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            if filtros_aplicados:
-                info_text += f" | Filtros: {len(filtros_aplicados)}"
-            if ordenaciones_aplicadas:
-                info_text += f" | Ordenaciones: {len(ordenaciones_aplicadas)}"
-
-            info_style = ParagraphStyle(
-                'InfoStyle',
-                parent=styles['Normal'],
-                fontSize=9,
-                textColor=colors.grey,
-                alignment=TA_CENTER,
-                spaceAfter=20
-            )
-            info = Paragraph(info_text, info_style)
-            story.append(info)
-
-            # Preparar datos para la tabla
-            tabla_data = [columnas]  # Encabezados
-            for fila in datos:
-                tabla_data.append([str(v) if v is not None else "" for v in fila])
-
-            # Crear tabla
-            tabla = Table(tabla_data)
-
-            # Estilo de la tabla
-            tabla_style = TableStyle([
-                # Encabezados
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-
-                # Datos
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
-
-                # Bordes y líneas
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('LINEABOVE', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
-                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#4472C4')),
-
-                # Alternar colores de fila
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F2F2F2')])
-            ])
-
-            tabla.setStyle(tabla_style)
-            story.append(tabla)
-
-            # Espacio
-            story.append(Spacer(1, 0.3 * inch))
-
-            # Resumen
-            resumen_style = ParagraphStyle(
-                'ResumenStyle',
-                parent=styles['Normal'],
-                fontSize=11,
-                alignment=TA_RIGHT,
-                spaceAfter=12
-            )
-            resumen = Paragraph(f"<b>Total de registros: {len(datos)}</b>", resumen_style)
-            story.append(resumen)
-
-            # Generar PDF
-            doc.build(story)
-
-            CTkMessagebox(
-                title="Exportación Exitosa",
-                message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
-                        f"Registros exportados: {len(datos)}",
-                icon="check"
-            )
-
-        except ImportError:
+        except ImportError as e:
             CTkMessagebox(
                 title="Error",
-                message="La librería 'reportlab' no está instalada.\n\n"
-                        "Por favor, instálala con:\n"
-                        "pip install reportlab",
+                message=f"Falta instalar una librería requerida:\n\n{str(e)}\n\n"
+                        "Por favor, instala las dependencias con:\n"
+                        "pip install python-docx xlsxwriter",
                 icon="cancel"
             )
         except Exception as e:
