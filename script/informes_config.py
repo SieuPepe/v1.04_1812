@@ -10,38 +10,29 @@ Define categorías, tipos de informes, campos, operadores, etc.
 
 CATEGORIAS_INFORMES = {
     "📊 Partes": [
-        "Resumen de Partes",  # ← INFORME MODELO (completamente funcional)
-        "Informe Tipo 2",
-        "Informe Tipo 3",
-        "Informe Tipo 4",
-        "Informe Tipo 5"
+        "Listado de Partes",
+        "Listado de Partes por Mes"
     ],
 
     "📦 Recursos": [
-        "Informe Tipo 1",
-        "Informe Tipo 2",
-        "Informe Tipo 3",
-        "Informe Tipo 4"
+        "Listado de Partidas del Presupuesto",
+        "Consumo de Recursos",
+        "Trabajos por Actuación"
     ],
 
     "💰 Presupuestos": [
-        "Informe Tipo 1",
-        "Informe Tipo 2",
-        "Informe Tipo 3",
-        "Informe Tipo 4"
+        "Contrato",
+        "Presupuesto Detallado",
+        "Presupuesto Resumen"
     ],
 
     "✅ Certificaciones": [
-        "Informe Tipo 1",
-        "Informe Tipo 2",
-        "Informe Tipo 3",
-        "Informe Tipo 4"
+        "Certificación Detallado",
+        "Certificación Resumen"
     ],
 
     "📅 Planificación": [
-        "Informe Tipo 1",
-        "Informe Tipo 2",
-        "Informe Tipo 3"
+        "Informe de Avance"
     ]
 }
 
@@ -51,9 +42,13 @@ CATEGORIAS_INFORMES = {
 # ============================================================
 
 INFORMES_DEFINICIONES = {
-    "Resumen de Partes": {
+    # ============================================================
+    # CATEGORÍA: PARTES
+    # ============================================================
+
+    "Listado de Partes": {
         "categoria": "📊 Partes",
-        "descripcion": "Listado completo de partes con filtros, agrupación y totales",
+        "descripcion": "Relación de todos los partes con campos de tbl_partes, importes de presupuesto y certificado. Total al final de presupuesto y certificación.",
         "tabla_principal": "tbl_partes",
 
         # Campos disponibles para mostrar
@@ -394,6 +389,542 @@ INFORMES_DEFINICIONES = {
             "presupuesto",
             "certificado",
             "pendiente"
+        ]
+    },
+
+    # ============================================================
+    # INFORME: Listado de Partes por Mes
+    # ============================================================
+
+    "Listado de Partes por Mes": {
+        "categoria": "📊 Partes",
+        "descripcion": "Mismo listado que 'Listado de Partes', pero separado por meses",
+        "tabla_principal": "tbl_partes",
+
+        # Usa los mismos campos que "Listado de Partes"
+        "campos": {
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "provincia": {
+                "nombre": "Provincia",
+                "tipo": "dimension",
+                "columna_bd": "provincia_id",
+                "tabla_dimension": "dim_provincias",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "presupuesto": {
+                "nombre": "Presupuesto",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "certificado": {
+                "nombre": "Certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            }
+        },
+
+        "filtros": {
+            "mes": {
+                "campo": "mes",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "provincia": {
+                "campo": "provincia",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_provincias"
+            }
+        },
+
+        "clasificaciones": [
+            "mes",
+            "estado",
+            "red",
+            "provincia",
+            "fecha_inicio"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "mes",
+                "estado",
+                "red",
+                "provincia"
+            ],
+            "max_niveles": 2,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "descripcion": "Cuenta el número de registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "descripcion": "Suma los valores del campo",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "descripcion": "Calcula el promedio de los valores",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            }
+        },
+
+        "campos_default": [
+            "mes",
+            "codigo",
+            "descripcion",
+            "estado",
+            "red",
+            "provincia",
+            "presupuesto",
+            "certificado"
+        ]
+    },
+
+    # ============================================================
+    # CATEGORÍA: RECURSOS
+    # ============================================================
+
+    "Listado de Partidas del Presupuesto": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Partidas clasificadas en base a los capítulos del presupuesto. Con unidad de medición, descripción, y precio unitario.",
+        "tabla_principal": "tbl_pres_precios",
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Clasificación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "unidad": {
+                "nombre": "Ud",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Recurso/Material",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción Completa",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "precio_unitario": {
+                "nombre": "Precio",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "naturaleza": {
+                "nombre": "Naturaleza",
+                "tipo": "dimension",
+                "columna_bd": "id_naturaleza",
+                "tabla_dimension": "tbl_pres_naturaleza",
+                "campo_nombre": "descripcion",
+                "grupo": "Clasificación"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "codigo": {
+                "campo": "codigo",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con", "Termina con", "Igual a"]
+            }
+        },
+
+        "clasificaciones": [
+            "capitulo",
+            "naturaleza",
+            "codigo",
+            "precio_unitario"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo",
+                "naturaleza"
+            ],
+            "max_niveles": 2,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "aplicable_a": ["numerico"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            },
+            "MIN": {
+                "nombre": "Mínimo",
+                "aplicable_a": ["numerico"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "MAX": {
+                "nombre": "Máximo",
+                "aplicable_a": ["numerico"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "capitulo",
+            "codigo",
+            "unidad",
+            "resumen",
+            "precio_unitario"
+        ]
+    },
+
+    "Consumo de Recursos": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Partidas del presupuesto con cantidad presupuestada e importe presupuesto, cantidad certificada e importe certificado.",
+        "tabla_principal": "tbl_pres_precios",
+        "require_joins": ["tbl_part_presupuesto", "tbl_part_certificacion"],
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Clasificación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "unidad": {
+                "nombre": "Ud",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Recurso/Material",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "precio_unitario": {
+                "nombre": "Precio",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "cantidad_presupuesto": {
+                "nombre": "Cant. Presupuesto",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formato": "decimal",
+                "grupo": "Presupuesto"
+            },
+            "importe_presupuesto": {
+                "nombre": "Imp. Presupuesto",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formato": "moneda",
+                "grupo": "Presupuesto"
+            },
+            "cantidad_certificado": {
+                "nombre": "Cant. Certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = pr.id AND pc.certificada = 1), 0)",
+                "formato": "decimal",
+                "grupo": "Certificación"
+            },
+            "importe_certificado": {
+                "nombre": "Imp. Certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = pr.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Certificación"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            },
+            "codigo": {
+                "campo": "codigo",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            }
+        },
+
+        "clasificaciones": [
+            "capitulo",
+            "codigo",
+            "cantidad_presupuesto",
+            "cantidad_certificado"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "capitulo",
+            "codigo",
+            "unidad",
+            "resumen",
+            "precio_unitario",
+            "cantidad_presupuesto",
+            "importe_presupuesto",
+            "cantidad_certificado",
+            "importe_certificado"
+        ]
+    },
+
+    "Trabajos por Actuación": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Listado de partes en los que está presupuestada una unidad de obra específica.",
+        "tabla_principal": "tbl_partes",
+        "require_selector": True,  # Requiere selector especial de partida
+        "selector_config": {
+            "tipo": "partida_presupuesto",
+            "tabla": "tbl_pres_precios",
+            "campo_mostrar": "codigo",
+            "campo_descripcion": "resumen"
+        },
+
+        "campos": {
+            "partida_seleccionada": {
+                "nombre": "Partida",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "codigo_parte": {
+                "nombre": "Código Parte",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion_parte": {
+                "nombre": "Descripción Parte",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "cantidad_presupuestada": {
+                "nombre": "Cantidad",
+                "tipo": "calculado",
+                "formula": "(SELECT pp.cantidad FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
+                "formato": "decimal",
+                "grupo": "Presupuesto"
+            },
+            "importe": {
+                "nombre": "Importe",
+                "tipo": "calculado",
+                "formula": "(SELECT pp.cantidad * pp.precio_unit FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
+                "formato": "moneda",
+                "grupo": "Presupuesto"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            }
+        },
+
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            },
+            "fecha_inicio": {
+                "campo": "fecha_inicio",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            }
+        },
+
+        "clasificaciones": [
+            "estado",
+            "fecha_inicio",
+            "cantidad_presupuestada"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "estado"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "partida_seleccionada",
+            "codigo_parte",
+            "descripcion_parte",
+            "estado",
+            "cantidad_presupuestada",
+            "importe"
         ]
     }
 }
