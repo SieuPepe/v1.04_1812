@@ -52,6 +52,18 @@ INFORMES_DEFINICIONES = {
 
         # Campos disponibles para mostrar
         "campos": {
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "formula": "YEAR(p.fecha_inicio)",
+                "grupo": "Temporal"
+            },
             "codigo": {
                 "nombre": "Código",
                 "tipo": "texto",
@@ -207,6 +219,16 @@ INFORMES_DEFINICIONES = {
 
         # Filtros disponibles
         "filtros": {
+            "mes": {
+                "campo": "mes",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "año": {
+                "campo": "año",
+                "tipo": "numerico",
+                "operadores": ["Igual a", "Mayor a", "Menor a", "Entre"]
+            },
             "estado": {
                 "campo": "estado",
                 "tipo": "select",
@@ -298,6 +320,8 @@ INFORMES_DEFINICIONES = {
 
         # Clasificaciones disponibles (ORDER BY)
         "clasificaciones": [
+            "mes",
+            "año",
             "estado",
             "red",
             "tipo_trabajo",
@@ -315,13 +339,17 @@ INFORMES_DEFINICIONES = {
         "agrupaciones": {
             # Campos permitidos para agrupar
             "campos_permitidos": [
+                "mes",
+                "año",
                 "estado",
                 "red",
                 "tipo_trabajo",
+                "codigo_trabajo",
+                "tipo_rep",
                 "provincia",
                 "comarca",
                 "municipio",
-                "tipo_rep"
+                "trabajadores"
             ],
 
             # Máximo de niveles de agrupación permitidos
@@ -388,261 +416,6 @@ INFORMES_DEFINICIONES = {
             "presupuesto",
             "certificado",
             "pendiente"
-        ]
-    },
-
-    # ============================================================
-    # INFORME: Listado de Partes por Mes
-    # ============================================================
-
-    "Listado de Partes por Mes": {
-        "categoria": "📊 Partes",
-        "descripcion": "Mismo listado que 'Listado de Partes', pero separado por meses",
-        "tabla_principal": "tbl_partes",
-
-        # Todos los campos de tbl_partes + presupuesto + certificación
-        "campos": {
-            "mes": {
-                "nombre": "Mes",
-                "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
-                "grupo": "Temporal"
-            },
-            "codigo": {
-                "nombre": "Código",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "descripcion": {
-                "nombre": "Descripción",
-                "tipo": "texto",
-                "columna_bd": "descripcion",
-                "grupo": "Información Básica"
-            },
-            "titulo": {
-                "nombre": "Título",
-                "tipo": "texto",
-                "columna_bd": "titulo",
-                "grupo": "Información Básica"
-            },
-            "estado": {
-                "nombre": "Estado",
-                "tipo": "texto",
-                "columna_bd": "estado",
-                "grupo": "Información Básica"
-            },
-            "red": {
-                "nombre": "Red",
-                "tipo": "dimension",
-                "columna_bd": "red_id",
-                "tabla_dimension": "dim_red",
-                "campo_nombre": "descripcion",
-                "grupo": "Dimensiones Técnicas"
-            },
-            "tipo_trabajo": {
-                "nombre": "Tipo de Trabajo",
-                "tipo": "dimension",
-                "columna_bd": "tipo_trabajo_id",
-                "tabla_dimension": "dim_tipo_trabajo",
-                "campo_nombre": "descripcion",
-                "grupo": "Dimensiones Técnicas"
-            },
-            "codigo_trabajo": {
-                "nombre": "Código de Trabajo",
-                "tipo": "dimension",
-                "columna_bd": "cod_trabajo_id",
-                "tabla_dimension": "dim_codigo_trabajo",
-                "campo_nombre": "descripcion",
-                "grupo": "Dimensiones Técnicas"
-            },
-            "provincia": {
-                "nombre": "Provincia",
-                "tipo": "dimension",
-                "columna_bd": "provincia_id",
-                "tabla_dimension": "dim_provincias",
-                "campo_nombre": "nombre",
-                "grupo": "Ubicación Geográfica"
-            },
-            "comarca": {
-                "nombre": "Comarca",
-                "tipo": "dimension",
-                "columna_bd": "comarca_id",
-                "tabla_dimension": "dim_comarcas",
-                "campo_nombre": "nombre",
-                "grupo": "Ubicación Geográfica"
-            },
-            "municipio": {
-                "nombre": "Municipio",
-                "tipo": "dimension",
-                "columna_bd": "municipio_id",
-                "tabla_dimension": "dim_municipios",
-                "campo_nombre": "nombre",
-                "grupo": "Ubicación Geográfica"
-            },
-            "localizacion": {
-                "nombre": "Localización",
-                "tipo": "texto",
-                "columna_bd": "localizacion",
-                "grupo": "Ubicación Geográfica"
-            },
-            "fecha_inicio": {
-                "nombre": "Fecha Inicio",
-                "tipo": "fecha",
-                "columna_bd": "fecha_inicio",
-                "grupo": "Fechas"
-            },
-            "fecha_fin": {
-                "nombre": "Fecha Fin",
-                "tipo": "fecha",
-                "columna_bd": "fecha_fin",
-                "grupo": "Fechas"
-            },
-            "tipo_rep": {
-                "nombre": "Tipo Reparación",
-                "tipo": "dimension",
-                "columna_bd": "tipo_rep_id",
-                "tabla_dimension": "dim_tipo_rep",
-                "campo_nombre": "descripcion",
-                "grupo": "Dimensiones Técnicas"
-            },
-            "trabajadores": {
-                "nombre": "Trabajadores",
-                "tipo": "texto",
-                "columna_bd": "trabajadores",
-                "grupo": "Recursos"
-            },
-            "latitud": {
-                "nombre": "Latitud",
-                "tipo": "texto",
-                "columna_bd": "latitud",
-                "grupo": "Ubicación GPS"
-            },
-            "longitud": {
-                "nombre": "Longitud",
-                "tipo": "texto",
-                "columna_bd": "longitud",
-                "grupo": "Ubicación GPS"
-            },
-            "finalizada": {
-                "nombre": "Finalizada",
-                "tipo": "boolean",
-                "columna_bd": "finalizada",
-                "grupo": "Estado"
-            },
-            "creado_en": {
-                "nombre": "Creado En",
-                "tipo": "fecha",
-                "columna_bd": "creado_en",
-                "grupo": "Auditoría"
-            },
-            "actualizado_en": {
-                "nombre": "Actualizado En",
-                "tipo": "fecha",
-                "columna_bd": "actualizado_en",
-                "grupo": "Auditoría"
-            },
-            "presupuesto": {
-                "nombre": "Presupuesto",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
-                "formato": "moneda",
-                "grupo": "Económico"
-            },
-            "certificado": {
-                "nombre": "Certificado",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "moneda",
-                "grupo": "Económico"
-            },
-            "pendiente": {
-                "nombre": "Pendiente",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "moneda",
-                "grupo": "Económico"
-            }
-        },
-
-        "filtros": {
-            "mes": {
-                "campo": "mes",
-                "tipo": "fecha",
-                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
-            },
-            "estado": {
-                "campo": "estado",
-                "tipo": "select",
-                "operadores": ["Igual a", "Diferente de"],
-                "valores": ["Pendiente", "En curso", "Finalizado"]
-            },
-            "red": {
-                "campo": "red",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_red"
-            },
-            "provincia": {
-                "campo": "provincia",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_provincias"
-            }
-        },
-
-        "clasificaciones": [
-            "mes",
-            "estado",
-            "red",
-            "provincia",
-            "fecha_inicio"
-        ],
-
-        "agrupaciones": {
-            "campos_permitidos": [
-                "mes",
-                "estado",
-                "red",
-                "provincia"
-            ],
-            "max_niveles": 2,
-            "modo_default": "detalle"
-        },
-
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "descripcion": "Cuenta el número de registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "descripcion": "Suma los valores del campo",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            },
-            "AVG": {
-                "nombre": "Promedio",
-                "descripcion": "Calcula el promedio de los valores",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "decimal"
-            }
-        },
-
-        "campos_default": [
-            "mes",
-            "codigo",
-            "descripcion",
-            "estado",
-            "red",
-            "provincia",
-            "presupuesto",
-            "certificado"
         ]
     },
 
