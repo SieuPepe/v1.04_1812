@@ -216,17 +216,15 @@ class InformesFrame(customtkinter.CTkFrame):
 
                 # Actualizar título del informe
                 if self.definicion_actual:
-                    titulo = f"Informe seleccionado: {self.informe_seleccionado}"
-                    descripcion = self.definicion_actual.get('descripcion', '')
-                    if descripcion:
-                        titulo += f" ({descripcion})"
+                    # Solo mostrar el nombre del informe, sin prefijo
+                    titulo = self.informe_seleccionado
                     self.informe_title_label.configure(
                         text=titulo,
                         text_color="white"
                     )
                 else:
                     self.informe_title_label.configure(
-                        text=f"Informe seleccionado: {self.informe_seleccionado} (En desarrollo)",
+                        text=f"{self.informe_seleccionado} (En desarrollo)",
                         text_color="gray"
                     )
 

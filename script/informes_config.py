@@ -401,7 +401,7 @@ INFORMES_DEFINICIONES = {
         "descripcion": "Mismo listado que 'Listado de Partes', pero separado por meses",
         "tabla_principal": "tbl_partes",
 
-        # Usa los mismos campos que "Listado de Partes"
+        # Todos los campos de tbl_partes + presupuesto + certificación
         "campos": {
             "mes": {
                 "nombre": "Mes",
@@ -419,6 +419,12 @@ INFORMES_DEFINICIONES = {
                 "nombre": "Descripción",
                 "tipo": "texto",
                 "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "titulo": {
+                "nombre": "Título",
+                "tipo": "texto",
+                "columna_bd": "titulo",
                 "grupo": "Información Básica"
             },
             "estado": {
@@ -443,6 +449,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "descripcion",
                 "grupo": "Dimensiones Técnicas"
             },
+            "codigo_trabajo": {
+                "nombre": "Código de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "cod_trabajo_id",
+                "tabla_dimension": "dim_codigo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
             "provincia": {
                 "nombre": "Provincia",
                 "tipo": "dimension",
@@ -450,6 +464,84 @@ INFORMES_DEFINICIONES = {
                 "tabla_dimension": "dim_provincias",
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "localizacion": {
+                "nombre": "Localización",
+                "tipo": "texto",
+                "columna_bd": "localizacion",
+                "grupo": "Ubicación Geográfica"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            },
+            "fecha_fin": {
+                "nombre": "Fecha Fin",
+                "tipo": "fecha",
+                "columna_bd": "fecha_fin",
+                "grupo": "Fechas"
+            },
+            "tipo_rep": {
+                "nombre": "Tipo Reparación",
+                "tipo": "dimension",
+                "columna_bd": "tipo_rep_id",
+                "tabla_dimension": "dim_tipo_rep",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "trabajadores": {
+                "nombre": "Trabajadores",
+                "tipo": "texto",
+                "columna_bd": "trabajadores",
+                "grupo": "Recursos"
+            },
+            "latitud": {
+                "nombre": "Latitud",
+                "tipo": "texto",
+                "columna_bd": "latitud",
+                "grupo": "Ubicación GPS"
+            },
+            "longitud": {
+                "nombre": "Longitud",
+                "tipo": "texto",
+                "columna_bd": "longitud",
+                "grupo": "Ubicación GPS"
+            },
+            "finalizada": {
+                "nombre": "Finalizada",
+                "tipo": "boolean",
+                "columna_bd": "finalizada",
+                "grupo": "Estado"
+            },
+            "creado_en": {
+                "nombre": "Creado En",
+                "tipo": "fecha",
+                "columna_bd": "creado_en",
+                "grupo": "Auditoría"
+            },
+            "actualizado_en": {
+                "nombre": "Actualizado En",
+                "tipo": "fecha",
+                "columna_bd": "actualizado_en",
+                "grupo": "Auditoría"
             },
             "presupuesto": {
                 "nombre": "Presupuesto",
@@ -465,11 +557,12 @@ INFORMES_DEFINICIONES = {
                 "formato": "moneda",
                 "grupo": "Económico"
             },
-            "fecha_inicio": {
-                "nombre": "Fecha Inicio",
-                "tipo": "fecha",
-                "columna_bd": "fecha_inicio",
-                "grupo": "Fechas"
+            "pendiente": {
+                "nombre": "Pendiente",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
             }
         },
 
