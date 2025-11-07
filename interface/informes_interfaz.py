@@ -326,7 +326,7 @@ class InformesFrame(customtkinter.CTkFrame):
         # Título
         title = customtkinter.CTkLabel(
             clasif_frame,
-            text="📋 CLASIFICACIÓN (Agrupar por)",
+            text="📋 ORDENACIÓN",
             font=customtkinter.CTkFont(size=12, weight="bold")
         )
         title.grid(row=0, column=0, sticky="w", pady=(0, 8))

@@ -694,6 +694,18 @@ INFORMES_DEFINICIONES = {
         },
 
         "campos": {
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "formula": "YEAR(p.fecha_inicio)",
+                "grupo": "Temporal"
+            },
             "partida_seleccionada": {
                 "nombre": "Partida",
                 "tipo": "texto",
@@ -755,6 +767,8 @@ INFORMES_DEFINICIONES = {
         },
 
         "ordenaciones": [
+            "mes",
+            "año",
             "estado",
             "fecha_inicio",
             "cantidad_presupuestada"
@@ -762,6 +776,8 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
+                "mes",
+                "año",
                 "estado"
             ],
             "max_niveles": 1,
@@ -908,6 +924,18 @@ INFORMES_DEFINICIONES = {
         "tabla_principal": "tbl_partes",
 
         "campos": {
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "formula": "YEAR(p.fecha_inicio)",
+                "grupo": "Temporal"
+            },
             "codigo_parte": {
                 "nombre": "Código Parte",
                 "tipo": "texto",
@@ -991,16 +1019,20 @@ INFORMES_DEFINICIONES = {
         },
 
         "ordenaciones": [
+            "mes",
+            "año",
             "codigo_parte",
             "estado"
         ],
 
         "agrupaciones": {
             "campos_permitidos": [
+                "mes",
+                "año",
                 "codigo_parte",
                 "estado"
             ],
-            "max_niveles": 2,
+            "max_niveles": 3,
             "modo_default": "detalle"
         },
 

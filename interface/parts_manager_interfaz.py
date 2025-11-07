@@ -512,6 +512,10 @@ class AppPartsManager(customtkinter.CTk):
         listado_window.title("Listado Completo de Partes")
         listado_window.geometry("1400x800")
 
+        # Traer ventana al frente
+        listado_window.lift()
+        listado_window.focus_force()
+
         # Crear el frame de listado
         parts_list_frame = PartsTab(
             listado_window,
