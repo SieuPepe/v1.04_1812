@@ -10,8 +10,7 @@ Define categorías, tipos de informes, campos, operadores, etc.
 
 CATEGORIAS_INFORMES = {
     "📊 Partes": [
-        "Listado de Partes",
-        "Listado de Partes por Mes"
+        "Listado de Partes"
     ],
 
     "📦 Recursos": [
