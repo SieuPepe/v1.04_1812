@@ -700,10 +700,20 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         - resultado_agrupacion: Dict con estructura de grupos y totales
     """
     try:
+        # IMPORTANTE: Incluir automáticamente los campos de agrupación en campos_seleccionados
+        # para que estén disponibles en el SELECT incluso si el usuario no los seleccionó explícitamente
+        campos_a_incluir = list(campos_seleccionados) if campos_seleccionados else []
+
+        if agrupaciones:
+            for campo_agrupacion in agrupaciones:
+                if campo_agrupacion not in campos_a_incluir:
+                    campos_a_incluir.append(campo_agrupacion)
+                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT")
+
         # Primero ejecutar el informe normal para obtener los datos
         columnas, datos, totales = ejecutar_informe(
             user, password, schema, informe_nombre,
-            filtros, ordenaciones, campos_seleccionados
+            filtros, ordenaciones, campos_a_incluir
         )
 
         # Si no hay datos, devolver vacío

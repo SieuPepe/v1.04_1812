@@ -1032,12 +1032,19 @@ class InformesFrame(customtkinter.CTkFrame):
 
         campos_informe = self.definicion_actual.get('campos', {})
 
-        # Si aplica a todo (*), mostrar todos los campos numéricos/calculados
+        # Si aplica a todo (*), como COUNT, ofrecer "(Todos los registros)" + campos opcionales
         if "*" in aplicable_a:
+            # COUNT puede aplicarse a todos los registros o a un campo específico
             nombres_campos = ["(Todos los registros)"]
-            agreg_obj['campo_combo'].configure(values=nombres_campos, state="disabled")
+
+            # Agregar también todos los campos disponibles como opciones
+            for campo_key, campo_def in campos_informe.items():
+                nombres_campos.append(campo_def['nombre'])
+
+            # Habilitar el desplegable para que el usuario pueda elegir
+            agreg_obj['campo_combo'].configure(values=nombres_campos, state="normal")
             agreg_obj['campo_combo'].set(nombres_campos[0])
-            agreg_obj['campo_actual'] = None
+            agreg_obj['campo_actual'] = None  # None significa COUNT(*)
         else:
             # Filtrar campos según el tipo
             nombres_campos = []
@@ -1067,6 +1074,11 @@ class InformesFrame(customtkinter.CTkFrame):
     def _on_agregacion_campo_change(self, agreg_obj, campo_nombre):
         """Maneja el cambio de campo en una agregación"""
         if not self.definicion_actual:
+            return
+
+        # Si selecciona "(Todos los registros)", significa COUNT(*)
+        if campo_nombre == "(Todos los registros)":
+            agreg_obj['campo_actual'] = None
             return
 
         campos_informe = self.definicion_actual.get('campos', {})
