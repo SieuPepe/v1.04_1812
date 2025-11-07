@@ -512,10 +512,6 @@ class AppPartsManager(customtkinter.CTk):
         listado_window.title("Listado Completo de Partes")
         listado_window.geometry("1400x800")
 
-        # Traer ventana al frente
-        listado_window.lift()
-        listado_window.focus_force()
-
         # Crear el frame de listado
         parts_list_frame = PartsTab(
             listado_window,
@@ -524,6 +520,13 @@ class AppPartsManager(customtkinter.CTk):
             self.schema
         )
         parts_list_frame.pack(fill="both", expand=True)
+
+        # Forzar ventana al frente DESPUÉS de crear el contenido
+        listado_window.attributes('-topmost', True)  # Forzar encima de todo
+        listado_window.update()  # Actualizar la ventana
+        listado_window.attributes('-topmost', False)  # Quitar "siempre encima"
+        listado_window.lift()  # Traer al frente
+        listado_window.focus_force()  # Dar foco
 
     def _rebuild_resumen_tree(self):
         """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""
