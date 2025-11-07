@@ -318,8 +318,8 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        # Clasificaciones disponibles (ORDER BY)
-        "clasificaciones": [
+        # Ordenaciones disponibles (ORDER BY)
+        "ordenaciones": [
             "mes",
             "año",
             "estado",
@@ -435,7 +435,7 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Clasificación"
+                "grupo": "Ordenación"
             },
             "codigo": {
                 "nombre": "Código",
@@ -476,7 +476,7 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "id_naturaleza",
                 "tabla_dimension": "tbl_pres_naturaleza",
                 "campo_nombre": "descripcion",
-                "grupo": "Clasificación"
+                "grupo": "Ordenación"
             }
         },
 
@@ -500,7 +500,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "capitulo",
             "naturaleza",
             "codigo",
@@ -565,7 +565,7 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Clasificación"
+                "grupo": "Ordenación"
             },
             "codigo": {
                 "nombre": "Código",
@@ -638,7 +638,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "capitulo",
             "codigo",
             "cantidad_presupuesto",
@@ -754,7 +754,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "estado",
             "fecha_inicio",
             "cantidad_presupuestada"
@@ -809,7 +809,7 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Clasificación"
+                "grupo": "Ordenación"
             },
             "codigo": {
                 "nombre": "Código",
@@ -863,7 +863,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "capitulo",
             "codigo"
         ],
@@ -990,7 +990,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "codigo_parte",
             "estado"
         ],
@@ -1087,7 +1087,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "estado",
             "red",
             "total_presupuesto"
@@ -1224,7 +1224,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "codigo_parte",
             "estado"
         ],
@@ -1321,7 +1321,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "estado",
             "red",
             "total_certificado"
@@ -1420,7 +1420,7 @@ INFORMES_DEFINICIONES = {
             }
         },
 
-        "clasificaciones": [
+        "ordenaciones": [
             "mes"
         ],
 

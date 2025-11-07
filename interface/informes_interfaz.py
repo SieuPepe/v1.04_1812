@@ -51,7 +51,7 @@ class InformesFrame(customtkinter.CTkFrame):
         self.informe_seleccionado = None
         self.categoria_seleccionada = None
         self.definicion_actual = None  # Definición completa del informe seleccionado
-        self.clasificaciones = []
+        self.ordenaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
         self.agrupaciones = []  # Lista de campos por los que agrupar
@@ -233,9 +233,9 @@ class InformesFrame(customtkinter.CTkFrame):
                         text_color="gray"
                     )
 
-                # Limpiar filtros y clasificaciones anteriores
+                # Limpiar filtros y ordenaciones anteriores
                 self._clear_all_filtros()
-                self._clear_all_clasificaciones()
+                self._clear_all_ordenaciones()
 
                 # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
@@ -279,7 +279,7 @@ class InformesFrame(customtkinter.CTkFrame):
         separator1.grid(row=1, column=0, sticky="ew", padx=15, pady=(0, 8))
 
         # Sección CLASIFICACIÓN
-        self._create_clasificacion_section(right_frame, row=2)
+        self._create_ordenacion_section(right_frame, row=2)
 
         # Separador
         separator2 = customtkinter.CTkFrame(right_frame, height=2, fg_color="gray30")
@@ -316,8 +316,8 @@ class InformesFrame(customtkinter.CTkFrame):
         # Sección OPCIONES DE PRESENTACIÓN
         self._create_opciones_section(right_frame, row=12)
 
-    def _create_clasificacion_section(self, parent, row):
-        """Crea la sección de clasificación"""
+    def _create_ordenacion_section(self, parent, row):
+        """Crea la sección de ordenación"""
         # Frame contenedor con altura mínima
         clasif_frame = customtkinter.CTkFrame(parent, fg_color="transparent", height=150)
         clasif_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
@@ -334,24 +334,24 @@ class InformesFrame(customtkinter.CTkFrame):
         # Botón añadir
         add_button = customtkinter.CTkButton(
             clasif_frame,
-            text="+ Añadir clasificación",
+            text="+ Añadir ordenación",
             width=150,
             height=28,
-            command=self._add_clasificacion
+            command=self._add_ordenacion
         )
         add_button.grid(row=1, column=0, sticky="w", pady=(0, 8))
 
-        # Frame para clasificaciones con scroll - ALTURA AUMENTADA
-        self.clasificaciones_container = customtkinter.CTkScrollableFrame(
+        # Frame para ordenaciones con scroll - ALTURA AUMENTADA
+        self.ordenaciones_container = customtkinter.CTkScrollableFrame(
             clasif_frame,
             height=220,  # Aumentado de 100 a 220
             fg_color="transparent"
         )
-        self.clasificaciones_container.grid(row=2, column=0, sticky="ew")
+        self.ordenaciones_container.grid(row=2, column=0, sticky="ew")
 
-        self.clasificaciones_frame = customtkinter.CTkFrame(self.clasificaciones_container, fg_color="transparent")
-        self.clasificaciones_frame.pack(fill="both", expand=True)
-        self.clasificaciones_frame.grid_columnconfigure(0, weight=1)
+        self.ordenaciones_frame = customtkinter.CTkFrame(self.ordenaciones_container, fg_color="transparent")
+        self.ordenaciones_frame.pack(fill="both", expand=True)
+        self.ordenaciones_frame.grid_columnconfigure(0, weight=1)
 
     def _create_agrupacion_section(self, parent, row):
         """Crea la sección de agrupación (GROUP BY visual)"""
@@ -727,8 +727,8 @@ class InformesFrame(customtkinter.CTkFrame):
         )
         pdf_btn.grid(row=0, column=5, padx=5)
 
-    def _add_clasificacion(self):
-        """Añade un nuevo selector de clasificación dinámico"""
+    def _add_ordenacion(self):
+        """Añade un nuevo selector de ordenación dinámico"""
         if not self.definicion_actual:
             from CTkMessagebox import CTkMessagebox
             CTkMessagebox(
@@ -738,9 +738,9 @@ class InformesFrame(customtkinter.CTkFrame):
             )
             return
 
-        row = len(self.clasificaciones)
+        row = len(self.ordenaciones)
 
-        clasif_container = customtkinter.CTkFrame(self.clasificaciones_frame)
+        clasif_container = customtkinter.CTkFrame(self.ordenaciones_frame)
         clasif_container.grid(row=row, column=0, sticky="ew", pady=5)
         clasif_container.grid_columnconfigure(1, weight=1)
         clasif_container.grid_columnconfigure(3, weight=1)
@@ -748,7 +748,7 @@ class InformesFrame(customtkinter.CTkFrame):
         # Label
         label = customtkinter.CTkLabel(
             clasif_container,
-            text=f"Clasificación {row + 1}:",
+            text=f"Ordenación {row + 1}:",
             font=customtkinter.CTkFont(size=11)
         )
         label.grid(row=0, column=0, padx=(0, 10), sticky="w")
@@ -761,7 +761,7 @@ class InformesFrame(customtkinter.CTkFrame):
         campos_informe = self.definicion_actual.get('campos', {})
         nombres_campos = [campo_def['nombre'] for campo_key, campo_def in campos_informe.items()]
 
-        # Crear objeto de clasificación que actualizaremos
+        # Crear objeto de ordenación que actualizaremos
         clasif_obj = {
             'container': clasif_container,
             'var_combo': None,
@@ -773,7 +773,7 @@ class InformesFrame(customtkinter.CTkFrame):
             clasif_container,
             values=nombres_campos if nombres_campos else ["Sin campos"],
             width=200,
-            command=lambda choice: self._on_clasificacion_campo_change(clasif_obj, choice)
+            command=lambda choice: self._on_ordenacion_campo_change(clasif_obj, choice)
         )
         var_combo.grid(row=0, column=2, sticky="w", padx=(0, 20))
         clasif_obj['var_combo'] = var_combo
@@ -797,20 +797,20 @@ class InformesFrame(customtkinter.CTkFrame):
             width=40,
             fg_color="darkred",
             hover_color="red",
-            command=lambda: self._remove_clasificacion(clasif_container)
+            command=lambda: self._remove_ordenacion(clasif_container)
         )
         del_btn.grid(row=0, column=5, padx=(0, 5))
 
         # Añadir a la lista
-        self.clasificaciones.append(clasif_obj)
+        self.ordenaciones.append(clasif_obj)
 
         # Auto-seleccionar primer campo si hay campos disponibles
         if nombres_campos:
             var_combo.set(nombres_campos[0])
-            self._on_clasificacion_campo_change(clasif_obj, nombres_campos[0])
+            self._on_ordenacion_campo_change(clasif_obj, nombres_campos[0])
 
-    def _on_clasificacion_campo_change(self, clasif_obj, campo_nombre):
-        """Maneja el cambio de campo en una clasificación"""
+    def _on_ordenacion_campo_change(self, clasif_obj, campo_nombre):
+        """Maneja el cambio de campo en una ordenación"""
         if not self.definicion_actual:
             return
 
@@ -822,11 +822,11 @@ class InformesFrame(customtkinter.CTkFrame):
                 clasif_obj['campo_actual'] = campo_key
                 break
 
-    def _remove_clasificacion(self, container):
-        """Elimina un selector de clasificación"""
+    def _remove_ordenacion(self, container):
+        """Elimina un selector de ordenación"""
         container.destroy()
         # Actualizar lista
-        self.clasificaciones = [c for c in self.clasificaciones if c['container'].winfo_exists()]
+        self.ordenaciones = [c for c in self.ordenaciones if c['container'].winfo_exists()]
 
     def _add_agrupacion(self):
         """Añade un nuevo nivel de agrupación"""
@@ -1384,12 +1384,12 @@ class InformesFrame(customtkinter.CTkFrame):
                 filtro['container'].destroy()
         self.filtros = []
 
-    def _clear_all_clasificaciones(self):
-        """Elimina todas las clasificaciones"""
-        for clasif in self.clasificaciones:
+    def _clear_all_ordenaciones(self):
+        """Elimina todas las ordenaciones"""
+        for clasif in self.ordenaciones:
             if clasif['container'].winfo_exists():
                 clasif['container'].destroy()
-        self.clasificaciones = []
+        self.ordenaciones = []
 
     def _update_campos_disponibles(self):
         """Actualiza los campos disponibles según el informe seleccionado"""
@@ -1599,9 +1599,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 'logica': logica
             })
 
-        # Recopilar clasificaciones aplicadas
-        clasificaciones_aplicadas = []
-        for clasif_obj in self.clasificaciones:
+        # Recopilar ordenaciones aplicadas
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
             campo_actual = clasif_obj.get('campo_actual')
             if not campo_actual:
                 continue
@@ -1610,7 +1610,7 @@ class InformesFrame(customtkinter.CTkFrame):
             if not orden or orden == "Seleccionar...":
                 orden = "Ascendente"  # Valor por defecto
 
-            clasificaciones_aplicadas.append({
+            ordenaciones_aplicadas.append({
                 'campo': campo_actual,
                 'orden': orden
             })
@@ -1648,7 +1648,7 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"\n{'='*70}")
         print(f"EJECUTANDO INFORME: {self.informe_seleccionado}")
         print(f"Filtros aplicados: {len(filtros_aplicados)}")
-        print(f"Clasificaciones aplicadas: {len(clasificaciones_aplicadas)}")
+        print(f"Ordenaciones aplicadas: {len(ordenaciones_aplicadas)}")
         print(f"Campos seleccionados: {len(campos_seleccionados)}")
         print(f"Agrupaciones aplicadas: {len(agrupaciones_aplicadas)}")
         print(f"Agregaciones aplicadas: {len(agregaciones_aplicadas)}")
@@ -1664,7 +1664,7 @@ class InformesFrame(customtkinter.CTkFrame):
                     self.schema,
                     self.informe_seleccionado,
                     filtros=filtros_aplicados,
-                    clasificaciones=clasificaciones_aplicadas,
+                    ordenaciones=ordenaciones_aplicadas,
                     campos_seleccionados=campos_seleccionados,
                     agrupaciones=agrupaciones_aplicadas,
                     agregaciones=agregaciones_aplicadas,
@@ -1679,7 +1679,7 @@ class InformesFrame(customtkinter.CTkFrame):
                     self.schema,
                     self.informe_seleccionado,
                     filtros=filtros_aplicados,
-                    clasificaciones=clasificaciones_aplicadas,
+                    ordenaciones=ordenaciones_aplicadas,
                     campos_seleccionados=campos_seleccionados
                 )
                 resultado_agrupacion = None
@@ -2021,9 +2021,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 'logica': logica
             })
 
-        # Recopilar clasificaciones aplicadas
-        clasificaciones_aplicadas = []
-        for clasif_obj in self.clasificaciones:
+        # Recopilar ordenaciones aplicadas
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
             campo_actual = clasif_obj.get('campo_actual')
             if not campo_actual:
                 continue
@@ -2032,7 +2032,7 @@ class InformesFrame(customtkinter.CTkFrame):
             if not orden or orden == "Seleccionar...":
                 orden = "Ascendente"
 
-            clasificaciones_aplicadas.append({
+            ordenaciones_aplicadas.append({
                 'campo': campo_actual,
                 'orden': orden
             })
@@ -2056,7 +2056,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.schema,
                 self.informe_seleccionado,
                 filtros=filtros_aplicados,
-                clasificaciones=clasificaciones_aplicadas,
+                ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados
             )
 
@@ -2118,8 +2118,8 @@ class InformesFrame(customtkinter.CTkFrame):
             info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
             if filtros_aplicados:
                 info_text += f" | Filtros aplicados: {len(filtros_aplicados)}"
-            if clasificaciones_aplicadas:
-                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+            if ordenaciones_aplicadas:
+                info_text += f" | Ordenaciones: {len(ordenaciones_aplicadas)}"
 
             info_para = doc.add_paragraph(info_text)
             info_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -2276,9 +2276,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 'logica': logica
             })
 
-        # Recopilar clasificaciones aplicadas
-        clasificaciones_aplicadas = []
-        for clasif_obj in self.clasificaciones:
+        # Recopilar ordenaciones aplicadas
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
             campo_actual = clasif_obj.get('campo_actual')
             if not campo_actual:
                 continue
@@ -2287,7 +2287,7 @@ class InformesFrame(customtkinter.CTkFrame):
             if not orden or orden == "Seleccionar...":
                 orden = "Ascendente"
 
-            clasificaciones_aplicadas.append({
+            ordenaciones_aplicadas.append({
                 'campo': campo_actual,
                 'orden': orden
             })
@@ -2311,7 +2311,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.schema,
                 self.informe_seleccionado,
                 filtros=filtros_aplicados,
-                clasificaciones=clasificaciones_aplicadas,
+                ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados
             )
 
@@ -2511,9 +2511,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 'logica': logica
             })
 
-        # Recopilar clasificaciones aplicadas
-        clasificaciones_aplicadas = []
-        for clasif_obj in self.clasificaciones:
+        # Recopilar ordenaciones aplicadas
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
             campo_actual = clasif_obj.get('campo_actual')
             if not campo_actual:
                 continue
@@ -2522,7 +2522,7 @@ class InformesFrame(customtkinter.CTkFrame):
             if not orden or orden == "Seleccionar...":
                 orden = "Ascendente"
 
-            clasificaciones_aplicadas.append({
+            ordenaciones_aplicadas.append({
                 'campo': campo_actual,
                 'orden': orden
             })
@@ -2546,7 +2546,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.schema,
                 self.informe_seleccionado,
                 filtros=filtros_aplicados,
-                clasificaciones=clasificaciones_aplicadas,
+                ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados
             )
 
@@ -2626,8 +2626,8 @@ class InformesFrame(customtkinter.CTkFrame):
             info_text = f"Generado: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}"
             if filtros_aplicados:
                 info_text += f" | Filtros: {len(filtros_aplicados)}"
-            if clasificaciones_aplicadas:
-                info_text += f" | Clasificaciones: {len(clasificaciones_aplicadas)}"
+            if ordenaciones_aplicadas:
+                info_text += f" | Ordenaciones: {len(ordenaciones_aplicadas)}"
 
             info_style = ParagraphStyle(
                 'InfoStyle',
@@ -2752,7 +2752,7 @@ class InformesFrame(customtkinter.CTkFrame):
         
         # Recopilar configuración actual
         filtros_aplicados = self._recopilar_filtros()
-        clasificaciones_aplicadas = self._recopilar_clasificaciones()
+        ordenaciones_aplicadas = self._recopilar_ordenaciones()
         campos_seleccionados_list = self._recopilar_campos()
         
         # Crear ventana de diálogo para nombrar la configuración
@@ -2806,7 +2806,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 nombre=nombre,
                 informe_nombre=self.informe_seleccionado,
                 filtros=filtros_aplicados,
-                clasificaciones=clasificaciones_aplicadas,
+                ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados_list,
                 descripcion=descripcion
             )
@@ -2915,7 +2915,7 @@ class InformesFrame(customtkinter.CTkFrame):
             info_text += f"   Informe: {config['informe_base']}\n"
             if config['descripcion']:
                 info_text += f"   Descripción: {config['descripcion']}\n"
-            info_text += f"   Filtros: {config['num_filtros']} | Clasificaciones: {config['num_clasificaciones']} | Campos: {config['num_campos']}\n"
+            info_text += f"   Filtros: {config['num_filtros']} | Ordenaciones: {config['num_ordenaciones']} | Campos: {config['num_campos']}\n"
             info_text += f"   Guardado: {config['fecha_creacion'][:10]}"
             
             label = customtkinter.CTkLabel(
@@ -3065,10 +3065,10 @@ class InformesFrame(customtkinter.CTkFrame):
         
         return filtros_aplicados
     
-    def _recopilar_clasificaciones(self):
-        """Recopila las clasificaciones actuales"""
-        clasificaciones_aplicadas = []
-        for clasif_obj in self.clasificaciones:
+    def _recopilar_ordenaciones(self):
+        """Recopila las ordenaciones actuales"""
+        ordenaciones_aplicadas = []
+        for clasif_obj in self.ordenaciones:
             campo_actual = clasif_obj.get('campo_actual')
             if not campo_actual:
                 continue
@@ -3077,12 +3077,12 @@ class InformesFrame(customtkinter.CTkFrame):
             if not orden or orden == "Seleccionar...":
                 orden = "Ascendente"
             
-            clasificaciones_aplicadas.append({
+            ordenaciones_aplicadas.append({
                 'campo': campo_actual,
                 'orden': orden
             })
         
-        return clasificaciones_aplicadas
+        return ordenaciones_aplicadas
     
     def _recopilar_campos(self):
         """Recopila los campos seleccionados"""
@@ -3092,7 +3092,7 @@ class InformesFrame(customtkinter.CTkFrame):
         """Aplica una configuración cargada"""
         # Limpiar estado actual
         self._clear_all_filtros()
-        self._clear_all_clasificaciones()
+        self._clear_all_ordenaciones()
 
         # Seleccionar informe base
         informe_base = config.get('informe_base')
@@ -3123,12 +3123,12 @@ class InformesFrame(customtkinter.CTkFrame):
             if i < len(self.filtros):
                 self._configurar_filtro(self.filtros[i], filtro_data)
 
-        # Aplicar clasificaciones
-        clasifs_config = config.get('clasificaciones', [])
+        # Aplicar ordenaciones
+        clasifs_config = config.get('ordenaciones', [])
         for i, clasif_data in enumerate(clasifs_config):
-            self._add_clasificacion()
-            if i < len(self.clasificaciones):
-                self._configurar_clasificacion(self.clasificaciones[i], clasif_data)
+            self._add_ordenacion()
+            if i < len(self.ordenaciones):
+                self._configurar_ordenacion(self.ordenaciones[i], clasif_data)
 
     def _configurar_filtro(self, filtro_obj, filtro_data):
         """Configura un filtro con los datos guardados"""
@@ -3208,8 +3208,8 @@ class InformesFrame(customtkinter.CTkFrame):
                     widget.delete(0, 'end')
                     widget.insert(0, str(valor))
 
-    def _configurar_clasificacion(self, clasif_obj, clasif_data):
-        """Configura una clasificación con los datos guardados"""
+    def _configurar_ordenacion(self, clasif_obj, clasif_data):
+        """Configura una ordenación con los datos guardados"""
         if not self.definicion_actual:
             return
 
@@ -3220,7 +3220,7 @@ class InformesFrame(customtkinter.CTkFrame):
         if campo_key and campo_key in campos_def:
             campo_nombre = campos_def[campo_key]['nombre']
             clasif_obj['var_combo'].set(campo_nombre)
-            self._on_clasificacion_campo_change(clasif_obj, campo_nombre)
+            self._on_ordenacion_campo_change(clasif_obj, campo_nombre)
 
         # 2. Configurar orden
         orden = clasif_data.get('orden', 'Ascendente')

@@ -504,23 +504,22 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
     def _open_listado_completo(self):
-        """Abre el módulo de informes con 'Listado de Partes' preseleccionado"""
-        from interface.informes_interfaz import InformesFrame
+        """Abre la ventana de listado completo de partes con filtros"""
+        from interface.parts_list_window import PartsTab
 
-        # Crear ventana de informes en una nueva ventana toplevel
-        informes_window = customtkinter.CTkToplevel(self)
-        informes_window.title("Informes - Listado de Partes")
-        informes_window.geometry("1400x800")
+        # Crear ventana toplevel
+        listado_window = customtkinter.CTkToplevel(self)
+        listado_window.title("Listado Completo de Partes")
+        listado_window.geometry("1400x800")
 
-        # Crear el frame de informes
-        informes_frame = InformesFrame(
-            informes_window,
+        # Crear el frame de listado
+        parts_list_frame = PartsTab(
+            listado_window,
             self.user,
             self.password,
-            self.schema,
-            informe_inicial="Listado de Partes"  # Preseleccionar el informe
+            self.schema
         )
-        informes_frame.pack(fill="both", expand=True)
+        parts_list_frame.pack(fill="both", expand=True)
 
     def _rebuild_resumen_tree(self):
         """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""

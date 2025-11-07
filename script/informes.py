@@ -238,14 +238,14 @@ def build_filter_condition(filtro, definicion_informe, schema="", user="", passw
         return ""
 
 
-def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None, schema="", user="", password=""):
+def build_query(informe_nombre, filtros=None, ordenaciones=None, campos_seleccionados=None, schema="", user="", password=""):
     """
     Construye un query SQL dinámico para un informe
 
     Args:
         informe_nombre: Nombre del informe (ej: "Resumen de Partes")
         filtros: Lista de dicts con filtros aplicados
-        clasificaciones: Lista de dicts con clasificaciones aplicadas
+        ordenaciones: Lista de dicts con ordenaciones aplicadas
         campos_seleccionados: Lista de campos a mostrar
         schema: Nombre del schema/proyecto
         user: Usuario de BD (necesario para detectar columnas de dimensiones)
@@ -339,9 +339,9 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
             if campo and campo['tipo'] == 'dimension':
                 dimensiones_necesarias.add(campo_key)
 
-    # 3. Dimensiones usadas en clasificaciones
-    if clasificaciones:
-        for clasif in clasificaciones:
+    # 3. Dimensiones usadas en ordenaciones
+    if ordenaciones:
+        for clasif in ordenaciones:
             campo_key = clasif.get('campo')
             campo = campos_def.get(campo_key)
             if campo and campo['tipo'] == 'dimension':
@@ -387,9 +387,9 @@ def build_query(informe_nombre, filtros=None, clasificaciones=None, campos_selec
     # ========== CONSTRUIR ORDER BY ==========
     order_by_clause = ""
 
-    if clasificaciones:
+    if ordenaciones:
         order_parts = []
-        for clasif in clasificaciones:
+        for clasif in ordenaciones:
             campo_key = clasif['campo']
             orden = clasif.get('orden', 'Ascendente')
 
@@ -602,7 +602,7 @@ def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, camp
     }
 
 
-def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasificaciones=None, campos_seleccionados=None):
+def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, ordenaciones=None, campos_seleccionados=None):
     """
     Ejecuta un informe y devuelve los datos con totales
 
@@ -612,7 +612,7 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
         schema: Nombre del schema/proyecto
         informe_nombre: Nombre del informe
         filtros: Lista de filtros
-        clasificaciones: Lista de clasificaciones
+        ordenaciones: Lista de ordenaciones
         campos_seleccionados: Lista de campos a mostrar
 
     Returns:
@@ -623,7 +623,7 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
     """
     try:
         # Construir query (pasando user y password para detectar columnas de dimensiones)
-        query = build_query(informe_nombre, filtros, clasificaciones, campos_seleccionados, schema, user, password)
+        query = build_query(informe_nombre, filtros, ordenaciones, campos_seleccionados, schema, user, password)
 
         print(f"\n{'='*60}")
         print(f"QUERY GENERADO PARA INFORME: {informe_nombre}")
@@ -676,7 +676,7 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, clasi
 
 
 def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filtros=None,
-                                     clasificaciones=None, campos_seleccionados=None,
+                                     ordenaciones=None, campos_seleccionados=None,
                                      agrupaciones=None, agregaciones=None, modo="detalle"):
     """
     Ejecuta un informe con agrupaciones y agregaciones
@@ -687,7 +687,7 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         schema: Nombre del schema/proyecto
         informe_nombre: Nombre del informe
         filtros: Lista de filtros
-        clasificaciones: Lista de clasificaciones
+        ordenaciones: Lista de ordenaciones
         campos_seleccionados: Lista de campos a mostrar
         agrupaciones: Lista de campos por los que agrupar (ej: ["red", "provincia"])
         agregaciones: Lista de agregaciones (ej: [{"funcion": "SUM", "campo": "presupuesto"}])
@@ -703,7 +703,7 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         # Primero ejecutar el informe normal para obtener los datos
         columnas, datos, totales = ejecutar_informe(
             user, password, schema, informe_nombre,
-            filtros, clasificaciones, campos_seleccionados
+            filtros, ordenaciones, campos_seleccionados
         )
 
         # Si no hay datos, devolver vacío
