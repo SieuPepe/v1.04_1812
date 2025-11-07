@@ -385,13 +385,13 @@ class AppPartsManager(customtkinter.CTk):
         )
         btn_refresh.pack(side="left", padx=(0, 10))
 
-        # OBSOLETO: Botón deshabilitado - módulo parts_list_window eliminado
-        # btn_list = customtkinter.CTkButton(
-        #     btn_frame, text="📋 Ver Listado Completo",
-        #     command=lambda: open_parts_list(self, self.user, self.password, self.schema),
-        #     width=180
-        # )
-        # btn_list.pack(side="left", padx=(0, 10))
+        # Botón para ver listado completo de partes (abre módulo de informes)
+        btn_list = customtkinter.CTkButton(
+            btn_frame, text="📋 Ver Listado Completo",
+            command=self._open_listado_completo,
+            width=180
+        )
+        btn_list.pack(side="left", padx=(0, 10))
 
         btn_columns = customtkinter.CTkButton(
             btn_frame, text="⚙ Columnas",
@@ -502,6 +502,19 @@ class AppPartsManager(customtkinter.CTk):
                 self.tree_resumen.insert("", "end", values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
+
+    def _open_listado_completo(self):
+        """Abre el módulo de informes con 'Listado de Partes' preseleccionado"""
+        from interface.informes_interfaz import InformesInterfaz
+
+        # Crear ventana de informes
+        informes_window = InformesInterfaz(
+            self,
+            self.user,
+            self.password,
+            self.schema,
+            informe_inicial="Listado de Partes"  # Preseleccionar el informe
+        )
 
     def _rebuild_resumen_tree(self):
         """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""

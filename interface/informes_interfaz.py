@@ -39,12 +39,13 @@ from script.informes_storage import InformesConfigStorage
 class InformesFrame(customtkinter.CTkFrame):
     """Frame principal del módulo de Informes"""
 
-    def __init__(self, master, user, password, schema, **kwargs):
+    def __init__(self, master, user, password, schema, informe_inicial=None, **kwargs):
         super().__init__(master, **kwargs)
 
         self.user = user
         self.password = password
         self.schema = schema
+        self.informe_inicial = informe_inicial  # Informe a preseleccionar
 
         # Variables de estado
         self.informe_seleccionado = None
@@ -72,6 +73,10 @@ class InformesFrame(customtkinter.CTkFrame):
         self._create_left_panel()
         self._create_right_panel()
         self._create_action_bar()
+
+        # Seleccionar informe inicial si se proporcionó
+        if self.informe_inicial:
+            self.after(100, lambda: self._select_initial_report(self.informe_inicial))
 
     def _create_compact_header(self):
         """Crea el header compacto en una sola línea con título y botón configuración"""
@@ -234,6 +239,24 @@ class InformesFrame(customtkinter.CTkFrame):
 
                 # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
+
+    def _select_initial_report(self, informe_name):
+        """Selecciona un informe específico en el tree"""
+        # Buscar el informe en el tree
+        for cat_id in self.tree.get_children():
+            for informe_id in self.tree.get_children(cat_id):
+                text = self.tree.item(informe_id, "text").strip()
+                if text == informe_name:
+                    # Expandir categoría padre
+                    self.tree.item(cat_id, open=True)
+                    # Seleccionar el informe
+                    self.tree.selection_set(informe_id)
+                    # Ver el elemento
+                    self.tree.see(informe_id)
+                    # Disparar el evento de selección
+                    self._on_tree_select(None)
+                    return
+        print(f"Advertencia: Informe '{informe_name}' no encontrado en el árbol")
 
     def _create_right_panel(self):
         """Crea el panel derecho con la configuración del informe"""
