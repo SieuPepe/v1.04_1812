@@ -926,6 +926,675 @@ INFORMES_DEFINICIONES = {
             "cantidad_presupuestada",
             "importe"
         ]
+    },
+
+    # ============================================================
+    # CATEGORÍA: PRESUPUESTOS
+    # ============================================================
+
+    "Contrato": {
+        "categoria": "💰 Presupuestos",
+        "descripcion": "Presupuesto de contrato completo con todas las partidas ordenadas por capítulos, con medición, precio unitario e importe contratado.",
+        "tabla_principal": "tbl_pres_precios",
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Clasificación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "unidad": {
+                "nombre": "Ud",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Recurso/Material",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "precio_unitario": {
+                "nombre": "Precio Unitario",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "medicion_contrato": {
+                "nombre": "Medición",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formato": "decimal",
+                "grupo": "Contrato"
+            },
+            "importe_contratado": {
+                "nombre": "Importe Contratado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formato": "moneda",
+                "grupo": "Contrato"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            }
+        },
+
+        "clasificaciones": [
+            "capitulo",
+            "codigo"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "capitulo",
+            "codigo",
+            "unidad",
+            "resumen",
+            "precio_unitario",
+            "medicion_contrato",
+            "importe_contratado"
+        ]
+    },
+
+    "Presupuesto Detallado": {
+        "categoria": "💰 Presupuestos",
+        "descripcion": "Relación de partes con sus mediciones presupuestadas. Subtotal por parte y total general.",
+        "tabla_principal": "tbl_partes",
+
+        "campos": {
+            "codigo_parte": {
+                "nombre": "Código Parte",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion_parte": {
+                "nombre": "Descripción Parte",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "codigo_recurso": {
+                "nombre": "Código Recurso",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "relacionado": "tbl_pres_precios",
+                "grupo": "Detalle"
+            },
+            "recurso": {
+                "nombre": "Recurso/Material",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "relacionado": "tbl_pres_precios",
+                "grupo": "Detalle"
+            },
+            "unidad": {
+                "nombre": "Ud",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "relacionado": "tbl_pres_precios",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Detalle"
+            },
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "numerico",
+                "columna_bd": "cantidad",
+                "relacionado": "tbl_part_presupuesto",
+                "formato": "decimal",
+                "grupo": "Detalle"
+            },
+            "precio_unitario": {
+                "nombre": "Precio Unit.",
+                "tipo": "numerico",
+                "columna_bd": "precio_unit",
+                "relacionado": "tbl_part_presupuesto",
+                "formato": "moneda",
+                "grupo": "Detalle"
+            },
+            "importe": {
+                "nombre": "Importe",
+                "tipo": "calculado",
+                "formula": "(cantidad * precio_unitario)",
+                "formato": "moneda",
+                "grupo": "Detalle"
+            },
+            "subtotal_parte": {
+                "nombre": "Subtotal Parte",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
+                "formato": "moneda",
+                "grupo": "Totales"
+            }
+        },
+
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            }
+        },
+
+        "clasificaciones": [
+            "codigo_parte",
+            "estado"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "codigo_parte",
+                "estado"
+            ],
+            "max_niveles": 2,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "codigo_parte",
+            "descripcion_parte",
+            "codigo_recurso",
+            "recurso",
+            "unidad",
+            "cantidad",
+            "precio_unitario",
+            "importe"
+        ]
+    },
+
+    "Presupuesto Resumen": {
+        "categoria": "💰 Presupuestos",
+        "descripcion": "Resumen de presupuesto mostrando únicamente los partes con sus totales.",
+        "tabla_principal": "tbl_partes",
+
+        "campos": {
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "total_presupuesto": {
+                "nombre": "Total Presupuesto",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            }
+        },
+
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            }
+        },
+
+        "clasificaciones": [
+            "estado",
+            "red",
+            "total_presupuesto"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "estado",
+                "red"
+            ],
+            "max_niveles": 2,
+            "modo_default": "resumen"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            }
+        },
+
+        "campos_default": [
+            "codigo",
+            "descripcion",
+            "estado",
+            "red",
+            "total_presupuesto"
+        ]
+    },
+
+    # ============================================================
+    # CATEGORÍA: CERTIFICACIONES
+    # ============================================================
+
+    "Certificación Detallado": {
+        "categoria": "✅ Certificaciones",
+        "descripcion": "Relación de partes con sus mediciones certificadas. Subtotal por parte y total general.",
+        "tabla_principal": "tbl_partes",
+
+        "campos": {
+            "codigo_parte": {
+                "nombre": "Código Parte",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion_parte": {
+                "nombre": "Descripción Parte",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "codigo_recurso": {
+                "nombre": "Código Recurso",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "relacionado": "tbl_pres_precios",
+                "grupo": "Detalle"
+            },
+            "recurso": {
+                "nombre": "Recurso/Material",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "relacionado": "tbl_pres_precios",
+                "grupo": "Detalle"
+            },
+            "unidad": {
+                "nombre": "Ud",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "relacionado": "tbl_pres_precios",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Detalle"
+            },
+            "cantidad_certificada": {
+                "nombre": "Cantidad Cert.",
+                "tipo": "numerico",
+                "columna_bd": "cantidad_cert",
+                "relacionado": "tbl_part_certificacion",
+                "formato": "decimal",
+                "grupo": "Detalle"
+            },
+            "precio_unitario": {
+                "nombre": "Precio Unit.",
+                "tipo": "numerico",
+                "columna_bd": "precio_unit",
+                "relacionado": "tbl_part_certificacion",
+                "formato": "moneda",
+                "grupo": "Detalle"
+            },
+            "importe": {
+                "nombre": "Importe",
+                "tipo": "calculado",
+                "formula": "(cantidad_certificada * precio_unitario)",
+                "formato": "moneda",
+                "grupo": "Detalle"
+            },
+            "subtotal_parte": {
+                "nombre": "Subtotal Parte",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Totales"
+            }
+        },
+
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            }
+        },
+
+        "clasificaciones": [
+            "codigo_parte",
+            "estado"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "codigo_parte",
+                "estado"
+            ],
+            "max_niveles": 2,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            }
+        },
+
+        "campos_default": [
+            "codigo_parte",
+            "descripcion_parte",
+            "codigo_recurso",
+            "recurso",
+            "unidad",
+            "cantidad_certificada",
+            "precio_unitario",
+            "importe"
+        ]
+    },
+
+    "Certificación Resumen": {
+        "categoria": "✅ Certificaciones",
+        "descripcion": "Resumen de certificación mostrando únicamente los partes con sus totales certificados.",
+        "tabla_principal": "tbl_partes",
+
+        "campos": {
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "estado": {
+                "nombre": "Estado",
+                "tipo": "texto",
+                "columna_bd": "estado",
+                "grupo": "Información Básica"
+            },
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones"
+            },
+            "total_certificado": {
+                "nombre": "Total Certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            }
+        },
+
+        "filtros": {
+            "estado": {
+                "campo": "estado",
+                "tipo": "select",
+                "operadores": ["Igual a", "Diferente de"],
+                "valores": ["Pendiente", "En curso", "Finalizado"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            }
+        },
+
+        "clasificaciones": [
+            "estado",
+            "red",
+            "total_certificado"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "estado",
+                "red"
+            ],
+            "max_niveles": 2,
+            "modo_default": "resumen"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            }
+        },
+
+        "campos_default": [
+            "codigo",
+            "descripcion",
+            "estado",
+            "red",
+            "total_certificado"
+        ]
+    },
+
+    # ============================================================
+    # CATEGORÍA: PLANIFICACIÓN
+    # ============================================================
+
+    "Informe de Avance": {
+        "categoria": "📅 Planificación",
+        "descripcion": "Importes presupuestados por cada mes, mostrando la evolución temporal del proyecto.",
+        "tabla_principal": "tbl_partes",
+
+        "campos": {
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            },
+            "num_partes": {
+                "nombre": "Nº Partes",
+                "tipo": "calculado",
+                "formula": "COUNT(p.id)",
+                "formato": "entero",
+                "grupo": "Indicadores"
+            },
+            "importe_presupuestado": {
+                "nombre": "Importe Presupuestado",
+                "tipo": "calculado",
+                "formula": "COALESCE(SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id)), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "importe_certificado": {
+                "nombre": "Importe Certificado",
+                "tipo": "calculado",
+                "formula": "COALESCE(SUM((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1)), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "porcentaje_avance": {
+                "nombre": "% Avance",
+                "tipo": "calculado",
+                "formula": "CASE WHEN SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id)) > 0 THEN (COALESCE(SUM((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1)), 0) / SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id))) * 100 ELSE 0 END",
+                "formato": "porcentaje",
+                "grupo": "Indicadores"
+            }
+        },
+
+        "filtros": {
+            "mes": {
+                "campo": "mes",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            }
+        },
+
+        "clasificaciones": [
+            "mes"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "mes"
+            ],
+            "max_niveles": 1,
+            "modo_default": "resumen"
+        },
+
+        "agregaciones": {
+            "COUNT": {
+                "nombre": "Contar registros",
+                "aplicable_a": ["*"],
+                "tipo_resultado": "numerico",
+                "formato": "entero"
+            },
+            "SUM": {
+                "nombre": "Suma",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "original"
+            },
+            "AVG": {
+                "nombre": "Promedio",
+                "aplicable_a": ["numerico", "calculado"],
+                "tipo_resultado": "numerico",
+                "formato": "decimal"
+            }
+        },
+
+        "campos_default": [
+            "mes",
+            "num_partes",
+            "importe_presupuestado",
+            "importe_certificado",
+            "porcentaje_avance"
+        ]
     }
 }
 
