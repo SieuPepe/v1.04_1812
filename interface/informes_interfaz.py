@@ -1763,21 +1763,9 @@ class InformesFrame(customtkinter.CTkFrame):
             subgrupos = grupo.get('subgrupos')
 
             # ENCABEZADO DEL GRUPO
-            # Crear fila de encabezado con el nombre del grupo y subtotales
+            # Crear fila de encabezado con el nombre del grupo (sin subtotales)
             indent = "    " * nivel  # Indentación visual
             titulo_grupo = f"{indent}📁 {campo.upper()}: {clave}"
-
-            # Añadir información de subtotales al título
-            if subtotales:
-                info_subtotales = []
-                for key, valor in subtotales.items():
-                    if isinstance(valor, (int, float)):
-                        info_subtotales.append(f"{key}={valor:,.2f}")
-                    else:
-                        info_subtotales.append(f"{key}={valor}")
-
-                if info_subtotales:
-                    titulo_grupo += f"  │  {' • '.join(info_subtotales[:3])}"  # Mostrar max 3 totales
 
             # Crear fila de encabezado
             fila_header = [titulo_grupo] + [""] * (len(columnas) - 1)
@@ -1804,6 +1792,49 @@ class InformesFrame(customtkinter.CTkFrame):
                     tree.tag_configure(f'datos_nivel{nivel}', background='gray20')
                 else:
                     tree.tag_configure(f'datos_nivel{nivel}', background='gray15')
+
+            # FILA DE SUBTOTALES (si hay agregaciones configuradas)
+            if subtotales:
+                # Crear fila de subtotales con valores en las columnas correspondientes
+                indent_subtotal = "    " * (nivel + 1)
+                fila_subtotal = []
+
+                for i, col_name in enumerate(columnas):
+                    if i == 0:
+                        # Primera columna: etiqueta de subtotal
+                        fila_subtotal.append(f"{indent_subtotal}▸ Subtotal")
+                    else:
+                        # Buscar si hay un subtotal para esta columna
+                        valor_subtotal = ""
+                        for key, valor in subtotales.items():
+                            # Las claves son del tipo "SUM(presupuesto)", "COUNT(*)", etc.
+                            # Necesitamos extraer el nombre del campo
+                            if "(" in key and ")" in key:
+                                # Extraer campo de la función: "SUM(presupuesto)" -> "presupuesto"
+                                campo_agg = key.split("(")[1].split(")")[0]
+                                if campo_agg == col_name or campo_agg == "*":
+                                    # Formatear el valor
+                                    if isinstance(valor, (int, float)):
+                                        if isinstance(valor, float):
+                                            valor_subtotal = f"{valor:,.2f}"
+                                        else:
+                                            valor_subtotal = f"{valor:,}"
+                                    else:
+                                        valor_subtotal = str(valor)
+                                    break
+
+                        fila_subtotal.append(valor_subtotal)
+
+                # Insertar fila de subtotales
+                subtotal_id = tree.insert(header_id, "end", values=fila_subtotal, tags=(f'subtotal_nivel{nivel}',))
+
+                # Configurar estilo para subtotales
+                if nivel == 0:
+                    tree.tag_configure(f'subtotal_nivel{nivel}', background='#2C5F8D', foreground='white', font=('TkDefaultFont', 9, 'bold'))
+                elif nivel == 1:
+                    tree.tag_configure(f'subtotal_nivel{nivel}', background='#4A7BA7', foreground='white', font=('TkDefaultFont', 9, 'bold'))
+                else:
+                    tree.tag_configure(f'subtotal_nivel{nivel}', background='#6B95BC', foreground='white', font=('TkDefaultFont', 9))
 
     def _show_results_window(self, columnas, datos, totales=None, resultado_agrupacion=None):
         """Muestra una ventana con los resultados del informe

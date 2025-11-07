@@ -505,16 +505,22 @@ class AppPartsManager(customtkinter.CTk):
 
     def _open_listado_completo(self):
         """Abre el módulo de informes con 'Listado de Partes' preseleccionado"""
-        from interface.informes_interfaz import InformesInterfaz
+        from interface.informes_interfaz import InformesFrame
 
-        # Crear ventana de informes
-        informes_window = InformesInterfaz(
-            self,
+        # Crear ventana de informes en una nueva ventana toplevel
+        informes_window = customtkinter.CTkToplevel(self)
+        informes_window.title("Informes - Listado de Partes")
+        informes_window.geometry("1400x800")
+
+        # Crear el frame de informes
+        informes_frame = InformesFrame(
+            informes_window,
             self.user,
             self.password,
             self.schema,
             informe_inicial="Listado de Partes"  # Preseleccionar el informe
         )
+        informes_frame.pack(fill="both", expand=True)
 
     def _rebuild_resumen_tree(self):
         """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""
