@@ -519,10 +519,35 @@ def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, camp
                 campo_def = campos_def.get(campo, {})
                 totales[f"{funcion}({campo or '*'})"] = calcular_agregacion(funcion, datos, campo_idx, campo_def)
 
+        # Crear mapa de formatos para cada columna
+        formatos_columnas = {}
+        for col in columnas:
+            campo_def = campos_def.get(col, {})
+            formato = campo_def.get('formato', 'ninguno')
+            formatos_columnas[col] = formato
+
+        # Crear mapa de formatos para agregaciones
+        formatos_agregaciones = {}
+        if agregaciones_config:
+            for agg in agregaciones_config:
+                funcion = agg['funcion']
+                campo = agg.get('campo', '*')
+                key = f"{funcion}({campo})"
+
+                # COUNT siempre es entero, nunca moneda
+                if funcion == 'COUNT' or funcion == 'COUNT_DISTINCT':
+                    formatos_agregaciones[key] = 'entero'
+                else:
+                    # Heredar formato del campo base
+                    campo_def = campos_def.get(campo, {})
+                    formatos_agregaciones[key] = campo_def.get('formato', 'ninguno')
+
         return {
             "grupos": [],
             "datos_planos": datos,
-            "totales_generales": totales
+            "totales_generales": totales,
+            "formatos_columnas": formatos_columnas,
+            "formatos_agregaciones": formatos_agregaciones
         }
 
     # Crear índices de columnas para agrupación
@@ -533,10 +558,19 @@ def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, camp
 
     if not indices_agrupacion:
         # No hay campos válidos de agrupación
+        # Crear mapa de formatos para cada columna
+        formatos_columnas = {}
+        for col in columnas:
+            campo_def = campos_def.get(col, {})
+            formato = campo_def.get('formato', 'ninguno')
+            formatos_columnas[col] = formato
+
         return {
             "grupos": [],
             "datos_planos": datos,
-            "totales_generales": {}
+            "totales_generales": {},
+            "formatos_columnas": formatos_columnas,
+            "formatos_agregaciones": {}
         }
 
     def agrupar_recursivo(datos_grupo, nivel=0):
@@ -596,9 +630,34 @@ def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, camp
             campo_def = campos_def.get(campo, {})
             totales_generales[f"{funcion}({campo or '*'})"] = calcular_agregacion(funcion, datos, campo_idx, campo_def)
 
+    # Crear mapa de formatos para cada columna
+    formatos_columnas = {}
+    for col in columnas:
+        campo_def = campos_def.get(col, {})
+        formato = campo_def.get('formato', 'ninguno')
+        formatos_columnas[col] = formato
+
+    # Crear mapa de formatos para agregaciones
+    formatos_agregaciones = {}
+    if agregaciones_config:
+        for agg in agregaciones_config:
+            funcion = agg['funcion']
+            campo = agg.get('campo', '*')
+            key = f"{funcion}({campo})"
+
+            # COUNT siempre es entero, nunca moneda
+            if funcion == 'COUNT' or funcion == 'COUNT_DISTINCT':
+                formatos_agregaciones[key] = 'entero'
+            else:
+                # Heredar formato del campo base
+                campo_def = campos_def.get(campo, {})
+                formatos_agregaciones[key] = campo_def.get('formato', 'ninguno')
+
     return {
         "grupos": grupos,
-        "totales_generales": totales_generales
+        "totales_generales": totales_generales,
+        "formatos_columnas": formatos_columnas,
+        "formatos_agregaciones": formatos_agregaciones
     }
 
 

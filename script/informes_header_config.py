@@ -9,8 +9,8 @@ from pathlib import Path
 
 # Rutas de logos
 SOURCE_DIR = Path(__file__).parent.parent / "source"
-LOGO_REDES_URBIDE = SOURCE_DIR / "logo.png"  # Logo izquierdo
-LOGO_URBIDE = SOURCE_DIR / "logo artanda.png"  # Logo derecho
+LOGO_REDES_URBIDE = SOURCE_DIR / "logo artanda.png"  # Logo izquierdo - Logo Redes Urbide
+LOGO_URBIDE = SOURCE_DIR / "logo artanda2.png"  # Logo derecho - Logo Urbide
 
 # Configuración por defecto del encabezado
 HEADER_CONFIG_DEFAULT = {

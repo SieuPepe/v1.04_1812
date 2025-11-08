@@ -34,38 +34,39 @@ class InformesExportador:
         if os.path.exists(source_dir):
             archivos = os.listdir(source_dir)
 
-            # Buscar logos con diferentes patrones
-            patrones_izquierdo = ["redes", "artanda", "logo"]
-            patrones_derecho = ["urbide", "artanda2"]
-
+            # Buscar logos con prioridad exacta
             for file in archivos:
                 file_lower = file.lower()
                 if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
                     continue
 
-                # Logo izquierdo
+                # Logo izquierdo (Logo Redes Urbide) - prioridad exacta
                 if not self.logo_redes_path:
-                    for patron in patrones_izquierdo:
-                        if patron in file_lower:
-                            self.logo_redes_path = os.path.join(source_dir, file)
-                            print(f"✓ Logo izquierdo encontrado: {file}")
-                            break
-
-                # Logo derecho
-                if not self.logo_urbide_path:
-                    for patron in patrones_derecho:
-                        if patron in file_lower:
-                            self.logo_urbide_path = os.path.join(source_dir, file)
-                            print(f"✓ Logo derecho encontrado: {file}")
-                            break
-
-            # Si no se encuentra el logo izquierdo, usar el primero disponible
-            if not self.logo_redes_path:
-                for file in archivos:
-                    if file.lower().endswith(('.png', '.jpg', '.jpeg')) and 'logo' in file.lower():
+                    if file_lower == "logo artanda.png":
                         self.logo_redes_path = os.path.join(source_dir, file)
-                        print(f"⚠ Usando logo por defecto (izquierdo): {file}")
-                        break
+                        print(f"✓ Logo izquierdo (Redes Urbide) encontrado: {file}")
+
+                # Logo derecho (Logo Urbide) - prioridad exacta
+                if not self.logo_urbide_path:
+                    if file_lower == "logo artanda2.png":
+                        self.logo_urbide_path = os.path.join(source_dir, file)
+                        print(f"✓ Logo derecho (Urbide) encontrado: {file}")
+
+            # Si no se encuentran, buscar alternativas
+            if not self.logo_redes_path or not self.logo_urbide_path:
+                for file in archivos:
+                    file_lower = file.lower()
+                    if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
+                        continue
+
+                    # Intentar con patrones flexibles como fallback
+                    if not self.logo_redes_path and ("redes" in file_lower or (file_lower == "logo.png")):
+                        self.logo_redes_path = os.path.join(source_dir, file)
+                        print(f"⚠ Usando logo alternativo (izquierdo): {file}")
+
+                    if not self.logo_urbide_path and "urbide" in file_lower:
+                        self.logo_urbide_path = os.path.join(source_dir, file)
+                        print(f"⚠ Usando logo alternativo (derecho): {file}")
 
     def exportar_a_excel(
         self,
@@ -248,6 +249,7 @@ class InformesExportador:
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
                 row = self._exportar_grupos_excel(
                     worksheet,
+                    workbook,
                     resultado_agrupacion['grupos'],
                     columnas,
                     row,
@@ -259,7 +261,8 @@ class InformesExportador:
                     formato_moneda,
                     formato_subtotal,
                     formato_subtotal_texto,
-                    resultado_agrupacion.get('modo', 'detalle')
+                    resultado_agrupacion.get('modo', 'detalle'),
+                    resultado_agrupacion
                 )
 
                 # Totales generales - ALINEADOS CON LAS COLUMNAS CORRECTAS
@@ -267,18 +270,37 @@ class InformesExportador:
                     row += 1
                     worksheet.write(row, 0, "═══ TOTAL GENERAL ═══", formato_total_texto)
 
+                    # Obtener mapa de formatos de agregaciones
+                    formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {})
+
+                    # Crear formato para total sin moneda (para COUNT, etc.)
+                    formato_total_entero = workbook.add_format({
+                        'bold': True,
+                        'font_size': 10,
+                        'font_name': 'Tahoma',
+                        'bg_color': '#C5D9F1',
+                        'num_format': '#,##0',
+                        'border': 2,
+                        'align': 'right',
+                        'valign': 'vcenter'
+                    })
+
                     totales = resultado_agrupacion['totales_generales']
                     for key, valor in totales.items():
                         # Extraer el nombre del campo del key
                         campo_nombre = key.split('(')[1].rstrip(')')
 
+                        # Determinar el formato según el tipo de agregación
+                        formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                        formato_a_usar = formato_total if formato_agg == 'moneda' else formato_total_entero
+
                         # Buscar la columna correspondiente
                         if campo_nombre in columnas:
                             col_idx = columnas.index(campo_nombre)
-                            worksheet.write(row, col_idx, valor, formato_total)
+                            worksheet.write(row, col_idx, valor, formato_a_usar)
                         elif campo_nombre == '*':
-                            # COUNT(*) se escribe en la segunda columna
-                            worksheet.write(row, 1, valor, formato_total)
+                            # COUNT(*) se escribe en la segunda columna, siempre como entero
+                            worksheet.write(row, 1, valor, formato_total_entero)
 
             else:
                 # Exportar sin agrupaciones (tabla simple)
@@ -289,10 +311,15 @@ class InformesExportador:
                 row += 1
 
                 # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
                 for fila_datos in datos:
                     for col_idx, valor in enumerate(fila_datos):
-                        # Detectar si es moneda
-                        if isinstance(valor, (int, float)) and col_idx > 0:
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
                             worksheet.write(row, col_idx, valor, formato_moneda)
                         else:
                             worksheet.write(row, col_idx, valor, formato_datos)
@@ -314,6 +341,7 @@ class InformesExportador:
     def _exportar_grupos_excel(
         self,
         worksheet,
+        workbook,
         grupos: List[Dict],
         columnas: List[str],
         start_row: int,
@@ -325,7 +353,8 @@ class InformesExportador:
         formato_moneda,
         formato_subtotal,
         formato_subtotal_texto,
-        modo: str = 'detalle'
+        modo: str = 'detalle',
+        resultado_agrupacion: Optional[Dict] = None
     ) -> int:
         """Exporta grupos jerárquicos a Excel (recursivo)"""
         row = start_row
@@ -353,6 +382,7 @@ class InformesExportador:
             if subgrupos:
                 row = self._exportar_grupos_excel(
                     worksheet,
+                    workbook,
                     subgrupos,
                     columnas,
                     row,
@@ -364,7 +394,8 @@ class InformesExportador:
                     formato_moneda,
                     formato_subtotal,
                     formato_subtotal_texto,
-                    modo
+                    modo,
+                    resultado_agrupacion
                 )
             elif modo == 'detalle':
                 # Encabezados de columnas para este grupo
@@ -375,7 +406,12 @@ class InformesExportador:
                 # Datos del grupo
                 for fila_datos in datos:
                     for col_idx, valor in enumerate(fila_datos):
-                        if isinstance(valor, (int, float)) and col_idx > 0:
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
                             worksheet.write(row, col_idx, valor, formato_moneda)
                         else:
                             worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
@@ -388,19 +424,38 @@ class InformesExportador:
                 # Escribir "Subtotal" en la primera columna (con formato de texto)
                 worksheet.write(row, 0, f"{indent_subtotal}▸ Subtotal", formato_subtotal_texto)
 
+                # Obtener mapa de formatos de agregaciones
+                formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {}) if resultado_agrupacion else {}
+
+                # Crear formato para subtotal sin moneda (para COUNT, etc.)
+                formato_subtotal_entero = workbook.add_format({
+                    'bold': True,
+                    'font_size': 9,
+                    'font_name': 'Tahoma',
+                    'bg_color': '#E7E6E6',
+                    'num_format': '#,##0',
+                    'border': 1,
+                    'align': 'right',
+                    'valign': 'vcenter'
+                })
+
                 # Mapear subtotales a las columnas correctas
                 for key, valor in subtotales.items():
                     # Extraer el nombre del campo del key (ej: "SUM(presupuesto)" -> "presupuesto")
                     # El formato es "FUNCION(campo)" o "COUNT(*)"
                     campo_nombre = key.split('(')[1].rstrip(')')
 
+                    # Determinar el formato según el tipo de agregación
+                    formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                    formato_a_usar = formato_subtotal if formato_agg == 'moneda' else formato_subtotal_entero
+
                     # Buscar la columna correspondiente
                     if campo_nombre in columnas:
                         col_idx = columnas.index(campo_nombre)
-                        worksheet.write(row, col_idx, valor, formato_subtotal)
+                        worksheet.write(row, col_idx, valor, formato_a_usar)
                     elif campo_nombre == '*':
-                        # COUNT(*) se escribe en la segunda columna
-                        worksheet.write(row, 1, valor, formato_subtotal)
+                        # COUNT(*) se escribe en la segunda columna, siempre como entero
+                        worksheet.write(row, 1, valor, formato_subtotal_entero)
 
                 row += 1
 
@@ -503,7 +558,9 @@ class InformesExportador:
                     doc,
                     resultado_agrupacion['grupos'],
                     columnas,
-                    resultado_agrupacion.get('modo', 'detalle')
+                    resultado_agrupacion.get('modo', 'detalle'),
+                    0,
+                    resultado_agrupacion
                 )
 
                 # Totales generales
@@ -544,12 +601,19 @@ class InformesExportador:
                     self._set_cell_background(cell, "D9D9D9")
 
                 # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
                 for row_idx, fila_datos in enumerate(datos, start=1):
                     row_cells = table.rows[row_idx].cells
                     for col_idx, valor in enumerate(fila_datos):
                         cell = row_cells[col_idx]
-                        if isinstance(valor, (int, float)):
-                            cell.text = f"{valor:,.2f} €" if col_idx > 0 else str(valor)
+
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
+                            cell.text = f"{valor:,.2f} €"
                         else:
                             cell.text = str(valor) if valor is not None else ""
 
@@ -585,7 +649,8 @@ class InformesExportador:
         grupos: List[Dict],
         columnas: List[str],
         modo: str = 'detalle',
-        nivel: int = 0
+        nivel: int = 0,
+        resultado_agrupacion: Optional[Dict] = None
     ):
         """Exporta grupos jerárquicos a Word (recursivo)"""
         for grupo in grupos:
@@ -618,7 +683,7 @@ class InformesExportador:
 
             # Si hay subgrupos, procesarlos recursivamente
             if subgrupos:
-                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo)
+                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion)
             elif modo == 'detalle' and datos:
                 # Crear tabla para los datos
                 table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
@@ -636,12 +701,19 @@ class InformesExportador:
                             run.font.size = Pt(9)
 
                 # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
                 for row_idx, fila_datos in enumerate(datos, start=1):
                     row_cells = table.rows[row_idx].cells
                     for col_idx, valor in enumerate(fila_datos):
                         cell = row_cells[col_idx]
-                        if isinstance(valor, (int, float)):
-                            cell.text = f"{valor:,.2f} €" if col_idx > 0 else str(valor)
+
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
+                            cell.text = f"{valor:,.2f} €"
                         else:
                             cell.text = str(valor) if valor is not None else ""
 
@@ -728,27 +800,55 @@ class InformesExportador:
                 return False
 
             # Convertir a PDF usando LibreOffice (si está disponible)
-            try:
-                subprocess.run([
-                    'libreoffice',
-                    '--headless',
-                    '--convert-to', 'pdf',
-                    '--outdir', os.path.dirname(filepath),
-                    word_path
-                ], check=True, capture_output=True)
+            # Intentar encontrar LibreOffice/soffice
+            soffice_paths = [
+                'soffice',  # Linux/Mac en PATH
+                'libreoffice',  # Linux/Mac en PATH (alternativo)
+                r'C:\Program Files\LibreOffice\program\soffice.exe',  # Windows (64-bit)
+                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',  # Windows (32-bit)
+            ]
 
-                # Renombrar si es necesario
-                generated_pdf = word_path.replace('.docx', '.pdf')
-                if generated_pdf != filepath and os.path.exists(generated_pdf):
-                    os.rename(generated_pdf, filepath)
+            soffice_cmd = None
+            for path in soffice_paths:
+                try:
+                    # Probar si el comando existe
+                    result = subprocess.run([path, '--version'],
+                                           capture_output=True,
+                                           timeout=5,
+                                           text=True)
+                    if result.returncode == 0:
+                        soffice_cmd = path
+                        print(f"✓ LibreOffice encontrado: {path}")
+                        break
+                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+                    continue
 
-                # Eliminar Word temporal
-                if os.path.exists(word_path):
-                    os.remove(word_path)
+            if soffice_cmd:
+                try:
+                    subprocess.run([
+                        soffice_cmd,
+                        '--headless',
+                        '--convert-to', 'pdf',
+                        '--outdir', os.path.dirname(filepath),
+                        word_path
+                    ], check=True, capture_output=True, timeout=60)
 
-                return True
+                    # Renombrar si es necesario
+                    generated_pdf = word_path.replace('.docx', '.pdf')
+                    if generated_pdf != filepath and os.path.exists(generated_pdf):
+                        os.rename(generated_pdf, filepath)
 
-            except (subprocess.CalledProcessError, FileNotFoundError):
+                    # Eliminar Word temporal
+                    if os.path.exists(word_path):
+                        os.remove(word_path)
+
+                    return True
+
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                    print(f"Error al convertir a PDF: {e}")
+                    print(f"Se ha generado el archivo Word: {word_path}")
+                    return True
+            else:
                 # Si LibreOffice no está disponible, dejar el archivo Word
                 print("LibreOffice no disponible. Se ha generado el archivo Word.")
                 print(f"Puede convertirlo manualmente a PDF: {word_path}")
