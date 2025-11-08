@@ -221,19 +221,38 @@ class InformesExportador:
             # Fila actual
             row = 0
 
-            # Insertar logos si existen
+            # Configurar altura de la fila de encabezado para acomodar logos y título
+            worksheet.set_row(row, 60)
+
+            # Logo izquierdo (Logo Redes Urbide)
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                worksheet.insert_image(row, 0, self.logo_redes_path, {'x_scale': 0.15, 'y_scale': 0.15})
+                worksheet.insert_image(row, 0, self.logo_redes_path, {
+                    'x_scale': 0.15,
+                    'y_scale': 0.15,
+                    'x_offset': 5,
+                    'y_offset': 5
+                })
 
+            # Título del informe en el centro (entre los logos)
+            # Calcular columnas centrales para el título
+            num_cols = len(columnas)
+            col_inicio_titulo = 2 if num_cols > 4 else 1
+            col_fin_titulo = num_cols - 3 if num_cols > 4 else num_cols - 2
+            if col_fin_titulo <= col_inicio_titulo:
+                col_fin_titulo = col_inicio_titulo + 1
+
+            worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre.upper(), formato_titulo)
+
+            # Logo derecho (Logo Urbide)
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                worksheet.insert_image(row, len(columnas) - 2, self.logo_urbide_path, {'x_scale': 0.15, 'y_scale': 0.15})
+                worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
+                    'x_scale': 0.15,
+                    'y_scale': 0.15,
+                    'x_offset': 5,
+                    'y_offset': 5
+                })
 
-            row += 5  # Espacio para logos
-
-            # Título del informe
-            worksheet.merge_range(row, 0, row, len(columnas) - 1, informe_nombre.upper(), formato_titulo)
-            worksheet.set_row(row, 30)
-            row += 2
+            row += 2  # Espacio después del encabezado
 
             # Información del proyecto
             if proyecto_nombre:
@@ -504,31 +523,34 @@ class InformesExportador:
             header_table = header.add_table(rows=1, cols=3, width=Inches(7))
             header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-            # Logo izquierdo
+            # Logo izquierdo (Logo Redes Urbide)
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 cell_logo_left = header_table.rows[0].cells[0]
+                cell_logo_left.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 paragraph = cell_logo_left.paragraphs[0]
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 run = paragraph.add_run()
-                run.add_picture(self.logo_redes_path, width=Inches(1.2))
+                run.add_picture(self.logo_redes_path, width=Inches(1.0))
 
-            # Espacio central
-            header_table.rows[0].cells[1].text = ""
+            # Título del informe en el centro (entre los logos)
+            cell_titulo = header_table.rows[0].cells[1]
+            cell_titulo.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            paragraph_titulo = cell_titulo.paragraphs[0]
+            paragraph_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run_titulo = paragraph_titulo.add_run(informe_nombre.upper())
+            run_titulo.font.name = 'Calibri'
+            run_titulo.font.size = Pt(20)
+            run_titulo.font.bold = True
+            run_titulo.font.color.rgb = RGBColor(0, 0, 0)
 
-            # Logo derecho
+            # Logo derecho (Logo Urbide)
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 cell_logo_right = header_table.rows[0].cells[2]
+                cell_logo_right.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 paragraph = cell_logo_right.paragraphs[0]
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 run = paragraph.add_run()
-                run.add_picture(self.logo_urbide_path, width=Inches(1.5))
-
-            # Título del informe
-            titulo = doc.add_heading(informe_nombre.upper(), level=1)
-            titulo.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            run = titulo.runs[0]
-            run.font.name = 'Calibri'
-            run.font.size = Pt(24)
-            run.font.color.rgb = RGBColor(0, 0, 0)
+                run.add_picture(self.logo_urbide_path, width=Inches(1.0))
 
             # Información del proyecto
             if proyecto_nombre:
@@ -802,10 +824,20 @@ class InformesExportador:
             # Convertir a PDF usando LibreOffice (si está disponible)
             # Intentar encontrar LibreOffice/soffice
             soffice_paths = [
-                'soffice',  # Linux/Mac en PATH
-                'libreoffice',  # Linux/Mac en PATH (alternativo)
-                r'C:\Program Files\LibreOffice\program\soffice.exe',  # Windows (64-bit)
-                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',  # Windows (32-bit)
+                # Linux/Mac en PATH
+                'soffice',
+                'libreoffice',
+                '/usr/bin/soffice',
+                '/usr/bin/libreoffice',
+                '/usr/local/bin/soffice',
+                '/usr/local/bin/libreoffice',
+                # Windows rutas comunes
+                r'C:\Program Files\LibreOffice\program\soffice.exe',
+                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 7\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 24\program\soffice.exe',
+                # Snap en Linux
+                '/snap/bin/libreoffice',
             ]
 
             soffice_cmd = None
@@ -818,40 +850,61 @@ class InformesExportador:
                                            text=True)
                     if result.returncode == 0:
                         soffice_cmd = path
+                        version = result.stdout.strip().split('\n')[0] if result.stdout else ''
                         print(f"✓ LibreOffice encontrado: {path}")
+                        print(f"  Versión: {version}")
                         break
-                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError):
                     continue
 
             if soffice_cmd:
                 try:
+                    print(f"Convirtiendo a PDF: {word_path} -> {filepath}")
+
+                    # Ejecutar conversión
                     subprocess.run([
                         soffice_cmd,
                         '--headless',
                         '--convert-to', 'pdf',
-                        '--outdir', os.path.dirname(filepath),
-                        word_path
-                    ], check=True, capture_output=True, timeout=60)
+                        '--outdir', os.path.dirname(filepath) if os.path.dirname(filepath) else '.',
+                        os.path.abspath(word_path)
+                    ], check=True, capture_output=True, timeout=120)
 
-                    # Renombrar si es necesario
-                    generated_pdf = word_path.replace('.docx', '.pdf')
-                    if generated_pdf != filepath and os.path.exists(generated_pdf):
-                        os.rename(generated_pdf, filepath)
+                    # Verificar si se generó el PDF
+                    generated_pdf = os.path.splitext(word_path)[0] + '.pdf'
 
-                    # Eliminar Word temporal
-                    if os.path.exists(word_path):
-                        os.remove(word_path)
+                    if os.path.exists(generated_pdf):
+                        # Renombrar si es necesario
+                        if generated_pdf != filepath:
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                            os.rename(generated_pdf, filepath)
 
-                    return True
+                        print(f"✓ PDF generado correctamente: {filepath}")
+
+                        # Eliminar Word temporal
+                        if os.path.exists(word_path):
+                            os.remove(word_path)
+
+                        return True
+                    else:
+                        print(f"⚠ El PDF no se generó. Archivo Word disponible: {word_path}")
+                        return True
 
                 except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                    print(f"Error al convertir a PDF: {e}")
-                    print(f"Se ha generado el archivo Word: {word_path}")
+                    print(f"⚠ Error al convertir a PDF: {e}")
+                    if hasattr(e, 'stderr') and e.stderr:
+                        print(f"  Error: {e.stderr}")
+                    print(f"  Se ha generado el archivo Word: {word_path}")
                     return True
             else:
                 # Si LibreOffice no está disponible, dejar el archivo Word
-                print("LibreOffice no disponible. Se ha generado el archivo Word.")
-                print(f"Puede convertirlo manualmente a PDF: {word_path}")
+                print("⚠ LibreOffice no está instalado o no se puede encontrar.")
+                print("  Para generar PDFs, instale LibreOffice desde:")
+                print("  - Windows/Mac: https://www.libreoffice.org/download/")
+                print("  - Linux: sudo apt install libreoffice (Debian/Ubuntu)")
+                print(f"  Archivo Word generado: {word_path}")
+                print("  Puede convertirlo manualmente a PDF abriendo el archivo en Word o LibreOffice.")
                 return True
 
         except Exception as e:

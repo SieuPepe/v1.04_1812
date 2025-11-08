@@ -58,7 +58,11 @@ class InformesFrame(customtkinter.CTkFrame):
         self.agregaciones = []  # Lista de agregaciones configuradas
         self.modo_visualizacion = "detalle"  # "detalle" o "resumen"
 
-        # Gestor de almacenamiento de configuraciones
+        # Caché de configuraciones temporales en memoria (solo para la sesión actual)
+        # Formato: {nombre_informe: {filtros, ordenaciones, campos, agrupaciones, agregaciones, modo}}
+        self.config_cache = {}
+
+        # Gestor de almacenamiento de configuraciones persistentes
         self.storage = InformesConfigStorage()
 
         # Configurar grid - Header compacto + contenido principal + action bar
@@ -213,9 +217,9 @@ class InformesFrame(customtkinter.CTkFrame):
             if parent:  # Es un informe
                 nuevo_informe = text.strip()
 
-                # AUTO-GUARDAR: Guardar configuración del informe anterior antes de cambiar
+                # GUARDAR EN CACHÉ: Guardar configuración temporal del informe anterior antes de cambiar
                 if hasattr(self, 'informe_seleccionado') and self.informe_seleccionado and self.informe_seleccionado != nuevo_informe:
-                    self._auto_guardar_configuracion_actual()
+                    self._guardar_config_en_cache()
 
                 # Obtener categoría padre
                 parent_text = self.tree.item(parent, "text")
@@ -246,8 +250,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
 
-                # AUTO-CARGAR: Cargar configuración guardada para este informe
-                self._auto_cargar_configuracion()
+                # CARGAR DESDE CACHÉ: Cargar configuración temporal de la sesión (si existe)
+                self._cargar_config_desde_cache()
 
     def _select_initial_report(self, informe_name):
         """Selecciona un informe específico en el tree"""
@@ -1762,7 +1766,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         return fila
 
-    def _render_grupos_recursivo(self, tree, grupos, columnas, parent="", nivel=0, modo='detalle'):
+    def _render_grupos_recursivo(self, tree, grupos, columnas, parent="", nivel=0, modo='detalle', resultado_agrupacion=None):
         """Renderiza grupos de forma recursiva en el TreeView
 
         Args:
@@ -1772,6 +1776,7 @@ class InformesFrame(customtkinter.CTkFrame):
             parent: ID del nodo padre ("" para raíz)
             nivel: Nivel de profundidad del grupo (0 = primer nivel)
             modo: 'detalle' o 'resumen'
+            resultado_agrupacion: Dict con información de formatos y agregaciones
         """
         if not grupos:
             return
@@ -1802,7 +1807,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
             # SUBGRUPOS (si existen)
             if subgrupos:
-                self._render_grupos_recursivo(tree, subgrupos, columnas, header_id, nivel + 1, modo)
+                self._render_grupos_recursivo(tree, subgrupos, columnas, header_id, nivel + 1, modo, resultado_agrupacion)
             elif modo == 'detalle':
                 # DATOS DEL GRUPO (solo si estamos en modo detalle y no hay subgrupos)
                 for fila_datos in datos:
@@ -1820,6 +1825,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 indent_subtotal = "    " * (nivel + 1)
                 fila_subtotal = []
 
+                # Obtener formatos de agregaciones si existen
+                formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {}) if resultado_agrupacion else {}
+
                 for i, col_name in enumerate(columnas):
                     if i == 0:
                         # Primera columna: etiqueta de subtotal
@@ -1828,18 +1836,29 @@ class InformesFrame(customtkinter.CTkFrame):
                         # Buscar si hay un subtotal para esta columna
                         valor_subtotal = ""
                         for key, valor in subtotales.items():
-                            # Las claves son del tipo "SUM(presupuesto)", "COUNT(*)", etc.
+                            # Las claves son del tipo "SUM(presupuesto)", "COUNT(descripcion)", etc.
                             # Necesitamos extraer el nombre del campo
                             if "(" in key and ")" in key:
                                 # Extraer campo de la función: "SUM(presupuesto)" -> "presupuesto"
-                                campo_agg = key.split("(")[1].split(")")[0]
-                                if campo_agg == col_name or campo_agg == "*":
-                                    # Formatear el valor
+                                campo_agg = key.split("(")[1].rstrip(")")
+
+                                # Comparación case-insensitive
+                                if campo_agg.lower() == col_name.lower():
+                                    # Formatear el valor según el tipo de agregación
+                                    formato_agg = formatos_agregaciones.get(key, 'ninguno')
+
                                     if isinstance(valor, (int, float)):
-                                        if isinstance(valor, float):
-                                            valor_subtotal = f"{valor:,.2f}"
+                                        if formato_agg == 'entero' or (isinstance(valor, int) and formato_agg != 'moneda'):
+                                            valor_subtotal = f"{int(valor):,}"
                                         else:
-                                            valor_subtotal = f"{valor:,}"
+                                            valor_subtotal = f"{valor:,.2f}"
+                                    else:
+                                        valor_subtotal = str(valor)
+                                    break
+                                # Caso especial: COUNT(*) se muestra en la segunda columna
+                                elif campo_agg == "*" and i == 1:
+                                    if isinstance(valor, (int, float)):
+                                        valor_subtotal = f"{int(valor):,}"
                                     else:
                                         valor_subtotal = str(valor)
                                     break
@@ -1927,7 +1946,7 @@ class InformesFrame(customtkinter.CTkFrame):
         if resultado_agrupacion and resultado_agrupacion.get('grupos'):
             # MODO AGRUPADO: Renderizar grupos jerárquicos
             modo = resultado_agrupacion.get('modo', 'detalle')
-            self._render_grupos_recursivo(tree, resultado_agrupacion['grupos'], columnas, "", nivel=0, modo=modo)
+            self._render_grupos_recursivo(tree, resultado_agrupacion['grupos'], columnas, "", nivel=0, modo=modo, resultado_agrupacion=resultado_agrupacion)
 
             # Añadir fila de totales generales al final
             if resultado_agrupacion.get('totales_generales') and self.totales_var.get():
@@ -3215,8 +3234,8 @@ class InformesFrame(customtkinter.CTkFrame):
         if clasif_obj['orden_combo']:
             clasif_obj['orden_combo'].set(orden)
 
-    def _auto_guardar_configuracion_actual(self):
-        """Guarda automáticamente la configuración actual del informe seleccionado"""
+    def _guardar_config_en_cache(self):
+        """Guarda la configuración actual en la caché de memoria (temporal para esta sesión)"""
         if not self.informe_seleccionado or not self.definicion_actual:
             return
 
@@ -3236,7 +3255,11 @@ class InformesFrame(customtkinter.CTkFrame):
 
             campos_selec = [k for k, v in self.campos_seleccionados.items() if v.get()]
 
-            agrupaciones_data = [agrup.get('campo') for agrup in self.agrupaciones if agrup.get('campo')]
+            agrupaciones_data = []
+            for agrup in self.agrupaciones:
+                campo = agrup.get('campo_actual')
+                if campo:
+                    agrupaciones_data.append(campo)
 
             agregaciones_data = []
             for agreg_obj in self.agregaciones:
@@ -3246,35 +3269,42 @@ class InformesFrame(customtkinter.CTkFrame):
 
             modo = "detalle" if self.modo_selector.get() == "Detalle" else "resumen"
 
-            # Guardar
-            self.storage.auto_guardar_informe(
-                self.informe_seleccionado,
-                filtros_data,
-                ordenaciones_data,
-                campos_selec,
-                agrupaciones_data,
-                agregaciones_data,
-                modo
-            )
-            print(f"✓ Configuración guardada automáticamente para '{self.informe_seleccionado}'")
+            # Guardar en caché de memoria
+            self.config_cache[self.informe_seleccionado] = {
+                'filtros': filtros_data,
+                'ordenaciones': ordenaciones_data,
+                'campos_seleccionados': campos_selec,
+                'agrupaciones': agrupaciones_data,
+                'agregaciones': agregaciones_data,
+                'modo': modo
+            }
+            print(f"✓ Configuración guardada en caché (sesión) para '{self.informe_seleccionado}'")
 
         except Exception as e:
-            print(f"⚠ Error al auto-guardar configuración: {e}")
+            print(f"⚠ Error al guardar configuración en caché: {e}")
 
-    def _auto_cargar_configuracion(self):
-        """Carga automáticamente la configuración guardada del informe seleccionado"""
+    def _auto_guardar_configuracion_actual(self):
+        """
+        OBSOLETO: Esta función ya no se usa para auto-guardado.
+        Solo se mantiene para compatibilidad con código antiguo.
+        Ahora se usa _guardar_config_en_cache para guardar temporalmente.
+        """
+        pass
+
+    def _cargar_config_desde_cache(self):
+        """Carga la configuración temporal desde la caché de memoria (solo para esta sesión)"""
         if not self.informe_seleccionado or not self.definicion_actual:
             return
 
+        # Verificar si hay configuración en caché para este informe
+        if self.informe_seleccionado not in self.config_cache:
+            print(f"ℹ No hay configuración en caché para '{self.informe_seleccionado}' (primera vez en esta sesión)")
+            # Al no haber configuración en caché, se usa el estado por defecto (todos los campos, sin filtros ni agregaciones)
+            return
+
         try:
-            # Intentar cargar configuración auto-guardada
-            config = self.storage.auto_cargar_informe(self.informe_seleccionado)
-
-            if not config:
-                print(f"ℹ No hay configuración guardada para '{self.informe_seleccionado}'")
-                return
-
-            print(f"✓ Cargando configuración guardada para '{self.informe_seleccionado}'...")
+            config = self.config_cache[self.informe_seleccionado]
+            print(f"✓ Cargando configuración desde caché (sesión) para '{self.informe_seleccionado}'...")
 
             # Cargar filtros
             filtros_config = config.get('filtros', [])
@@ -3317,16 +3347,23 @@ class InformesFrame(customtkinter.CTkFrame):
                     self._configurar_agregacion(self.agregaciones[-1], agreg_data)
 
             # Cargar modo de visualización
-            modo = config.get('modo_visualizacion', 'detalle')
+            modo = config.get('modo', 'detalle')
             self.modo_selector.set("Detalle" if modo == "detalle" else "Resumen")
             self.modo_visualizacion = modo
 
-            print(f"✓ Configuración cargada correctamente")
+            print(f"✓ Configuración cargada desde caché correctamente")
 
         except Exception as e:
-            print(f"⚠ Error al auto-cargar configuración: {e}")
+            print(f"⚠ Error al cargar configuración desde caché: {e}")
             import traceback
             traceback.print_exc()
+
+    def _auto_cargar_configuracion(self):
+        """
+        OBSOLETO: Esta función ya no se usa.
+        Ahora se usa _cargar_config_desde_cache para cargar desde memoria.
+        """
+        pass
 
     def _extraer_filtro_config(self, filtro_obj):
         """Extrae la configuración de un filtro para guardar"""
