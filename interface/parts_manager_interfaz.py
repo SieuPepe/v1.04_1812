@@ -313,7 +313,7 @@ class AppPartsManager(customtkinter.CTk):
         """Pestaña Resumen - Lista de partes con KPIs"""
         from tkinter import ttk
         from script.modulo_db import get_partes_resumen
-        # from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
+        # from parts_list_window import open_parts_list  # Módulo no existe - funcionalidad pendiente
 
         self.resumen_frame.grid_columnconfigure(0, weight=1)
         self.resumen_frame.grid_rowconfigure(2, weight=1)
