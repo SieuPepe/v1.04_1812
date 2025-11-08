@@ -188,6 +188,15 @@ class InformesExportador:
                 'valign': 'vcenter'
             })
 
+            formato_decimal = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': '#,##0.00',
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
             formato_subtotal = workbook.add_format({
                 'bold': True,
                 'font_size': 9,
@@ -296,6 +305,7 @@ class InformesExportador:
                     formato_header_columnas,
                     formato_datos,
                     formato_moneda,
+                    formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
                     resultado_agrupacion.get('modo', 'detalle'),
@@ -356,8 +366,14 @@ class InformesExportador:
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
-                            worksheet.write(row, col_idx, valor, formato_moneda)
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                worksheet.write(row, col_idx, valor, formato_moneda)
+                            elif formato_campo == 'decimal':
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                            else:
+                                # Por defecto, números decimales con 2 decimales
+                                worksheet.write(row, col_idx, valor, formato_decimal)
                         else:
                             worksheet.write(row, col_idx, valor, formato_datos)
                     row += 1
@@ -388,6 +404,7 @@ class InformesExportador:
         formato_header_columnas,
         formato_datos,
         formato_moneda,
+        formato_decimal,
         formato_subtotal,
         formato_subtotal_texto,
         modo: str = 'detalle',
@@ -429,6 +446,7 @@ class InformesExportador:
                     formato_header_columnas,
                     formato_datos,
                     formato_moneda,
+                    formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
                     modo,
@@ -448,8 +466,14 @@ class InformesExportador:
                         formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
 
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
-                            worksheet.write(row, col_idx, valor, formato_moneda)
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                worksheet.write(row, col_idx, valor, formato_moneda)
+                            elif formato_campo == 'decimal':
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                            else:
+                                # Por defecto, números decimales con 2 decimales
+                                worksheet.write(row, col_idx, valor, formato_decimal)
                         else:
                             worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                     row += 1
@@ -652,8 +676,12 @@ class InformesExportador:
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
-                            cell.text = f"{valor:,.2f} €"
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                cell.text = f"{valor:,.2f} €"
+                            else:
+                                # Por defecto, números con 2 decimales
+                                cell.text = f"{valor:,.2f}"
                         else:
                             cell.text = str(valor) if valor is not None else ""
 
@@ -752,8 +780,12 @@ class InformesExportador:
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)) and formato_campo == 'moneda':
-                            cell.text = f"{valor:,.2f} €"
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                cell.text = f"{valor:,.2f} €"
+                            else:
+                                # Por defecto, números con 2 decimales
+                                cell.text = f"{valor:,.2f}"
                         else:
                             cell.text = str(valor) if valor is not None else ""
 

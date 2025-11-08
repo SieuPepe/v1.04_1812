@@ -1752,6 +1752,83 @@ class InformesFrame(customtkinter.CTkFrame):
                 icon="cancel"
             )
 
+    def _formatear_valor(self, valor, campo_nombre):
+        """Formatea un valor según el tipo de campo
+
+        Args:
+            valor: Valor a formatear
+            campo_nombre: Nombre del campo (usado para determinar el formato)
+
+        Returns:
+            Valor formateado como string
+        """
+        if valor is None:
+            return ""
+
+        # Si no tenemos definición actual, retornar el valor como está
+        if not self.definicion_actual:
+            return str(valor)
+
+        # Buscar el campo en la definición
+        campos_def = self.definicion_actual.get('campos', {})
+        campo_info = None
+
+        # Buscar el campo por nombre (puede ser case-insensitive)
+        for campo_key, campo_data in campos_def.items():
+            if campo_data.get('nombre', '').lower() == campo_nombre.lower():
+                campo_info = campo_data
+                break
+
+        # Si no encontramos info del campo, intentar formatear por tipo de dato
+        if not campo_info:
+            # Intentar detectar por el valor
+            if isinstance(valor, (int, float)):
+                # Si parece un importe monetario (contiene palabras clave)
+                nombre_lower = campo_nombre.lower()
+                if any(keyword in nombre_lower for keyword in ['precio', 'importe', 'presupuesto', 'certificado', 'pendiente', 'coste', 'total', 'subtotal']):
+                    return f"{valor:,.2f} €"
+                # Si parece cantidad o porcentaje
+                elif any(keyword in nombre_lower for keyword in ['cantidad', 'cant.', 'medición', 'medicion']):
+                    return f"{valor:,.2f}"
+                else:
+                    return f"{valor:,.2f}"
+            return str(valor)
+
+        # Formatear según el tipo definido en el campo
+        formato = campo_info.get('formato', '')
+
+        if isinstance(valor, (int, float)):
+            if formato == 'moneda':
+                return f"{valor:,.2f} €"
+            elif formato == 'decimal':
+                return f"{valor:,.2f}"
+            elif formato == 'entero':
+                return f"{int(valor):,}"
+            elif formato == 'porcentaje':
+                return f"{valor:,.2f}%"
+            else:
+                return f"{valor:,.2f}"
+
+        return str(valor)
+
+    def _formatear_fila(self, fila, columnas):
+        """Formatea todos los valores de una fila según el tipo de cada columna
+
+        Args:
+            fila: Tupla o lista con los valores de la fila
+            columnas: Lista de nombres de columnas
+
+        Returns:
+            Lista de valores formateados
+        """
+        fila_formateada = []
+        for i, valor in enumerate(fila):
+            if i < len(columnas):
+                fila_formateada.append(self._formatear_valor(valor, columnas[i]))
+            else:
+                fila_formateada.append(str(valor) if valor is not None else "")
+        return fila_formateada
+
     def _crear_fila_totales(self, columnas, totales_dict, texto_primera_col="═══ TOTAL ═══"):
         """Crea una fila de totales formateada
 
@@ -1827,7 +1904,9 @@ class InformesFrame(customtkinter.CTkFrame):
             elif modo == 'detalle':
                 # DATOS DEL GRUPO (solo si estamos en modo detalle y no hay subgrupos)
                 for fila_datos in datos:
-                    tree.insert(header_id, "end", values=fila_datos, tags=(f'datos_nivel{nivel}',))
+                    # Formatear la fila antes de insertarla
+                    fila_formateada = self._formatear_fila(fila_datos, columnas)
+                    tree.insert(header_id, "end", values=fila_formateada, tags=(f'datos_nivel{nivel}',))
 
                 # Estilo para datos
                 if nivel == 0:
@@ -1978,7 +2057,9 @@ class InformesFrame(customtkinter.CTkFrame):
         else:
             # MODO NORMAL: Insertar datos sin agrupación
             for fila in datos:
-                tree.insert("", "end", values=fila)
+                # Formatear la fila antes de insertarla
+                fila_formateada = self._formatear_fila(fila, columnas)
+                tree.insert("", "end", values=fila_formateada)
 
         # Insertar fila de totales si hay totales y la opción está activada (modo normal)
         if not resultado_agrupacion and totales and self.totales_var.get():
