@@ -27,12 +27,20 @@ class InformesExportador:
         self._buscar_logos()
 
     def _buscar_logos(self):
-        """Busca los logos en la carpeta source con búsqueda flexible"""
+        """Busca los logos en la raíz del proyecto y en la carpeta source"""
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        source_dir = os.path.join(base_dir, "source")
 
-        if os.path.exists(source_dir):
-            archivos = os.listdir(source_dir)
+        # Directorios donde buscar (en orden de prioridad)
+        directorios_busqueda = [
+            base_dir,  # Raíz del proyecto (prioridad 1)
+            os.path.join(base_dir, "source"),  # Carpeta source (prioridad 2)
+        ]
+
+        for directorio in directorios_busqueda:
+            if not os.path.exists(directorio):
+                continue
+
+            archivos = os.listdir(directorio)
 
             # Buscar logos con prioridad exacta
             for file in archivos:
@@ -42,30 +50,40 @@ class InformesExportador:
 
                 # Logo izquierdo (Logo Redes Urbide) - prioridad exacta
                 if not self.logo_redes_path:
-                    if file_lower == "logo artanda.png":
-                        self.logo_redes_path = os.path.join(source_dir, file)
+                    if file_lower in ["logo redes urbide.jpg", "logo redes urbide.png", "logo artanda.png"]:
+                        self.logo_redes_path = os.path.join(directorio, file)
                         print(f"✓ Logo izquierdo (Redes Urbide) encontrado: {file}")
 
                 # Logo derecho (Logo Urbide) - prioridad exacta
                 if not self.logo_urbide_path:
-                    if file_lower == "logo artanda2.png":
-                        self.logo_urbide_path = os.path.join(source_dir, file)
+                    if file_lower in ["logo urbide.jpg", "logo urbide.png", "logo artanda2.png"]:
+                        self.logo_urbide_path = os.path.join(directorio, file)
                         print(f"✓ Logo derecho (Urbide) encontrado: {file}")
 
-            # Si no se encuentran, buscar alternativas
-            if not self.logo_redes_path or not self.logo_urbide_path:
+            # Si ya encontramos ambos logos, salir
+            if self.logo_redes_path and self.logo_urbide_path:
+                break
+
+        # Si aún no se encuentran, buscar alternativas en todos los directorios
+        if not self.logo_redes_path or not self.logo_urbide_path:
+            for directorio in directorios_busqueda:
+                if not os.path.exists(directorio):
+                    continue
+
+                archivos = os.listdir(directorio)
+
                 for file in archivos:
                     file_lower = file.lower()
                     if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
                         continue
 
                     # Intentar con patrones flexibles como fallback
-                    if not self.logo_redes_path and ("redes" in file_lower or (file_lower == "logo.png")):
-                        self.logo_redes_path = os.path.join(source_dir, file)
+                    if not self.logo_redes_path and ("redes" in file_lower or file_lower == "logo.png"):
+                        self.logo_redes_path = os.path.join(directorio, file)
                         print(f"⚠ Usando logo alternativo (izquierdo): {file}")
 
-                    if not self.logo_urbide_path and "urbide" in file_lower:
-                        self.logo_urbide_path = os.path.join(source_dir, file)
+                    if not self.logo_urbide_path and "urbide" in file_lower and "redes" not in file_lower:
+                        self.logo_urbide_path = os.path.join(directorio, file)
                         print(f"⚠ Usando logo alternativo (derecho): {file}")
 
     def exportar_a_excel(
