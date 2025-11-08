@@ -1,0 +1,28 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0005,Trabajo 5 - Sin municipio,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Girona,La Garrotxa,Sin municipio,22708.15,22975.24,-267.09000000000015,2024-10-04,2024-10-18,2024-10,2024
+TP-2025-0021,Trabajo 21 - Sin municipio,Pendiente,RED-MT-02,Trabajos Programados,TP,CT-005,FUGA,Girona,La Garrotxa,Sin municipio,8289.22,0.0,8289.22,2025-04-20,,2025-04,2025
+GF-2025-0031,Trabajo 31 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Girona,La Garrotxa,Sin municipio,27007.5,11965.46,15042.04,2025-02-23,,2025-02,2025
+TP-2025-0039,Trabajo 39 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-005,OTROS,Girona,La Selva,Sin municipio,24168.28,23540.74,627.5399999999972,2025-01-13,2025-03-07,2025-01,2025
+GF-2025-0050,Trabajo 50 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-004,FUGA,Girona,La Garrotxa,Sin municipio,3719.74,3594.62,125.11999999999989,2025-02-03,2025-03-03,2025-02,2025
+OT-2025-0057,Trabajo 57 - Sin municipio,Pendiente,RED-BT-01,Órdenes de Trabajo,OT,CT-002,OTROS,Girona,La Garrotxa,Sin municipio,14209.05,0.0,14209.05,2025-03-07,,2025-03,2025
+TP-2024-0067,Trabajo 67 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-004,ATASCO,Girona,La Selva,Sin municipio,40876.97,41603.89,-726.9199999999983,2024-09-15,2024-11-12,2024-09,2024
+OT-2025-0075,Trabajo 75 - Sin municipio,En curso,RED-DIST-01,Órdenes de Trabajo,OT,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,13115.31,3783.5,9331.81,2025-04-23,2025-06-13,2025-04,2025
+GF-2025-0078,Trabajo 78 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,24294.72,22548.1,1746.6200000000026,2025-08-12,2025-09-05,2025-08,2025
+GF-2025-0081,Trabajo 81 - Sin municipio,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-003,FUGA,Girona,La Garrotxa,Sin municipio,6911.58,6802.35,109.22999999999956,2025-01-13,2025-02-02,2025-01,2025
+OT-2024-0089,Trabajo 89 - Sin municipio,Finalizado,RED-BT-01,Órdenes de Trabajo,OT,CT-003,FUGA,Girona,La Garrotxa,Sin municipio,38117.27,39387.22,-1269.9500000000044,2024-01-24,2024-02-15,2024-01,2024
+OT-2025-0100,Trabajo 100 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Girona,La Selva,Sin municipio,45270.12,28134.04,17136.08,2025-06-02,2025-07-06,2025-06,2025
+GF-2024-0107,Trabajo 107 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-004,FUGA,Girona,La Garrotxa,Sin municipio,33931.4,29248.67,4682.730000000003,2024-09-19,2024-10-13,2024-09,2024
+TP-2024-0113,Trabajo 113 - Sin municipio,En curso,RED-BT-01,Trabajos Programados,TP,CT-002,FUGA,Girona,La Garrotxa,Sin municipio,38138.21,13479.89,24658.32,2024-08-07,2024-09-29,2024-08,2024
+TP-2024-0117,Trabajo 117 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Garrotxa,Sin municipio,37637.81,22225.43,15412.379999999997,2024-07-07,,2024-07,2024
+GF-2025-0119,Trabajo 119 - Sin municipio,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-003,ATASCO,Girona,La Selva,Sin municipio,31804.38,0.0,31804.38,2025-10-17,,2025-10,2025
+OT-2025-0125,Trabajo 125 - Sin municipio,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-004,FUGA,Girona,La Garrotxa,Sin municipio,49943.52,43724.82,6218.699999999997,2025-08-19,2025-09-23,2025-08,2025
+GF-2025-0130,Trabajo 130 - Sin municipio,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-001,ATASCO,Girona,La Selva,Sin municipio,8092.97,0.0,8092.97,2025-05-14,,2025-05,2025
+TP-2025-0138,Trabajo 138 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-002,OTROS,Girona,La Selva,Sin municipio,11694.99,5032.13,6662.86,2025-06-18,,2025-06,2025
+OT-2025-0148,Trabajo 148 - Sin municipio,Pendiente,RED-BT-01,Órdenes de Trabajo,OT,CT-005,FUGA,Girona,La Selva,Sin municipio,45036.68,0.0,45036.68,2025-06-15,,2025-06,2025
+OT-2024-0150,Trabajo 150 - Sin municipio,Finalizado,RED-BT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Girona,La Selva,Sin municipio,3832.95,3900.08,-67.13000000000011,2024-08-17,2024-09-25,2024-08,2024
+OT-2024-0157,Trabajo 157 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-003,OTROS,Girona,La Selva,Sin municipio,4217.66,4223.64,-5.980000000000473,2024-09-29,2024-10-31,2024-09,2024
+OT-2024-0162,Trabajo 162 - Sin municipio,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,FUGA,Girona,La Selva,Sin municipio,32609.8,0.0,32609.8,2024-03-23,,2024-03,2024
+OT-2025-0168,Trabajo 168 - Sin municipio,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,ATASCO,Girona,La Selva,Sin municipio,27796.86,0.0,27796.86,2025-02-19,,2025-02,2025
+OT-2024-0185,Trabajo 185 - Sin municipio,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Girona,La Garrotxa,Sin municipio,14389.04,14257.43,131.61000000000058,2024-01-25,2024-02-06,2024-01,2024
+TP-2024-0186,Trabajo 186 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-003,OTROS,Girona,La Garrotxa,Sin municipio,26547.91,26579.9,-31.9900000000016,2024-03-09,2024-05-02,2024-03,2024
+TP-2024-0193,Trabajo 193 - Sin municipio,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Selva,Sin municipio,24211.72,24367.36,-155.63999999999942,2024-05-24,2024-07-13,2024-05,2024

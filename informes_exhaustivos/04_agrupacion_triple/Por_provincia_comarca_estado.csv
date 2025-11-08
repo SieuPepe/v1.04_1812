@@ -1,0 +1,51 @@
+provincia,comarca,estado,cantidad,total_presupuesto,total_certificado,total_pendiente
+Madrid,Área Metropolitana,Pendiente,13,376604.56,0.0,376604.56
+Barcelona,Maresme,Finalizado,4,83310.57,84108.11,-797.54
+Bizkaia,Duranguesado,Pendiente,8,196843.99,0.0,196843.99
+Gipuzkoa,Donostialdea,Pendiente,3,61343.56,0.0,61343.56
+Girona,La Garrotxa,Finalizado,9,220563.33,209118.35,11444.98
+Álava,Rioja Alavesa,Finalizado,5,140909.03,137614.66,3294.37
+Valencia,Horta Sud,Finalizado,5,209548.05,188314.98,21233.07
+Navarra,Cuenca de Pamplona,Pendiente,12,248204.01,0.0,248204.01
+Álava,Rioja Alavesa,En curso,6,210139.28,105856.98,104282.3
+Bizkaia,Lea-Artibai,Finalizado,5,150223.93,136989.07,13234.86
+Bizkaia,Duranguesado,En curso,5,182950.97,64796.44,118154.53
+Valencia,Horta Nord,Finalizado,2,40309.33,38937.45,1371.88
+Bizkaia,Duranguesado,Finalizado,2,51770.24,50639.86,1130.38
+Madrid,Área Metropolitana,Finalizado,3,83453.8,84478.62,-1024.82
+Valencia,Horta Sud,Pendiente,4,79350.73,0.0,79350.73
+Barcelona,Vallès Occidental,Finalizado,4,93573.34,86474.66,7098.68
+Gipuzkoa,Tolosaldea,Finalizado,6,151839.22,143201.76,8637.46
+Girona,La Garrotxa,Pendiente,2,22498.27,0.0,22498.27
+Barcelona,Barcelonés,Pendiente,4,79605.92,0.0,79605.92
+Gipuzkoa,Tolosaldea,Pendiente,4,87461.48,0.0,87461.48
+Gipuzkoa,Urola Kosta,Finalizado,2,22643.47,21723.73,919.74
+Valencia,Horta Nord,En curso,2,24711.82,16060.56,8651.26
+Gipuzkoa,Urola Kosta,En curso,4,148470.26,58616.54,89853.72
+Gipuzkoa,Donostialdea,En curso,4,86146.64,45495.86,40650.78
+Girona,La Garrotxa,En curso,4,115898.83,51454.28,64444.55
+Bizkaia,Lea-Artibai,En curso,2,27724.71,8075.3,19649.41
+Álava,Cuadrilla de Vitoria,En curso,10,272186.33,124897.97,147288.36
+Girona,La Selva,Finalizado,5,97307.58,97635.71,-328.13
+Bizkaia,Gran Bilbao,Finalizado,2,59401.38,54926.55,4474.83
+Bizkaia,Gran Bilbao,Pendiente,1,23948.2,0.0,23948.2
+Gipuzkoa,Urola Kosta,Pendiente,4,95878.23,0.0,95878.23
+Navarra,Cuenca de Pamplona,En curso,7,144218.59,57553.54,86665.05
+Valencia,Horta Sud,En curso,6,102938.05,44233.56,58704.49
+Barcelona,Barcelonés,Finalizado,3,70726.74,69547.49,1179.25
+Navarra,Cuenca de Pamplona,Finalizado,8,178046.75,165901.69,12145.06
+Bizkaia,Gran Bilbao,En curso,3,79938.69,45022.25,34916.44
+Barcelona,Baix Llobregat,En curso,2,42436.84,14560.65,27876.19
+Barcelona,Baix Llobregat,Pendiente,1,28461.24,0.0,28461.24
+Álava,Cuadrilla de Vitoria,Finalizado,2,70480.73,62234.07,8246.66
+Girona,La Selva,En curso,2,56965.11,33166.17,23798.94
+Álava,Rioja Alavesa,Pendiente,1,1285.0,0.0,1285.0
+Girona,La Selva,Pendiente,5,145340.69,0.0,145340.69
+Barcelona,Maresme,En curso,3,97152.3,42375.63,54776.67
+Álava,Cuadrilla de Vitoria,Pendiente,3,105306.03,0.0,105306.03
+Barcelona,Vallès Occidental,En curso,1,14900.22,4443.8,10456.42
+Barcelona,Barcelonés,En curso,1,21096.3,6480.22,14616.08
+Madrid,Área Metropolitana,En curso,3,106937.68,62099.08,44838.6
+Valencia,Horta Nord,Pendiente,1,17059.05,0.0,17059.05
+Barcelona,Baix Llobregat,Finalizado,1,39945.92,41499.49,-1553.57
+Barcelona,Maresme,Pendiente,1,33667.97,0.0,33667.97

@@ -1,0 +1,25 @@
+provincia,tipo_trabajo,cantidad,total_presupuesto,total_certificado,total_pendiente
+Madrid,Garantía y Fallos,8,219994.01,25339.52,194654.49
+Barcelona,Garantía y Fallos,10,284556.38,191230.74,93325.64
+Bizkaia,Garantía y Fallos,8,170609.69,75914.55,94695.14
+Gipuzkoa,Trabajos Programados,9,194485.54,65360.52,129125.02
+Girona,Órdenes de Trabajo,12,311246.41,160385.97,150860.44
+Álava,Garantía y Fallos,9,298098.12,172168.27,125929.85
+Valencia,Garantía y Fallos,7,162871.92,96895.78,65976.14
+Navarra,Órdenes de Trabajo,9,207751.9,97814.94,109936.96
+Álava,Trabajos Programados,8,227089.99,150862.19,76227.8
+Álava,Órdenes de Trabajo,10,275118.29,107573.22,167545.07
+Bizkaia,Órdenes de Trabajo,13,389310.55,224534.45,164776.1
+Valencia,Órdenes de Trabajo,5,141864.53,118003.12,23861.41
+Madrid,Órdenes de Trabajo,5,129032.21,53033.36,75998.85
+Gipuzkoa,Garantía y Fallos,11,289796.12,135244.97,154551.15
+Girona,Trabajos Programados,8,211565.11,156829.34,54735.77
+Barcelona,Órdenes de Trabajo,6,156116.87,84386.28,71730.59
+Madrid,Trabajos Programados,6,217969.82,68204.82,149765.0
+Gipuzkoa,Órdenes de Trabajo,7,169501.2,68432.4,101068.8
+Valencia,Trabajos Programados,8,169180.58,72647.65,96532.93
+Girona,Garantía y Fallos,7,135762.29,74159.2,61603.09
+Navarra,Garantía y Fallos,11,275405.51,96236.97,179168.54
+Barcelona,Trabajos Programados,9,164204.11,73873.03,90331.08
+Bizkaia,Trabajos Programados,7,212881.87,60000.47,152881.4
+Navarra,Trabajos Programados,7,87311.94,29403.32,57908.62

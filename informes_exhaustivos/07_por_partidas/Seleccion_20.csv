@@ -1,0 +1,6 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2025-0060,Trabajo 60 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,7425.76,1957.1,5468.66,2025-09-18,2025-12-14,2025-09,2025
+GF-2024-0115,Trabajo 115 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-004,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,21445.64,0.0,21445.64,2024-01-17,,2024-01,2024
+OT-2024-0132,Trabajo 132 - Cerdanyola del Vallès,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Barcelona,Vallès Occidental,Cerdanyola del Vallès,25876.32,26397.51,-521.1899999999987,2024-09-02,2024-10-14,2024-09,2024
+OT-2025-0154,Trabajo 154 - Portugalete,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Bizkaia,Gran Bilbao,Portugalete,24494.12,11148.5,13345.619999999999,2025-05-21,2025-07-08,2025-05,2025
+GF-2025-0179,Trabajo 179 - Madrid,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-004,ATASCO,Madrid,Área Metropolitana,Madrid,18426.33,0.0,18426.33,2025-07-18,,2025-07,2025

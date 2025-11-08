@@ -1,0 +1,21 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0010,Trabajo 10 - Sin municipio,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Álava,Rioja Alavesa,Sin municipio,37319.98,24849.59,12470.390000000003,2024-08-26,2024-11-11,2024-08,2024
+OT-2024-0012,Trabajo 12 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-001,ATASCO,Bizkaia,Duranguesado,Sin municipio,38899.4,20540.08,18359.32,2024-01-11,,2024-01,2024
+OT-2024-0049,Trabajo 49 - Pamplona,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Navarra,Cuenca de Pamplona,Pamplona,34629.08,17150.07,17479.010000000002,2024-10-11,,2024-10,2024
+OT-2025-0059,Trabajo 59 - Vitoria-Gasteiz,En curso,RED-MT-02,Órdenes de Trabajo,OT,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,9435.78,3883.62,5552.160000000001,2025-01-03,,2025-01,2025
+OT-2025-0060,Trabajo 60 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,7425.76,1957.1,5468.66,2025-09-18,2025-12-14,2025-09,2025
+OT-2025-0068,Trabajo 68 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,29773.68,11712.28,18061.4,2025-04-01,,2025-04,2025
+OT-2025-0075,Trabajo 75 - Sin municipio,En curso,RED-DIST-01,Órdenes de Trabajo,OT,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,13115.31,3783.5,9331.81,2025-04-23,2025-06-13,2025-04,2025
+OT-2025-0083,Trabajo 83 - Bilbao,En curso,RED-MT-02,Órdenes de Trabajo,OT,CT-004,FUGA,Bizkaia,Gran Bilbao,Bilbao,9137.75,4162.71,4975.04,2025-08-21,,2025-08,2025
+OT-2025-0091,Trabajo 91 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-005,FUGA,Álava,Rioja Alavesa,Sin municipio,1994.97,595.43,1399.54,2025-08-15,,2025-08,2025
+OT-2025-0098,Trabajo 98 - Vitoria-Gasteiz,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-005,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,44506.19,17244.8,27261.390000000003,2025-04-27,2025-05-12,2025-04,2025
+OT-2025-0100,Trabajo 100 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Girona,La Selva,Sin municipio,45270.12,28134.04,17136.08,2025-06-02,2025-07-06,2025-06,2025
+OT-2025-0109,Trabajo 109 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,34041.2,15656.18,18385.019999999997,2025-03-06,2025-05-02,2025-03,2025
+OT-2024-0127,Trabajo 127 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Bizkaia,Duranguesado,Sin municipio,47146.29,13966.93,33179.36,2024-08-24,2024-11-15,2024-08,2024
+OT-2025-0128,Trabajo 128 - Sin municipio,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Barcelona,Maresme,Sin municipio,24075.35,6179.31,17896.039999999997,2025-06-02,2025-07-20,2025-06,2025
+OT-2024-0129,Trabajo 129 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-003,OTROS,Barcelona,Maresme,Sin municipio,40843.11,24945.21,15897.900000000001,2024-02-28,,2024-02,2024
+OT-2025-0154,Trabajo 154 - Portugalete,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Bizkaia,Gran Bilbao,Portugalete,24494.12,11148.5,13345.619999999999,2025-05-21,2025-07-08,2025-05,2025
+OT-2024-0167,Trabajo 167 - Vitoria-Gasteiz,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,32391.44,15522.05,16869.39,2024-05-15,,2024-05,2024
+OT-2025-0187,Trabajo 187 - Vitoria-Gasteiz,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,35389.4,16051.56,19337.840000000004,2025-03-20,,2025-03,2025
+OT-2024-0197,Trabajo 197 - Madrid,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Madrid,Área Metropolitana,Madrid,12269.47,6851.47,5417.999999999999,2024-10-23,2024-12-15,2024-10,2024
+OT-2024-0200,Trabajo 200 - Barañain,En curso,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,OTROS,Navarra,Cuenca de Pamplona,Barañain,13375.45,3761.88,9613.57,2024-08-24,2024-11-08,2024-08,2024

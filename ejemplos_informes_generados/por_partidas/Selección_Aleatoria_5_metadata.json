@@ -1,0 +1,26 @@
+{
+  "nombre": "Selección_Aleatoria_#5",
+  "tipo_informe": "Listado de Partes",
+  "filtro": "Por Partidas Seleccionadas",
+  "partidas_seleccionadas": [
+    "OT-2025-0005",
+    "OT-2025-0085",
+    "OT-2025-0081",
+    "GF-2025-0088",
+    "OT-2024-0080",
+    "OT-2024-0042",
+    "GF-2025-0084"
+  ],
+  "num_resultados": 7,
+  "fecha_generacion": "2025-11-08T15:12:01.667053",
+  "estadisticas": {
+    "total_presupuesto": 192780.03,
+    "total_certificado": 111042.37999999999,
+    "total_pendiente": 81737.65,
+    "estados": {
+      "Pendiente": 1,
+      "En curso": 3,
+      "Finalizado": 3
+    }
+  }
+}

@@ -1,0 +1,9 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0020,Trabajo 20 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-001,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,27381.94,28345.46,-963.5200000000004,2025-05-12,2025-05-25,2025-05,2025
+GF-2024-0025,Trabajo 25 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,4945.45,5073.65,-128.19999999999982,2024-03-12,2024-05-09,2024-03,2024
+OT-2024-0053,Trabajo 53 - Sin municipio,Finalizado,RED-BT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,47414.32,42687.84,4726.480000000003,2024-07-24,2024-08-11,2024-07,2024
+OT-2024-0069,Trabajo 69 - Sin municipio,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-001,FUGA,Gipuzkoa,Tolosaldea,Sin municipio,27199.64,23787.46,3412.1800000000003,2024-05-22,2024-07-21,2024-05,2024
+GF-2024-0072,Trabajo 72 - Sin municipio,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-002,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,30040.06,28516.34,1523.7200000000012,2024-03-26,2024-04-24,2024-03,2024
+TP-2025-0094,Trabajo 94 - Sin municipio,Finalizado,RED-MT-02,Trabajos Programados,TP,CT-005,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,12270.24,12327.08,-56.840000000000146,2025-04-28,2025-06-27,2025-04,2025
+GF-2025-0105,Trabajo 105 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,17698.02,16650.08,1047.9399999999987,2025-01-24,2025-02-09,2025-01,2025
+TP-2025-0124,Trabajo 124 - Sin municipio,Finalizado,RED-AT-01,Trabajos Programados,TP,CT-004,FUGA,Gipuzkoa,Tolosaldea,Sin municipio,7533.02,7537.58,-4.559999999999491,2025-04-12,2025-04-25,2025-04,2025

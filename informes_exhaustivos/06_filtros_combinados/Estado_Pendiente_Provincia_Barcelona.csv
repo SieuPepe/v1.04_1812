@@ -1,0 +1,7 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0022,Trabajo 22 - Barcelona,Pendiente,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Barcelona,Barcelonés,Barcelona,28654.75,0.0,28654.75,2024-01-09,,2024-01,2024
+GF-2024-0080,Trabajo 80 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-001,ATASCO,Barcelona,Baix Llobregat,Sin municipio,28461.24,0.0,28461.24,2024-10-18,,2024-10,2024
+GF-2025-0084,Trabajo 84 - L'Hospitalet de Llobregat,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-002,FUGA,Barcelona,Barcelonés,L'Hospitalet de Llobregat,11876.24,0.0,11876.24,2025-07-01,,2025-07,2025
+OT-2025-0165,Trabajo 165 - L'Hospitalet de Llobregat,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Barcelona,Barcelonés,L'Hospitalet de Llobregat,9760.14,0.0,9760.14,2025-05-05,,2025-05,2025
+GF-2025-0190,Trabajo 190 - Barcelona,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-003,OTROS,Barcelona,Barcelonés,Barcelona,29314.79,0.0,29314.79,2025-02-09,,2025-02,2025
+TP-2024-0191,Trabajo 191 - Sin municipio,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-003,ATASCO,Barcelona,Maresme,Sin municipio,33667.97,0.0,33667.97,2024-09-02,,2024-09,2024

@@ -1,0 +1,4 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0016,Trabajo 16 - Madrid,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,FUGA,Madrid,Área Metropolitana,Madrid,3588.57,3706.18,-117.60999999999967,2024-03-12,2024-03-18,2024-03,2024
+OT-2024-0018,Trabajo 18 - Madrid,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Madrid,Área Metropolitana,Madrid,45170.69,46181.89,-1011.1999999999971,2024-09-08,2024-11-03,2024-09,2024
+TP-2024-0153,Trabajo 153 - Madrid,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Madrid,Área Metropolitana,Madrid,34694.54,34590.55,103.98999999999796,2024-08-19,2024-10-03,2024-08,2024

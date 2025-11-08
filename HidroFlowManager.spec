@@ -22,11 +22,13 @@ a = Analysis(
         'PIL',
         'matplotlib',
         'openpyxl',
+        'xlsxwriter',
         'docx',
         'reportlab',
         'script.informes_storage',
         'script.informes',
         'script.informes_config',
+        'script.informes_exportacion',
         'interface.informes_interfaz'
     ],
     hookspath=[],

@@ -385,13 +385,13 @@ class AppPartsManager(customtkinter.CTk):
         )
         btn_refresh.pack(side="left", padx=(0, 10))
 
-        # COMENTADO: Funcionalidad no implementada
-        # btn_list = customtkinter.CTkButton(
-        #     btn_frame, text="📋 Ver Listado Completo",
-        #     command=lambda: open_parts_list(self, self.user, self.password, self.schema),
-        #     width=180
-        # )
-        # btn_list.pack(side="left", padx=(0, 10))
+        # Botón para ver listado completo de partes (abre módulo de informes)
+        btn_list = customtkinter.CTkButton(
+            btn_frame, text="📋 Ver Listado Completo",
+            command=self._open_listado_completo,
+            width=180
+        )
+        btn_list.pack(side="left", padx=(0, 10))
 
         btn_columns = customtkinter.CTkButton(
             btn_frame, text="⚙ Columnas",
@@ -502,6 +502,31 @@ class AppPartsManager(customtkinter.CTk):
                 self.tree_resumen.insert("", "end", values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
+
+    def _open_listado_completo(self):
+        """Abre la ventana de listado completo de partes con filtros"""
+        from interface.parts_list_window import PartsTab
+
+        # Crear ventana toplevel
+        listado_window = customtkinter.CTkToplevel(self)
+        listado_window.title("Listado Completo de Partes")
+        listado_window.geometry("1400x800")
+
+        # Crear el frame de listado
+        parts_list_frame = PartsTab(
+            listado_window,
+            self.user,
+            self.password,
+            self.schema
+        )
+        parts_list_frame.pack(fill="both", expand=True)
+
+        # Forzar ventana al frente DESPUÉS de crear el contenido
+        listado_window.attributes('-topmost', True)  # Forzar encima de todo
+        listado_window.update()  # Actualizar la ventana
+        listado_window.attributes('-topmost', False)  # Quitar "siempre encima"
+        listado_window.lift()  # Traer al frente
+        listado_window.focus_force()  # Dar foco
 
     def _rebuild_resumen_tree(self):
         """Reconstruye la tabla del resumen con las columnas visibles seleccionadas"""

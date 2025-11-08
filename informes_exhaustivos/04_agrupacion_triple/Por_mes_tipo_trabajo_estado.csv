@@ -1,0 +1,120 @@
+mes,tipo_trabajo,estado,cantidad,total_presupuesto,total_certificado,total_pendiente
+2025-07,Garantía y Fallos,Pendiente,3,40092.21,0.0,40092.21
+2024-05,Garantía y Fallos,Finalizado,1,43993.92,44672.16,-678.24
+2025-04,Garantía y Fallos,Pendiente,2,27449.63,0.0,27449.63
+2024-04,Trabajos Programados,Pendiente,1,37943.54,0.0,37943.54
+2024-10,Órdenes de Trabajo,Finalizado,1,22708.15,22975.24,-267.09
+2025-03,Garantía y Fallos,Finalizado,2,94523.09,90735.72,3787.37
+2024-09,Garantía y Fallos,Finalizado,2,81260.05,71809.13,9450.92
+2025-04,Órdenes de Trabajo,Pendiente,1,17970.96,0.0,17970.96
+2024-05,Trabajos Programados,Finalizado,2,68816.17,66656.31,2159.86
+2024-08,Órdenes de Trabajo,En curso,3,97841.72,42578.4,55263.32
+2024-04,Órdenes de Trabajo,Finalizado,1,35587.85,32475.71,3112.14
+2024-01,Órdenes de Trabajo,En curso,1,38899.4,20540.08,18359.32
+2025-05,Órdenes de Trabajo,Finalizado,2,69185.83,61573.47,7612.36
+2025-03,Órdenes de Trabajo,Finalizado,1,44297.9,39267.43,5030.47
+2024-09,Órdenes de Trabajo,Finalizado,5,127475.35,125433.65,2041.7
+2024-03,Garantía y Fallos,Finalizado,4,79152.41,78584.75,567.66
+2025-03,Garantía y Fallos,Pendiente,2,42252.83,0.0,42252.83
+2025-06,Garantía y Fallos,Finalizado,2,10569.94,10788.26,-218.32
+2025-05,Garantía y Fallos,Finalizado,3,66479.46,63788.25,2691.21
+2025-04,Trabajos Programados,Pendiente,2,49670.83,0.0,49670.83
+2024-01,Órdenes de Trabajo,Pendiente,1,28654.75,0.0,28654.75
+2025-07,Trabajos Programados,Pendiente,1,17723.15,0.0,17723.15
+2024-02,Órdenes de Trabajo,Pendiente,2,89083.89,0.0,89083.89
+2025-10,Garantía y Fallos,En curso,2,47918.01,21980.1,25937.91
+2024-10,Garantía y Fallos,Pendiente,2,64049.19,0.0,64049.19
+2024-04,Trabajos Programados,En curso,4,48747.8,21557.15,27190.65
+2024-08,Garantía y Fallos,En curso,3,93733.67,27181.16,66552.51
+2025-07,Trabajos Programados,En curso,1,17014.34,7456.06,9558.28
+2025-02,Garantía y Fallos,En curso,1,27007.5,11965.46,15042.04
+2025-02,Órdenes de Trabajo,Finalizado,3,50620.78,47774.0,2846.78
+2024-08,Garantía y Fallos,Pendiente,2,50553.79,0.0,50553.79
+2024-05,Garantía y Fallos,En curso,1,25901.42,7547.25,18354.17
+2025-04,Garantía y Fallos,En curso,2,51914.51,16574.83,35339.68
+2024-08,Órdenes de Trabajo,Pendiente,3,102548.62,0.0,102548.62
+2025-01,Trabajos Programados,Finalizado,2,66884.69,63796.41,3088.28
+2024-04,Trabajos Programados,Finalizado,1,3391.62,3249.15,142.47
+2025-01,Trabajos Programados,Pendiente,1,23948.2,0.0,23948.2
+2024-02,Trabajos Programados,Pendiente,2,44190.32,0.0,44190.32
+2024-03,Garantía y Fallos,Pendiente,3,58832.98,0.0,58832.98
+2025-08,Garantía y Fallos,Pendiente,1,25161.17,0.0,25161.17
+2025-08,Garantía y Fallos,En curso,1,46874.32,27054.52,19819.8
+2024-09,Órdenes de Trabajo,Pendiente,1,14055.98,0.0,14055.98
+2025-03,Trabajos Programados,Pendiente,3,54962.41,0.0,54962.41
+2024-10,Órdenes de Trabajo,En curso,2,46898.55,24001.54,22897.01
+2025-02,Garantía y Fallos,Finalizado,1,3719.74,3594.62,125.12
+2024-01,Trabajos Programados,En curso,1,9936.01,4096.17,5839.84
+2025-09,Trabajos Programados,Finalizado,2,30432.87,28681.55,1751.32
+2024-07,Órdenes de Trabajo,Finalizado,1,47414.32,42687.84,4726.48
+2024-06,Garantía y Fallos,Pendiente,2,33063.88,0.0,33063.88
+2024-03,Órdenes de Trabajo,Finalizado,1,12162.41,11396.81,765.6
+2025-03,Órdenes de Trabajo,Pendiente,1,14209.05,0.0,14209.05
+2025-01,Órdenes de Trabajo,En curso,1,9435.78,3883.62,5552.16
+2025-09,Órdenes de Trabajo,En curso,1,7425.76,1957.1,5468.66
+2025-06,Órdenes de Trabajo,Finalizado,2,50044.85,47212.67,2832.18
+2024-10,Garantía y Fallos,En curso,1,47188.1,13491.8,33696.3
+2024-07,Trabajos Programados,En curso,5,145438.43,65998.67,79439.76
+2025-02,Órdenes de Trabajo,Pendiente,3,75472.4,0.0,75472.4
+2024-09,Trabajos Programados,Finalizado,1,40876.97,41603.89,-726.92
+2025-04,Órdenes de Trabajo,En curso,3,87395.18,32740.58,54654.6
+2024-05,Órdenes de Trabajo,Finalizado,2,57928.57,52392.22,5536.35
+2024-05,Garantía y Fallos,Pendiente,1,39525.8,0.0,39525.8
+2025-10,Garantía y Fallos,Finalizado,1,28763.99,26433.18,2330.81
+2024-09,Garantía y Fallos,En curso,1,18978.78,11581.49,7397.29
+2025-05,Garantía y Fallos,Pendiente,2,24229.65,0.0,24229.65
+2024-06,Órdenes de Trabajo,Pendiente,1,4583.46,0.0,4583.46
+2025-08,Garantía y Fallos,Finalizado,1,24294.72,22548.1,1746.62
+2025-09,Trabajos Programados,En curso,3,96042.14,42956.52,53085.62
+2025-01,Garantía y Fallos,Finalizado,2,24609.6,23452.43,1157.17
+2025-05,Trabajos Programados,En curso,2,78060.33,38631.74,39428.59
+2025-08,Órdenes de Trabajo,En curso,2,11132.72,4758.14,6374.58
+2025-06,Trabajos Programados,Pendiente,1,17318.16,0.0,17318.16
+2024-10,Trabajos Programados,En curso,2,36503.44,14925.75,21577.69
+2024-05,Trabajos Programados,Pendiente,2,41583.92,0.0,41583.92
+2024-01,Órdenes de Trabajo,Finalizado,2,52506.31,53644.65,-1138.34
+2024-01,Garantía y Fallos,Pendiente,4,126578.89,0.0,126578.89
+2025-09,Garantía y Fallos,Finalizado,3,90825.82,87280.27,3545.55
+2025-08,Trabajos Programados,Pendiente,1,34099.91,0.0,34099.91
+2025-04,Trabajos Programados,Finalizado,2,19803.26,19864.66,-61.4
+2024-08,Garantía y Fallos,Finalizado,2,48215.44,47732.1,483.34
+2024-03,Garantía y Fallos,En curso,2,93868.85,45316.99,48551.86
+2025-06,Órdenes de Trabajo,En curso,2,69345.47,34313.35,35032.12
+2025-08,Órdenes de Trabajo,Finalizado,2,76850.72,70589.07,6261.65
+2025-05,Garantía y Fallos,En curso,1,1823.29,528.05,1295.24
+2025-03,Órdenes de Trabajo,En curso,2,69430.6,31707.74,37722.86
+2024-10,Garantía y Fallos,Finalizado,2,50413.77,48788.32,1625.45
+2025-06,Trabajos Programados,En curso,2,31647.46,17850.25,13797.21
+2024-08,Trabajos Programados,En curso,1,38138.21,13479.89,24658.32
+2025-03,Trabajos Programados,Finalizado,1,30182.22,29203.01,979.21
+2024-07,Trabajos Programados,Pendiente,2,3832.47,0.0,3832.47
+2024-02,Garantía y Fallos,En curso,1,29628.33,18836.3,10792.03
+2025-10,Garantía y Fallos,Pendiente,1,31804.38,0.0,31804.38
+2025-09,Órdenes de Trabajo,Finalizado,2,61913.65,54744.59,7169.06
+2024-02,Órdenes de Trabajo,En curso,1,40843.11,24945.21,15897.9
+2025-09,Órdenes de Trabajo,Pendiente,1,21166.95,0.0,21166.95
+2024-03,Trabajos Programados,Finalizado,2,43631.78,41640.31,1991.47
+2025-01,Trabajos Programados,En curso,1,14900.22,4443.8,10456.42
+2024-10,Órdenes de Trabajo,Pendiente,1,34979.72,0.0,34979.72
+2025-06,Trabajos Programados,Finalizado,1,18278.29,16457.66,1820.63
+2024-09,Trabajos Programados,En curso,2,70879.33,40094.49,30784.84
+2025-06,Órdenes de Trabajo,Pendiente,1,45036.68,0.0,45036.68
+2024-06,Trabajos Programados,Pendiente,1,45947.98,0.0,45947.98
+2024-08,Órdenes de Trabajo,Finalizado,1,3832.95,3900.08,-67.13
+2025-04,Trabajos Programados,En curso,2,27489.16,13578.63,13910.53
+2024-08,Trabajos Programados,Finalizado,1,34694.54,34590.55,103.99
+2025-05,Órdenes de Trabajo,En curso,1,24494.12,11148.5,13345.62
+2024-05,Trabajos Programados,En curso,1,14212.94,5040.69,9172.25
+2025-07,Órdenes de Trabajo,Pendiente,1,14378.35,0.0,14378.35
+2024-03,Órdenes de Trabajo,Pendiente,1,32609.8,0.0,32609.8
+2025-05,Órdenes de Trabajo,Pendiente,1,9760.14,0.0,9760.14
+2024-05,Órdenes de Trabajo,En curso,1,32391.44,15522.05,16869.39
+2024-02,Trabajos Programados,Finalizado,1,47709.41,41328.03,6381.38
+2025-10,Órdenes de Trabajo,Pendiente,1,3353.83,0.0,3353.83
+2024-06,Garantía y Fallos,En curso,1,45637.1,28816.41,16820.69
+2025-01,Órdenes de Trabajo,Pendiente,1,24013.89,0.0,24013.89
+2024-03,Trabajos Programados,Pendiente,1,46088.47,0.0,46088.47
+2025-09,Garantía y Fallos,Pendiente,1,27093.94,0.0,27093.94
+2025-02,Garantía y Fallos,Pendiente,1,29314.79,0.0,29314.79
+2024-09,Trabajos Programados,Pendiente,1,33667.97,0.0,33667.97
+2024-01,Garantía y Fallos,En curso,1,39795.08,16108.35,23686.73

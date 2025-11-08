@@ -1,0 +1,1004 @@
+# script/informes_exportacion.py
+"""
+Módulo de exportación de informes a Excel, Word y PDF
+Genera documentos profesionales con agrupaciones, subtotales y formato corporativo
+"""
+
+import os
+from datetime import datetime
+from typing import List, Dict, Any, Optional
+import xlsxwriter
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+import subprocess
+
+
+class InformesExportador:
+    """Exportador de informes a múltiples formatos"""
+
+    def __init__(self, schema: str):
+        self.schema = schema
+        self.logo_redes_path = None
+        self.logo_urbide_path = None
+        self._buscar_logos()
+
+    def _buscar_logos(self):
+        """Busca los logos en la raíz del proyecto y en la carpeta source"""
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        # Directorios donde buscar (en orden de prioridad)
+        directorios_busqueda = [
+            base_dir,  # Raíz del proyecto (prioridad 1)
+            os.path.join(base_dir, "source"),  # Carpeta source (prioridad 2)
+        ]
+
+        for directorio in directorios_busqueda:
+            if not os.path.exists(directorio):
+                continue
+
+            archivos = os.listdir(directorio)
+
+            # Buscar logos con prioridad exacta
+            for file in archivos:
+                file_lower = file.lower()
+                if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
+                    continue
+
+                # Logo izquierdo (Logo Redes Urbide) - prioridad exacta
+                if not self.logo_redes_path:
+                    if file_lower in ["logo redes urbide.jpg", "logo redes urbide.png", "logo artanda.png"]:
+                        self.logo_redes_path = os.path.join(directorio, file)
+                        print(f"✓ Logo izquierdo (Redes Urbide) encontrado: {file}")
+
+                # Logo derecho (Logo Urbide) - prioridad exacta
+                if not self.logo_urbide_path:
+                    if file_lower in ["logo urbide.jpg", "logo urbide.png", "logo artanda2.png"]:
+                        self.logo_urbide_path = os.path.join(directorio, file)
+                        print(f"✓ Logo derecho (Urbide) encontrado: {file}")
+
+            # Si ya encontramos ambos logos, salir
+            if self.logo_redes_path and self.logo_urbide_path:
+                break
+
+        # Si aún no se encuentran, buscar alternativas en todos los directorios
+        if not self.logo_redes_path or not self.logo_urbide_path:
+            for directorio in directorios_busqueda:
+                if not os.path.exists(directorio):
+                    continue
+
+                archivos = os.listdir(directorio)
+
+                for file in archivos:
+                    file_lower = file.lower()
+                    if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
+                        continue
+
+                    # Intentar con patrones flexibles como fallback
+                    if not self.logo_redes_path and ("redes" in file_lower or file_lower == "logo.png"):
+                        self.logo_redes_path = os.path.join(directorio, file)
+                        print(f"⚠ Usando logo alternativo (izquierdo): {file}")
+
+                    if not self.logo_urbide_path and "urbide" in file_lower and "redes" not in file_lower:
+                        self.logo_urbide_path = os.path.join(directorio, file)
+                        print(f"⚠ Usando logo alternativo (derecho): {file}")
+
+    def exportar_a_excel(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = ""
+    ) -> bool:
+        """
+        Exporta el informe a Excel con formato profesional
+
+        Args:
+            filepath: Ruta del archivo Excel a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            workbook = xlsxwriter.Workbook(filepath)
+            worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
+
+            # Definir formatos
+            formato_titulo = workbook.add_format({
+                'bold': True,
+                'font_size': 20,
+                'font_name': 'Calibri',
+                'align': 'left',
+                'valign': 'vcenter'
+            })
+
+            formato_subtitulo = workbook.add_format({
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'italic': True,
+                'font_color': '#7C7C7C',
+                'align': 'left'
+            })
+
+            formato_header_nivel0 = workbook.add_format({
+                'bold': True,
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'bg_color': '#4A6FA5',
+                'font_color': 'white',
+                'border': 1,
+                'align': 'left',
+                'valign': 'vcenter'
+            })
+
+            formato_header_nivel1 = workbook.add_format({
+                'bold': True,
+                'font_size': 9,
+                'font_name': 'Tahoma',
+                'bg_color': '#6B8FB8',
+                'font_color': 'white',
+                'border': 1,
+                'align': 'left'
+            })
+
+            formato_header_nivel2 = workbook.add_format({
+                'bold': True,
+                'font_size': 9,
+                'font_name': 'Tahoma',
+                'bg_color': '#8AADC7',
+                'font_color': 'white',
+                'border': 1,
+                'align': 'left'
+            })
+
+            formato_header_columnas = workbook.add_format({
+                'bold': True,
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'bg_color': '#D9D9D9',
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+
+            formato_datos = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'border': 1
+            })
+
+            formato_moneda = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': '#,##0.00 €',
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_decimal = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': '#,##0.00',
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_subtotal = workbook.add_format({
+                'bold': True,
+                'font_size': 9,
+                'font_name': 'Tahoma',
+                'bg_color': '#E7E6E6',
+                'num_format': '#,##0.00 €',
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_subtotal_texto = workbook.add_format({
+                'bold': True,
+                'font_size': 9,
+                'font_name': 'Tahoma',
+                'bg_color': '#E7E6E6',
+                'border': 1,
+                'align': 'left',  # Texto alineado a la izquierda
+                'valign': 'vcenter'
+            })
+
+            formato_total = workbook.add_format({
+                'bold': True,
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'bg_color': '#C5D9F1',
+                'num_format': '#,##0.00 €',
+                'border': 2,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_total_texto = workbook.add_format({
+                'bold': True,
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'bg_color': '#C5D9F1',
+                'border': 2,
+                'align': 'left',  # Texto alineado a la izquierda
+                'valign': 'vcenter'
+            })
+
+            formato_fecha = workbook.add_format({
+                'font_size': 10,
+                'font_name': 'Calibri',
+                'bold': True
+            })
+
+            # Fila actual
+            row = 0
+
+            # Configurar altura de la fila de encabezado para acomodar logos y título
+            worksheet.set_row(row, 60)
+
+            # Logo izquierdo (Logo Redes Urbide)
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                worksheet.insert_image(row, 0, self.logo_redes_path, {
+                    'x_scale': 0.15,
+                    'y_scale': 0.15,
+                    'x_offset': 5,
+                    'y_offset': 5
+                })
+
+            # Título del informe en el centro (entre los logos)
+            # Calcular columnas centrales para el título
+            num_cols = len(columnas)
+            col_inicio_titulo = 2 if num_cols > 4 else 1
+            col_fin_titulo = num_cols - 3 if num_cols > 4 else num_cols - 2
+            if col_fin_titulo <= col_inicio_titulo:
+                col_fin_titulo = col_inicio_titulo + 1
+
+            worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre.upper(), formato_titulo)
+
+            # Logo derecho (Logo Urbide)
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
+                    'x_scale': 0.15,
+                    'y_scale': 0.15,
+                    'x_offset': 5,
+                    'y_offset': 5
+                })
+
+            row += 2  # Espacio después del encabezado
+
+            # Información del proyecto
+            if proyecto_nombre:
+                worksheet.merge_range(row, 0, row, len(columnas) - 1, proyecto_nombre, formato_subtitulo)
+                row += 1
+
+            # Fecha
+            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            worksheet.write(row, 0, f"FECHA: {fecha_actual}", formato_fecha)
+            row += 2
+
+            # Si hay agrupaciones, exportar con estructura jerárquica
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                row = self._exportar_grupos_excel(
+                    worksheet,
+                    workbook,
+                    resultado_agrupacion['grupos'],
+                    columnas,
+                    row,
+                    formato_header_nivel0,
+                    formato_header_nivel1,
+                    formato_header_nivel2,
+                    formato_header_columnas,
+                    formato_datos,
+                    formato_moneda,
+                    formato_decimal,
+                    formato_subtotal,
+                    formato_subtotal_texto,
+                    resultado_agrupacion.get('modo', 'detalle'),
+                    resultado_agrupacion
+                )
+
+                # Totales generales - ALINEADOS CON LAS COLUMNAS CORRECTAS
+                if resultado_agrupacion.get('totales_generales'):
+                    row += 1
+                    worksheet.write(row, 0, "═══ TOTAL GENERAL ═══", formato_total_texto)
+
+                    # Obtener mapa de formatos de agregaciones
+                    formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {})
+
+                    # Crear formato para total sin moneda (para COUNT, etc.)
+                    formato_total_entero = workbook.add_format({
+                        'bold': True,
+                        'font_size': 10,
+                        'font_name': 'Tahoma',
+                        'bg_color': '#C5D9F1',
+                        'num_format': '#,##0',
+                        'border': 2,
+                        'align': 'right',
+                        'valign': 'vcenter'
+                    })
+
+                    totales = resultado_agrupacion['totales_generales']
+                    for key, valor in totales.items():
+                        # Extraer el nombre del campo del key
+                        campo_nombre = key.split('(')[1].rstrip(')')
+
+                        # Determinar el formato según el tipo de agregación
+                        formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                        formato_a_usar = formato_total if formato_agg == 'moneda' else formato_total_entero
+
+                        # Buscar la columna correspondiente
+                        if campo_nombre in columnas:
+                            col_idx = columnas.index(campo_nombre)
+                            worksheet.write(row, col_idx, valor, formato_a_usar)
+                        elif campo_nombre == '*':
+                            # COUNT(*) se escribe en la segunda columna, siempre como entero
+                            worksheet.write(row, 1, valor, formato_total_entero)
+
+            else:
+                # Exportar sin agrupaciones (tabla simple)
+                # Encabezados de columnas
+                for col_idx, col_name in enumerate(columnas):
+                    worksheet.write(row, col_idx, col_name, formato_header_columnas)
+                    worksheet.set_column(col_idx, col_idx, 15)  # Ancho por defecto
+                row += 1
+
+                # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                for fila_datos in datos:
+                    for col_idx, valor in enumerate(fila_datos):
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                worksheet.write(row, col_idx, valor, formato_moneda)
+                            elif formato_campo == 'decimal':
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                            else:
+                                # Por defecto, números decimales con 2 decimales
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                        else:
+                            worksheet.write(row, col_idx, valor, formato_datos)
+                    row += 1
+
+            # Pie de página
+            row += 2
+            worksheet.write(row, 0, f"Generado el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}", formato_subtitulo)
+
+            workbook.close()
+            return True
+
+        except Exception as e:
+            print(f"Error al exportar a Excel: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _exportar_grupos_excel(
+        self,
+        worksheet,
+        workbook,
+        grupos: List[Dict],
+        columnas: List[str],
+        start_row: int,
+        formato_nivel0,
+        formato_nivel1,
+        formato_nivel2,
+        formato_header_columnas,
+        formato_datos,
+        formato_moneda,
+        formato_decimal,
+        formato_subtotal,
+        formato_subtotal_texto,
+        modo: str = 'detalle',
+        resultado_agrupacion: Optional[Dict] = None
+    ) -> int:
+        """Exporta grupos jerárquicos a Excel (recursivo)"""
+        row = start_row
+
+        formatos_por_nivel = [formato_nivel0, formato_nivel1, formato_nivel2]
+
+        for grupo in grupos:
+            nivel = grupo.get('nivel', 0)
+            clave = grupo.get('clave', '')
+            campo = grupo.get('campo', '')
+            datos = grupo.get('datos', [])
+            subtotales = grupo.get('subtotales', {})
+            subgrupos = grupo.get('subgrupos')
+
+            formato_grupo = formatos_por_nivel[min(nivel, 2)]
+
+            # Encabezado del grupo
+            indent = "    " * nivel
+            titulo_grupo = f"{indent}📁 {campo.upper()}: {clave}"
+            worksheet.merge_range(row, 0, row, len(columnas) - 1, titulo_grupo, formato_grupo)
+            worksheet.set_row(row, 20 + (5 * (2 - nivel)))  # Altura según nivel
+            row += 1
+
+            # Si hay subgrupos, procesarlos recursivamente
+            if subgrupos:
+                row = self._exportar_grupos_excel(
+                    worksheet,
+                    workbook,
+                    subgrupos,
+                    columnas,
+                    row,
+                    formato_nivel0,
+                    formato_nivel1,
+                    formato_nivel2,
+                    formato_header_columnas,
+                    formato_datos,
+                    formato_moneda,
+                    formato_decimal,
+                    formato_subtotal,
+                    formato_subtotal_texto,
+                    modo,
+                    resultado_agrupacion
+                )
+            elif modo == 'detalle':
+                # Encabezados de columnas para este grupo
+                for col_idx, col_name in enumerate(columnas):
+                    worksheet.write(row, col_idx, col_name, formato_header_columnas)
+                row += 1
+
+                # Datos del grupo
+                for fila_datos in datos:
+                    for col_idx, valor in enumerate(fila_datos):
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                worksheet.write(row, col_idx, valor, formato_moneda)
+                            elif formato_campo == 'decimal':
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                            else:
+                                # Por defecto, números decimales con 2 decimales
+                                worksheet.write(row, col_idx, valor, formato_decimal)
+                        else:
+                            worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
+                    row += 1
+
+            # Subtotales del grupo - ALINEADOS CON LAS COLUMNAS CORRECTAS
+            if subtotales:
+                indent_subtotal = "    " * (nivel + 1)
+
+                # Escribir "Subtotal" en la primera columna (con formato de texto)
+                worksheet.write(row, 0, f"{indent_subtotal}▸ Subtotal", formato_subtotal_texto)
+
+                # Obtener mapa de formatos de agregaciones
+                formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {}) if resultado_agrupacion else {}
+
+                # Crear formato para subtotal sin moneda (para COUNT, etc.)
+                formato_subtotal_entero = workbook.add_format({
+                    'bold': True,
+                    'font_size': 9,
+                    'font_name': 'Tahoma',
+                    'bg_color': '#E7E6E6',
+                    'num_format': '#,##0',
+                    'border': 1,
+                    'align': 'right',
+                    'valign': 'vcenter'
+                })
+
+                # Mapear subtotales a las columnas correctas
+                for key, valor in subtotales.items():
+                    # Extraer el nombre del campo del key (ej: "SUM(presupuesto)" -> "presupuesto")
+                    # El formato es "FUNCION(campo)" o "COUNT(*)"
+                    campo_nombre = key.split('(')[1].rstrip(')')
+
+                    # Determinar el formato según el tipo de agregación
+                    formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                    formato_a_usar = formato_subtotal if formato_agg == 'moneda' else formato_subtotal_entero
+
+                    # Buscar la columna correspondiente
+                    if campo_nombre in columnas:
+                        col_idx = columnas.index(campo_nombre)
+                        worksheet.write(row, col_idx, valor, formato_a_usar)
+                    elif campo_nombre == '*':
+                        # COUNT(*) se escribe en la segunda columna, siempre como entero
+                        worksheet.write(row, 1, valor, formato_subtotal_entero)
+
+                row += 1
+
+            row += 1  # Espacio entre grupos
+
+        return row
+
+    def exportar_a_word(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = ""
+    ) -> bool:
+        """
+        Exporta el informe a Word con formato profesional
+
+        Args:
+            filepath: Ruta del archivo Word a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            doc = Document()
+
+            # Configurar márgenes
+            sections = doc.sections
+            for section in sections:
+                section.top_margin = Cm(2)
+                section.bottom_margin = Cm(2)
+                section.left_margin = Cm(2)
+                section.right_margin = Cm(2)
+
+            # Encabezado con logos
+            header = sections[0].header
+            header_table = header.add_table(rows=1, cols=3, width=Inches(7))
+            header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+            # Logo izquierdo (Logo Redes Urbide)
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                cell_logo_left = header_table.rows[0].cells[0]
+                cell_logo_left.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                paragraph = cell_logo_left.paragraphs[0]
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                run = paragraph.add_run()
+                run.add_picture(self.logo_redes_path, width=Inches(1.0))
+
+            # Título del informe en el centro (entre los logos)
+            cell_titulo = header_table.rows[0].cells[1]
+            cell_titulo.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            paragraph_titulo = cell_titulo.paragraphs[0]
+            paragraph_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run_titulo = paragraph_titulo.add_run(informe_nombre.upper())
+            run_titulo.font.name = 'Calibri'
+            run_titulo.font.size = Pt(20)
+            run_titulo.font.bold = True
+            run_titulo.font.color.rgb = RGBColor(0, 0, 0)
+
+            # Logo derecho (Logo Urbide)
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                cell_logo_right = header_table.rows[0].cells[2]
+                cell_logo_right.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                paragraph = cell_logo_right.paragraphs[0]
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                run = paragraph.add_run()
+                run.add_picture(self.logo_urbide_path, width=Inches(1.0))
+
+            # Información del proyecto
+            if proyecto_nombre:
+                p = doc.add_paragraph(proyecto_nombre)
+                p.runs[0].font.name = 'Tahoma'
+                p.runs[0].font.size = Pt(10)
+                p.runs[0].font.italic = True
+                p.runs[0].font.color.rgb = RGBColor(124, 124, 124)
+
+            # Fecha
+            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            p_fecha = doc.add_paragraph()
+            run_fecha = p_fecha.add_run(f"FECHA: ")
+            run_fecha.font.name = 'Calibri'
+            run_fecha.font.size = Pt(10)
+            run_fecha.font.bold = True
+            run_valor = p_fecha.add_run(fecha_actual)
+            run_valor.font.name = 'Calibri'
+            run_valor.font.size = Pt(10)
+            run_valor.font.bold = True
+
+            doc.add_paragraph()  # Espacio
+
+            # Si hay agrupaciones, exportar con estructura jerárquica
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                self._exportar_grupos_word(
+                    doc,
+                    resultado_agrupacion['grupos'],
+                    columnas,
+                    resultado_agrupacion.get('modo', 'detalle'),
+                    0,
+                    resultado_agrupacion
+                )
+
+                # Totales generales
+                if resultado_agrupacion.get('totales_generales'):
+                    doc.add_paragraph()
+                    p_total = doc.add_paragraph()
+                    run_total = p_total.add_run("═══ TOTAL GENERAL ═══")
+                    run_total.font.name = 'Tahoma'
+                    run_total.font.size = Pt(12)
+                    run_total.font.bold = True
+
+                    totales = resultado_agrupacion['totales_generales']
+                    for key, valor in totales.items():
+                        p = doc.add_paragraph(f"{key}: {valor:,.2f} €" if isinstance(valor, (int, float)) else f"{key}: {valor}")
+                        p.runs[0].font.name = 'Tahoma'
+                        p.runs[0].font.size = Pt(10)
+                        p.runs[0].font.bold = True
+
+            else:
+                # Exportar sin agrupaciones (tabla simple)
+                table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
+                table.style = 'Light Grid Accent 1'
+
+                # Encabezados
+                header_cells = table.rows[0].cells
+                for idx, col_name in enumerate(columnas):
+                    cell = header_cells[idx]
+                    cell.text = col_name
+                    # Formato de encabezado
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.bold = True
+                            run.font.name = 'Tahoma'
+                            run.font.size = Pt(10)
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                    # Color de fondo
+                    self._set_cell_background(cell, "D9D9D9")
+
+                # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                for row_idx, fila_datos in enumerate(datos, start=1):
+                    row_cells = table.rows[row_idx].cells
+                    for col_idx, valor in enumerate(fila_datos):
+                        cell = row_cells[col_idx]
+
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                cell.text = f"{valor:,.2f} €"
+                            else:
+                                # Por defecto, números con 2 decimales
+                                cell.text = f"{valor:,.2f}"
+                        else:
+                            cell.text = str(valor) if valor is not None else ""
+
+                        # Formato de datos
+                        for paragraph in cell.paragraphs:
+                            for run in paragraph.runs:
+                                run.font.name = 'Tahoma'
+                                run.font.size = Pt(8)
+
+            # Pie de página con paginación
+            footer = sections[0].footer
+            p_footer = footer.paragraphs[0]
+            p_footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p_footer.add_run()
+            run.font.name = 'Tahoma'
+            run.font.size = Pt(8)
+
+            # Añadir número de página
+            self._add_page_number(p_footer.add_run())
+
+            doc.save(filepath)
+            return True
+
+        except Exception as e:
+            print(f"Error al exportar a Word: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _exportar_grupos_word(
+        self,
+        doc: Document,
+        grupos: List[Dict],
+        columnas: List[str],
+        modo: str = 'detalle',
+        nivel: int = 0,
+        resultado_agrupacion: Optional[Dict] = None
+    ):
+        """Exporta grupos jerárquicos a Word (recursivo)"""
+        for grupo in grupos:
+            clave = grupo.get('clave', '')
+            campo = grupo.get('campo', '')
+            datos = grupo.get('datos', [])
+            subtotales = grupo.get('subtotales', {})
+            subgrupos = grupo.get('subgrupos')
+            nivel_grupo = grupo.get('nivel', nivel)
+
+            # Encabezado del grupo
+            indent = "    " * nivel_grupo
+            titulo_grupo = f"{indent}📁 {campo.upper()}: {clave}"
+
+            p_grupo = doc.add_paragraph(titulo_grupo)
+            run_grupo = p_grupo.runs[0]
+            run_grupo.font.name = 'Calibri'
+            run_grupo.font.bold = True
+
+            # Color y tamaño según nivel
+            if nivel_grupo == 0:
+                run_grupo.font.size = Pt(12)
+                run_grupo.font.color.rgb = RGBColor(74, 111, 165)
+            elif nivel_grupo == 1:
+                run_grupo.font.size = Pt(11)
+                run_grupo.font.color.rgb = RGBColor(107, 143, 184)
+            else:
+                run_grupo.font.size = Pt(10)
+                run_grupo.font.color.rgb = RGBColor(138, 173, 199)
+
+            # Si hay subgrupos, procesarlos recursivamente
+            if subgrupos:
+                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion)
+            elif modo == 'detalle' and datos:
+                # Crear tabla para los datos
+                table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
+                table.style = 'Light List Accent 1'
+
+                # Encabezados
+                header_cells = table.rows[0].cells
+                for idx, col_name in enumerate(columnas):
+                    cell = header_cells[idx]
+                    cell.text = col_name
+                    for paragraph in cell.paragraphs:
+                        for run in paragraph.runs:
+                            run.font.bold = True
+                            run.font.name = 'Tahoma'
+                            run.font.size = Pt(9)
+
+                # Datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                for row_idx, fila_datos in enumerate(datos, start=1):
+                    row_cells = table.rows[row_idx].cells
+                    for col_idx, valor in enumerate(fila_datos):
+                        cell = row_cells[col_idx]
+
+                        # Obtener el formato del campo según su columna
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        # Aplicar formato según el tipo de campo
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                cell.text = f"{valor:,.2f} €"
+                            else:
+                                # Por defecto, números con 2 decimales
+                                cell.text = f"{valor:,.2f}"
+                        else:
+                            cell.text = str(valor) if valor is not None else ""
+
+                        for paragraph in cell.paragraphs:
+                            for run in paragraph.runs:
+                                run.font.name = 'Tahoma'
+                                run.font.size = Pt(8)
+
+            # Subtotales
+            if subtotales:
+                indent_subtotal = "    " * (nivel_grupo + 1)
+                p_subtotal = doc.add_paragraph(f"{indent_subtotal}▸ Subtotal")
+                run_subtotal = p_subtotal.runs[0]
+                run_subtotal.font.name = 'Tahoma'
+                run_subtotal.font.size = Pt(9)
+                run_subtotal.font.bold = True
+
+                for key, valor in subtotales.items():
+                    valor_texto = f"{valor:,.2f} €" if isinstance(valor, (int, float)) else str(valor)
+                    run_subtotal.add_text(f"  {key}={valor_texto}")
+
+            doc.add_paragraph()  # Espacio entre grupos
+
+    def _set_cell_background(self, cell, color_hex: str):
+        """Establece el color de fondo de una celda en Word"""
+        shading_elm = OxmlElement('w:shd')
+        shading_elm.set(qn('w:fill'), color_hex)
+        cell._element.get_or_add_tcPr().append(shading_elm)
+
+    def _add_page_number(self, run):
+        """Añade número de página a Word"""
+        fldChar1 = OxmlElement('w:fldChar')
+        fldChar1.set(qn('w:fldCharType'), 'begin')
+
+        instrText = OxmlElement('w:instrText')
+        instrText.set(qn('xml:space'), 'preserve')
+        instrText.text = "PAGE"
+
+        fldChar2 = OxmlElement('w:fldChar')
+        fldChar2.set(qn('w:fldCharType'), 'end')
+
+        run._r.append(fldChar1)
+        run._r.append(instrText)
+        run._r.append(fldChar2)
+
+    def exportar_a_pdf(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = ""
+    ) -> bool:
+        """
+        Exporta el informe a PDF (genera Word y lo convierte a PDF)
+
+        Args:
+            filepath: Ruta del archivo PDF a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            # Generar Word temporal
+            word_path = filepath.replace('.pdf', '_temp.docx')
+
+            if not self.exportar_a_word(
+                word_path,
+                informe_nombre,
+                columnas,
+                datos,
+                resultado_agrupacion,
+                proyecto_nombre,
+                proyecto_codigo
+            ):
+                return False
+
+            # Convertir a PDF usando LibreOffice (si está disponible)
+            # Intentar encontrar LibreOffice/soffice
+            soffice_paths = [
+                # Linux/Mac en PATH
+                'soffice',
+                'libreoffice',
+                '/usr/bin/soffice',
+                '/usr/bin/libreoffice',
+                '/usr/local/bin/soffice',
+                '/usr/local/bin/libreoffice',
+                # Windows rutas comunes (orden de búsqueda prioritario)
+                r'C:\Program Files\LibreOffice\program\soffice.exe',
+                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 7\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 24\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 6\program\soffice.exe',
+                r'C:\Program Files (x86)\LibreOffice 6\program\soffice.exe',
+                # Snap en Linux
+                '/snap/bin/libreoffice',
+            ]
+
+            soffice_cmd = None
+            for path in soffice_paths:
+                try:
+                    # Primero verificar si el archivo existe (más rápido y confiable en Windows)
+                    if os.path.exists(path):
+                        print(f"✓ LibreOffice encontrado en: {path}")
+                        # Intentar obtener la versión (opcional, no crítico)
+                        try:
+                            result = subprocess.run([path, '--version'],
+                                                   capture_output=True,
+                                                   timeout=5,
+                                                   text=True)
+                            if result.returncode == 0:
+                                version = result.stdout.strip().split('\n')[0] if result.stdout else ''
+                                print(f"  Versión: {version}")
+                        except:
+                            print(f"  (No se pudo obtener la versión, pero el ejecutable existe)")
+
+                        soffice_cmd = path
+                        break
+                    # Si no existe como archivo, probar ejecutarlo (para comandos en PATH)
+                    elif path in ['soffice', 'libreoffice', '/snap/bin/libreoffice']:
+                        result = subprocess.run([path, '--version'],
+                                               capture_output=True,
+                                               timeout=5,
+                                               text=True)
+                        if result.returncode == 0:
+                            soffice_cmd = path
+                            version = result.stdout.strip().split('\n')[0] if result.stdout else ''
+                            print(f"✓ LibreOffice encontrado: {path}")
+                            print(f"  Versión: {version}")
+                            break
+                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError) as e:
+                    # Debug: mostrar qué rutas se probaron y fallaron
+                    if '--version' in str(e) or 'soffice' in path:
+                        print(f"  ✗ No encontrado en: {path}")
+                    continue
+
+            if soffice_cmd:
+                try:
+                    print(f"\n📄 Convirtiendo Word a PDF...")
+                    print(f"   Origen: {word_path}")
+                    print(f"   Destino: {filepath}")
+
+                    # Ejecutar conversión
+                    result = subprocess.run([
+                        soffice_cmd,
+                        '--headless',
+                        '--convert-to', 'pdf',
+                        '--outdir', os.path.dirname(filepath) if os.path.dirname(filepath) else '.',
+                        os.path.abspath(word_path)
+                    ], capture_output=True, timeout=120, text=True)
+
+                    # Mostrar salida de LibreOffice para debug
+                    if result.stdout:
+                        print(f"   Salida: {result.stdout}")
+                    if result.stderr:
+                        print(f"   Advertencias: {result.stderr}")
+
+                    # Verificar si se generó el PDF
+                    generated_pdf = os.path.splitext(word_path)[0] + '.pdf'
+
+                    if os.path.exists(generated_pdf):
+                        # Renombrar si es necesario
+                        if generated_pdf != filepath:
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                            os.rename(generated_pdf, filepath)
+
+                        print(f"✓ PDF generado correctamente: {filepath}")
+
+                        # Eliminar Word temporal
+                        if os.path.exists(word_path):
+                            os.remove(word_path)
+
+                        return True
+                    else:
+                        print(f"⚠ El PDF no se generó en la ubicación esperada: {generated_pdf}")
+                        print(f"   Código de salida: {result.returncode}")
+                        print(f"   Archivo Word disponible: {word_path}")
+                        return True
+
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                    print(f"⚠ Error al convertir a PDF: {e}")
+                    if hasattr(e, 'stderr') and e.stderr:
+                        print(f"   Detalles del error: {e.stderr}")
+                    if hasattr(e, 'stdout') and e.stdout:
+                        print(f"   Salida estándar: {e.stdout}")
+                    print(f"   Se ha generado el archivo Word: {word_path}")
+                    return True
+            else:
+                # Si LibreOffice no está disponible, dejar el archivo Word
+                print("\n⚠ LibreOffice no está instalado o no se puede encontrar.")
+                print("   Rutas verificadas:")
+                for path in soffice_paths[:5]:  # Mostrar solo las primeras 5 rutas
+                    exists_mark = "✓" if os.path.exists(path) else "✗"
+                    print(f"     {exists_mark} {path}")
+                print("   ...")
+                print("\n   Para generar PDFs, instale LibreOffice desde:")
+                print("   - Windows/Mac: https://www.libreoffice.org/download/")
+                print("   - Linux: sudo apt install libreoffice (Debian/Ubuntu)")
+                print(f"\n   Archivo Word generado: {word_path}")
+                print("   Puede convertirlo manualmente a PDF abriendo el archivo en Word o LibreOffice.")
+                return True
+
+        except Exception as e:
+            print(f"Error al exportar a PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return False

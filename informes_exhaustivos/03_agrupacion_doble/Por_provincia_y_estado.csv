@@ -1,0 +1,25 @@
+provincia,estado,cantidad,total_presupuesto,total_certificado,total_pendiente
+Madrid,Pendiente,13,376604.56,0.0,376604.56
+Barcelona,Finalizado,12,287556.57,281629.75,5926.82
+Bizkaia,Pendiente,9,220792.19,0.0,220792.19
+Gipuzkoa,Pendiente,11,244683.27,0.0,244683.27
+Girona,Finalizado,14,317870.91,306754.06,11116.85
+Álava,Finalizado,7,211389.76,199848.73,11541.03
+Valencia,Finalizado,7,249857.38,227252.43,22604.95
+Navarra,Pendiente,12,248204.01,0.0,248204.01
+Álava,En curso,16,482325.61,230754.95,251570.66
+Bizkaia,Finalizado,9,261395.55,242555.48,18840.07
+Bizkaia,En curso,10,290614.37,117893.99,172720.38
+Madrid,Finalizado,3,83453.8,84478.62,-1024.82
+Valencia,Pendiente,5,96409.78,0.0,96409.78
+Gipuzkoa,Finalizado,8,174482.69,164925.49,9557.2
+Girona,Pendiente,7,167838.96,0.0,167838.96
+Barcelona,Pendiente,6,141735.13,0.0,141735.13
+Valencia,En curso,8,127649.87,60294.12,67355.75
+Gipuzkoa,En curso,8,234616.9,104112.4,130504.5
+Girona,En curso,6,172863.94,84620.45,88243.49
+Navarra,En curso,7,144218.59,57553.54,86665.05
+Navarra,Finalizado,8,178046.75,165901.69,12145.06
+Barcelona,En curso,7,175585.66,67860.3,107725.36
+Álava,Pendiente,4,106591.03,0.0,106591.03
+Madrid,En curso,3,106937.68,62099.08,44838.6

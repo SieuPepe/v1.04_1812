@@ -354,16 +354,28 @@ def poblar_dim_codigo_trabajo(cursor, schema):
     print("Poblando dim_codigo_trabajo...")
 
     codigos = [
-        ("CT-001", "Revisión General"),
-        ("CT-002", "Instalación de Equipos"),
-        ("CT-003", "Reparación de Averías"),
-        ("CT-004", "Calibración de Instrumentos"),
-        ("CT-005", "Cambio de Componentes"),
-        ("CT-006", "Inspección Periódica"),
-        ("CT-007", "Actualización de Software"),
-        ("CT-008", "Limpieza y Mantenimiento"),
-        ("CT-009", "Mediciones Eléctricas"),
-        ("CT-010", "Pruebas de Funcionamiento")
+        ("1", "Mantenimiento preventivo saneamiento"),
+        ("2", "Limpieza captaciones"),
+        ("3", "Mantenimiento fosas sépticas"),
+        ("4", "Inventario y digitalización redes abastecimiento"),
+        ("5", "Inventario y digitalización redes saneamiento"),
+        ("6", "Inventario y digitalización aducción"),
+        ("7", "Localización fugas abastecimiento"),
+        ("8", "Instalación contadores"),
+        ("9", "Desinstalación contadores"),
+        ("10", "Sustitución contadores"),
+        ("11", "Lectura contadores sectoriales"),
+        ("12", "Cortes de agua"),
+        ("13", "Asistencia técnica a URBIDE y organismos públicos"),
+        ("14", "Maniobras válvulas"),
+        ("15", "Gestión de la explotación"),
+        ("16", "Limpieza colectores pluviales"),
+        ("17", "Limpieza de red abastecimiento"),
+        ("18", "Ejecución y conexión acometida"),
+        ("19", "Revisión de sectores"),
+        ("20", "Localización de fugas en Saneamiento"),
+        ("21", "Realización de informes de Saneamiento"),
+        ("22", "Realización de informes de Abastecimiento")
     ]
 
     for codigo, descripcion in codigos:

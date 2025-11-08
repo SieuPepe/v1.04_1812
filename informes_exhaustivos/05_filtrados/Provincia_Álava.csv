@@ -1,0 +1,28 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0006,Trabajo 6 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,OTROS,Álava,Rioja Alavesa,Sin municipio,46940.93,49004.58,-2063.6500000000015,2025-03-16,2025-03-30,2025-03,2025
+TP-2024-0009,Trabajo 9 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,44604.45,42288.95,2315.5,2024-05-09,2024-06-17,2024-05,2024
+OT-2024-0010,Trabajo 10 - Sin municipio,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Álava,Rioja Alavesa,Sin municipio,37319.98,24849.59,12470.390000000003,2024-08-26,2024-11-11,2024-08,2024
+GF-2025-0037,Trabajo 37 - Vitoria-Gasteiz,En curso,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,7190.27,4448.33,2741.9400000000005,2025-04-01,2025-05-23,2025-04,2025
+GF-2025-0046,Trabajo 46 - Sin municipio,En curso,RED-AT-01,Garantía y Fallos,GF,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,46874.32,27054.52,19819.8,2025-08-28,,2025-08,2025
+OT-2025-0059,Trabajo 59 - Vitoria-Gasteiz,En curso,RED-MT-02,Órdenes de Trabajo,OT,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,9435.78,3883.62,5552.160000000001,2025-01-03,,2025-01,2025
+OT-2025-0063,Trabajo 63 - Sin municipio,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-001,ATASCO,Álava,Rioja Alavesa,Sin municipio,2097.56,2057.71,39.84999999999991,2025-06-29,2025-07-07,2025-06,2025
+OT-2025-0068,Trabajo 68 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,29773.68,11712.28,18061.4,2025-04-01,,2025-04,2025
+OT-2025-0091,Trabajo 91 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-005,FUGA,Álava,Rioja Alavesa,Sin municipio,1994.97,595.43,1399.54,2025-08-15,,2025-08,2025
+GF-2025-0095,Trabajo 95 - Vitoria-Gasteiz,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,22771.32,20906.04,1865.2799999999988,2025-09-13,2025-11-04,2025-09,2025
+OT-2025-0098,Trabajo 98 - Vitoria-Gasteiz,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-005,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,44506.19,17244.8,27261.390000000003,2025-04-27,2025-05-12,2025-04,2025
+GF-2024-0099,Trabajo 99 - Sin municipio,En curso,RED-BT-01,Garantía y Fallos,GF,CT-001,FUGA,Álava,Rioja Alavesa,Sin municipio,48983.67,23683.65,25300.019999999997,2024-03-01,2024-04-05,2024-03,2024
+GF-2025-0102,Trabajo 102 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Álava,Rioja Alavesa,Sin municipio,44724.24,12126.5,32597.739999999998,2025-04-19,2025-06-01,2025-04,2025
+OT-2025-0109,Trabajo 109 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,34041.2,15656.18,18385.019999999997,2025-03-06,2025-05-02,2025-03,2025
+TP-2025-0114,Trabajo 114 - Sin municipio,Finalizado,RED-MT-02,Trabajos Programados,TP,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,30182.22,29203.01,979.2100000000028,2025-03-27,2025-05-04,2025-03,2025
+TP-2024-0116,Trabajo 116 - Sin municipio,Pendiente,RED-BT-01,Trabajos Programados,TP,CT-003,FUGA,Álava,Rioja Alavesa,Sin municipio,1285.0,0.0,1285.0,2024-07-20,,2024-07,2024
+GF-2024-0118,Trabajo 118 - Vitoria-Gasteiz,En curso,RED-MT-02,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,29628.33,18836.3,10792.030000000002,2024-02-01,,2024-02,2024
+TP-2024-0133,Trabajo 133 - Sin municipio,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-004,ATASCO,Álava,Rioja Alavesa,Sin municipio,17083.87,15060.41,2023.4599999999991,2024-03-23,2024-04-30,2024-03,2024
+GF-2024-0137,Trabajo 137 - Vitoria-Gasteiz,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-002,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,11189.96,0.0,11189.96,2024-08-07,,2024-08,2024
+OT-2024-0146,Trabajo 146 - Vitoria-Gasteiz,Pendiente,RED-MT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,48168.09,0.0,48168.09,2024-02-24,,2024-02,2024
+TP-2024-0149,Trabajo 149 - Vitoria-Gasteiz,Pendiente,RED-BT-01,Trabajos Programados,TP,CT-005,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,45947.98,0.0,45947.98,2024-06-20,,2024-06,2024
+TP-2025-0151,Trabajo 151 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-004,OTROS,Álava,Rioja Alavesa,Sin municipio,30242.1,17547.29,12694.809999999998,2025-09-20,2025-11-05,2025-09,2025
+TP-2025-0152,Trabajo 152 - Vitoria-Gasteiz,En curso,RED-AT-01,Trabajos Programados,TP,CT-003,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,10034.96,5434.5,4600.459999999999,2025-04-16,,2025-04,2025
+OT-2024-0167,Trabajo 167 - Vitoria-Gasteiz,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,32391.44,15522.05,16869.39,2024-05-15,,2024-05,2024
+TP-2024-0171,Trabajo 171 - Vitoria-Gasteiz,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,47709.41,41328.03,6381.380000000005,2024-02-07,2024-02-21,2024-02,2024
+OT-2025-0187,Trabajo 187 - Vitoria-Gasteiz,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,35389.4,16051.56,19337.840000000004,2025-03-20,,2025-03,2025
+GF-2024-0199,Trabajo 199 - Vitoria-Gasteiz,En curso,RED-MT-01,Garantía y Fallos,GF,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,39795.08,16108.35,23686.730000000003,2024-01-11,,2024-01,2024

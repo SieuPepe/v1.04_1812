@@ -1,0 +1,10 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0005,Trabajo 5 - Sin municipio,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Girona,La Garrotxa,Sin municipio,22708.15,22975.24,-267.09000000000015,2024-10-04,2024-10-18,2024-10,2024
+OT-2024-0018,Trabajo 18 - Madrid,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Madrid,Área Metropolitana,Madrid,45170.69,46181.89,-1011.1999999999971,2024-09-08,2024-11-03,2024-09,2024
+TP-2024-0028,Trabajo 28 - Valencia,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,ATASCO,Valencia,Horta Nord,Valencia,9027.65,5331.57,3696.08,2024-04-10,2024-04-23,2024-04,2024
+GF-2024-0036,Trabajo 36 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-003,ATASCO,Bizkaia,Lea-Artibai,Sin municipio,25901.42,7547.25,18354.17,2024-05-17,,2024-05,2024
+GF-2024-0044,Trabajo 44 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,16647.8,0.0,16647.8,2024-03-25,,2024-03,2024
+TP-2025-0143,Trabajo 143 - L'Hospitalet de Llobregat,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-001,FUGA,Barcelona,Barcelonés,L'Hospitalet de Llobregat,18278.29,16457.66,1820.630000000001,2025-06-27,2025-08-18,2025-06,2025
+OT-2024-0150,Trabajo 150 - Sin municipio,Finalizado,RED-BT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Girona,La Selva,Sin municipio,3832.95,3900.08,-67.13000000000011,2024-08-17,2024-09-25,2024-08,2024
+TP-2024-0161,Trabajo 161 - Barañain,Pendiente,RED-MT-01,Trabajos Programados,TP,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Barañain,8309.98,0.0,8309.98,2024-05-03,,2024-05,2024
+OT-2025-0196,Trabajo 196 - Valencia,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,FUGA,Valencia,Horta Nord,Valencia,18657.38,18577.85,79.53000000000247,2025-02-24,2025-03-28,2025-02,2025

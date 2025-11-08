@@ -26,7 +26,7 @@ from script.modulo_db import (
     get_comarcas_by_provincia,
     get_municipios_by_provincia
 )
-from parts_list_window import open_parts_list
+# from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
 
 class AppPartsV2(customtkinter.CTkToplevel):
     """
@@ -598,4 +598,10 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
     def _open_parts_list(self):
         """Abre ventana de lista de partes"""
-        open_parts_list(self, self.user, self.password, self.schema)
+        # OBSOLETO: Funcionalidad deshabilitada - módulo parts_list_window eliminado
+        from CTkMessagebox import CTkMessagebox
+        CTkMessagebox(
+            title="Funcionalidad no disponible",
+            message="Esta funcionalidad ha sido deshabilitada.\n\nPara ver la lista de partes, use el gestor principal.",
+            icon="info"
+        )

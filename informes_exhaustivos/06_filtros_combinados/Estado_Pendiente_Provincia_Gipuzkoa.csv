@@ -1,0 +1,12 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+TP-2024-0004,Trabajo 4 - Pasaia,Pendiente,RED-MT-02,Trabajos Programados,TP,CT-003,OTROS,Gipuzkoa,Donostialdea,Pasaia,37943.54,0.0,37943.54,2024-04-03,,2024-04,2024
+OT-2024-0024,Trabajo 24 - Sin municipio,Pendiente,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,40915.8,0.0,40915.8,2024-02-03,,2024-02,2024
+OT-2024-0038,Trabajo 38 - Sin municipio,Pendiente,RED-BT-01,Órdenes de Trabajo,OT,CT-004,FUGA,Gipuzkoa,Tolosaldea,Sin municipio,27583.87,0.0,27583.87,2024-08-20,,2024-08,2024
+GF-2024-0044,Trabajo 44 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,16647.8,0.0,16647.8,2024-03-25,,2024-03,2024
+OT-2024-0077,Trabajo 77 - Sin municipio,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,4583.46,0.0,4583.46,2024-06-07,,2024-06,2024
+TP-2025-0085,Trabajo 85 - Donostia,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Gipuzkoa,Donostialdea,Donostia,17318.16,0.0,17318.16,2025-06-15,,2025-06,2025
+TP-2024-0088,Trabajo 88 - Sin municipio,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-002,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,33273.94,0.0,33273.94,2024-05-07,,2024-05,2024
+GF-2024-0115,Trabajo 115 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-004,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,21445.64,0.0,21445.64,2024-01-17,,2024-01,2024
+GF-2024-0135,Trabajo 135 - Errenteria,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Gipuzkoa,Donostialdea,Errenteria,6081.86,0.0,6081.86,2024-06-26,,2024-06,2024
+OT-2025-0159,Trabajo 159 - Sin municipio,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,14378.35,0.0,14378.35,2025-07-23,,2025-07,2025
+GF-2024-0170,Trabajo 170 - Sin municipio,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,24510.85,0.0,24510.85,2024-01-20,,2024-01,2024

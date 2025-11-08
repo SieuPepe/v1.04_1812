@@ -1,0 +1,6 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0001,Trabajo 1 - Madrid,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,OTROS,Madrid,Área Metropolitana,Madrid,9789.64,0.0,9789.64,2025-07-21,,2025-07,2025
+TP-2025-0030,Trabajo 30 - Donostia,En curso,RED-BT-01,Trabajos Programados,TP,CT-001,OTROS,Gipuzkoa,Donostialdea,Donostia,17014.34,7456.06,9558.279999999999,2025-07-21,,2025-07,2025
+TP-2024-0051,Trabajo 51 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,9936.01,4096.17,5839.84,2024-01-04,2024-02-15,2024-01,2024
+TP-2024-0147,Trabajo 147 - Barcelona,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Barcelona,Barcelonés,Barcelona,21096.3,6480.22,14616.079999999998,2024-09-08,,2024-09,2024
+TP-2025-0151,Trabajo 151 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-004,OTROS,Álava,Rioja Alavesa,Sin municipio,30242.1,17547.29,12694.809999999998,2025-09-20,2025-11-05,2025-09,2025

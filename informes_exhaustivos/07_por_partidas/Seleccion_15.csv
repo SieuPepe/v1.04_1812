@@ -1,0 +1,15 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0005,Trabajo 5 - Sin municipio,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Girona,La Garrotxa,Sin municipio,22708.15,22975.24,-267.09000000000015,2024-10-04,2024-10-18,2024-10,2024
+GF-2025-0006,Trabajo 6 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,OTROS,Álava,Rioja Alavesa,Sin municipio,46940.93,49004.58,-2063.6500000000015,2025-03-16,2025-03-30,2025-03,2025
+OT-2024-0041,Trabajo 41 - Getxo,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,FUGA,Bizkaia,Gran Bilbao,Getxo,31292.8,30051.81,1240.989999999998,2024-09-01,2024-09-09,2024-09,2024
+OT-2024-0047,Trabajo 47 - Sin municipio,Pendiente,RED-MT-02,Órdenes de Trabajo,OT,CT-005,FUGA,Bizkaia,Duranguesado,Sin municipio,14055.98,0.0,14055.98,2024-09-15,,2024-09,2024
+GF-2025-0076,Trabajo 76 - Barañain,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Barañain,16136.68,0.0,16136.68,2025-05-16,,2025-05,2025
+OT-2024-0077,Trabajo 77 - Sin municipio,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,4583.46,0.0,4583.46,2024-06-07,,2024-06,2024
+GF-2024-0080,Trabajo 80 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-001,ATASCO,Barcelona,Baix Llobregat,Sin municipio,28461.24,0.0,28461.24,2024-10-18,,2024-10,2024
+GF-2024-0096,Trabajo 96 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,FUGA,Bizkaia,Lea-Artibai,Sin municipio,11610.42,10903.45,706.9699999999993,2024-08-24,2024-09-22,2024-08,2024
+TP-2024-0117,Trabajo 117 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Garrotxa,Sin municipio,37637.81,22225.43,15412.379999999997,2024-07-07,,2024-07,2024
+TP-2025-0138,Trabajo 138 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-002,OTROS,Girona,La Selva,Sin municipio,11694.99,5032.13,6662.86,2025-06-18,,2025-06,2025
+TP-2025-0139,Trabajo 139 - Sabadell,En curso,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Barcelona,Vallès Occidental,Sabadell,14900.22,4443.8,10456.419999999998,2025-01-04,2025-01-31,2025-01,2025
+OT-2024-0157,Trabajo 157 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-003,OTROS,Girona,La Selva,Sin municipio,4217.66,4223.64,-5.980000000000473,2024-09-29,2024-10-31,2024-09,2024
+TP-2024-0176,Trabajo 176 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-002,OTROS,Bizkaia,Duranguesado,Sin municipio,34910.18,6987.23,27922.95,2024-07-30,2024-09-25,2024-07,2024
+TP-2024-0194,Trabajo 194 - Madrid,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,49783.03,33614.27,16168.760000000002,2024-09-24,,2024-09,2024
