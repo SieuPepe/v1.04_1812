@@ -1,0 +1,28 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+TP-2024-0028,Trabajo 28 - Valencia,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,ATASCO,Valencia,Horta Nord,Valencia,9027.65,5331.57,3696.08,2024-04-10,2024-04-23,2024-04,2024
+TP-2025-0030,Trabajo 30 - Donostia,En curso,RED-BT-01,Trabajos Programados,TP,CT-001,OTROS,Gipuzkoa,Donostialdea,Donostia,17014.34,7456.06,9558.279999999999,2025-07-21,,2025-07,2025
+TP-2024-0051,Trabajo 51 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,9936.01,4096.17,5839.84,2024-01-04,2024-02-15,2024-01,2024
+TP-2024-0065,Trabajo 65 - Barakaldo,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Bizkaia,Gran Bilbao,Barakaldo,46306.82,29711.04,16595.78,2024-07-07,,2024-07,2024
+TP-2024-0074,Trabajo 74 - Errenteria,En curso,RED-BT-01,Trabajos Programados,TP,CT-003,OTROS,Gipuzkoa,Donostialdea,Errenteria,20320.01,8220.31,12099.699999999999,2024-04-05,,2024-04,2024
+TP-2025-0079,Trabajo 79 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-002,FUGA,Barcelona,Baix Llobregat,Sin municipio,39395.04,12923.89,26471.15,2025-09-06,2025-09-26,2025-09,2025
+TP-2025-0082,Trabajo 82 - Donostia,En curso,RED-AT-01,Trabajos Programados,TP,CT-002,ATASCO,Gipuzkoa,Donostialdea,Donostia,31358.09,21675.36,9682.73,2025-05-01,,2025-05,2025
+TP-2024-0087,Trabajo 87 - Barañain,En curso,RED-DIST-01,Trabajos Programados,TP,CT-002,ATASCO,Navarra,Cuenca de Pamplona,Barañain,22659.76,11426.72,11233.039999999999,2024-10-26,2024-11-11,2024-10,2024
+TP-2024-0101,Trabajo 101 - Pamplona,En curso,RED-MT-02,Trabajos Programados,TP,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Pamplona,4107.28,1659.45,2447.83,2024-04-15,2024-07-02,2024-04,2024
+TP-2024-0110,Trabajo 110 - Barañain,En curso,RED-BT-01,Trabajos Programados,TP,CT-005,OTROS,Navarra,Cuenca de Pamplona,Barañain,13843.68,3499.03,10344.65,2024-10-07,2024-11-12,2024-10,2024
+TP-2025-0112,Trabajo 112 - Barañain,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,ATASCO,Navarra,Cuenca de Pamplona,Barañain,19952.47,12818.12,7134.35,2025-06-12,2025-07-18,2025-06,2025
+TP-2024-0113,Trabajo 113 - Sin municipio,En curso,RED-BT-01,Trabajos Programados,TP,CT-002,FUGA,Girona,La Garrotxa,Sin municipio,38138.21,13479.89,24658.32,2024-08-07,2024-09-29,2024-08,2024
+TP-2024-0117,Trabajo 117 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Garrotxa,Sin municipio,37637.81,22225.43,15412.379999999997,2024-07-07,,2024-07,2024
+TP-2024-0134,Trabajo 134 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-004,ATASCO,Bizkaia,Duranguesado,Sin municipio,15292.86,6345.82,8947.04,2024-04-05,2024-06-19,2024-04,2024
+TP-2025-0138,Trabajo 138 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-002,OTROS,Girona,La Selva,Sin municipio,11694.99,5032.13,6662.86,2025-06-18,,2025-06,2025
+TP-2025-0139,Trabajo 139 - Sabadell,En curso,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Barcelona,Vallès Occidental,Sabadell,14900.22,4443.8,10456.419999999998,2025-01-04,2025-01-31,2025-01,2025
+TP-2025-0144,Trabajo 144 - Sin municipio,En curso,RED-BT-01,Trabajos Programados,TP,CT-004,OTROS,Valencia,Horta Sud,Sin municipio,26405.0,12485.34,13919.66,2025-09-16,,2025-09,2025
+TP-2024-0147,Trabajo 147 - Barcelona,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Barcelona,Barcelonés,Barcelona,21096.3,6480.22,14616.079999999998,2024-09-08,,2024-09,2024
+TP-2025-0151,Trabajo 151 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-004,OTROS,Álava,Rioja Alavesa,Sin municipio,30242.1,17547.29,12694.809999999998,2025-09-20,2025-11-05,2025-09,2025
+TP-2025-0152,Trabajo 152 - Vitoria-Gasteiz,En curso,RED-AT-01,Trabajos Programados,TP,CT-003,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,10034.96,5434.5,4600.459999999999,2025-04-16,,2025-04,2025
+TP-2024-0155,Trabajo 155 - Sin municipio,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Valencia,Horta Sud,Sin municipio,14212.94,5040.69,9172.25,2024-05-15,2024-07-29,2024-05,2024
+TP-2024-0158,Trabajo 158 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-005,OTROS,Valencia,Horta Sud,Sin municipio,23541.82,5438.21,18103.61,2024-07-06,,2024-07,2024
+TP-2025-0169,Trabajo 169 - Donostia,En curso,RED-BT-01,Trabajos Programados,TP,CT-005,OTROS,Gipuzkoa,Donostialdea,Donostia,17454.2,8144.13,9310.07,2025-04-12,,2025-04,2025
+TP-2024-0172,Trabajo 172 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-005,ATASCO,Barcelona,Baix Llobregat,Sin municipio,3041.8,1636.76,1405.0400000000002,2024-07-02,,2024-07,2024
+TP-2025-0175,Trabajo 175 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-002,OTROS,Bizkaia,Duranguesado,Sin municipio,46702.24,16956.38,29745.859999999997,2025-05-06,2025-08-02,2025-05,2025
+TP-2024-0176,Trabajo 176 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-002,OTROS,Bizkaia,Duranguesado,Sin municipio,34910.18,6987.23,27922.95,2024-07-30,2024-09-25,2024-07,2024
+TP-2024-0194,Trabajo 194 - Madrid,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,49783.03,33614.27,16168.760000000002,2024-09-24,,2024-09,2024

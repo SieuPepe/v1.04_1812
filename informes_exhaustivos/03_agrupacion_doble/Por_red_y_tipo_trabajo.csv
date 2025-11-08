@@ -1,0 +1,16 @@
+red,tipo_trabajo,cantidad,total_presupuesto,total_certificado,total_pendiente
+RED-MT-02,Garantía y Fallos,17,400088.65,220063.21,180025.44
+RED-DIST-01,Garantía y Fallos,17,470473.69,207083.4,263390.29
+RED-MT-02,Trabajos Programados,8,189697.78,73478.97,116218.81
+RED-AT-01,Órdenes de Trabajo,17,401166.0,205085.76,196080.24
+RED-BT-01,Garantía y Fallos,13,338191.54,151700.42,186491.12
+RED-BT-01,Órdenes de Trabajo,16,459734.54,231855.25,227879.29
+RED-DIST-01,Trabajos Programados,16,467580.66,214028.05,253552.61
+RED-MT-02,Órdenes de Trabajo,11,294631.49,150675.6,143955.89
+RED-MT-01,Órdenes de Trabajo,12,326709.3,164777.81,161931.49
+RED-DIST-01,Órdenes de Trabajo,11,297700.63,161769.32,135931.31
+RED-AT-01,Garantía y Fallos,11,328407.48,179063.23,149344.25
+RED-AT-01,Trabajos Programados,13,346891.04,109493.66,237397.38
+RED-MT-01,Trabajos Programados,9,121821.24,85222.82,36598.42
+RED-BT-01,Trabajos Programados,16,358698.24,194957.84,163740.4
+RED-MT-01,Garantía y Fallos,13,299932.68,109279.74,190652.94

@@ -1,0 +1,10 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0011,Trabajo 11 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-002,FUGA,Bizkaia,Lea-Artibai,Sin municipio,35587.85,32475.71,3112.1399999999994,2024-04-15,2024-05-09,2024-04,2024
+OT-2025-0014,Trabajo 14 - Sin municipio,Finalizado,RED-BT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Bizkaia,Lea-Artibai,Sin municipio,44297.9,39267.43,5030.470000000001,2025-03-01,2025-04-27,2025-03,2025
+OT-2024-0015,Trabajo 15 - Sin municipio,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-004,FUGA,Bizkaia,Duranguesado,Sin municipio,20917.88,18578.8,2339.0800000000017,2024-09-11,2024-10-31,2024-09,2024
+OT-2025-0033,Trabajo 33 - Sin municipio,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Bizkaia,Lea-Artibai,Sin municipio,10780.47,9187.52,1592.949999999999,2025-02-14,2025-03-04,2025-02,2025
+OT-2024-0041,Trabajo 41 - Getxo,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,FUGA,Bizkaia,Gran Bilbao,Getxo,31292.8,30051.81,1240.989999999998,2024-09-01,2024-09-09,2024-09,2024
+GF-2025-0092,Trabajo 92 - Getxo,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-004,ATASCO,Bizkaia,Gran Bilbao,Getxo,28108.58,24874.74,3233.84,2025-09-15,2025-11-09,2025-09,2025
+GF-2024-0096,Trabajo 96 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,FUGA,Bizkaia,Lea-Artibai,Sin municipio,11610.42,10903.45,706.9699999999993,2024-08-24,2024-09-22,2024-08,2024
+GF-2024-0111,Trabajo 111 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-005,OTROS,Bizkaia,Duranguesado,Sin municipio,30852.36,32061.06,-1208.7000000000007,2024-10-05,2024-10-27,2024-10,2024
+OT-2025-0173,Trabajo 173 - Sin municipio,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,OTROS,Bizkaia,Lea-Artibai,Sin municipio,47947.29,45154.96,2792.3300000000017,2025-06-23,2025-08-09,2025-06,2025

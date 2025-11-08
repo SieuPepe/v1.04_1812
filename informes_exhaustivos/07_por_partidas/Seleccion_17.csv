@@ -1,0 +1,9 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+TP-2024-0028,Trabajo 28 - Valencia,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,ATASCO,Valencia,Horta Nord,Valencia,9027.65,5331.57,3696.08,2024-04-10,2024-04-23,2024-04,2024
+GF-2025-0071,Trabajo 71 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,28763.99,26433.18,2330.8100000000013,2025-10-17,2025-11-04,2025-10,2025
+GF-2025-0078,Trabajo 78 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,24294.72,22548.1,1746.6200000000026,2025-08-12,2025-09-05,2025-08,2025
+GF-2025-0095,Trabajo 95 - Vitoria-Gasteiz,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,22771.32,20906.04,1865.2799999999988,2025-09-13,2025-11-04,2025-09,2025
+GF-2025-0130,Trabajo 130 - Sin municipio,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-001,ATASCO,Girona,La Selva,Sin municipio,8092.97,0.0,8092.97,2025-05-14,,2025-05,2025
+TP-2024-0134,Trabajo 134 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-004,ATASCO,Bizkaia,Duranguesado,Sin municipio,15292.86,6345.82,8947.04,2024-04-05,2024-06-19,2024-04,2024
+GF-2024-0145,Trabajo 145 - Barañain,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-002,ATASCO,Navarra,Cuenca de Pamplona,Barañain,19561.41,16727.26,2834.1500000000015,2024-10-15,2024-11-18,2024-10,2024
+OT-2024-0146,Trabajo 146 - Vitoria-Gasteiz,Pendiente,RED-MT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,48168.09,0.0,48168.09,2024-02-24,,2024-02,2024

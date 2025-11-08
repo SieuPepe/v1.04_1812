@@ -1,0 +1,46 @@
+tipo_trabajo,cod_trabajo,estado,cantidad,total_presupuesto,total_certificado,total_pendiente
+Garantía y Fallos,CT-005,Pendiente,6,154671.15,0.0,154671.15
+Garantía y Fallos,CT-004,Finalizado,7,137665.64,128468.12,9197.52
+Garantía y Fallos,CT-001,Pendiente,10,237598.22,0.0,237598.22
+Trabajos Programados,CT-003,Pendiente,4,88787.81,0.0,88787.81
+Órdenes de Trabajo,CT-005,Finalizado,5,129463.69,121992.06,7471.63
+Garantía y Fallos,CT-005,Finalizado,5,165954.65,170297.23,-4342.58
+Garantía y Fallos,CT-001,Finalizado,3,115288.92,112194.5,3094.42
+Órdenes de Trabajo,CT-001,Pendiente,2,21324.79,0.0,21324.79
+Trabajos Programados,CT-001,Finalizado,3,93064.96,87949.62,5115.34
+Órdenes de Trabajo,CT-004,En curso,5,138626.4,81147.88,57478.52
+Órdenes de Trabajo,CT-002,Finalizado,4,86728.8,78915.62,7813.18
+Órdenes de Trabajo,CT-001,En curso,7,216181.91,92429.64,123752.27
+Órdenes de Trabajo,CT-004,Finalizado,5,174719.03,162010.37,12708.66
+Garantía y Fallos,CT-003,Pendiente,4,127737.49,0.0,127737.49
+Trabajos Programados,CT-005,Pendiente,6,181965.94,0.0,181965.94
+Órdenes de Trabajo,CT-003,Pendiente,4,121381.3,0.0,121381.3
+Trabajos Programados,CT-004,Pendiente,1,17723.15,0.0,17723.15
+Garantía y Fallos,CT-003,Finalizado,5,105901.2,96690.4,9210.8
+Garantía y Fallos,CT-002,En curso,2,34662.95,22310.48,12352.47
+Trabajos Programados,CT-003,En curso,5,69271.1,35900.67,33370.43
+Garantía y Fallos,CT-004,En curso,3,110081.47,44438.64,65642.83
+Trabajos Programados,CT-001,En curso,6,152520.71,83961.73,68558.98
+Garantía y Fallos,CT-005,En curso,5,157306.86,62039.99,95266.87
+Garantía y Fallos,CT-003,En curso,2,70625.66,19673.75,50951.91
+Garantía y Fallos,CT-001,En curso,6,197592.02,98519.85,99072.17
+Órdenes de Trabajo,CT-004,Pendiente,4,123427.5,0.0,123427.5
+Trabajos Programados,CT-005,Finalizado,3,60650.24,60235.18,415.06
+Trabajos Programados,CT-002,Finalizado,4,99365.32,94975.67,4389.65
+Órdenes de Trabajo,CT-003,Finalizado,8,241073.65,230716.29,10357.36
+Órdenes de Trabajo,CT-005,Pendiente,8,195389.16,0.0,195389.16
+Trabajos Programados,CT-002,Pendiente,5,90783.82,0.0,90783.82
+Trabajos Programados,CT-004,Finalizado,5,125073.39,117331.16,7742.23
+Órdenes de Trabajo,CT-001,Finalizado,4,80544.47,72433.09,8111.38
+Órdenes de Trabajo,CT-002,Pendiente,3,70355.72,0.0,70355.72
+Órdenes de Trabajo,CT-003,En curso,2,48268.87,26902.31,21366.56
+Garantía y Fallos,CT-002,Finalizado,6,122011.54,112557.04,9454.5
+Órdenes de Trabajo,CT-002,En curso,3,72580.06,26014.37,46565.69
+Trabajos Programados,CT-002,En curso,8,239758.73,92925.4,146833.33
+Garantía y Fallos,CT-002,Pendiente,4,46207.11,0.0,46207.11
+Trabajos Programados,CT-001,Pendiente,3,71716.61,0.0,71716.61
+Órdenes de Trabajo,CT-005,En curso,3,59876.61,21602.11,38274.5
+Trabajos Programados,CT-005,En curso,5,95519.31,40943.56,54575.75
+Garantía y Fallos,CT-004,Pendiente,3,53789.16,0.0,53789.16
+Trabajos Programados,CT-004,En curso,3,71939.96,36378.45,35561.51
+Trabajos Programados,CT-003,Finalizado,1,26547.91,26579.9,-31.99

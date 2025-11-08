@@ -1,0 +1,20 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2025-0013,Trabajo 13 - Valencia,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-002,ATASCO,Valencia,Horta Nord,Valencia,21651.95,20359.6,1292.3500000000022,2025-05-07,2025-07-02,2025-05,2025
+GF-2024-0016,Trabajo 16 - Madrid,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,FUGA,Madrid,Área Metropolitana,Madrid,3588.57,3706.18,-117.60999999999967,2024-03-12,2024-03-18,2024-03,2024
+OT-2024-0024,Trabajo 24 - Sin municipio,Pendiente,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,40915.8,0.0,40915.8,2024-02-03,,2024-02,2024
+GF-2025-0037,Trabajo 37 - Vitoria-Gasteiz,En curso,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,7190.27,4448.33,2741.9400000000005,2025-04-01,2025-05-23,2025-04,2025
+TP-2024-0040,Trabajo 40 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Barcelona,Maresme,Sin municipio,3391.62,3249.15,142.4699999999998,2024-04-24,2024-06-16,2024-04,2024
+TP-2025-0042,Trabajo 42 - Barakaldo,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-005,FUGA,Bizkaia,Gran Bilbao,Barakaldo,23948.2,0.0,23948.2,2025-01-19,,2025-01,2025
+TP-2025-0055,Trabajo 55 - Madrid,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-005,ATASCO,Madrid,Área Metropolitana,Madrid,41381.61,0.0,41381.61,2025-04-09,,2025-04,2025
+GF-2024-0064,Trabajo 64 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-005,FUGA,Gipuzkoa,Urola Kosta,Sin municipio,47188.1,13491.8,33696.3,2024-10-05,2024-11-22,2024-10,2024
+TP-2024-0067,Trabajo 67 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-004,ATASCO,Girona,La Selva,Sin municipio,40876.97,41603.89,-726.9199999999983,2024-09-15,2024-11-12,2024-09,2024
+OT-2025-0068,Trabajo 68 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,29773.68,11712.28,18061.4,2025-04-01,,2025-04,2025
+OT-2025-0091,Trabajo 91 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-005,FUGA,Álava,Rioja Alavesa,Sin municipio,1994.97,595.43,1399.54,2025-08-15,,2025-08,2025
+TP-2025-0094,Trabajo 94 - Sin municipio,Finalizado,RED-MT-02,Trabajos Programados,TP,CT-005,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,12270.24,12327.08,-56.840000000000146,2025-04-28,2025-06-27,2025-04,2025
+TP-2024-0104,Trabajo 104 - Barañain,Pendiente,RED-BT-01,Trabajos Programados,TP,CT-003,ATASCO,Navarra,Cuenca de Pamplona,Barañain,15891.3,0.0,15891.3,2024-02-28,,2024-02,2024
+OT-2025-0109,Trabajo 109 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,34041.2,15656.18,18385.019999999997,2025-03-06,2025-05-02,2025-03,2025
+OT-2025-0128,Trabajo 128 - Sin municipio,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Barcelona,Maresme,Sin municipio,24075.35,6179.31,17896.039999999997,2025-06-02,2025-07-20,2025-06,2025
+OT-2024-0162,Trabajo 162 - Sin municipio,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,FUGA,Girona,La Selva,Sin municipio,32609.8,0.0,32609.8,2024-03-23,,2024-03,2024
+OT-2025-0165,Trabajo 165 - L'Hospitalet de Llobregat,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Barcelona,Barcelonés,L'Hospitalet de Llobregat,9760.14,0.0,9760.14,2025-05-05,,2025-05,2025
+TP-2024-0186,Trabajo 186 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-003,OTROS,Girona,La Garrotxa,Sin municipio,26547.91,26579.9,-31.9900000000016,2024-03-09,2024-05-02,2024-03,2024
+TP-2024-0193,Trabajo 193 - Sin municipio,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Selva,Sin municipio,24211.72,24367.36,-155.63999999999942,2024-05-24,2024-07-13,2024-05,2024

@@ -1,0 +1,13 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0002,Trabajo 2 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,OTROS,Barcelona,Maresme,Sin municipio,43993.92,44672.16,-678.2400000000052,2024-05-26,2024-07-05,2024-05,2024
+GF-2025-0019,Trabajo 19 - Terrassa,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-004,FUGA,Barcelona,Vallès Occidental,Terrassa,1552.11,1465.71,86.39999999999986,2025-06-05,2025-07-09,2025-06,2025
+TP-2024-0040,Trabajo 40 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Barcelona,Maresme,Sin municipio,3391.62,3249.15,142.4699999999998,2024-04-24,2024-06-16,2024-04,2024
+TP-2025-0052,Trabajo 52 - Barcelona,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-004,ATASCO,Barcelona,Barcelonés,Barcelona,11870.12,11801.25,68.8700000000008,2025-09-13,2025-11-10,2025-09,2025
+OT-2025-0103,Trabajo 103 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Barcelona,Maresme,Sin municipio,26907.2,26864.25,42.95000000000073,2025-08-19,2025-10-01,2025-08,2025
+GF-2025-0120,Trabajo 120 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,FUGA,Barcelona,Maresme,Sin municipio,9017.83,9322.55,-304.71999999999935,2025-06-25,2025-07-28,2025-06,2025
+OT-2024-0132,Trabajo 132 - Cerdanyola del Vallès,Finalizado,RED-MT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Barcelona,Vallès Occidental,Cerdanyola del Vallès,25876.32,26397.51,-521.1899999999987,2024-09-02,2024-10-14,2024-09,2024
+TP-2025-0143,Trabajo 143 - L'Hospitalet de Llobregat,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-001,FUGA,Barcelona,Barcelonés,L'Hospitalet de Llobregat,18278.29,16457.66,1820.630000000001,2025-06-27,2025-08-18,2025-06,2025
+GF-2024-0164,Trabajo 164 - L'Hospitalet de Llobregat,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Barcelona,Barcelonés,L'Hospitalet de Llobregat,40578.33,41288.58,-710.25,2024-03-31,2024-04-13,2024-03,2024
+TP-2025-0180,Trabajo 180 - Terrassa,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-002,ATASCO,Barcelona,Vallès Occidental,Terrassa,18562.75,16880.3,1682.4500000000007,2025-09-17,2025-10-21,2025-09,2025
+GF-2025-0188,Trabajo 188 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-005,OTROS,Barcelona,Baix Llobregat,Sin municipio,39945.92,41499.49,-1553.5699999999997,2025-09-21,2025-11-01,2025-09,2025
+GF-2025-0195,Trabajo 195 - Sabadell,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Barcelona,Vallès Occidental,Sabadell,47582.16,41731.14,5851.020000000004,2025-03-01,2025-04-01,2025-03,2025

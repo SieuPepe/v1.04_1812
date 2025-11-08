@@ -1,0 +1,10 @@
+estado,tipo_trabajo,cantidad,total_presupuesto,total_certificado,total_pendiente
+Pendiente,Garantía y Fallos,27,620003.13,0.0,620003.13
+Finalizado,Garantía y Fallos,26,646821.95,620207.29,26614.66
+Pendiente,Trabajos Programados,19,450977.33,0.0,450977.33
+Finalizado,Órdenes de Trabajo,26,712529.64,666067.43,46462.21
+Pendiente,Órdenes de Trabajo,21,531878.47,0.0,531878.47
+Finalizado,Trabajos Programados,16,404701.82,387071.53,17630.29
+En curso,Órdenes de Trabajo,20,535533.85,248096.31,287437.54
+En curso,Garantía y Fallos,18,570268.96,246982.71,323286.25
+En curso,Trabajos Programados,27,629009.81,290109.81,338900.0

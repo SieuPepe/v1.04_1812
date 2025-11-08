@@ -1,0 +1,28 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0001,Trabajo 1 - Madrid,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,OTROS,Madrid,Área Metropolitana,Madrid,9789.64,0.0,9789.64,2025-07-21,,2025-07,2025
+GF-2025-0003,Trabajo 3 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-001,OTROS,Bizkaia,Duranguesado,Sin municipio,19032.6,0.0,19032.6,2025-04-29,,2025-04,2025
+GF-2025-0017,Trabajo 17 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,25193.78,0.0,25193.78,2025-03-08,,2025-03,2025
+GF-2024-0027,Trabajo 27 - Madrid,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,35587.95,0.0,35587.95,2024-10-08,,2024-10,2024
+GF-2025-0032,Trabajo 32 - Pamplona,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-001,FUGA,Navarra,Cuenca de Pamplona,Pamplona,8417.03,0.0,8417.03,2025-04-22,,2025-04,2025
+GF-2024-0034,Trabajo 34 - Sin municipio,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Bizkaia,Duranguesado,Sin municipio,39363.83,0.0,39363.83,2024-08-04,,2024-08,2024
+GF-2024-0044,Trabajo 44 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,16647.8,0.0,16647.8,2024-03-25,,2024-03,2024
+GF-2025-0045,Trabajo 45 - Pamplona,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-005,ATASCO,Navarra,Cuenca de Pamplona,Pamplona,25161.17,0.0,25161.17,2025-08-26,,2025-08,2025
+GF-2024-0054,Trabajo 54 - Pamplona,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-001,OTROS,Navarra,Cuenca de Pamplona,Pamplona,26982.02,0.0,26982.02,2024-06-19,,2024-06,2024
+GF-2024-0061,Trabajo 61 - Barañain,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Barañain,28267.99,0.0,28267.99,2024-03-24,,2024-03,2024
+GF-2024-0070,Trabajo 70 - Pamplona,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-001,OTROS,Navarra,Cuenca de Pamplona,Pamplona,39525.8,0.0,39525.8,2024-05-07,,2024-05,2024
+GF-2025-0076,Trabajo 76 - Barañain,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Barañain,16136.68,0.0,16136.68,2025-05-16,,2025-05,2025
+GF-2024-0080,Trabajo 80 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-001,ATASCO,Barcelona,Baix Llobregat,Sin municipio,28461.24,0.0,28461.24,2024-10-18,,2024-10,2024
+GF-2025-0084,Trabajo 84 - L'Hospitalet de Llobregat,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-002,FUGA,Barcelona,Barcelonés,L'Hospitalet de Llobregat,11876.24,0.0,11876.24,2025-07-01,,2025-07,2025
+GF-2024-0090,Trabajo 90 - Madrid,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,FUGA,Madrid,Área Metropolitana,Madrid,39197.86,0.0,39197.86,2024-01-29,,2024-01,2024
+GF-2024-0115,Trabajo 115 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-004,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,21445.64,0.0,21445.64,2024-01-17,,2024-01,2024
+GF-2025-0119,Trabajo 119 - Sin municipio,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-003,ATASCO,Girona,La Selva,Sin municipio,31804.38,0.0,31804.38,2025-10-17,,2025-10,2025
+GF-2024-0121,Trabajo 121 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-004,OTROS,Bizkaia,Duranguesado,Sin municipio,13917.19,0.0,13917.19,2024-03-26,,2024-03,2024
+GF-2024-0122,Trabajo 122 - Madrid,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-003,OTROS,Madrid,Área Metropolitana,Madrid,41424.54,0.0,41424.54,2024-01-20,,2024-01,2024
+GF-2025-0130,Trabajo 130 - Sin municipio,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-001,ATASCO,Girona,La Selva,Sin municipio,8092.97,0.0,8092.97,2025-05-14,,2025-05,2025
+GF-2024-0135,Trabajo 135 - Errenteria,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Gipuzkoa,Donostialdea,Errenteria,6081.86,0.0,6081.86,2024-06-26,,2024-06,2024
+GF-2024-0137,Trabajo 137 - Vitoria-Gasteiz,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-002,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,11189.96,0.0,11189.96,2024-08-07,,2024-08,2024
+GF-2024-0170,Trabajo 170 - Sin municipio,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,24510.85,0.0,24510.85,2024-01-20,,2024-01,2024
+GF-2025-0179,Trabajo 179 - Madrid,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-004,ATASCO,Madrid,Área Metropolitana,Madrid,18426.33,0.0,18426.33,2025-07-18,,2025-07,2025
+GF-2025-0183,Trabajo 183 - Valencia,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-002,ATASCO,Valencia,Horta Nord,Valencia,17059.05,0.0,17059.05,2025-03-19,,2025-03,2025
+GF-2025-0189,Trabajo 189 - Madrid,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,27093.94,0.0,27093.94,2025-09-19,,2025-09,2025
+GF-2025-0190,Trabajo 190 - Barcelona,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-003,OTROS,Barcelona,Barcelonés,Barcelona,29314.79,0.0,29314.79,2025-02-09,,2025-02,2025

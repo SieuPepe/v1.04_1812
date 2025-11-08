@@ -1,0 +1,27 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0002,Trabajo 2 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,OTROS,Barcelona,Maresme,Sin municipio,43993.92,44672.16,-678.2400000000052,2024-05-26,2024-07-05,2024-05,2024
+GF-2025-0006,Trabajo 6 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,OTROS,Álava,Rioja Alavesa,Sin municipio,46940.93,49004.58,-2063.6500000000015,2025-03-16,2025-03-30,2025-03,2025
+GF-2024-0007,Trabajo 7 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-001,OTROS,Valencia,Horta Sud,Sin municipio,47328.65,42560.46,4768.190000000002,2024-09-13,2024-10-24,2024-09,2024
+GF-2024-0016,Trabajo 16 - Madrid,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,FUGA,Madrid,Área Metropolitana,Madrid,3588.57,3706.18,-117.60999999999967,2024-03-12,2024-03-18,2024-03,2024
+GF-2025-0019,Trabajo 19 - Terrassa,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-004,FUGA,Barcelona,Vallès Occidental,Terrassa,1552.11,1465.71,86.39999999999986,2025-06-05,2025-07-09,2025-06,2025
+GF-2025-0020,Trabajo 20 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-001,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,27381.94,28345.46,-963.5200000000004,2025-05-12,2025-05-25,2025-05,2025
+GF-2024-0025,Trabajo 25 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,4945.45,5073.65,-128.19999999999982,2024-03-12,2024-05-09,2024-03,2024
+GF-2025-0050,Trabajo 50 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-004,FUGA,Girona,La Garrotxa,Sin municipio,3719.74,3594.62,125.11999999999989,2025-02-03,2025-03-03,2025-02,2025
+GF-2025-0071,Trabajo 71 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,28763.99,26433.18,2330.8100000000013,2025-10-17,2025-11-04,2025-10,2025
+GF-2024-0072,Trabajo 72 - Sin municipio,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-002,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,30040.06,28516.34,1523.7200000000012,2024-03-26,2024-04-24,2024-03,2024
+GF-2025-0078,Trabajo 78 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,24294.72,22548.1,1746.6200000000026,2025-08-12,2025-09-05,2025-08,2025
+GF-2025-0081,Trabajo 81 - Sin municipio,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-003,FUGA,Girona,La Garrotxa,Sin municipio,6911.58,6802.35,109.22999999999956,2025-01-13,2025-02-02,2025-01,2025
+GF-2025-0092,Trabajo 92 - Getxo,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-004,ATASCO,Bizkaia,Gran Bilbao,Getxo,28108.58,24874.74,3233.84,2025-09-15,2025-11-09,2025-09,2025
+GF-2025-0095,Trabajo 95 - Vitoria-Gasteiz,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,22771.32,20906.04,1865.2799999999988,2025-09-13,2025-11-04,2025-09,2025
+GF-2024-0096,Trabajo 96 - Sin municipio,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-005,FUGA,Bizkaia,Lea-Artibai,Sin municipio,11610.42,10903.45,706.9699999999993,2024-08-24,2024-09-22,2024-08,2024
+GF-2025-0105,Trabajo 105 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,17698.02,16650.08,1047.9399999999987,2025-01-24,2025-02-09,2025-01,2025
+GF-2024-0107,Trabajo 107 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-004,FUGA,Girona,La Garrotxa,Sin municipio,33931.4,29248.67,4682.730000000003,2024-09-19,2024-10-13,2024-09,2024
+GF-2024-0111,Trabajo 111 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-005,OTROS,Bizkaia,Duranguesado,Sin municipio,30852.36,32061.06,-1208.7000000000007,2024-10-05,2024-10-27,2024-10,2024
+GF-2025-0120,Trabajo 120 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,FUGA,Barcelona,Maresme,Sin municipio,9017.83,9322.55,-304.71999999999935,2025-06-25,2025-07-28,2025-06,2025
+GF-2024-0140,Trabajo 140 - Barañain,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-005,OTROS,Navarra,Cuenca de Pamplona,Barañain,36605.02,36828.65,-223.63000000000466,2024-08-11,2024-08-26,2024-08,2024
+GF-2024-0145,Trabajo 145 - Barañain,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-002,ATASCO,Navarra,Cuenca de Pamplona,Barañain,19561.41,16727.26,2834.1500000000015,2024-10-15,2024-11-18,2024-10,2024
+GF-2025-0160,Trabajo 160 - Barañain,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-002,ATASCO,Navarra,Cuenca de Pamplona,Barañain,25080.1,22022.88,3057.2199999999975,2025-05-19,2025-06-11,2025-05,2025
+GF-2024-0164,Trabajo 164 - L'Hospitalet de Llobregat,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Barcelona,Barcelonés,L'Hospitalet de Llobregat,40578.33,41288.58,-710.25,2024-03-31,2024-04-13,2024-03,2024
+GF-2025-0166,Trabajo 166 - Barañain,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-002,ATASCO,Navarra,Cuenca de Pamplona,Barañain,14017.42,13419.91,597.5100000000002,2025-05-15,2025-07-02,2025-05,2025
+GF-2025-0188,Trabajo 188 - Sin municipio,Finalizado,RED-AT-01,Garantía y Fallos,GF,CT-005,OTROS,Barcelona,Baix Llobregat,Sin municipio,39945.92,41499.49,-1553.5699999999997,2025-09-21,2025-11-01,2025-09,2025
+GF-2025-0195,Trabajo 195 - Sabadell,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Barcelona,Vallès Occidental,Sabadell,47582.16,41731.14,5851.020000000004,2025-03-01,2025-04-01,2025-03,2025

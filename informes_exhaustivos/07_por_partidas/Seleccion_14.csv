@@ -1,0 +1,13 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0001,Trabajo 1 - Madrid,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,OTROS,Madrid,Área Metropolitana,Madrid,9789.64,0.0,9789.64,2025-07-21,,2025-07,2025
+TP-2024-0004,Trabajo 4 - Pasaia,Pendiente,RED-MT-02,Trabajos Programados,TP,CT-003,OTROS,Gipuzkoa,Donostialdea,Pasaia,37943.54,0.0,37943.54,2024-04-03,,2024-04,2024
+OT-2024-0022,Trabajo 22 - Barcelona,Pendiente,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Barcelona,Barcelonés,Barcelona,28654.75,0.0,28654.75,2024-01-09,,2024-01,2024
+GF-2025-0031,Trabajo 31 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Girona,La Garrotxa,Sin municipio,27007.5,11965.46,15042.04,2025-02-23,,2025-02,2025
+OT-2024-0041,Trabajo 41 - Getxo,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,FUGA,Bizkaia,Gran Bilbao,Getxo,31292.8,30051.81,1240.989999999998,2024-09-01,2024-09-09,2024-09,2024
+TP-2025-0055,Trabajo 55 - Madrid,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-005,ATASCO,Madrid,Área Metropolitana,Madrid,41381.61,0.0,41381.61,2025-04-09,,2025-04,2025
+GF-2025-0078,Trabajo 78 - Sin municipio,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-002,ATASCO,Girona,La Garrotxa,Sin municipio,24294.72,22548.1,1746.6200000000026,2025-08-12,2025-09-05,2025-08,2025
+OT-2025-0083,Trabajo 83 - Bilbao,En curso,RED-MT-02,Órdenes de Trabajo,OT,CT-004,FUGA,Bizkaia,Gran Bilbao,Bilbao,9137.75,4162.71,4975.04,2025-08-21,,2025-08,2025
+OT-2024-0127,Trabajo 127 - Sin municipio,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Bizkaia,Duranguesado,Sin municipio,47146.29,13966.93,33179.36,2024-08-24,2024-11-15,2024-08,2024
+OT-2025-0159,Trabajo 159 - Sin municipio,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Gipuzkoa,Tolosaldea,Sin municipio,14378.35,0.0,14378.35,2025-07-23,,2025-07,2025
+OT-2024-0167,Trabajo 167 - Vitoria-Gasteiz,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,32391.44,15522.05,16869.39,2024-05-15,,2024-05,2024
+TP-2024-0186,Trabajo 186 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-003,OTROS,Girona,La Garrotxa,Sin municipio,26547.91,26579.9,-31.9900000000016,2024-03-09,2024-05-02,2024-03,2024

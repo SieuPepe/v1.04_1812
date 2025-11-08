@@ -1,0 +1,33 @@
+{
+  "seleccion_numero": 4,
+  "partidas_seleccionadas": [
+    "GF-2025-0037",
+    "OT-2025-0128",
+    "OT-2024-0024",
+    "TP-2024-0040",
+    "TP-2025-0055",
+    "OT-2025-0165",
+    "TP-2024-0067",
+    "OT-2025-0068",
+    "OT-2025-0091",
+    "GF-2024-0064",
+    "GF-2024-0016",
+    "TP-2025-0042",
+    "OT-2024-0162",
+    "TP-2024-0186",
+    "TP-2024-0193",
+    "OT-2025-0013",
+    "TP-2024-0104",
+    "OT-2025-0109",
+    "TP-2025-0094"
+  ],
+  "num_partidas": 19,
+  "total_presupuesto": 441309.4,
+  "total_certificado": 184276.49,
+  "total_pendiente": 257032.91,
+  "distribucion_estados": {
+    "Pendiente": 6,
+    "En curso": 6,
+    "Finalizado": 7
+  }
+}

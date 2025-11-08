@@ -1,0 +1,9 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0029,Trabajo 29 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-004,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,48219.3,14351.23,33868.07000000001,2024-08-21,,2024-08,2024
+TP-2025-0030,Trabajo 30 - Donostia,En curso,RED-BT-01,Trabajos Programados,TP,CT-001,OTROS,Gipuzkoa,Donostialdea,Donostia,17014.34,7456.06,9558.279999999999,2025-07-21,,2025-07,2025
+OT-2025-0060,Trabajo 60 - Sin municipio,En curso,RED-MT-01,Órdenes de Trabajo,OT,CT-003,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,7425.76,1957.1,5468.66,2025-09-18,2025-12-14,2025-09,2025
+GF-2024-0064,Trabajo 64 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-005,FUGA,Gipuzkoa,Urola Kosta,Sin municipio,47188.1,13491.8,33696.3,2024-10-05,2024-11-22,2024-10,2024
+TP-2024-0074,Trabajo 74 - Errenteria,En curso,RED-BT-01,Trabajos Programados,TP,CT-003,OTROS,Gipuzkoa,Donostialdea,Errenteria,20320.01,8220.31,12099.699999999999,2024-04-05,,2024-04,2024
+TP-2025-0082,Trabajo 82 - Donostia,En curso,RED-AT-01,Trabajos Programados,TP,CT-002,ATASCO,Gipuzkoa,Donostialdea,Donostia,31358.09,21675.36,9682.73,2025-05-01,,2025-05,2025
+TP-2025-0169,Trabajo 169 - Donostia,En curso,RED-BT-01,Trabajos Programados,TP,CT-005,OTROS,Gipuzkoa,Donostialdea,Donostia,17454.2,8144.13,9310.07,2025-04-12,,2025-04,2025
+GF-2024-0177,Trabajo 177 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,45637.1,28816.41,16820.69,2024-06-21,2024-08-06,2024-06,2024

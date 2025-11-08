@@ -1,0 +1,8 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+OT-2024-0005,Trabajo 5 - Sin municipio,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Girona,La Garrotxa,Sin municipio,22708.15,22975.24,-267.09000000000015,2024-10-04,2024-10-18,2024-10,2024
+GF-2024-0016,Trabajo 16 - Madrid,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-004,FUGA,Madrid,Área Metropolitana,Madrid,3588.57,3706.18,-117.60999999999967,2024-03-12,2024-03-18,2024-03,2024
+GF-2024-0034,Trabajo 34 - Sin municipio,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Bizkaia,Duranguesado,Sin municipio,39363.83,0.0,39363.83,2024-08-04,,2024-08,2024
+GF-2025-0076,Trabajo 76 - Barañain,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-001,ATASCO,Navarra,Cuenca de Pamplona,Barañain,16136.68,0.0,16136.68,2025-05-16,,2025-05,2025
+GF-2025-0081,Trabajo 81 - Sin municipio,Finalizado,RED-MT-02,Garantía y Fallos,GF,CT-003,FUGA,Girona,La Garrotxa,Sin municipio,6911.58,6802.35,109.22999999999956,2025-01-13,2025-02-02,2025-01,2025
+TP-2025-0093,Trabajo 93 - Sin municipio,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-005,OTROS,Valencia,Horta Sud,Sin municipio,34099.91,0.0,34099.91,2025-08-07,,2025-08,2025
+TP-2025-0178,Trabajo 178 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-002,FUGA,Valencia,Horta Sud,Sin municipio,42716.41,40255.67,2460.7400000000052,2025-01-30,2025-03-21,2025-01,2025

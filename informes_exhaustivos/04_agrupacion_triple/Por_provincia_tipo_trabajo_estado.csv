@@ -1,0 +1,70 @@
+provincia,tipo_trabajo,estado,cantidad,total_presupuesto,total_certificado,total_pendiente
+Madrid,Garantía y Fallos,Pendiente,6,171520.26,0.0,171520.26
+Barcelona,Garantía y Fallos,Finalizado,6,182670.27,179979.63,2690.64
+Bizkaia,Garantía y Fallos,Pendiente,3,72313.62,0.0,72313.62
+Gipuzkoa,Trabajos Programados,Pendiente,3,88535.64,0.0,88535.64
+Girona,Órdenes de Trabajo,Finalizado,6,133208.59,128468.43,4740.16
+Álava,Garantía y Fallos,Finalizado,2,69712.25,69910.62,-198.37
+Valencia,Garantía y Fallos,Finalizado,2,76092.64,68993.64,7099.0
+Navarra,Órdenes de Trabajo,Pendiente,3,76964.57,0.0,76964.57
+Álava,Trabajos Programados,Finalizado,4,139579.95,127880.4,11699.55
+Álava,Órdenes de Trabajo,En curso,8,224852.64,105515.51,119337.13
+Bizkaia,Órdenes de Trabajo,Finalizado,6,190824.19,174716.23,16107.96
+Bizkaia,Órdenes de Trabajo,En curso,4,119677.56,49818.22,69859.34
+Valencia,Órdenes de Trabajo,Finalizado,4,131048.33,118003.12,13045.21
+Madrid,Garantía y Fallos,Finalizado,1,3588.57,3706.18,-117.61
+Valencia,Garantía y Fallos,Pendiente,2,42252.83,0.0,42252.83
+Madrid,Órdenes de Trabajo,Finalizado,1,45170.69,46181.89,-1011.2
+Gipuzkoa,Garantía y Fallos,Finalizado,4,80065.47,78585.53,1479.94
+Girona,Trabajos Programados,Pendiente,1,8289.22,0.0,8289.22
+Barcelona,Órdenes de Trabajo,Pendiente,2,38414.89,0.0,38414.89
+Madrid,Trabajos Programados,Pendiente,4,133492.25,0.0,133492.25
+Gipuzkoa,Órdenes de Trabajo,Pendiente,4,87461.48,0.0,87461.48
+Valencia,Garantía y Fallos,En curso,3,44526.45,27902.14,16624.31
+Valencia,Trabajos Programados,En curso,5,83123.42,32391.98,50731.44
+Gipuzkoa,Garantía y Fallos,En curso,3,141044.5,56659.44,84385.06
+Gipuzkoa,Trabajos Programados,En curso,4,86146.64,45495.86,40650.78
+Girona,Garantía y Fallos,En curso,1,27007.5,11965.46,15042.04
+Navarra,Garantía y Fallos,Pendiente,6,144490.69,0.0,144490.69
+Bizkaia,Garantía y Fallos,En curso,2,27724.71,8075.3,19649.41
+Álava,Garantía y Fallos,En curso,6,217195.91,102257.65,114938.26
+Girona,Trabajos Programados,Finalizado,4,115804.88,116091.89,-287.01
+Barcelona,Trabajos Programados,Finalizado,4,52102.78,48388.36,3714.42
+Bizkaia,Trabajos Programados,Pendiente,3,69669.77,0.0,69669.77
+Gipuzkoa,Garantía y Fallos,Pendiente,4,68686.15,0.0,68686.15
+Bizkaia,Órdenes de Trabajo,Pendiente,3,78808.8,0.0,78808.8
+Navarra,Órdenes de Trabajo,En curso,2,48004.53,20911.95,27092.58
+Girona,Garantía y Fallos,Finalizado,4,68857.44,62193.74,6663.7
+Gipuzkoa,Órdenes de Trabajo,Finalizado,2,74613.96,66475.3,8138.66
+Navarra,Órdenes de Trabajo,Finalizado,4,82782.8,76902.99,5879.81
+Girona,Órdenes de Trabajo,Pendiente,4,119652.39,0.0,119652.39
+Gipuzkoa,Órdenes de Trabajo,En curso,1,7425.76,1957.1,5468.66
+Madrid,Órdenes de Trabajo,Pendiente,3,71592.05,0.0,71592.05
+Álava,Órdenes de Trabajo,Finalizado,1,2097.56,2057.71,39.85
+Bizkaia,Trabajos Programados,En curso,4,143212.1,60000.47,83211.63
+Girona,Órdenes de Trabajo,En curso,2,58385.43,31917.54,26467.89
+Barcelona,Trabajos Programados,En curso,4,78433.36,25484.67,52948.69
+Barcelona,Garantía y Fallos,Pendiente,3,69652.27,0.0,69652.27
+Navarra,Trabajos Programados,En curso,4,60563.19,29403.32,31159.87
+Bizkaia,Garantía y Fallos,Finalizado,3,70571.36,67839.25,2732.11
+Valencia,Trabajos Programados,Pendiente,2,43340.75,0.0,43340.75
+Gipuzkoa,Trabajos Programados,Finalizado,2,19803.26,19864.66,-61.4
+Navarra,Garantía y Fallos,En curso,1,35650.87,7238.27,28412.6
+Barcelona,Órdenes de Trabajo,Finalizado,2,52783.52,53261.76,-478.24
+Navarra,Trabajos Programados,Pendiente,3,26748.75,0.0,26748.75
+Girona,Trabajos Programados,En curso,3,87471.01,40737.45,46733.56
+Álava,Trabajos Programados,Pendiente,2,47232.98,0.0,47232.98
+Girona,Garantía y Fallos,Pendiente,2,39897.35,0.0,39897.35
+Barcelona,Órdenes de Trabajo,En curso,2,64918.46,31124.52,33793.94
+Barcelona,Garantía y Fallos,En curso,1,32233.84,11251.11,20982.73
+Álava,Garantía y Fallos,Pendiente,1,11189.96,0.0,11189.96
+Navarra,Garantía y Fallos,Finalizado,4,95263.95,88998.7,6265.25
+Álava,Órdenes de Trabajo,Pendiente,1,48168.09,0.0,48168.09
+Álava,Trabajos Programados,En curso,2,40277.06,22981.79,17295.27
+Madrid,Trabajos Programados,Finalizado,1,34694.54,34590.55,103.99
+Madrid,Garantía y Fallos,En curso,1,44885.18,21633.34,23251.84
+Valencia,Trabajos Programados,Finalizado,1,42716.41,40255.67,2460.74
+Barcelona,Trabajos Programados,Pendiente,1,33667.97,0.0,33667.97
+Valencia,Órdenes de Trabajo,Pendiente,1,10816.2,0.0,10816.2
+Madrid,Trabajos Programados,En curso,1,49783.03,33614.27,16168.76
+Madrid,Órdenes de Trabajo,En curso,1,12269.47,6851.47,5418.0

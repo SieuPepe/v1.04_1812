@@ -1,0 +1,12 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+TP-2025-0021,Trabajo 21 - Sin municipio,Pendiente,RED-MT-02,Trabajos Programados,TP,CT-005,FUGA,Girona,La Garrotxa,Sin municipio,8289.22,0.0,8289.22,2025-04-20,,2025-04,2025
+OT-2024-0049,Trabajo 49 - Pamplona,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,ATASCO,Navarra,Cuenca de Pamplona,Pamplona,34629.08,17150.07,17479.010000000002,2024-10-11,,2024-10,2024
+GF-2025-0095,Trabajo 95 - Vitoria-Gasteiz,Finalizado,RED-MT-01,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,22771.32,20906.04,1865.2799999999988,2025-09-13,2025-11-04,2025-09,2025
+OT-2025-0109,Trabajo 109 - Vitoria-Gasteiz,En curso,RED-AT-01,Órdenes de Trabajo,OT,CT-001,OTROS,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,34041.2,15656.18,18385.019999999997,2025-03-06,2025-05-02,2025-03,2025
+TP-2024-0110,Trabajo 110 - Barañain,En curso,RED-BT-01,Trabajos Programados,TP,CT-005,OTROS,Navarra,Cuenca de Pamplona,Barañain,13843.68,3499.03,10344.65,2024-10-07,2024-11-12,2024-10,2024
+GF-2024-0115,Trabajo 115 - Sin municipio,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-004,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,21445.64,0.0,21445.64,2024-01-17,,2024-01,2024
+OT-2025-0128,Trabajo 128 - Sin municipio,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-002,FUGA,Barcelona,Maresme,Sin municipio,24075.35,6179.31,17896.039999999997,2025-06-02,2025-07-20,2025-06,2025
+TP-2024-0134,Trabajo 134 - Sin municipio,En curso,RED-MT-02,Trabajos Programados,TP,CT-004,ATASCO,Bizkaia,Duranguesado,Sin municipio,15292.86,6345.82,8947.04,2024-04-05,2024-06-19,2024-04,2024
+GF-2025-0136,Trabajo 136 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-004,ATASCO,Barcelona,Maresme,Sin municipio,32233.84,11251.11,20982.73,2025-10-24,,2025-10,2025
+OT-2025-0165,Trabajo 165 - L'Hospitalet de Llobregat,Pendiente,RED-DIST-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Barcelona,Barcelonés,L'Hospitalet de Llobregat,9760.14,0.0,9760.14,2025-05-05,,2025-05,2025
+GF-2025-0195,Trabajo 195 - Sabadell,Finalizado,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Barcelona,Vallès Occidental,Sabadell,47582.16,41731.14,5851.020000000004,2025-03-01,2025-04-01,2025-03,2025

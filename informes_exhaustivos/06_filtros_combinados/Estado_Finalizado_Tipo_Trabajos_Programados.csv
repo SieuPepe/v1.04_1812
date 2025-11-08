@@ -1,0 +1,17 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+TP-2024-0009,Trabajo 9 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,44604.45,42288.95,2315.5,2024-05-09,2024-06-17,2024-05,2024
+TP-2025-0039,Trabajo 39 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-005,OTROS,Girona,La Selva,Sin municipio,24168.28,23540.74,627.5399999999972,2025-01-13,2025-03-07,2025-01,2025
+TP-2024-0040,Trabajo 40 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Barcelona,Maresme,Sin municipio,3391.62,3249.15,142.4699999999998,2024-04-24,2024-06-16,2024-04,2024
+TP-2025-0052,Trabajo 52 - Barcelona,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-004,ATASCO,Barcelona,Barcelonés,Barcelona,11870.12,11801.25,68.8700000000008,2025-09-13,2025-11-10,2025-09,2025
+TP-2024-0067,Trabajo 67 - Sin municipio,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-004,ATASCO,Girona,La Selva,Sin municipio,40876.97,41603.89,-726.9199999999983,2024-09-15,2024-11-12,2024-09,2024
+TP-2025-0094,Trabajo 94 - Sin municipio,Finalizado,RED-MT-02,Trabajos Programados,TP,CT-005,OTROS,Gipuzkoa,Tolosaldea,Sin municipio,12270.24,12327.08,-56.840000000000146,2025-04-28,2025-06-27,2025-04,2025
+TP-2025-0114,Trabajo 114 - Sin municipio,Finalizado,RED-MT-02,Trabajos Programados,TP,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,30182.22,29203.01,979.2100000000028,2025-03-27,2025-05-04,2025-03,2025
+TP-2025-0124,Trabajo 124 - Sin municipio,Finalizado,RED-AT-01,Trabajos Programados,TP,CT-004,FUGA,Gipuzkoa,Tolosaldea,Sin municipio,7533.02,7537.58,-4.559999999999491,2025-04-12,2025-04-25,2025-04,2025
+TP-2024-0133,Trabajo 133 - Sin municipio,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-004,ATASCO,Álava,Rioja Alavesa,Sin municipio,17083.87,15060.41,2023.4599999999991,2024-03-23,2024-04-30,2024-03,2024
+TP-2025-0143,Trabajo 143 - L'Hospitalet de Llobregat,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-001,FUGA,Barcelona,Barcelonés,L'Hospitalet de Llobregat,18278.29,16457.66,1820.630000000001,2025-06-27,2025-08-18,2025-06,2025
+TP-2024-0153,Trabajo 153 - Madrid,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-002,OTROS,Madrid,Área Metropolitana,Madrid,34694.54,34590.55,103.98999999999796,2024-08-19,2024-10-03,2024-08,2024
+TP-2024-0171,Trabajo 171 - Vitoria-Gasteiz,Finalizado,RED-BT-01,Trabajos Programados,TP,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,47709.41,41328.03,6381.380000000005,2024-02-07,2024-02-21,2024-02,2024
+TP-2025-0178,Trabajo 178 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-002,FUGA,Valencia,Horta Sud,Sin municipio,42716.41,40255.67,2460.7400000000052,2025-01-30,2025-03-21,2025-01,2025
+TP-2025-0180,Trabajo 180 - Terrassa,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-002,ATASCO,Barcelona,Vallès Occidental,Terrassa,18562.75,16880.3,1682.4500000000007,2025-09-17,2025-10-21,2025-09,2025
+TP-2024-0186,Trabajo 186 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-003,OTROS,Girona,La Garrotxa,Sin municipio,26547.91,26579.9,-31.9900000000016,2024-03-09,2024-05-02,2024-03,2024
+TP-2024-0193,Trabajo 193 - Sin municipio,Finalizado,RED-MT-01,Trabajos Programados,TP,CT-005,FUGA,Girona,La Selva,Sin municipio,24211.72,24367.36,-155.63999999999942,2024-05-24,2024-07-13,2024-05,2024

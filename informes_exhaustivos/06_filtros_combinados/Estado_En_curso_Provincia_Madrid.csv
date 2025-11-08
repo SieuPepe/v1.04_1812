@@ -1,0 +1,4 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0163,Trabajo 163 - Madrid,En curso,RED-AT-01,Garantía y Fallos,GF,CT-001,OTROS,Madrid,Área Metropolitana,Madrid,44885.18,21633.34,23251.84,2024-03-15,2024-05-03,2024-03,2024
+TP-2024-0194,Trabajo 194 - Madrid,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,49783.03,33614.27,16168.760000000002,2024-09-24,,2024-09,2024
+OT-2024-0197,Trabajo 197 - Madrid,En curso,RED-BT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Madrid,Área Metropolitana,Madrid,12269.47,6851.47,5417.999999999999,2024-10-23,2024-12-15,2024-10,2024

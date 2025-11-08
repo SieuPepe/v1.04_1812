@@ -1,0 +1,21 @@
+{
+  "seleccion_numero": 18,
+  "partidas_seleccionadas": [
+    "GF-2025-0076",
+    "GF-2024-0016",
+    "GF-2024-0034",
+    "TP-2025-0178",
+    "GF-2025-0081",
+    "OT-2024-0005",
+    "TP-2025-0093"
+  ],
+  "num_partidas": 7,
+  "total_presupuesto": 165525.13,
+  "total_certificado": 73739.44,
+  "total_pendiente": 91785.69,
+  "distribucion_estados": {
+    "Pendiente": 3,
+    "En curso": 0,
+    "Finalizado": 4
+  }
+}

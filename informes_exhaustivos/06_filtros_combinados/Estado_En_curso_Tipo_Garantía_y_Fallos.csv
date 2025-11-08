@@ -1,0 +1,19 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0026,Trabajo 26 - Valencia,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-002,ATASCO,Valencia,Horta Nord,Valencia,15684.17,10728.99,4955.18,2025-10-19,2025-11-29,2025-10,2025
+GF-2024-0029,Trabajo 29 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-004,OTROS,Gipuzkoa,Urola Kosta,Sin municipio,48219.3,14351.23,33868.07000000001,2024-08-21,,2024-08,2024
+GF-2025-0031,Trabajo 31 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Girona,La Garrotxa,Sin municipio,27007.5,11965.46,15042.04,2025-02-23,,2025-02,2025
+GF-2024-0036,Trabajo 36 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-003,ATASCO,Bizkaia,Lea-Artibai,Sin municipio,25901.42,7547.25,18354.17,2024-05-17,,2024-05,2024
+GF-2025-0037,Trabajo 37 - Vitoria-Gasteiz,En curso,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,7190.27,4448.33,2741.9400000000005,2025-04-01,2025-05-23,2025-04,2025
+GF-2025-0046,Trabajo 46 - Sin municipio,En curso,RED-AT-01,Garantía y Fallos,GF,CT-001,OTROS,Álava,Rioja Alavesa,Sin municipio,46874.32,27054.52,19819.8,2025-08-28,,2025-08,2025
+GF-2024-0058,Trabajo 58 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Valencia,Horta Sud,Sin municipio,9863.5,5591.66,4271.84,2024-08-29,,2024-08,2024
+GF-2024-0064,Trabajo 64 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-005,FUGA,Gipuzkoa,Urola Kosta,Sin municipio,47188.1,13491.8,33696.3,2024-10-05,2024-11-22,2024-10,2024
+GF-2024-0073,Trabajo 73 - Sin municipio,En curso,RED-BT-01,Garantía y Fallos,GF,CT-002,FUGA,Valencia,Horta Sud,Sin municipio,18978.78,11581.49,7397.289999999999,2024-09-11,,2024-09,2024
+GF-2024-0097,Trabajo 97 - Barañain,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-005,ATASCO,Navarra,Cuenca de Pamplona,Barañain,35650.87,7238.27,28412.600000000002,2024-08-09,2024-10-26,2024-08,2024
+GF-2024-0099,Trabajo 99 - Sin municipio,En curso,RED-BT-01,Garantía y Fallos,GF,CT-001,FUGA,Álava,Rioja Alavesa,Sin municipio,48983.67,23683.65,25300.019999999997,2024-03-01,2024-04-05,2024-03,2024
+GF-2025-0102,Trabajo 102 - Sin municipio,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-003,OTROS,Álava,Rioja Alavesa,Sin municipio,44724.24,12126.5,32597.739999999998,2025-04-19,2025-06-01,2025-04,2025
+GF-2025-0106,Trabajo 106 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-005,OTROS,Bizkaia,Lea-Artibai,Sin municipio,1823.29,528.05,1295.24,2025-05-23,2025-07-14,2025-05,2025
+GF-2024-0118,Trabajo 118 - Vitoria-Gasteiz,En curso,RED-MT-02,Garantía y Fallos,GF,CT-004,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,29628.33,18836.3,10792.030000000002,2024-02-01,,2024-02,2024
+GF-2025-0136,Trabajo 136 - Sin municipio,En curso,RED-MT-01,Garantía y Fallos,GF,CT-004,ATASCO,Barcelona,Maresme,Sin municipio,32233.84,11251.11,20982.73,2025-10-24,,2025-10,2025
+GF-2024-0163,Trabajo 163 - Madrid,En curso,RED-AT-01,Garantía y Fallos,GF,CT-001,OTROS,Madrid,Área Metropolitana,Madrid,44885.18,21633.34,23251.84,2024-03-15,2024-05-03,2024-03,2024
+GF-2024-0177,Trabajo 177 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-005,ATASCO,Gipuzkoa,Urola Kosta,Sin municipio,45637.1,28816.41,16820.69,2024-06-21,2024-08-06,2024-06,2024
+GF-2024-0199,Trabajo 199 - Vitoria-Gasteiz,En curso,RED-MT-01,Garantía y Fallos,GF,CT-001,FUGA,Álava,Cuadrilla de Vitoria,Vitoria-Gasteiz,39795.08,16108.35,23686.730000000003,2024-01-11,,2024-01,2024

@@ -1,0 +1,21 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2024-0007,Trabajo 7 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-001,OTROS,Valencia,Horta Sud,Sin municipio,47328.65,42560.46,4768.190000000002,2024-09-13,2024-10-24,2024-09,2024
+OT-2025-0013,Trabajo 13 - Valencia,Finalizado,RED-AT-01,Órdenes de Trabajo,OT,CT-002,ATASCO,Valencia,Horta Nord,Valencia,21651.95,20359.6,1292.3500000000022,2025-05-07,2025-07-02,2025-05,2025
+GF-2025-0017,Trabajo 17 - Sin municipio,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,25193.78,0.0,25193.78,2025-03-08,,2025-03,2025
+GF-2025-0026,Trabajo 26 - Valencia,En curso,RED-DIST-01,Garantía y Fallos,GF,CT-002,ATASCO,Valencia,Horta Nord,Valencia,15684.17,10728.99,4955.18,2025-10-19,2025-11-29,2025-10,2025
+TP-2024-0028,Trabajo 28 - Valencia,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,ATASCO,Valencia,Horta Nord,Valencia,9027.65,5331.57,3696.08,2024-04-10,2024-04-23,2024-04,2024
+OT-2025-0035,Trabajo 35 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-005,FUGA,Valencia,Horta Sud,Sin municipio,47533.88,41213.87,6320.009999999995,2025-05-06,2025-06-30,2025-05,2025
+TP-2024-0051,Trabajo 51 - Sin municipio,En curso,RED-MT-01,Trabajos Programados,TP,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,9936.01,4096.17,5839.84,2024-01-04,2024-02-15,2024-01,2024
+GF-2024-0058,Trabajo 58 - Sin municipio,En curso,RED-MT-02,Garantía y Fallos,GF,CT-001,ATASCO,Valencia,Horta Sud,Sin municipio,9863.5,5591.66,4271.84,2024-08-29,,2024-08,2024
+GF-2025-0071,Trabajo 71 - Sin municipio,Finalizado,RED-BT-01,Garantía y Fallos,GF,CT-003,OTROS,Valencia,Horta Sud,Sin municipio,28763.99,26433.18,2330.8100000000013,2025-10-17,2025-11-04,2025-10,2025
+GF-2024-0073,Trabajo 73 - Sin municipio,En curso,RED-BT-01,Garantía y Fallos,GF,CT-002,FUGA,Valencia,Horta Sud,Sin municipio,18978.78,11581.49,7397.289999999999,2024-09-11,,2024-09,2024
+TP-2025-0093,Trabajo 93 - Sin municipio,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-005,OTROS,Valencia,Horta Sud,Sin municipio,34099.91,0.0,34099.91,2025-08-07,,2025-08,2025
+OT-2025-0126,Trabajo 126 - Sin municipio,Finalizado,RED-MT-02,Órdenes de Trabajo,OT,CT-003,ATASCO,Valencia,Horta Sud,Sin municipio,43205.12,37851.8,5353.32,2025-09-23,2025-10-22,2025-09,2025
+TP-2025-0144,Trabajo 144 - Sin municipio,En curso,RED-BT-01,Trabajos Programados,TP,CT-004,OTROS,Valencia,Horta Sud,Sin municipio,26405.0,12485.34,13919.66,2025-09-16,,2025-09,2025
+TP-2024-0155,Trabajo 155 - Sin municipio,En curso,RED-AT-01,Trabajos Programados,TP,CT-001,FUGA,Valencia,Horta Sud,Sin municipio,14212.94,5040.69,9172.25,2024-05-15,2024-07-29,2024-05,2024
+TP-2024-0158,Trabajo 158 - Sin municipio,En curso,RED-DIST-01,Trabajos Programados,TP,CT-005,OTROS,Valencia,Horta Sud,Sin municipio,23541.82,5438.21,18103.61,2024-07-06,,2024-07,2024
+TP-2025-0178,Trabajo 178 - Sin municipio,Finalizado,RED-DIST-01,Trabajos Programados,TP,CT-002,FUGA,Valencia,Horta Sud,Sin municipio,42716.41,40255.67,2460.7400000000052,2025-01-30,2025-03-21,2025-01,2025
+GF-2025-0183,Trabajo 183 - Valencia,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-002,ATASCO,Valencia,Horta Nord,Valencia,17059.05,0.0,17059.05,2025-03-19,,2025-03,2025
+OT-2025-0192,Trabajo 192 - Sin municipio,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Valencia,Horta Sud,Sin municipio,10816.2,0.0,10816.2,2025-02-25,,2025-02,2025
+OT-2025-0196,Trabajo 196 - Valencia,Finalizado,RED-DIST-01,Órdenes de Trabajo,OT,CT-003,FUGA,Valencia,Horta Nord,Valencia,18657.38,18577.85,79.53000000000247,2025-02-24,2025-03-28,2025-02,2025
+TP-2025-0198,Trabajo 198 - Sin municipio,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-002,OTROS,Valencia,Horta Sud,Sin municipio,9240.84,0.0,9240.84,2025-03-09,,2025-03,2025

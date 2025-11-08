@@ -1,0 +1,14 @@
+codigo,descripcion,estado,red,tipo_trabajo,tipo_trabajo_codigo,cod_trabajo,tipo_rep,provincia,comarca,municipio,presupuesto,certificado,pendiente,fecha_inicio,fecha_fin,mes,año
+GF-2025-0001,Trabajo 1 - Madrid,Pendiente,RED-MT-02,Garantía y Fallos,GF,CT-005,OTROS,Madrid,Área Metropolitana,Madrid,9789.64,0.0,9789.64,2025-07-21,,2025-07,2025
+TP-2025-0023,Trabajo 23 - Madrid,Pendiente,RED-AT-01,Trabajos Programados,TP,CT-004,FUGA,Madrid,Área Metropolitana,Madrid,17723.15,0.0,17723.15,2025-07-23,,2025-07,2025
+GF-2024-0027,Trabajo 27 - Madrid,Pendiente,RED-DIST-01,Garantía y Fallos,GF,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,35587.95,0.0,35587.95,2024-10-08,,2024-10,2024
+TP-2024-0043,Trabajo 43 - Madrid,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-005,FUGA,Madrid,Área Metropolitana,Madrid,28299.02,0.0,28299.02,2024-02-26,,2024-02,2024
+TP-2025-0055,Trabajo 55 - Madrid,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-005,ATASCO,Madrid,Área Metropolitana,Madrid,41381.61,0.0,41381.61,2025-04-09,,2025-04,2025
+OT-2024-0062,Trabajo 62 - Madrid,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-005,ATASCO,Madrid,Área Metropolitana,Madrid,31378.88,0.0,31378.88,2024-08-21,,2024-08,2024
+OT-2025-0066,Trabajo 66 - Madrid,Pendiente,RED-MT-01,Órdenes de Trabajo,OT,CT-004,OTROS,Madrid,Área Metropolitana,Madrid,36859.34,0.0,36859.34,2025-02-26,,2025-02,2025
+GF-2024-0090,Trabajo 90 - Madrid,Pendiente,RED-MT-01,Garantía y Fallos,GF,CT-005,FUGA,Madrid,Área Metropolitana,Madrid,39197.86,0.0,39197.86,2024-01-29,,2024-01,2024
+GF-2024-0122,Trabajo 122 - Madrid,Pendiente,RED-BT-01,Garantía y Fallos,GF,CT-003,OTROS,Madrid,Área Metropolitana,Madrid,41424.54,0.0,41424.54,2024-01-20,,2024-01,2024
+OT-2025-0174,Trabajo 174 - Madrid,Pendiente,RED-AT-01,Órdenes de Trabajo,OT,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,3353.83,0.0,3353.83,2025-10-12,,2025-10,2025
+GF-2025-0179,Trabajo 179 - Madrid,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-004,ATASCO,Madrid,Área Metropolitana,Madrid,18426.33,0.0,18426.33,2025-07-18,,2025-07,2025
+TP-2024-0182,Trabajo 182 - Madrid,Pendiente,RED-DIST-01,Trabajos Programados,TP,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,46088.47,0.0,46088.47,2024-03-09,,2024-03,2024
+GF-2025-0189,Trabajo 189 - Madrid,Pendiente,RED-AT-01,Garantía y Fallos,GF,CT-001,FUGA,Madrid,Área Metropolitana,Madrid,27093.94,0.0,27093.94,2025-09-19,,2025-09,2025
