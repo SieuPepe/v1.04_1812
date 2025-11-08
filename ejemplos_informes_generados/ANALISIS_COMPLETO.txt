@@ -1,0 +1,103 @@
+================================================================================
+  ANÁLISIS EXHAUSTIVO DE INFORMES GENERADOS
+================================================================================
+
+Fecha: 2025-11-08 15:12:01
+Directorio: /home/user/v1.04_1812/ejemplos_informes_generados
+
+RESUMEN:
+  Total archivos: 20
+  - CSV: 14
+  - JSON: 6
+
+ARCHIVOS CSV:
+--------------------------------------------------------------------------------
+
+Listado_Completo_Partes.csv
+  Filas: 100
+  Columnas: 16
+  Tamaño: 26753 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_partidas/Selección_Aleatoria_1.csv
+  Filas: 9
+  Columnas: 16
+  Tamaño: 2505 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_partidas/Selección_Aleatoria_2.csv
+  Filas: 11
+  Columnas: 16
+  Tamaño: 2995 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_partidas/Selección_Aleatoria_3.csv
+  Filas: 5
+  Columnas: 16
+  Tamaño: 1480 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_partidas/Selección_Aleatoria_4.csv
+  Filas: 5
+  Columnas: 16
+  Tamaño: 1497 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_partidas/Selección_Aleatoria_5.csv
+  Filas: 7
+  Columnas: 16
+  Tamaño: 2061 bytes
+  Campos: codigo, descripcion, estado, red, tipo_trabajo, cod_trabajo, provincia, comarca, municipio, presupuesto, certificado, pendiente, fecha_inicio, fecha_fin, mes, año
+
+por_periodos_y_grupos/Informe_Por_Año.csv
+  Filas: 2
+  Columnas: 5
+  Tamaño: 147 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Comarca.csv
+  Filas: 13
+  Columnas: 5
+  Tamaño: 637 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Estado.csv
+  Filas: 3
+  Columnas: 5
+  Tamaño: 193 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Mes.csv
+  Filas: 20
+  Columnas: 5
+  Tamaño: 842 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Municipio.csv
+  Filas: 11
+  Columnas: 5
+  Tamaño: 513 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Provincia.csv
+  Filas: 8
+  Columnas: 5
+  Tamaño: 399 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Provincia_y_Estado.csv
+  Filas: 24
+  Columnas: 6
+  Tamaño: 1208 bytes
+  Campos: provincia, estado, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+por_periodos_y_grupos/Informe_Por_Tipo_Trabajo.csv
+  Filas: 3
+  Columnas: 5
+  Tamaño: 231 bytes
+  Campos: grupo, cantidad, total_presupuesto, total_certificado, total_pendiente
+
+
+================================================================================
+FIN DEL ANÁLISIS
+================================================================================

@@ -1,0 +1,184 @@
+{
+  "fecha_generacion": "2025-11-08T15:12:01.670299",
+  "total_partes": 100,
+  "importes_totales": {
+    "presupuesto": 2825263.36,
+    "certificado": 1361976.1,
+    "pendiente": 1463287.26,
+    "porcentaje_certificado": 48.21
+  },
+  "distribucion_estados": {
+    "Pendiente": {
+      "cantidad": 29,
+      "presupuesto": 845304.74
+    },
+    "En curso": {
+      "cantidad": 32,
+      "presupuesto": 980262.27
+    },
+    "Finalizado": {
+      "cantidad": 39,
+      "presupuesto": 999696.35
+    }
+  },
+  "distribucion_temporal": {
+    "por_año": {
+      "2025": {
+        "cantidad": 56,
+        "presupuesto": 1540727.51
+      },
+      "2024": {
+        "cantidad": 44,
+        "presupuesto": 1284535.85
+      }
+    },
+    "por_mes": {
+      "2025-09": {
+        "cantidad": 9,
+        "presupuesto": 259542.81
+      },
+      "2024-04": {
+        "cantidad": 6,
+        "presupuesto": 228146.29
+      },
+      "2024-06": {
+        "cantidad": 3,
+        "presupuesto": 89780.7
+      },
+      "2025-10": {
+        "cantidad": 6,
+        "presupuesto": 196242.87
+      },
+      "2025-07": {
+        "cantidad": 6,
+        "presupuesto": 132973.85
+      },
+      "2024-05": {
+        "cantidad": 6,
+        "presupuesto": 135627.86
+      },
+      "2024-08": {
+        "cantidad": 3,
+        "presupuesto": 84481.27
+      },
+      "2025-02": {
+        "cantidad": 6,
+        "presupuesto": 181577.88
+      },
+      "2025-06": {
+        "cantidad": 8,
+        "presupuesto": 209850.06
+      },
+      "2024-02": {
+        "cantidad": 4,
+        "presupuesto": 96194.14
+      },
+      "2024-10": {
+        "cantidad": 4,
+        "presupuesto": 104242.32
+      },
+      "2025-01": {
+        "cantidad": 3,
+        "presupuesto": 82207.2
+      },
+      "2024-01": {
+        "cantidad": 7,
+        "presupuesto": 226250.31
+      },
+      "2025-03": {
+        "cantidad": 8,
+        "presupuesto": 188100.15
+      },
+      "2025-05": {
+        "cantidad": 4,
+        "presupuesto": 99940.78
+      },
+      "2025-04": {
+        "cantidad": 3,
+        "presupuesto": 99743.46
+      },
+      "2024-03": {
+        "cantidad": 3,
+        "presupuesto": 57958.81
+      },
+      "2024-07": {
+        "cantidad": 4,
+        "presupuesto": 120208.53
+      },
+      "2024-09": {
+        "cantidad": 4,
+        "presupuesto": 141645.62
+      },
+      "2025-08": {
+        "cantidad": 3,
+        "presupuesto": 90548.45
+      }
+    }
+  },
+  "distribucion_geografica": {
+    "por_provincia": {
+      "Barcelona": {
+        "cantidad": 14,
+        "presupuesto": 386184.37
+      },
+      "Bizkaia": {
+        "cantidad": 15,
+        "presupuesto": 475774.3
+      },
+      "Valencia": {
+        "cantidad": 8,
+        "presupuesto": 226855.62
+      },
+      "Gipuzkoa": {
+        "cantidad": 10,
+        "presupuesto": 285966.1
+      },
+      "Navarra": {
+        "cantidad": 14,
+        "presupuesto": 319920.15
+      },
+      "Álava": {
+        "cantidad": 11,
+        "presupuesto": 285854.49
+      },
+      "Girona": {
+        "cantidad": 14,
+        "presupuesto": 450153.98
+      },
+      "Madrid": {
+        "cantidad": 14,
+        "presupuesto": 394554.35
+      }
+    },
+    "por_comarca": {},
+    "por_municipio": {}
+  },
+  "top_provincias": [
+    {
+      "nombre": "Bizkaia",
+      "cantidad": 15,
+      "presupuesto": 475774.3
+    },
+    {
+      "nombre": "Girona",
+      "cantidad": 14,
+      "presupuesto": 450153.98
+    },
+    {
+      "nombre": "Madrid",
+      "cantidad": 14,
+      "presupuesto": 394554.35
+    },
+    {
+      "nombre": "Barcelona",
+      "cantidad": 14,
+      "presupuesto": 386184.37
+    },
+    {
+      "nombre": "Navarra",
+      "cantidad": 14,
+      "presupuesto": 319920.15
+    }
+  ],
+  "top_tipos_trabajo": []
+}
