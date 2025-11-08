@@ -19,7 +19,14 @@ class InformesConfigStorage:
             storage_dir: Directorio donde se guardarán las configuraciones
         """
         self.storage_dir = storage_dir
+        self.auto_save_dir = os.path.join(storage_dir, "auto_save")
         self._ensure_storage_dir()
+        self._ensure_auto_save_dir()
+
+    def _ensure_auto_save_dir(self):
+        """Crea el directorio de auto-guardado si no existe"""
+        if not os.path.exists(self.auto_save_dir):
+            os.makedirs(self.auto_save_dir)
 
     def _ensure_storage_dir(self):
         """Crea el directorio de almacenamiento si no existe"""
@@ -273,3 +280,72 @@ class InformesConfigStorage:
             nombre_limpio += '.json'
 
         return nombre_limpio
+
+    def auto_guardar_informe(self, informe_nombre, filtros, ordenaciones, campos_seleccionados, agrupaciones=None, agregaciones=None, modo_visualizacion="detalle"):
+        """
+        Guarda automáticamente la configuración actual de un informe
+        Esta configuración se carga automáticamente al seleccionar el informe
+
+        Args:
+            informe_nombre: Nombre del informe (ej: "Listado de Partes")
+            filtros: Lista de filtros aplicados
+            ordenaciones: Lista de ordenaciones aplicadas
+            campos_seleccionados: Lista de campos seleccionados
+            agrupaciones: Lista de agrupaciones (opcional)
+            agregaciones: Lista de agregaciones (opcional)
+            modo_visualizacion: Modo de visualización ("detalle" o "resumen")
+
+        Returns:
+            bool: True si se guardó correctamente
+        """
+        try:
+            configuracion = {
+                "informe_nombre": informe_nombre,
+                "filtros": filtros,
+                "ordenaciones": ordenaciones,
+                "campos_seleccionados": campos_seleccionados,
+                "agrupaciones": agrupaciones or [],
+                "agregaciones": agregaciones or [],
+                "modo_visualizacion": modo_visualizacion,
+                "fecha_modificacion": datetime.now().isoformat()
+            }
+
+            # Generar nombre de archivo basado en el nombre del informe
+            filename = self._generar_nombre_archivo(f"autosave_{informe_nombre}")
+            filepath = os.path.join(self.auto_save_dir, filename)
+
+            # Guardar como JSON
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(configuracion, f, indent=2, ensure_ascii=False)
+
+            return True
+
+        except Exception as e:
+            print(f"⚠ Error al auto-guardar configuración de '{informe_nombre}': {e}")
+            return False
+
+    def auto_cargar_informe(self, informe_nombre):
+        """
+        Carga automáticamente la última configuración guardada de un informe
+
+        Args:
+            informe_nombre: Nombre del informe
+
+        Returns:
+            dict: Configuración cargada o None si no existe
+        """
+        try:
+            filename = self._generar_nombre_archivo(f"autosave_{informe_nombre}")
+            filepath = os.path.join(self.auto_save_dir, filename)
+
+            if not os.path.exists(filepath):
+                return None
+
+            with open(filepath, 'r', encoding='utf-8') as f:
+                configuracion = json.load(f)
+
+            return configuracion
+
+        except Exception as e:
+            print(f"⚠ Error al auto-cargar configuración de '{informe_nombre}': {e}")
+            return None

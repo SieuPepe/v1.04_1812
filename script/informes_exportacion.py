@@ -27,16 +27,45 @@ class InformesExportador:
         self._buscar_logos()
 
     def _buscar_logos(self):
-        """Busca los logos en la carpeta source"""
+        """Busca los logos en la carpeta source con búsqueda flexible"""
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         source_dir = os.path.join(base_dir, "source")
 
         if os.path.exists(source_dir):
-            for file in os.listdir(source_dir):
-                if "redes" in file.lower() and file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    self.logo_redes_path = os.path.join(source_dir, file)
-                elif "urbide" in file.lower() and file.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    self.logo_urbide_path = os.path.join(source_dir, file)
+            archivos = os.listdir(source_dir)
+
+            # Buscar logos con diferentes patrones
+            patrones_izquierdo = ["redes", "artanda", "logo"]
+            patrones_derecho = ["urbide", "artanda2"]
+
+            for file in archivos:
+                file_lower = file.lower()
+                if not file_lower.endswith(('.png', '.jpg', '.jpeg')):
+                    continue
+
+                # Logo izquierdo
+                if not self.logo_redes_path:
+                    for patron in patrones_izquierdo:
+                        if patron in file_lower:
+                            self.logo_redes_path = os.path.join(source_dir, file)
+                            print(f"✓ Logo izquierdo encontrado: {file}")
+                            break
+
+                # Logo derecho
+                if not self.logo_urbide_path:
+                    for patron in patrones_derecho:
+                        if patron in file_lower:
+                            self.logo_urbide_path = os.path.join(source_dir, file)
+                            print(f"✓ Logo derecho encontrado: {file}")
+                            break
+
+            # Si no se encuentra el logo izquierdo, usar el primero disponible
+            if not self.logo_redes_path:
+                for file in archivos:
+                    if file.lower().endswith(('.png', '.jpg', '.jpeg')) and 'logo' in file.lower():
+                        self.logo_redes_path = os.path.join(source_dir, file)
+                        print(f"⚠ Usando logo por defecto (izquierdo): {file}")
+                        break
 
     def exportar_a_excel(
         self,
@@ -135,7 +164,9 @@ class InformesExportador:
                 'font_size': 8,
                 'font_name': 'Tahoma',
                 'num_format': '#,##0.00 €',
-                'border': 1
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
             })
 
             formato_subtotal = workbook.add_format({
@@ -144,7 +175,19 @@ class InformesExportador:
                 'font_name': 'Tahoma',
                 'bg_color': '#E7E6E6',
                 'num_format': '#,##0.00 €',
-                'border': 1
+                'border': 1,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_subtotal_texto = workbook.add_format({
+                'bold': True,
+                'font_size': 9,
+                'font_name': 'Tahoma',
+                'bg_color': '#E7E6E6',
+                'border': 1,
+                'align': 'left',  # Texto alineado a la izquierda
+                'valign': 'vcenter'
             })
 
             formato_total = workbook.add_format({
@@ -153,7 +196,19 @@ class InformesExportador:
                 'font_name': 'Tahoma',
                 'bg_color': '#C5D9F1',
                 'num_format': '#,##0.00 €',
-                'border': 2
+                'border': 2,
+                'align': 'right',  # Alineación a la derecha
+                'valign': 'vcenter'
+            })
+
+            formato_total_texto = workbook.add_format({
+                'bold': True,
+                'font_size': 10,
+                'font_name': 'Tahoma',
+                'bg_color': '#C5D9F1',
+                'border': 2,
+                'align': 'left',  # Texto alineado a la izquierda
+                'valign': 'vcenter'
             })
 
             formato_fecha = workbook.add_format({
@@ -203,19 +258,27 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_subtotal,
+                    formato_subtotal_texto,
                     resultado_agrupacion.get('modo', 'detalle')
                 )
 
-                # Totales generales
+                # Totales generales - ALINEADOS CON LAS COLUMNAS CORRECTAS
                 if resultado_agrupacion.get('totales_generales'):
                     row += 1
-                    worksheet.write(row, 0, "═══ TOTAL GENERAL ═══", formato_total)
+                    worksheet.write(row, 0, "═══ TOTAL GENERAL ═══", formato_total_texto)
 
                     totales = resultado_agrupacion['totales_generales']
-                    col_offset = 1
                     for key, valor in totales.items():
-                        worksheet.write(row, col_offset, valor, formato_total)
-                        col_offset += 1
+                        # Extraer el nombre del campo del key
+                        campo_nombre = key.split('(')[1].rstrip(')')
+
+                        # Buscar la columna correspondiente
+                        if campo_nombre in columnas:
+                            col_idx = columnas.index(campo_nombre)
+                            worksheet.write(row, col_idx, valor, formato_total)
+                        elif campo_nombre == '*':
+                            # COUNT(*) se escribe en la segunda columna
+                            worksheet.write(row, 1, valor, formato_total)
 
             else:
                 # Exportar sin agrupaciones (tabla simple)
@@ -261,6 +324,7 @@ class InformesExportador:
         formato_datos,
         formato_moneda,
         formato_subtotal,
+        formato_subtotal_texto,
         modo: str = 'detalle'
     ) -> int:
         """Exporta grupos jerárquicos a Excel (recursivo)"""
@@ -299,6 +363,7 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_subtotal,
+                    formato_subtotal_texto,
                     modo
                 )
             elif modo == 'detalle':
@@ -316,15 +381,27 @@ class InformesExportador:
                             worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                     row += 1
 
-            # Subtotales del grupo
+            # Subtotales del grupo - ALINEADOS CON LAS COLUMNAS CORRECTAS
             if subtotales:
                 indent_subtotal = "    " * (nivel + 1)
-                worksheet.write(row, 0, f"{indent_subtotal}▸ Subtotal", formato_subtotal)
 
-                col_offset = 1
+                # Escribir "Subtotal" en la primera columna (con formato de texto)
+                worksheet.write(row, 0, f"{indent_subtotal}▸ Subtotal", formato_subtotal_texto)
+
+                # Mapear subtotales a las columnas correctas
                 for key, valor in subtotales.items():
-                    worksheet.write(row, col_offset, valor, formato_subtotal)
-                    col_offset += 1
+                    # Extraer el nombre del campo del key (ej: "SUM(presupuesto)" -> "presupuesto")
+                    # El formato es "FUNCION(campo)" o "COUNT(*)"
+                    campo_nombre = key.split('(')[1].rstrip(')')
+
+                    # Buscar la columna correspondiente
+                    if campo_nombre in columnas:
+                        col_idx = columnas.index(campo_nombre)
+                        worksheet.write(row, col_idx, valor, formato_subtotal)
+                    elif campo_nombre == '*':
+                        # COUNT(*) se escribe en la segunda columna
+                        worksheet.write(row, 1, valor, formato_subtotal)
+
                 row += 1
 
             row += 1  # Espacio entre grupos

@@ -201,7 +201,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 self.tree.insert(cat_id, "end", text=f"  {informe}", tags=('custom_font',))
 
     def _on_tree_select(self, event):
-        """Maneja la selección en el TreeView"""
+        """Maneja la selección en el TreeView con auto-guardado de configuración"""
         selection = self.tree.selection()
         if selection:
             item = selection[0]
@@ -211,10 +211,16 @@ class InformesFrame(customtkinter.CTkFrame):
             parent = self.tree.parent(item)
 
             if parent:  # Es un informe
+                nuevo_informe = text.strip()
+
+                # AUTO-GUARDAR: Guardar configuración del informe anterior antes de cambiar
+                if hasattr(self, 'informe_seleccionado') and self.informe_seleccionado and self.informe_seleccionado != nuevo_informe:
+                    self._auto_guardar_configuracion_actual()
+
                 # Obtener categoría padre
                 parent_text = self.tree.item(parent, "text")
                 self.categoria_seleccionada = parent_text
-                self.informe_seleccionado = text.strip()
+                self.informe_seleccionado = nuevo_informe
 
                 # Cargar definición del informe (si existe)
                 self.definicion_actual = INFORMES_DEFINICIONES.get(self.informe_seleccionado)
@@ -239,6 +245,9 @@ class InformesFrame(customtkinter.CTkFrame):
 
                 # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
+
+                # AUTO-CARGAR: Cargar configuración guardada para este informe
+                self._auto_cargar_configuracion()
 
     def _select_initial_report(self, informe_name):
         """Selecciona un informe específico en el tree"""
@@ -3205,3 +3214,266 @@ class InformesFrame(customtkinter.CTkFrame):
         orden = clasif_data.get('orden', 'Ascendente')
         if clasif_obj['orden_combo']:
             clasif_obj['orden_combo'].set(orden)
+
+    def _auto_guardar_configuracion_actual(self):
+        """Guarda automáticamente la configuración actual del informe seleccionado"""
+        if not self.informe_seleccionado or not self.definicion_actual:
+            return
+
+        try:
+            # Recopilar configuración actual
+            filtros_data = []
+            for filtro_obj in self.filtros:
+                filtro_dict = self._extraer_filtro_config(filtro_obj)
+                if filtro_dict:
+                    filtros_data.append(filtro_dict)
+
+            ordenaciones_data = []
+            for orden_obj in self.ordenaciones:
+                orden_dict = self._extraer_ordenacion_config(orden_obj)
+                if orden_dict:
+                    ordenaciones_data.append(orden_dict)
+
+            campos_selec = [k for k, v in self.campos_seleccionados.items() if v.get()]
+
+            agrupaciones_data = [agrup.get('campo') for agrup in self.agrupaciones if agrup.get('campo')]
+
+            agregaciones_data = []
+            for agreg_obj in self.agregaciones:
+                agreg_dict = self._extraer_agregacion_config(agreg_obj)
+                if agreg_dict:
+                    agregaciones_data.append(agreg_dict)
+
+            modo = "detalle" if self.modo_selector.get() == "Detalle" else "resumen"
+
+            # Guardar
+            self.storage.auto_guardar_informe(
+                self.informe_seleccionado,
+                filtros_data,
+                ordenaciones_data,
+                campos_selec,
+                agrupaciones_data,
+                agregaciones_data,
+                modo
+            )
+            print(f"✓ Configuración guardada automáticamente para '{self.informe_seleccionado}'")
+
+        except Exception as e:
+            print(f"⚠ Error al auto-guardar configuración: {e}")
+
+    def _auto_cargar_configuracion(self):
+        """Carga automáticamente la configuración guardada del informe seleccionado"""
+        if not self.informe_seleccionado or not self.definicion_actual:
+            return
+
+        try:
+            # Intentar cargar configuración auto-guardada
+            config = self.storage.auto_cargar_informe(self.informe_seleccionado)
+
+            if not config:
+                print(f"ℹ No hay configuración guardada para '{self.informe_seleccionado}'")
+                return
+
+            print(f"✓ Cargando configuración guardada para '{self.informe_seleccionado}'...")
+
+            # Cargar filtros
+            filtros_config = config.get('filtros', [])
+            for filtro_data in filtros_config:
+                self._add_filtro()
+                if len(self.filtros) > 0:
+                    self._configurar_filtro(self.filtros[-1], filtro_data)
+
+            # Cargar ordenaciones
+            ordenaciones_config = config.get('ordenaciones', [])
+            for orden_data in ordenaciones_config:
+                self._add_ordenacion()
+                if len(self.ordenaciones) > 0:
+                    self._configurar_ordenacion(self.ordenaciones[-1], orden_data)
+
+            # Cargar campos seleccionados
+            campos_config = config.get('campos_seleccionados', [])
+            for campo_key, var in self.campos_seleccionados.items():
+                var.set(campo_key in campos_config)
+
+            # Cargar agrupaciones
+            agrupaciones_config = config.get('agrupaciones', [])
+            for campo_key in agrupaciones_config:
+                self._add_agrupacion()
+                if len(self.agrupaciones) > 0:
+                    agrup_obj = self.agrupaciones[-1]
+                    # Buscar el nombre del campo
+                    campos_def = self.definicion_actual.get('campos', {})
+                    if campo_key in campos_def:
+                        campo_nombre = campos_def[campo_key]['nombre']
+                        if agrup_obj.get('campo_combo'):
+                            agrup_obj['campo_combo'].set(campo_nombre)
+                            self._on_agrupacion_campo_change(agrup_obj, campo_nombre)
+
+            # Cargar agregaciones
+            agregaciones_config = config.get('agregaciones', [])
+            for agreg_data in agregaciones_config:
+                self._add_agregacion()
+                if len(self.agregaciones) > 0:
+                    self._configurar_agregacion(self.agregaciones[-1], agreg_data)
+
+            # Cargar modo de visualización
+            modo = config.get('modo_visualizacion', 'detalle')
+            self.modo_selector.set("Detalle" if modo == "detalle" else "Resumen")
+            self.modo_visualizacion = modo
+
+            print(f"✓ Configuración cargada correctamente")
+
+        except Exception as e:
+            print(f"⚠ Error al auto-cargar configuración: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _extraer_filtro_config(self, filtro_obj):
+        """Extrae la configuración de un filtro para guardar"""
+        try:
+            campo_nombre = filtro_obj['campo_combo'].get()
+            if not campo_nombre or campo_nombre == "Seleccionar...":
+                return None
+
+            # Buscar el key del campo
+            campos_def = self.definicion_actual.get('campos', {})
+            campo_key = None
+            for key, campo in campos_def.items():
+                if campo['nombre'] == campo_nombre:
+                    campo_key = key
+                    break
+
+            if not campo_key:
+                return None
+
+            operador = filtro_obj['operador_combo'].get()
+            if not operador or operador == "Seleccionar...":
+                return None
+
+            # Extraer valor
+            valor = self._extraer_valor_filtro(filtro_obj, operador)
+            if valor is None:
+                return None
+
+            return {
+                'campo': campo_key,
+                'operador': operador,
+                'valor': valor,
+                'logica': filtro_obj['logica_combo'].get() if filtro_obj['logica_combo'] else 'Y'
+            }
+
+        except Exception as e:
+            print(f"Error al extraer filtro: {e}")
+            return None
+
+    def _extraer_ordenacion_config(self, orden_obj):
+        """Extrae la configuración de una ordenación para guardar"""
+        try:
+            campo_nombre = orden_obj['var_combo'].get()
+            if not campo_nombre or campo_nombre == "Seleccionar...":
+                return None
+
+            # Buscar el key del campo
+            campos_def = self.definicion_actual.get('campos', {})
+            campo_key = None
+            for key, campo in campos_def.items():
+                if campo['nombre'] == campo_nombre:
+                    campo_key = key
+                    break
+
+            if not campo_key:
+                return None
+
+            return {
+                'campo': campo_key,
+                'orden': orden_obj['orden_combo'].get() if orden_obj['orden_combo'] else 'Ascendente'
+            }
+
+        except Exception as e:
+            print(f"Error al extraer ordenación: {e}")
+            return None
+
+    def _extraer_agregacion_config(self, agreg_obj):
+        """Extrae la configuración de una agregación para guardar"""
+        try:
+            funcion = agreg_obj['funcion_combo'].get()
+            if not funcion or funcion == "Seleccionar...":
+                return None
+
+            campo_nombre = agreg_obj['campo_combo'].get()
+            if not campo_nombre or campo_nombre == "Seleccionar...":
+                return None
+
+            # Buscar el key del campo
+            campos_def = self.definicion_actual.get('campos', {})
+            campo_key = None
+            for key, campo in campos_def.items():
+                if campo['nombre'] == campo_nombre:
+                    campo_key = key
+                    break
+
+            if not campo_key:
+                return None
+
+            return {
+                'funcion': funcion,
+                'campo': campo_key
+            }
+
+        except Exception as e:
+            print(f"Error al extraer agregación: {e}")
+            return None
+
+    def _extraer_valor_filtro(self, filtro_obj, operador):
+        """Extrae el valor de un filtro según su tipo"""
+        try:
+            if operador == "Entre":
+                widget1 = filtro_obj.get('valor_widget')
+                widget2 = filtro_obj.get('valor_widget2')
+
+                if not widget1 or not widget2:
+                    return None
+
+                if isinstance(widget1, DateEntry):
+                    fecha1 = widget1.get_date().strftime('%Y-%m-%d')
+                    fecha2 = widget2.get_date().strftime('%Y-%m-%d')
+                    return (fecha1, fecha2)
+                else:
+                    return (widget1.get(), widget2.get())
+
+            else:
+                widget = filtro_obj.get('valor_widget')
+                if not widget:
+                    return None
+
+                if isinstance(widget, customtkinter.CTkComboBox):
+                    return widget.get()
+                elif isinstance(widget, DateEntry):
+                    return widget.get_date().strftime('%Y-%m-%d')
+                elif isinstance(widget, customtkinter.CTkEntry):
+                    return widget.get()
+
+                return None
+
+        except Exception as e:
+            print(f"Error al extraer valor: {e}")
+            return None
+
+    def _configurar_agregacion(self, agreg_obj, agreg_data):
+        """Configura una agregación con los datos guardados"""
+        if not self.definicion_actual:
+            return
+
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # 1. Configurar función
+        funcion = agreg_data.get('funcion')
+        if funcion and agreg_obj.get('funcion_combo'):
+            agreg_obj['funcion_combo'].set(funcion)
+
+        # 2. Configurar campo
+        campo_key = agreg_data.get('campo')
+        if campo_key and campo_key in campos_def:
+            campo_nombre = campos_def[campo_key]['nombre']
+            if agreg_obj.get('campo_combo'):
+                agreg_obj['campo_combo'].set(campo_nombre)
