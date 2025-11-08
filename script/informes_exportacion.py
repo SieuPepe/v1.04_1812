@@ -863,32 +863,61 @@ class InformesExportador:
             soffice_cmd = None
             for path in soffice_paths:
                 try:
-                    # Probar si el comando existe
-                    result = subprocess.run([path, '--version'],
-                                           capture_output=True,
-                                           timeout=5,
-                                           text=True)
-                    if result.returncode == 0:
+                    # Primero verificar si el archivo existe (más rápido y confiable en Windows)
+                    if os.path.exists(path):
+                        print(f"✓ LibreOffice encontrado en: {path}")
+                        # Intentar obtener la versión (opcional, no crítico)
+                        try:
+                            result = subprocess.run([path, '--version'],
+                                                   capture_output=True,
+                                                   timeout=5,
+                                                   text=True)
+                            if result.returncode == 0:
+                                version = result.stdout.strip().split('\n')[0] if result.stdout else ''
+                                print(f"  Versión: {version}")
+                        except:
+                            print(f"  (No se pudo obtener la versión, pero el ejecutable existe)")
+
                         soffice_cmd = path
-                        version = result.stdout.strip().split('\n')[0] if result.stdout else ''
-                        print(f"✓ LibreOffice encontrado: {path}")
-                        print(f"  Versión: {version}")
                         break
-                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError):
+                    # Si no existe como archivo, probar ejecutarlo (para comandos en PATH)
+                    elif path in ['soffice', 'libreoffice', '/snap/bin/libreoffice']:
+                        result = subprocess.run([path, '--version'],
+                                               capture_output=True,
+                                               timeout=5,
+                                               text=True)
+                        if result.returncode == 0:
+                            soffice_cmd = path
+                            version = result.stdout.strip().split('\n')[0] if result.stdout else ''
+                            print(f"✓ LibreOffice encontrado: {path}")
+                            print(f"  Versión: {version}")
+                            break
+                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError) as e:
+                    # Debug: mostrar qué rutas se probaron y fallaron
+                    if '--version' in str(e) or 'soffice' in path:
+                        print(f"  ✗ No encontrado en: {path}")
                     continue
 
             if soffice_cmd:
                 try:
-                    print(f"Convirtiendo a PDF: {word_path} -> {filepath}")
+                    print(f"\n📄 Convirtiendo Word a PDF...")
+                    print(f"   Origen: {word_path}")
+                    print(f"   Destino: {filepath}")
 
                     # Ejecutar conversión
-                    subprocess.run([
+                    result = subprocess.run([
                         soffice_cmd,
                         '--headless',
                         '--convert-to', 'pdf',
                         '--outdir', os.path.dirname(filepath) if os.path.dirname(filepath) else '.',
                         os.path.abspath(word_path)
-                    ], check=True, capture_output=True, timeout=120)
+                    ], capture_output=True, timeout=120, text=True)
+
+                    # Mostrar salida de LibreOffice para debug
+                    if result.stdout:
+                        print(f"   Salida: {result.stdout}")
+                    if result.stderr:
+                        print(f"   Advertencias: {result.stderr}")
 
                     # Verificar si se generó el PDF
                     generated_pdf = os.path.splitext(word_path)[0] + '.pdf'
@@ -908,23 +937,32 @@ class InformesExportador:
 
                         return True
                     else:
-                        print(f"⚠ El PDF no se generó. Archivo Word disponible: {word_path}")
+                        print(f"⚠ El PDF no se generó en la ubicación esperada: {generated_pdf}")
+                        print(f"   Código de salida: {result.returncode}")
+                        print(f"   Archivo Word disponible: {word_path}")
                         return True
 
                 except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
                     print(f"⚠ Error al convertir a PDF: {e}")
                     if hasattr(e, 'stderr') and e.stderr:
-                        print(f"  Error: {e.stderr}")
-                    print(f"  Se ha generado el archivo Word: {word_path}")
+                        print(f"   Detalles del error: {e.stderr}")
+                    if hasattr(e, 'stdout') and e.stdout:
+                        print(f"   Salida estándar: {e.stdout}")
+                    print(f"   Se ha generado el archivo Word: {word_path}")
                     return True
             else:
                 # Si LibreOffice no está disponible, dejar el archivo Word
-                print("⚠ LibreOffice no está instalado o no se puede encontrar.")
-                print("  Para generar PDFs, instale LibreOffice desde:")
-                print("  - Windows/Mac: https://www.libreoffice.org/download/")
-                print("  - Linux: sudo apt install libreoffice (Debian/Ubuntu)")
-                print(f"  Archivo Word generado: {word_path}")
-                print("  Puede convertirlo manualmente a PDF abriendo el archivo en Word o LibreOffice.")
+                print("\n⚠ LibreOffice no está instalado o no se puede encontrar.")
+                print("   Rutas verificadas:")
+                for path in soffice_paths[:5]:  # Mostrar solo las primeras 5 rutas
+                    exists_mark = "✓" if os.path.exists(path) else "✗"
+                    print(f"     {exists_mark} {path}")
+                print("   ...")
+                print("\n   Para generar PDFs, instale LibreOffice desde:")
+                print("   - Windows/Mac: https://www.libreoffice.org/download/")
+                print("   - Linux: sudo apt install libreoffice (Debian/Ubuntu)")
+                print(f"\n   Archivo Word generado: {word_path}")
+                print("   Puede convertirlo manualmente a PDF abriendo el archivo en Word o LibreOffice.")
                 return True
 
         except Exception as e:

@@ -243,9 +243,11 @@ class InformesFrame(customtkinter.CTkFrame):
                         text_color="gray"
                     )
 
-                # Limpiar filtros y ordenaciones anteriores
+                # Limpiar TODAS las configuraciones anteriores (filtros, ordenaciones, agrupaciones, agregaciones)
                 self._clear_all_filtros()
                 self._clear_all_ordenaciones()
+                self._clear_all_agrupaciones()
+                self._clear_all_agregaciones()
 
                 # Actualizar campos disponibles según definición del informe
                 self._update_campos_disponibles()
@@ -1415,6 +1417,20 @@ class InformesFrame(customtkinter.CTkFrame):
             if clasif['container'].winfo_exists():
                 clasif['container'].destroy()
         self.ordenaciones = []
+
+    def _clear_all_agrupaciones(self):
+        """Elimina todas las agrupaciones"""
+        for agrup in self.agrupaciones:
+            if agrup['container'].winfo_exists():
+                agrup['container'].destroy()
+        self.agrupaciones = []
+
+    def _clear_all_agregaciones(self):
+        """Elimina todas las agregaciones"""
+        for agreg in self.agregaciones:
+            if agreg['container'].winfo_exists():
+                agreg['container'].destroy()
+        self.agregaciones = []
 
     def _update_campos_disponibles(self):
         """Actualiza los campos disponibles según el informe seleccionado"""
