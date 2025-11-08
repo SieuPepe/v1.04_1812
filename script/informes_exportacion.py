@@ -849,11 +849,13 @@ class InformesExportador:
                 '/usr/bin/libreoffice',
                 '/usr/local/bin/soffice',
                 '/usr/local/bin/libreoffice',
-                # Windows rutas comunes
+                # Windows rutas comunes (orden de búsqueda prioritario)
                 r'C:\Program Files\LibreOffice\program\soffice.exe',
                 r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
                 r'C:\Program Files\LibreOffice 7\program\soffice.exe',
                 r'C:\Program Files\LibreOffice 24\program\soffice.exe',
+                r'C:\Program Files\LibreOffice 6\program\soffice.exe',
+                r'C:\Program Files (x86)\LibreOffice 6\program\soffice.exe',
                 # Snap en Linux
                 '/snap/bin/libreoffice',
             ]

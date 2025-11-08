@@ -3325,9 +3325,19 @@ class InformesFrame(customtkinter.CTkFrame):
             for campo_key, var in self.campos_seleccionados.items():
                 var.set(campo_key in campos_config)
 
-            # Cargar agrupaciones
+            # Cargar agrupaciones - VALIDACIÓN: Respetar máximo de niveles del nuevo informe
             agrupaciones_config = config.get('agrupaciones', [])
-            for campo_key in agrupaciones_config:
+
+            # Obtener máximo de niveles permitidos para este informe
+            agrup_def = self.definicion_actual.get('agrupaciones', {})
+            max_niveles = agrup_def.get('max_niveles', 3)
+
+            # Solo cargar hasta el máximo de niveles permitidos
+            for idx, campo_key in enumerate(agrupaciones_config):
+                if idx >= max_niveles:
+                    print(f"⚠ Advertencia: Se omiten niveles de agrupación adicionales (máximo permitido: {max_niveles})")
+                    break
+
                 self._add_agrupacion()
                 if len(self.agrupaciones) > 0:
                     agrup_obj = self.agrupaciones[-1]
