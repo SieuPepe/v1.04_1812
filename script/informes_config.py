@@ -247,6 +247,12 @@ INFORMES_DEFINICIONES = {
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_tipo_trabajo"
             },
+            "codigo_trabajo": {
+                "campo": "codigo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_codigo_trabajo"
+            },
             "provincia": {
                 "campo": "provincia",
                 "tipo": "select_bd",
