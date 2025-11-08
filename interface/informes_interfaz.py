@@ -54,6 +54,7 @@ class InformesFrame(customtkinter.CTkFrame):
         self.ordenaciones = []
         self.filtros = []
         self.campos_seleccionados = {}
+        self.campos_orden = []  # Lista ordenada de campos (keys) para mantener el orden personalizado
         self.agrupaciones = []  # Lista de campos por los que agrupar
         self.agregaciones = []  # Lista de agregaciones configuradas
         self.modo_visualizacion = "detalle"  # "detalle" o "resumen"
@@ -522,26 +523,35 @@ class InformesFrame(customtkinter.CTkFrame):
         self.filtros_frame.grid_columnconfigure(0, weight=1)
 
     def _create_campos_section(self, parent, row):
-        """Crea la sección de campos a mostrar"""
+        """Crea la sección de campos a mostrar con reordenamiento"""
         # Frame contenedor
         campos_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
         campos_frame.grid(row=row, column=0, sticky="ew", padx=15, pady=3)
         campos_frame.grid_columnconfigure(0, weight=1)
 
+        # Frame de título y controles
+        title_frame = customtkinter.CTkFrame(campos_frame, fg_color="transparent")
+        title_frame.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        title_frame.grid_columnconfigure(0, weight=1)
+
         # Título
         title = customtkinter.CTkLabel(
-            campos_frame,
-            text="📄 CAMPOS A MOSTRAR",
+            title_frame,
+            text="📄 CAMPOS A MOSTRAR (haz clic para seleccionar y reordenar con ↑↓)",
             font=customtkinter.CTkFont(size=12, weight="bold")
         )
-        title.grid(row=0, column=0, sticky="w", pady=(0, 8))
+        title.grid(row=0, column=0, sticky="w")
 
-        # Frame scrollable para checkboxes
-        self.campos_scrollable = customtkinter.CTkScrollableFrame(campos_frame, height=180)
-        self.campos_scrollable.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        # Frame contenedor con dos columnas: lista de campos y botones de orden
+        content_frame = customtkinter.CTkFrame(campos_frame, fg_color="transparent")
+        content_frame.grid(row=1, column=0, sticky="ew", pady=(0, 8))
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_columnconfigure(1, weight=0)
+
+        # Frame scrollable para lista de campos
+        self.campos_scrollable = customtkinter.CTkScrollableFrame(content_frame, height=180)
+        self.campos_scrollable.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         self.campos_scrollable.grid_columnconfigure(0, weight=1)
-        self.campos_scrollable.grid_columnconfigure(1, weight=1)
-        self.campos_scrollable.grid_columnconfigure(2, weight=1)
 
         # Mensaje inicial
         self.campos_message = customtkinter.CTkLabel(
@@ -549,7 +559,43 @@ class InformesFrame(customtkinter.CTkFrame):
             text="Seleccione un informe para ver los campos disponibles",
             text_color="gray"
         )
-        self.campos_message.grid(row=0, column=0, columnspan=3, pady=20)
+        self.campos_message.grid(row=0, column=0, pady=20)
+
+        # Botones de reordenamiento
+        reorder_frame = customtkinter.CTkFrame(content_frame, fg_color="transparent")
+        reorder_frame.grid(row=0, column=1, sticky="n", pady=10)
+
+        self.btn_mover_arriba = customtkinter.CTkButton(
+            reorder_frame,
+            text="↑",
+            width=30,
+            height=30,
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            command=self._mover_campo_arriba,
+            state="disabled"
+        )
+        self.btn_mover_arriba.grid(row=0, column=0, pady=(0, 5))
+
+        self.btn_mover_abajo = customtkinter.CTkButton(
+            reorder_frame,
+            text="↓",
+            width=30,
+            height=30,
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            command=self._mover_campo_abajo,
+            state="disabled"
+        )
+        self.btn_mover_abajo.grid(row=1, column=0, pady=(0, 10))
+
+        # Label informativo
+        info_label = customtkinter.CTkLabel(
+            reorder_frame,
+            text="Selecciona\nun campo\npara\nmoverlo",
+            font=customtkinter.CTkFont(size=9),
+            text_color="gray",
+            justify="center"
+        )
+        info_label.grid(row=2, column=0, pady=(10, 0))
 
         # Botones de selección
         buttons_frame = customtkinter.CTkFrame(campos_frame, fg_color="transparent")
@@ -1439,54 +1485,72 @@ class InformesFrame(customtkinter.CTkFrame):
             widget.destroy()
 
         self.campos_seleccionados = {}
+        self.campos_orden = []
+        self.campo_seleccionado_idx = None  # Índice del campo seleccionado para reordenar
 
         # Si hay definición del informe, usar sus campos
         if self.definicion_actual:
             campos_informe = self.definicion_actual.get('campos', {})
             campos_default = self.definicion_actual.get('campos_default', [])
 
-            # Agrupar campos por grupo
-            campos_por_grupo = {}
-            for campo_key, campo_def in campos_informe.items():
-                grupo = campo_def.get('grupo', 'Otros')
-                if grupo not in campos_por_grupo:
-                    campos_por_grupo[grupo] = []
-                campos_por_grupo[grupo].append((campo_key, campo_def['nombre']))
+            # Crear lista ordenada de todos los campos
+            # Primero los de campos_default en su orden, luego el resto
+            campos_ordenados = []
+            for campo_key in campos_default:
+                if campo_key in campos_informe:
+                    campos_ordenados.append(campo_key)
 
-            # Crear checkboxes por grupos
+            # Añadir el resto de campos que no están en default
+            for campo_key in campos_informe.keys():
+                if campo_key not in campos_ordenados:
+                    campos_ordenados.append(campo_key)
+
+            self.campos_orden = campos_ordenados
+
+            # Crear lista de campos con radiobuttons para seleccionar y checkboxes para activar
             row = 0
-            for grupo, campos in campos_por_grupo.items():
-                # Título del grupo
-                grupo_label = customtkinter.CTkLabel(
-                    self.campos_scrollable,
-                    text=f"{grupo}:",
-                    font=customtkinter.CTkFont(size=12, weight="bold")
+            for campo_key in self.campos_orden:
+                campo_def = campos_informe[campo_key]
+                campo_nombre = campo_def['nombre']
+                por_defecto = campo_key in campos_default
+
+                # Frame para cada campo
+                campo_frame = customtkinter.CTkFrame(self.campos_scrollable, fg_color="transparent", height=30)
+                campo_frame.grid(row=row, column=0, sticky="ew", pady=1)
+                campo_frame.grid_columnconfigure(1, weight=1)
+                campo_frame.grid_propagate(False)
+
+                # Checkbox para activar/desactivar
+                var = customtkinter.BooleanVar(value=por_defecto)
+                check = customtkinter.CTkCheckBox(
+                    campo_frame,
+                    text="",
+                    variable=var,
+                    width=20
                 )
-                grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
+                check.grid(row=0, column=0, sticky="w", padx=(5, 5))
+
+                # Label clickeable para seleccionar el campo (para reordenar)
+                label = customtkinter.CTkLabel(
+                    campo_frame,
+                    text=campo_nombre,
+                    anchor="w",
+                    cursor="hand2"
+                )
+                label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
+
+                # Bind click event para seleccionar
+                label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+
+                self.campos_seleccionados[campo_key] = {
+                    'var': var,
+                    'frame': campo_frame,
+                    'label': label,
+                    'nombre': campo_nombre
+                }
+
                 row += 1
-
-                # Checkboxes en 3 columnas
-                col = 0
-                for campo_key, campo_nombre in campos:
-                    # Marcar por defecto si está en campos_default
-                    por_defecto = campo_key in campos_default
-                    var = customtkinter.BooleanVar(value=por_defecto)
-                    check = customtkinter.CTkCheckBox(
-                        self.campos_scrollable,
-                        text=campo_nombre,
-                        variable=var
-                    )
-                    check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
-
-                    self.campos_seleccionados[campo_key] = var
-
-                    col += 1
-                    if col >= 3:
-                        col = 0
-                        row += 1
-
-                if col > 0:
-                    row += 1
 
         else:
             # Si no hay definición, usar campos genéricos de la categoría (fallback)
@@ -1505,45 +1569,124 @@ class InformesFrame(customtkinter.CTkFrame):
             if campos_dict:
                 row = 0
                 for grupo, campos in campos_dict.items():
-                    # Título del grupo
-                    grupo_label = customtkinter.CTkLabel(
-                        self.campos_scrollable,
-                        text=f"{grupo}:",
-                        font=customtkinter.CTkFont(size=12, weight="bold")
-                    )
-                    grupo_label.grid(row=row, column=0, columnspan=3, sticky="w", pady=(10, 5))
-                    row += 1
-
-                    # Checkboxes en 3 columnas
-                    col = 0
                     for campo in campos:
+                        self.campos_orden.append(campo)
+
+                        # Frame para cada campo
+                        campo_frame = customtkinter.CTkFrame(self.campos_scrollable, fg_color="transparent", height=30)
+                        campo_frame.grid(row=row, column=0, sticky="ew", pady=1)
+                        campo_frame.grid_columnconfigure(1, weight=1)
+                        campo_frame.grid_propagate(False)
+
+                        # Checkbox para activar/desactivar
                         var = customtkinter.BooleanVar(value=True)
                         check = customtkinter.CTkCheckBox(
-                            self.campos_scrollable,
-                            text=campo,
-                            variable=var
+                            campo_frame,
+                            text="",
+                            variable=var,
+                            width=20
                         )
-                        check.grid(row=row, column=col, sticky="w", padx=5, pady=2)
+                        check.grid(row=0, column=0, sticky="w", padx=(5, 5))
 
-                        self.campos_seleccionados[campo] = var
+                        # Label clickeable
+                        label = customtkinter.CTkLabel(
+                            campo_frame,
+                            text=campo,
+                            anchor="w",
+                            cursor="hand2"
+                        )
+                        label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
-                        col += 1
-                        if col >= 3:
-                            col = 0
-                            row += 1
+                        # Bind click event
+                        label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                        campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
 
-                    if col > 0:
+                        self.campos_seleccionados[campo] = {
+                            'var': var,
+                            'frame': campo_frame,
+                            'label': label,
+                            'nombre': campo
+                        }
+
                         row += 1
 
     def _select_all_campos(self):
         """Selecciona todos los campos"""
-        for var in self.campos_seleccionados.values():
-            var.set(True)
+        for campo_info in self.campos_seleccionados.values():
+            if isinstance(campo_info, dict):
+                campo_info['var'].set(True)
+            else:
+                # Compatibilidad con versión antigua
+                campo_info.set(True)
 
     def _deselect_all_campos(self):
         """Deselecciona todos los campos"""
-        for var in self.campos_seleccionados.values():
-            var.set(False)
+        for campo_info in self.campos_seleccionados.values():
+            if isinstance(campo_info, dict):
+                campo_info['var'].set(False)
+            else:
+                # Compatibilidad con versión antigua
+                campo_info.set(False)
+
+    def _seleccionar_campo_para_reordenar(self, idx):
+        """Selecciona un campo para poder reordenarlo"""
+        # Deseleccionar campo anterior
+        if self.campo_seleccionado_idx is not None:
+            campo_key_anterior = self.campos_orden[self.campo_seleccionado_idx]
+            if campo_key_anterior in self.campos_seleccionados:
+                self.campos_seleccionados[campo_key_anterior]['frame'].configure(fg_color="transparent")
+                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=None)
+
+        # Seleccionar nuevo campo
+        self.campo_seleccionado_idx = idx
+        campo_key = self.campos_orden[idx]
+        self.campos_seleccionados[campo_key]['frame'].configure(fg_color=("gray80", "gray25"))
+        self.campos_seleccionados[campo_key]['label'].configure(text_color=("blue", "lightblue"))
+
+        # Habilitar/deshabilitar botones
+        self.btn_mover_arriba.configure(state="normal" if idx > 0 else "disabled")
+        self.btn_mover_abajo.configure(state="normal" if idx < len(self.campos_orden) - 1 else "disabled")
+
+    def _mover_campo_arriba(self):
+        """Mueve el campo seleccionado una posición arriba"""
+        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx == 0:
+            return
+
+        idx = self.campo_seleccionado_idx
+
+        # Intercambiar en la lista de orden
+        self.campos_orden[idx], self.campos_orden[idx - 1] = self.campos_orden[idx - 1], self.campos_orden[idx]
+
+        # Actualizar visualización
+        self._refrescar_orden_visual()
+
+        # Actualizar índice seleccionado
+        self.campo_seleccionado_idx = idx - 1
+        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+
+    def _mover_campo_abajo(self):
+        """Mueve el campo seleccionado una posición abajo"""
+        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx >= len(self.campos_orden) - 1:
+            return
+
+        idx = self.campo_seleccionado_idx
+
+        # Intercambiar en la lista de orden
+        self.campos_orden[idx], self.campos_orden[idx + 1] = self.campos_orden[idx + 1], self.campos_orden[idx]
+
+        # Actualizar visualización
+        self._refrescar_orden_visual()
+
+        # Actualizar índice seleccionado
+        self.campo_seleccionado_idx = idx + 1
+        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+
+    def _refrescar_orden_visual(self):
+        """Refresca la visualización de los campos según el orden actual"""
+        # Re-posicionar frames según el nuevo orden
+        for idx, campo_key in enumerate(self.campos_orden):
+            if campo_key in self.campos_seleccionados:
+                self.campos_seleccionados[campo_key]['frame'].grid(row=idx, column=0, sticky="ew", pady=1)
 
     def _open_config_dialog(self):
         """Abre el diálogo de configuración de cabecera"""
@@ -1656,8 +1799,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 'orden': orden
             })
 
-        # Recopilar campos seleccionados
-        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+        # Recopilar campos seleccionados (respetando orden personalizado)
+        campos_seleccionados = self._recopilar_campos()
 
         if not campos_seleccionados:
             CTkMessagebox(
@@ -2199,8 +2342,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 'orden': orden
             })
 
-        # Recopilar campos seleccionados
-        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+        # Recopilar campos seleccionados (respetando orden personalizado)
+        campos_seleccionados = self._recopilar_campos()
 
         if not campos_seleccionados:
             CTkMessagebox(
@@ -2438,8 +2581,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 'orden': orden
             })
 
-        # Recopilar campos seleccionados
-        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+        # Recopilar campos seleccionados (respetando orden personalizado)
+        campos_seleccionados = self._recopilar_campos()
 
         if not campos_seleccionados:
             CTkMessagebox(
@@ -2677,8 +2820,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 'orden': orden
             })
 
-        # Recopilar campos seleccionados
-        campos_seleccionados = [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+        # Recopilar campos seleccionados (respetando orden personalizado)
+        campos_seleccionados = self._recopilar_campos()
 
         if not campos_seleccionados:
             CTkMessagebox(
@@ -3189,8 +3332,20 @@ class InformesFrame(customtkinter.CTkFrame):
         return ordenaciones_aplicadas
     
     def _recopilar_campos(self):
-        """Recopila los campos seleccionados"""
-        return [campo_key for campo_key, var in self.campos_seleccionados.items() if var.get()]
+        """Recopila los campos seleccionados respetando el orden personalizado"""
+        # Usar el orden personalizado de campos_orden
+        campos_lista = []
+        for campo_key in self.campos_orden:
+            if campo_key in self.campos_seleccionados:
+                campo_info = self.campos_seleccionados[campo_key]
+                # Soporte para nueva estructura (dict) y antigua (BooleanVar)
+                if isinstance(campo_info, dict):
+                    if campo_info['var'].get():
+                        campos_lista.append(campo_key)
+                else:
+                    if campo_info.get():
+                        campos_lista.append(campo_key)
+        return campos_lista
     
     def _aplicar_configuracion(self, config):
         """Aplica una configuración cargada"""
@@ -3215,10 +3370,27 @@ class InformesFrame(customtkinter.CTkFrame):
         # Cargar campos disponibles
         self._update_campos_disponibles()
 
+        # Restaurar orden personalizado si existe en la configuración
+        campos_orden_config = config.get('campos_orden', [])
+        if campos_orden_config:
+            # Validar que todos los campos del orden guardado existen
+            campos_validos = [c for c in campos_orden_config if c in self.campos_seleccionados]
+            # Añadir campos nuevos que no estaban en el orden guardado
+            for campo_key in self.campos_seleccionados.keys():
+                if campo_key not in campos_validos:
+                    campos_validos.append(campo_key)
+            self.campos_orden = campos_validos
+            # Refrescar visualización con el nuevo orden
+            self._refrescar_orden_visual()
+
         # Aplicar campos seleccionados
         campos_config = config.get('campos_seleccionados', [])
-        for campo_key, var in self.campos_seleccionados.items():
-            var.set(campo_key in campos_config)
+        for campo_key, campo_info in self.campos_seleccionados.items():
+            if isinstance(campo_info, dict):
+                campo_info['var'].set(campo_key in campos_config)
+            else:
+                # Compatibilidad con versión antigua
+                campo_info.set(campo_key in campos_config)
 
         # Aplicar filtros
         filtros_config = config.get('filtros', [])
@@ -3350,7 +3522,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 if orden_dict:
                     ordenaciones_data.append(orden_dict)
 
-            campos_selec = [k for k, v in self.campos_seleccionados.items() if v.get()]
+            campos_selec = self._recopilar_campos()  # Ya respeta el orden personalizado
 
             agrupaciones_data = []
             for agrup in self.agrupaciones:
@@ -3371,6 +3543,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 'filtros': filtros_data,
                 'ordenaciones': ordenaciones_data,
                 'campos_seleccionados': campos_selec,
+                'campos_orden': self.campos_orden.copy(),  # Guardar orden personalizado
                 'agrupaciones': agrupaciones_data,
                 'agregaciones': agregaciones_data,
                 'modo': modo
@@ -3417,10 +3590,27 @@ class InformesFrame(customtkinter.CTkFrame):
                 if len(self.ordenaciones) > 0:
                     self._configurar_ordenacion(self.ordenaciones[-1], orden_data)
 
+            # Restaurar orden personalizado si existe en el caché
+            campos_orden_config = config.get('campos_orden', [])
+            if campos_orden_config:
+                # Validar que todos los campos del orden guardado existen
+                campos_validos = [c for c in campos_orden_config if c in self.campos_seleccionados]
+                # Añadir campos nuevos que no estaban en el orden guardado
+                for campo_key in self.campos_seleccionados.keys():
+                    if campo_key not in campos_validos:
+                        campos_validos.append(campo_key)
+                self.campos_orden = campos_validos
+                # Refrescar visualización con el nuevo orden
+                self._refrescar_orden_visual()
+
             # Cargar campos seleccionados
             campos_config = config.get('campos_seleccionados', [])
-            for campo_key, var in self.campos_seleccionados.items():
-                var.set(campo_key in campos_config)
+            for campo_key, campo_info in self.campos_seleccionados.items():
+                if isinstance(campo_info, dict):
+                    campo_info['var'].set(campo_key in campos_config)
+                else:
+                    # Compatibilidad con versión antigua
+                    campo_info.set(campo_key in campos_config)
 
             # Cargar agrupaciones - VALIDACIÓN: Respetar máximo de niveles del nuevo informe
             agrupaciones_config = config.get('agrupaciones', [])
