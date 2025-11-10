@@ -20,16 +20,19 @@ except ImportError:
 def verificar_tablas_vacias(host, port, user, password, database):
     """Verifica que las tablas de presupuesto y partes estén vacías."""
 
-    # Tablas a verificar
-    # Tablas de presupuesto maestro (catálogo del proyecto)
+    # Tablas a verificar que estén vacías
+    # NOTA: NO incluir tablas de dimensiones/catálogos como:
+    #   - tbl_pres_naturaleza (catálogo de naturalezas: material, mano de obra, etc.)
+    #   - tbl_pres_unidades (catálogo de unidades: m, m2, ud, etc.)
+    #   - dim_red, dim_tipo_trabajo, etc. (catálogos de dimensiones)
+
+    # Tablas de presupuesto del proyecto (datos específicos del proyecto)
     tablas_presupuesto = [
-        'tbl_pres_naturaleza',
-        'tbl_pres_unidades',
-        'tbl_pres_capitulos',
-        'tbl_pres_precios'
+        'tbl_pres_capitulos',  # Capítulos del presupuesto del proyecto
+        'tbl_pres_precios'     # Precios del presupuesto del proyecto
     ]
 
-    # Tablas de partes (trabajos/órdenes de trabajo)
+    # Tablas de partes (trabajos/órdenes de trabajo del proyecto)
     tablas_partes = [
         'tbl_partes',
         'tbl_part_presupuesto',
