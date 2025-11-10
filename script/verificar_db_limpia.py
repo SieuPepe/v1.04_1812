@@ -4,6 +4,17 @@ Script para verificar que las tablas de presupuesto y partes están vacías.
 """
 import mysql.connector
 import sys
+import os
+from pathlib import Path
+
+# Agregar el directorio script al path para importar db_config
+sys.path.insert(0, str(Path(__file__).parent))
+
+try:
+    from db_config import get_config
+    USE_DB_CONFIG = True
+except ImportError:
+    USE_DB_CONFIG = False
 
 def verificar_tablas_vacias(host, port, user, password, database):
     """Verifica que las tablas de presupuesto y partes estén vacías."""
@@ -70,14 +81,22 @@ def verificar_tablas_vacias(host, port, user, password, database):
 
     except mysql.connector.Error as e:
         print(f"\n✗ ERROR DE CONEXIÓN: {e}\n")
+        print(f"Intentando conectar a: {host}:{port} como {user}")
+        print(f"Base de datos: {database}\n")
         return False
 
 if __name__ == "__main__":
-    # Configuración por defecto
-    HOST = 'localhost'
-    PORT = 3307
-    USER = 'root'
-    PASSWORD = 'root'
+    # Configuración desde variables de entorno o valores por defecto
+    if USE_DB_CONFIG:
+        config = get_config()
+        HOST = config.host
+        PORT = config.port
+    else:
+        HOST = os.getenv('DB_HOST', 'localhost')
+        PORT = int(os.getenv('DB_PORT', '3307'))
+
+    USER = os.getenv('DB_USER', 'root')
+    PASSWORD = os.getenv('DB_PASSWORD', 'root')
 
     # Si se pasa un esquema como argumento, usarlo
     DATABASE = sys.argv[1] if len(sys.argv) > 1 else 'proyecto_tipo'
