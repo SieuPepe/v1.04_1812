@@ -16,6 +16,8 @@ Ejecute el script de diagnóstico para identificar el problema:
 python script/check_mysql.py
 ```
 
+**Modo interactivo:** Si no tiene configuradas las credenciales en variables de entorno, el script le solicitará el usuario y la contraseña de forma segura por consola.
+
 Este script verificará:
 1. Si MySQL está ejecutándose
 2. Si puede conectarse con las credenciales configuradas
@@ -35,7 +37,24 @@ Base de datos: proyecto_tipo
 
 ## Opciones de Configuración
 
-### Opción 1: Variables de Entorno (Recomendado)
+### Opción 1: Modo Interactivo (Más Simple)
+
+Si no configura variables de entorno, los scripts le solicitarán las credenciales por consola:
+
+```bash
+python script/check_mysql.py
+```
+
+El script le preguntará:
+- Usuario de MySQL (por defecto: root)
+- Contraseña (se oculta al escribir)
+
+**Ventajas:**
+- No requiere configuración previa
+- La contraseña no queda guardada en variables de entorno
+- Ideal para uso ocasional
+
+### Opción 2: Variables de Entorno (Recomendado para uso frecuente)
 
 Configure las siguientes variables de entorno antes de ejecutar los scripts:
 
@@ -63,7 +82,7 @@ export DB_USER=root
 export DB_PASSWORD=root
 ```
 
-### Opción 2: Archivo .env
+### Opción 3: Archivo .env
 
 1. Copie el archivo `.env.example` a `.env`:
    ```bash

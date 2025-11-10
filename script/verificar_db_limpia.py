@@ -5,6 +5,7 @@ Script para verificar que las tablas de presupuesto y partes están vacías.
 import mysql.connector
 import sys
 import os
+import getpass
 from pathlib import Path
 
 # Agregar el directorio script al path para importar db_config
@@ -95,8 +96,17 @@ if __name__ == "__main__":
         HOST = os.getenv('DB_HOST', 'localhost')
         PORT = int(os.getenv('DB_PORT', '3307'))
 
-    USER = os.getenv('DB_USER', 'root')
-    PASSWORD = os.getenv('DB_PASSWORD', 'root')
+    # Obtener credenciales
+    USER = os.getenv('DB_USER')
+    PASSWORD = os.getenv('DB_PASSWORD')
+
+    # Si no hay usuario en variable de entorno, solicitar por consola
+    if not USER:
+        USER = input(f"Usuario de MySQL [root]: ").strip() or 'root'
+
+    # Si no hay contraseña en variable de entorno, solicitar por consola
+    if not PASSWORD:
+        PASSWORD = getpass.getpass(f"Contraseña para {USER}@{HOST}:{PORT}: ")
 
     # Si se pasa un esquema como argumento, usarlo
     DATABASE = sys.argv[1] if len(sys.argv) > 1 else 'proyecto_tipo'

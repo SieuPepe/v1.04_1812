@@ -8,6 +8,7 @@ y proporciona información detallada sobre el problema si falla.
 import mysql.connector
 import os
 import sys
+import getpass
 from pathlib import Path
 
 # Agregar el directorio script al path para importar db_config
@@ -142,8 +143,17 @@ def main():
         host = os.getenv('DB_HOST', 'localhost')
         port = int(os.getenv('DB_PORT', '3307'))
 
-    user = os.getenv('DB_USER', 'root')
-    password = os.getenv('DB_PASSWORD', 'root')
+    # Obtener credenciales
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+
+    # Si no hay usuario en variable de entorno, solicitar por consola
+    if not user:
+        user = input(f"Usuario de MySQL [root]: ").strip() or 'root'
+
+    # Si no hay contraseña en variable de entorno, solicitar por consola
+    if not password:
+        password = getpass.getpass(f"Contraseña para {user}@{host}:{port}: ")
 
     print()
 
