@@ -72,7 +72,7 @@ def verificar_mysql_disponible():
     print("Verificando disponibilidad de MySQL...")
     try:
         result = subprocess.run(
-            ['python3', str(SCRIPT_DIR / 'verificar_db_limpia.py'), SCHEMA],
+            [sys.executable, str(SCRIPT_DIR / 'verificar_db_limpia.py'), SCHEMA],
             capture_output=True,
             text=True
         )
@@ -94,7 +94,7 @@ def paso1_verificar_y_backup_limpio():
 
     # Verificar que la BBDD está limpia
     if not ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'verificar_db_limpia.py'), SCHEMA],
+        [sys.executable, str(SCRIPT_DIR / 'verificar_db_limpia.py'), SCHEMA],
         "Verificar que la base de datos está limpia"
     ):
         print("ADVERTENCIA: La base de datos NO está limpia")
@@ -104,7 +104,7 @@ def paso1_verificar_y_backup_limpio():
 
     # Crear backup de BBDD limpia
     return ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'crear_backup.py'),
+        [sys.executable, str(SCRIPT_DIR / 'crear_backup.py'),
          'backup_nopres_nopartes', SCHEMA,
          'BBDD limpia sin presupuestos ni partes'],
         "Crear backup de base de datos limpia"
@@ -133,7 +133,7 @@ def paso2_cargar_presupuesto():
 
     # Cargar presupuesto
     if not ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'cargar_presupuesto.py'),
+        [sys.executable, str(SCRIPT_DIR / 'cargar_presupuesto.py'),
          str(archivo_path)],
         "Cargar presupuesto desde Excel"
     ):
@@ -141,7 +141,7 @@ def paso2_cargar_presupuesto():
 
     # Crear backup con presupuesto
     return ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'crear_backup.py'),
+        [sys.executable, str(SCRIPT_DIR / 'crear_backup.py'),
          'backup_con_presupuesto', SCHEMA,
          'BBDD con presupuesto cargado'],
         "Crear backup con presupuesto"
@@ -177,7 +177,7 @@ def paso3_cargar_partes():
     print("dependiendo de la estructura del archivo Access.\n")
 
     if not ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'importar_partes_access.py'),
+        [sys.executable, str(SCRIPT_DIR / 'importar_partes_access.py'),
          str(archivo_access)],
         "Importar partes desde Access"
     ):
@@ -191,7 +191,7 @@ def paso3_cargar_partes():
 
     # Crear backup completo
     return ejecutar_comando(
-        ['python3', str(SCRIPT_DIR / 'crear_backup.py'),
+        [sys.executable, str(SCRIPT_DIR / 'crear_backup.py'),
          'backup_completo_pruebas', SCHEMA,
          'BBDD completa con presupuestos y partes de prueba'],
         "Crear backup completo de pruebas"
