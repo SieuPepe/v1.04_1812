@@ -4,9 +4,13 @@
 -- Generado automáticamente desde PRECIOS UNITARIOS.xlsx
 -- Total de registros: 1250
 -- =====================================================
--- IMPORTANTE: 
+-- IMPORTANTE:
 -- - Las unidades y capítulos YA EXISTEN en la BD
--- - Se usa id_naturaleza = 4 para todos los precios
+-- - Se asignan naturalezas según el código de partida:
+--   * Códigos 1xxxx → id_naturaleza=2 (Gastos Fijos)    - 5 registros
+--   * Códigos 2xxxx → id_naturaleza=3 (Personal)        - 7 registros
+--   * Códigos 3xxxx → id_naturaleza=6 (Maquinaria)      - 14 registros
+--   * Códigos 4xxxx → id_naturaleza=5 (Material)        - 1200 registros
 -- =====================================================
 
 USE cert_dev;
