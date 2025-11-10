@@ -10,14 +10,6 @@ UPDATE dim_tipo_trabajo SET tipo_codigo = 'OT', descripcion = 'Orden de Trabajo'
 UPDATE dim_tipo_trabajo SET tipo_codigo = 'TP', descripcion = 'Trabajos Programados' WHERE id = 2;
 UPDATE dim_tipo_trabajo SET tipo_codigo = 'GF', descripcion = 'Gastos Fijos' WHERE id = 3;
 
--- Insertar nuevos registros si no existen (por si acaso faltan)
-INSERT INTO dim_tipo_trabajo (id, tipo_codigo, descripcion)
-VALUES
-(1, 'OT', 'Orden de Trabajo'),
-(2, 'TP', 'Trabajos Programados'),
-(3, 'GF', 'Gastos Fijos')
-ON DUPLICATE KEY UPDATE tipo_codigo = VALUES(tipo_codigo), descripcion = VALUES(descripcion);
-
 -- Confirmar transacción
 COMMIT;
 
