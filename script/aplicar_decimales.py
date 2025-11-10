@@ -158,7 +158,7 @@ def main():
     # Solicitar datos de conexión
     host = input("Host [localhost]: ").strip() or "localhost"
     port = input("Puerto [3307]: ").strip() or "3307"
-    database = input("Base de datos [proyecto_tipo]: ").strip() or "proyecto_tipo"
+    database = input("Base de datos [cert_dev]: ").strip() or "cert_dev"
     user = input("Usuario [root]: ").strip() or "root"
     password = getpass.getpass("Contraseña: ")
 

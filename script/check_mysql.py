@@ -164,9 +164,9 @@ def main():
         print("\nPor favor, corrija los problemas anteriores antes de continuar.")
         return False
 
-    # Test 2: Conexión a base de datos proyecto_tipo
-    print_header("TEST 2: Conexión a base de datos 'proyecto_tipo'")
-    database = 'proyecto_tipo'
+    # Test 2: Conexión a base de datos cert_dev
+    print_header("TEST 2: Conexión a base de datos 'cert_dev'")
+    database = 'cert_dev'
     if not check_connection(host, port, user, password, database):
         print(f"\n⚠ El servidor MySQL está disponible, pero la base de datos '{database}' no existe")
         print(f"\nPara crear la base de datos, ejecute:")

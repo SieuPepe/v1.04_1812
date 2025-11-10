@@ -19,7 +19,7 @@ def main():
     # Configuración
     USER = 'root'
     PASSWORD = 'root'
-    SCHEMA = 'proyecto_tipo'
+    SCHEMA = 'cert_dev'
 
     if len(sys.argv) < 2:
         print("=" * 70)
@@ -64,7 +64,7 @@ def main():
             print("=" * 70)
             print()
             print("Próximo paso:")
-            print("  - Crear backup: python script/crear_backup.py backup_con_presupuesto proyecto_tipo")
+            print("  - Crear backup: python script/crear_backup.py backup_con_presupuesto cert_dev")
             print()
             sys.exit(0)
         else:

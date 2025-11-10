@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuración
-SCHEMA = 'proyecto_tipo'
+SCHEMA = 'cert_dev'
 SCRIPT_DIR = Path(__file__).parent
 ROOT_DIR = SCRIPT_DIR.parent
 

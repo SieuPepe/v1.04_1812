@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 # TODO: Cambiar estas credenciales antes de ejecutar
 USER = os.getenv('DB_USER', 'root')
 PASSWORD = os.getenv('DB_PASSWORD', 'TU_PASSWORD_AQUI')  # ⚠️ CAMBIAR
-SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'proyecto_tipo')  # ⚠️ CAMBIAR
+SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'cert_dev')  # ⚠️ CAMBIAR
 
 # Directorio de configuraciones guardadas
 INFORMES_DIR = Path(__file__).parent / "informes_guardados"

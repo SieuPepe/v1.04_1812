@@ -195,7 +195,7 @@ def main():
     # Configuración de base de datos MySQL
     USER = 'root'
     PASSWORD = 'root'
-    SCHEMA = 'proyecto_tipo'
+    SCHEMA = 'cert_dev'
 
     print(f"Archivo Access: {archivo_path.name}")
     print(f"Esquema MySQL: {SCHEMA}")

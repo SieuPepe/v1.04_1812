@@ -15,7 +15,7 @@ HOST = 'localhost'
 PORT = 3307
 USER = 'root'
 PASSWORD = None  # Se solicitará si no se proporciona
-SCHEMA = 'proyecto_tipo'  # Esquema por defecto
+SCHEMA = 'cert_dev'  # Esquema por defecto
 BACKUP_DIR = Path(__file__).parent.parent / 'backup'
 
 
@@ -297,9 +297,9 @@ def main():
         print(f"  {sys.argv[0]} <nombre_backup> [schema] [descripcion]")
         print()
         print("Ejemplos:")
-        print(f"  {sys.argv[0]} backup_nopres_nopartes proyecto_tipo 'BBDD limpia sin presupuestos ni partes'")
-        print(f"  {sys.argv[0]} backup_con_presupuesto proyecto_tipo 'BBDD con presupuesto cargado'")
-        print(f"  {sys.argv[0]} backup_completo_pruebas proyecto_tipo 'BBDD completa con presupuestos y partes'")
+        print(f"  {sys.argv[0]} backup_nopres_nopartes cert_dev 'BBDD limpia sin presupuestos ni partes'")
+        print(f"  {sys.argv[0]} backup_con_presupuesto cert_dev 'BBDD con presupuesto cargado'")
+        print(f"  {sys.argv[0]} backup_completo_pruebas cert_dev 'BBDD completa con presupuestos y partes'")
         sys.exit(1)
 
     nombre_backup = sys.argv[1]

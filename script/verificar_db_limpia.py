@@ -109,7 +109,7 @@ if __name__ == "__main__":
         PASSWORD = getpass.getpass(f"Contraseña para {USER}@{HOST}:{PORT}: ")
 
     # Si se pasa un esquema como argumento, usarlo
-    DATABASE = sys.argv[1] if len(sys.argv) > 1 else 'proyecto_tipo'
+    DATABASE = sys.argv[1] if len(sys.argv) > 1 else 'cert_dev'
 
     resultado = verificar_tablas_vacias(HOST, PORT, USER, PASSWORD, DATABASE)
     sys.exit(0 if resultado else 1)

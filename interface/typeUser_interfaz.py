@@ -88,7 +88,7 @@ class AppTypeUser(customtkinter.CTk):
             schemas = get_schemas_db(user, password)
             schemas = [s for s in schemas if
                        s not in ['information_schema', 'performance_schema', 'manager', 'mysql', 'sys',
-                                 'proyecto_tipo']]
+                                 'cert_dev']]
 
             if not schemas:
                 CTkMessagebox(
