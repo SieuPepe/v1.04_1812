@@ -9,9 +9,8 @@ Elimina TODOS los datos de:
 - tbl_part_certificacion
 
 NO toca:
-- tbl_presupuesto (presupuestos de inventario)
-- tbl_pres_certificacion (certificaciones de inventario)
-- Tablas de dimensiones y catálogos
+- tbl_pres_naturaleza, tbl_pres_unidades, tbl_pres_capitulos, tbl_pres_precios (catálogos de presupuesto maestro)
+- Tablas de dimensiones (dim_red, dim_tipo_trabajo, etc.)
 """
 
 import sys
@@ -80,9 +79,10 @@ def verificar_tablas_no_afectadas(cursor):
     print("=" * 70)
 
     tablas = [
-        ('tbl_presupuesto', 'Presupuestos de Inventario'),
-        ('tbl_pres_certificacion', 'Certificaciones de Inventario'),
-        ('tbl_parte_estados', 'Estados de Partes'),
+        ('tbl_pres_naturaleza', 'Catálogo de Naturalezas'),
+        ('tbl_pres_unidades', 'Catálogo de Unidades'),
+        ('tbl_pres_capitulos', 'Catálogo de Capítulos'),
+        ('tbl_pres_precios', 'Catálogo de Precios'),
         ('dim_red', 'Catálogo de Redes'),
         ('dim_tipo_trabajo', 'Catálogo de Tipos de Trabajo'),
         ('dim_codigo_trabajo', 'Catálogo de Códigos de Trabajo')

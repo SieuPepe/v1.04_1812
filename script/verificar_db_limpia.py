@@ -21,17 +21,19 @@ def verificar_tablas_vacias(host, port, user, password, database):
     """Verifica que las tablas de presupuesto y partes estén vacías."""
 
     # Tablas a verificar
+    # Tablas de presupuesto maestro (catálogo del proyecto)
     tablas_presupuesto = [
-        'tbl_presupuesto',
-        'tbl_pres_certificacion',
-        'tbl_proy_presupuesto'
+        'tbl_pres_naturaleza',
+        'tbl_pres_unidades',
+        'tbl_pres_capitulos',
+        'tbl_pres_precios'
     ]
 
+    # Tablas de partes (trabajos/órdenes de trabajo)
     tablas_partes = [
         'tbl_partes',
-        'tbl_partes_materiales',
-        'tbl_partes_maquinaria',
-        'tbl_partes_mano_obra'
+        'tbl_part_presupuesto',
+        'tbl_part_certificacion'
     ]
 
     todas_tablas = tablas_presupuesto + tablas_partes
