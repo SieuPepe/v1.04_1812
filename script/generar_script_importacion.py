@@ -45,19 +45,28 @@ def generar_script_sql(df, schema='cert_dev'):
 
     # Mapeo de columnas del Excel a nombres correctos de SQL
     mapeo_columnas = {
-        'descripion': 'descripcion',  # Corregir typo del Excel
-        'creado_en': 'created_at',
-        'actualizado_en': 'updated_at'
+        'descripion': 'descripcion'  # Corregir typo del Excel
     }
 
     # Renombrar columnas según el mapeo
     df_renamed = df.rename(columns=mapeo_columnas)
 
     # Obtener nombres de columnas (excluyendo id si existe)
-    columnas = [col for col in df_renamed.columns if col.lower() != 'id']
+    columnas_todas = [col for col in df_renamed.columns if col.lower() != 'id']
+
+    # Excluir columnas que tienen todos valores NULL
+    columnas = []
+    columnas_excluidas = []
+    for col in columnas_todas:
+        if df_renamed[col].notna().any():  # Si hay al menos un valor no-NULL
+            columnas.append(col)
+        else:
+            columnas_excluidas.append(col)
 
     print(f"\n📝 Generando script SQL para {len(df_renamed)} registros...")
-    print(f"📋 Columnas a importar: {', '.join(columnas)}")
+    print(f"📋 Columnas a importar ({len(columnas)}): {', '.join(columnas)}")
+    if columnas_excluidas:
+        print(f"⏭️  Columnas excluidas (todas NULL): {', '.join(columnas_excluidas)}")
 
     # Crear archivo SQL
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -125,8 +134,10 @@ CALL add_column_if_not_exists('tbl_partes', 'id_municipio', 'INT');
 CALL add_column_if_not_exists('tbl_partes', 'latitud', 'DECIMAL(10,8)');
 CALL add_column_if_not_exists('tbl_partes', 'longitud', 'DECIMAL(11,8)');
 CALL add_column_if_not_exists('tbl_partes', 'observaciones', 'TEXT');
-CALL add_column_if_not_exists('tbl_partes', 'trabajadores', 'INT DEFAULT 0');
+CALL add_column_if_not_exists('tbl_partes', 'trabajadores', 'VARCHAR(100)');
 CALL add_column_if_not_exists('tbl_partes', 'estado', 'VARCHAR(50)');
+CALL add_column_if_not_exists('tbl_partes', 'creado_en', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+CALL add_column_if_not_exists('tbl_partes', 'actualizado_en', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
 
 -- Limpiar procedimiento
 DROP PROCEDURE IF EXISTS add_column_if_not_exists;

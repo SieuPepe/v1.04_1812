@@ -30,8 +30,9 @@ Conecta a tu servidor MySQL con las credenciales apropiadas.
    - latitud, longitud
    - observaciones, trabajadores
    - estado
+   - creado_en, actualizado_en
 
-3. **Inserta los 828 registros** del archivo Excel
+3. **Inserta los 828 registros** del archivo Excel (solo campos con datos)
 4. **Reactiva las restricciones** de claves foráneas
 5. **Muestra estadísticas** de verificación al final
 
@@ -39,7 +40,8 @@ Conecta a tu servidor MySQL con las credenciales apropiadas.
 
 - ✅ **Seguro**: Usa transacciones (COMMIT al final, puedes hacer ROLLBACK si algo falla)
 - ✅ **Idempotente**: Añade campos solo si no existen
-- ✅ **Completo**: Mapea todos los campos del Excel correctamente
+- ✅ **Inteligente**: Solo inserta en columnas que tienen datos (excluye columnas vacías)
+- ✅ **Optimizado**: Excluye automáticamente 7 columnas que están vacías en el Excel
 - ✅ **Corregido**: Convierte valores booleanos y corrige typos (descripion → descripcion)
 
 ## Si Algo Sale Mal
@@ -75,14 +77,20 @@ El script te preguntará el nombre del schema (por defecto: cert_dev).
 
 ## Estructura de Datos
 
-El Excel contiene estos campos (828 registros):
-- Información básica: codigo, titulo, descripcion
-- Fechas: fecha_inicio, fecha_fin
-- Clasificación: red_id, tipo_trabajo_id, cod_trabajo_id, tipo_rep_id
-- Geografía: provincia_id, comarca_id, municipio_id, localizacion
-- Coordenadas: latitud, longitud
-- Estado: estado, id_estado, finalizada
-- Otros: trabajadores, observaciones
+### Columnas Importadas (18 campos con datos):
+- **Información básica**: codigo, titulo, descripcion
+- **Fechas**: fecha_inicio, fecha_fin
+- **Clasificación**: red_id, tipo_trabajo_id, cod_trabajo_id, tipo_rep_id
+- **Geografía**: provincia_id, comarca_id, municipio_id, id_municipio, localizacion
+- **Coordenadas**: latitud, longitud
+- **Estado**: finalizada
+- **Otros**: trabajadores
+
+### Columnas Excluidas (7 campos vacíos en Excel):
+- estado, observaciones, creado_en, actualizado_en
+- descripcion_larga, descripcion_corta, id_estado
+
+Estas columnas se crearán en la tabla si no existen, pero se dejarán con valores NULL o DEFAULT.
 
 ---
 
