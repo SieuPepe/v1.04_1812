@@ -63,6 +63,13 @@ def generar_script_sql(df, schema='cert_dev'):
         else:
             columnas_excluidas.append(col)
 
+    # Detectar duplicados en el campo 'codigo'
+    duplicados = df_renamed[df_renamed['codigo'].duplicated(keep=False)]
+    if not duplicados.empty:
+        print(f"\n⚠️  ATENCIÓN: Encontrados {len(duplicados)} registros con códigos duplicados:")
+        print(duplicados[['codigo']].value_counts().head(10))
+        print(f"\n   Total de códigos únicos duplicados: {duplicados['codigo'].nunique()}")
+
     print(f"\n📝 Generando script SQL para {len(df_renamed)} registros...")
     print(f"📋 Columnas a importar ({len(columnas)}): {', '.join(columnas)}")
     if columnas_excluidas:
@@ -148,7 +155,7 @@ DROP PROCEDURE IF EXISTS add_column_if_not_exists;
 
 """)
 
-        # Generar INSERTs
+        # Generar INSERTs con INSERT IGNORE para manejar duplicados
         for idx, row in df_renamed.iterrows():
             # Crear lista de valores
             valores = []
@@ -160,7 +167,7 @@ DROP PROCEDURE IF EXISTS add_column_if_not_exists;
             valores_str = ', '.join(valores)
 
             f.write(f"-- Registro {idx + 1}/{len(df_renamed)}\n")
-            f.write(f"INSERT INTO {schema}.tbl_partes ({columnas_str})\n")
+            f.write(f"INSERT IGNORE INTO {schema}.tbl_partes ({columnas_str})\n")
             f.write(f"VALUES ({valores_str});\n\n")
 
         # Pie del script
@@ -181,10 +188,24 @@ SELECT * FROM {schema}.tbl_partes ORDER BY id DESC LIMIT 10;
 -- ============================================================================
 -- Script completado exitosamente
 -- ============================================================================
+
+-- NOTA: Se utilizó INSERT IGNORE para manejar códigos duplicados.
+-- Los registros con códigos duplicados fueron ignorados automáticamente.
 """)
 
     print(f"\n✅ Script SQL generado exitosamente: {archivo_sql}")
-    print(f"📊 Total de registros a importar: {len(df)}")
+    print(f"📊 Total de registros a importar: {len(df_renamed)}")
+
+    # Generar reporte de duplicados si existen
+    if not duplicados.empty:
+        archivo_duplicados = f'duplicados_detectados_{timestamp}.csv'
+        duplicados_reporte = df_renamed[df_renamed['codigo'].duplicated(keep=False)].sort_values('codigo')
+        duplicados_reporte.to_csv(archivo_duplicados, index=False, encoding='utf-8-sig')
+        print(f"\n⚠️  Archivo de duplicados generado: {archivo_duplicados}")
+        print(f"    Total de registros duplicados: {len(duplicados_reporte)}")
+        print(f"    Códigos únicos duplicados: {duplicados_reporte['codigo'].nunique()}")
+        print(f"\n    IMPORTANTE: Los duplicados serán ignorados (solo se insertará el primero)")
+
     print(f"\n📌 Para ejecutar en MySQL Workbench:")
     print(f"   1. Abre MySQL Workbench")
     print(f"   2. Conecta a tu servidor MySQL")

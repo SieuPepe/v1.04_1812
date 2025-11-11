@@ -4,6 +4,7 @@
 
 - **Para exportar.xlsx**: Archivo Excel con 828 registros de partes para importar
 - **importar_partes_desde_excel.sql**: Script SQL listo para ejecutar en MySQL Workbench
+- **duplicados_detectados.csv**: Reporte de 4 registros con códigos duplicados
 - **script/generar_script_importacion.py**: Script Python generador (por si necesitas regenerar)
 
 ## Pasos para Importar en MySQL Workbench
@@ -43,6 +44,29 @@ Conecta a tu servidor MySQL con las credenciales apropiadas.
 - ✅ **Inteligente**: Solo inserta en columnas que tienen datos (excluye columnas vacías)
 - ✅ **Optimizado**: Excluye automáticamente 7 columnas que están vacías en el Excel
 - ✅ **Corregido**: Convierte valores booleanos y corrige typos (descripion → descripcion)
+- ✅ **Manejo de Duplicados**: Usa `INSERT IGNORE` para evitar errores con códigos duplicados
+
+## ⚠️ Códigos Duplicados Detectados
+
+El Excel contiene **4 registros con códigos duplicados** (2 códigos únicos):
+
+### Duplicados encontrados:
+1. **OT/0250** (aparece 2 veces):
+   - Registro 285: Reparacion fuga en Amurrio (fecha: 2025-09-01)
+   - Registro 288: Desatasco en Tuesta (fecha: 2025-09-04)
+
+2. **TP/0252** (aparece 2 veces):
+   - Registro 538: Mantenimiento preventivo en Agurain (fecha: 2025-10-06)
+   - Registro 544: Instalación contador en Llodio (fecha: 2025-10-02)
+
+### Comportamiento del Script:
+- El script usa `INSERT IGNORE` para manejar duplicados
+- **Solo se insertará la primera aparición** de cada código duplicado
+- Los registros posteriores con el mismo código se ignorarán automáticamente
+- **No habrá error**, el script continuará normalmente
+
+### Ver Duplicados Completos:
+Consulta el archivo **duplicados_detectados.csv** para ver todos los detalles de los registros duplicados.
 
 ## Si Algo Sale Mal
 
