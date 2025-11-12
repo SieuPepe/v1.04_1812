@@ -457,4 +457,99 @@ v1.04_1812/
 
 ---
 
+## 📂 FASE 4: Reorganización de Documentación (2025-11-12)
+
+### Objetivo
+Organizar los manuales y archivos de configuración para una estructura más profesional.
+
+### Cambios Realizados
+
+#### 📚 **Creación de carpeta docs/manual/**
+Se creó una nueva carpeta para centralizar toda la documentación de usuario e instalación.
+
+#### 📖 **Manuales Movidos a docs/manual/**
+Los siguientes archivos se movieron de la raíz a `docs/manual/`:
+
+- ✅ `ESTRUCTURA_PROYECTO.md` → `docs/manual/ESTRUCTURA_PROYECTO.md`
+- ✅ `INSTALACION_Y_CONFIGURACION.md` → `docs/manual/INSTALACION_Y_CONFIGURACION.md`
+- ✅ `LIMPIEZA_PROYECTO.md` → `docs/manual/LIMPIEZA_PROYECTO.md`
+- ✅ `VERIFICACION_INFORMES.md` → `docs/manual/VERIFICACION_INFORMES.md`
+
+**Razón**: Mejor organización, separar manuales de código fuente.
+
+#### 🔧 **requirements-dev.txt movido a dev_tools/**
+
+- ✅ `requirements-dev.txt` → `dev_tools/requirements-dev.txt`
+
+**Razón**: Consistencia con la separación producción/desarrollo. Las dependencias de desarrollo pertenecen a `dev_tools/`.
+
+#### 📝 **Archivos Mantenidos en Raíz**
+
+Los siguientes archivos permanecen en la raíz porque son necesarios:
+
+- ✅ `.env.example` - Template de configuración para desarrollo
+- ✅ `.env.produccion.template` - Template de configuración para producción
+- ✅ `requirements.txt` - Dependencias de producción (necesarias para pip install)
+- ✅ `main.py` - Punto de entrada
+- ✅ `build.py` - Script de compilación
+- ✅ `pyproject.toml` - Configuración del proyecto Python
+- ✅ `HidroFlowManager.spec` - Configuración PyInstaller
+
+### 🎯 Resultado Final
+
+**Nueva estructura del directorio raíz:**
+```
+v1.04_1812/
+├── .editorconfig
+├── .env.example                        ← Template desarrollo
+├── .env.produccion.template            ← Template producción
+├── .gitignore
+├── .pre-commit-config.yaml
+├── HidroFlowManager.spec
+├── build.py
+├── installer.iss
+├── main.py
+├── pyproject.toml
+├── requirements.txt                    ← Dependencias producción
+│
+├── dev_tools/
+│   ├── requirements-dev.txt            ← Dependencias desarrollo (movido)
+│   ├── importacion/
+│   ├── generadores/
+│   └── verificacion/
+│
+├── docs/
+│   ├── manual/                         ← Nueva carpeta
+│   │   ├── ESTRUCTURA_PROYECTO.md      ← Movido
+│   │   ├── INSTALACION_Y_CONFIGURACION.md ← Movido
+│   │   ├── LIMPIEZA_PROYECTO.md        ← Movido
+│   │   └── VERIFICACION_INFORMES.md    ← Movido
+│   ├── desarrollo/
+│   ├── adr/
+│   └── architecture/
+│
+├── interface/
+├── resources/
+├── script/
+├── tests/
+└── tools/
+```
+
+### 📊 Beneficios
+
+1. ✅ **Raíz más limpia**: Solo archivos esenciales de configuración y ejecución
+2. ✅ **Manuales organizados**: Toda la documentación de usuario en un solo lugar
+3. ✅ **Separación clara**: Producción vs desarrollo
+4. ✅ **Más profesional**: Estructura estándar de proyecto Python
+5. ✅ **Fácil navegación**: Los usuarios saben dónde buscar manuales
+
+### 📌 Notas
+
+- Los archivos `.env` son templates y nunca deben contener credenciales reales
+- `requirements.txt` debe permanecer en raíz (estándar Python)
+- `requirements-dev.txt` en `dev_tools/` mantiene consistencia con herramientas de desarrollo
+- Los documentos en `docs/` históricos no se actualizaron (son referencias antiguas)
+
+---
+
 *Última actualización: 2025-11-12*

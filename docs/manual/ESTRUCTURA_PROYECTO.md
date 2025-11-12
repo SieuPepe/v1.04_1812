@@ -22,9 +22,11 @@ v1.04_1812/
 ├── dev_tools/             # Herramientas de desarrollo (NO en producción)
 │   ├── importacion/      # Scripts de importación de datos
 │   ├── generadores/      # Generadores de datos/SQL
-│   └── verificacion/     # Scripts de verificación/debug
+│   ├── verificacion/     # Scripts de verificación/debug
+│   └── requirements-dev.txt  # Dependencias de desarrollo
 │
 ├── docs/                  # Documentación
+│   ├── manual/           # Manuales de usuario e instalación
 │   └── desarrollo/       # Documentación de desarrollo
 │
 ├── tests/                 # Tests automáticos
@@ -44,9 +46,16 @@ v1.04_1812/
 - `requirements.txt` - Dependencias Python
 
 ### Configuración
-- `INSTALACION_Y_CONFIGURACION.md` - Guía de instalación
-- `VERIFICACION_INFORMES.md` - Guía de verificación de informes
+- `.env.example` - Template de configuración para desarrollo
+- `.env.produccion.template` - Template de configuración para producción
 - `.gitignore` - Archivos a ignorar en git
+- `pyproject.toml` - Configuración del proyecto Python
+
+### Documentación
+- `docs/manual/INSTALACION_Y_CONFIGURACION.md` - Guía de instalación
+- `docs/manual/VERIFICACION_INFORMES.md` - Guía de verificación de informes
+- `docs/manual/ESTRUCTURA_PROYECTO.md` - Este documento
+- `docs/manual/LIMPIEZA_PROYECTO.md` - Historial de limpieza del proyecto
 
 ## 🚀 Para Producción
 
@@ -78,7 +87,9 @@ Si necesita modificar/desarrollar:
 
 ## 📝 Notas
 
-- Las imágenes ahora están en `resources/images/`
+- Las imágenes están en `resources/images/`
 - Los scripts de desarrollo están en `dev_tools/`
-- La documentación de usuario está en la raíz
+- Los manuales de usuario están en `docs/manual/`
 - La documentación de desarrollo está en `docs/desarrollo/`
+- Las dependencias de desarrollo están en `dev_tools/requirements-dev.txt`
+- Las dependencias de producción están en `requirements.txt` (raíz)
