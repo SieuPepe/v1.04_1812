@@ -33,169 +33,165 @@ DEALLOCATE PREPARE stmt;
 -- 01212: Peñacerrada-Urizaharra
 
 -- =====================================================================
--- PASO 2: Actualizar provincia_id para municipios de Álava (1-52)
+-- PASO 2: NO NECESITAMOS actualizar provincia_id porque se gestiona por codigo_ine
 -- =====================================================================
-UPDATE dim_municipios SET provincia_id = 1 WHERE id >= 1 AND id <= 52;
+-- IMPORTANTE: Los municipios ya tienen provincia_id correcto basado en su codigo_ine
+-- NO usamos UPDATE por ID porque los IDs pueden cambiar
 
 -- =====================================================================
 -- PASO 3: Actualizar códigos postales de municipios de Álava
 -- =====================================================================
+-- IMPORTANTE: Usamos codigo_ine (NO id) para identificar municipios de forma segura
 
--- Amurrio
-UPDATE dim_municipios SET codigo_postal = '01470' WHERE id = 1;
+-- Amurrio (codigo_ine: 1002)
+UPDATE dim_municipios SET codigo_postal = '01470' WHERE codigo_ine = 1002;
 
--- Artziniega
-UPDATE dim_municipios SET codigo_postal = '01474' WHERE id = 2;
+-- Artziniega (codigo_ine: 1004)
+UPDATE dim_municipios SET codigo_postal = '01474' WHERE codigo_ine = 1004;
 
--- Ayala / Aiara
-UPDATE dim_municipios SET codigo_postal = '01479' WHERE id = 3;
+-- Ayala / Aiara (codigo_ine: 1010)
+UPDATE dim_municipios SET codigo_postal = '01479' WHERE codigo_ine = 1010;
 
--- Llodio / Laudio
-UPDATE dim_municipios SET codigo_postal = '01400' WHERE id = 4;
+-- Llodio / Laudio (codigo_ine: 1038) - Si existe
+UPDATE dim_municipios SET codigo_postal = '01400' WHERE codigo_ine = 1038;
 
--- Okondo
-UPDATE dim_municipios SET codigo_postal = '01476' WHERE id = 5;
+-- Okondo (codigo_ine: 1042)
+UPDATE dim_municipios SET codigo_postal = '01476' WHERE codigo_ine = 1042;
 
--- Baños de Ebro / Mañueta
-UPDATE dim_municipios SET codigo_postal = '01307' WHERE id = 6;
+-- Baños de Ebro / Mañueta (codigo_ine: 1011)
+UPDATE dim_municipios SET codigo_postal = '01307' WHERE codigo_ine = 1011;
 
--- Elciego
-UPDATE dim_municipios SET codigo_postal = '01340' WHERE id = 7;
+-- Elciego (codigo_ine: 1022)
+UPDATE dim_municipios SET codigo_postal = '01340' WHERE codigo_ine = 1022;
 
--- Elvillar / Bilar
-UPDATE dim_municipios SET codigo_postal = '01320' WHERE id = 8;
+-- Elvillar / Bilar (codigo_ine: 1025)
+UPDATE dim_municipios SET codigo_postal = '01320' WHERE codigo_ine = 1025;
 
--- Kripan
-UPDATE dim_municipios SET codigo_postal = '01309' WHERE id = 9;
+-- Kripan (codigo_ine: 1019)
+UPDATE dim_municipios SET codigo_postal = '01309' WHERE codigo_ine = 1019;
 
--- Labastida / Bastida
-UPDATE dim_municipios SET codigo_postal = '01330' WHERE id = 10;
+-- Labastida / Bastida (codigo_ine: 1028)
+UPDATE dim_municipios SET codigo_postal = '01330' WHERE codigo_ine = 1028;
 
--- Laguardia
-UPDATE dim_municipios SET codigo_postal = '01300' WHERE id = 11;
+-- Laguardia (codigo_ine: 1031)
+UPDATE dim_municipios SET codigo_postal = '01300' WHERE codigo_ine = 1031;
 
--- Lanciego / Lantziego
-UPDATE dim_municipios SET codigo_postal = '01308' WHERE id = 12;
+-- Lanciego / Lantziego (codigo_ine: 1032)
+UPDATE dim_municipios SET codigo_postal = '01308' WHERE codigo_ine = 1032;
 
--- Lapuebla de Labarca
-UPDATE dim_municipios SET codigo_postal = '01306' WHERE id = 13;
+-- Lapuebla de Labarca (codigo_ine: 1033)
+UPDATE dim_municipios SET codigo_postal = '01306' WHERE codigo_ine = 1033;
 
--- Leza
-UPDATE dim_municipios SET codigo_postal = '01321' WHERE id = 14;
+-- Leza (codigo_ine: 1034)
+UPDATE dim_municipios SET codigo_postal = '01321' WHERE codigo_ine = 1034;
 
--- Moreda de Álava / Moreda Araba
-UPDATE dim_municipios SET codigo_postal = '01320' WHERE id = 15;
+-- Moreda de Álava / Moreda Araba (codigo_ine: 1039)
+UPDATE dim_municipios SET codigo_postal = '01320' WHERE codigo_ine = 1039;
 
--- Navaridas
-UPDATE dim_municipios SET codigo_postal = '01309' WHERE id = 16;
+-- Navaridas (codigo_ine: 1041)
+UPDATE dim_municipios SET codigo_postal = '01309' WHERE codigo_ine = 1041;
 
--- Oyón-Oion
-UPDATE dim_municipios SET codigo_postal = '01320' WHERE id = 17;
+-- Oyón-Oion (codigo_ine: 1043)
+UPDATE dim_municipios SET codigo_postal = '01320' WHERE codigo_ine = 1043;
 
--- Samaniego
-UPDATE dim_municipios SET codigo_postal = '01307' WHERE id = 18;
+-- Samaniego (codigo_ine: 1052)
+UPDATE dim_municipios SET codigo_postal = '01307' WHERE codigo_ine = 1052;
 
--- Villabuena de Álava / Eskuernaga
-UPDATE dim_municipios SET codigo_postal = '01307' WHERE id = 19;
+-- Villabuena de Álava / Eskuernaga (codigo_ine: 1057)
+UPDATE dim_municipios SET codigo_postal = '01307' WHERE codigo_ine = 1057;
 
--- Yécora / Iekora
-UPDATE dim_municipios SET codigo_postal = '01208' WHERE id = 20;
+-- Yécora / Iekora (codigo_ine: 1060)
+UPDATE dim_municipios SET codigo_postal = '01208' WHERE codigo_ine = 1060;
 
--- Alegría-Dulantzi
-UPDATE dim_municipios SET codigo_postal = '01240' WHERE id = 21;
+-- Alegría-Dulantzi (codigo_ine: 1001)
+UPDATE dim_municipios SET codigo_postal = '01240' WHERE codigo_ine = 1001;
 
--- Asparrena
-UPDATE dim_municipios SET codigo_postal = '01250' WHERE id = 22;
+-- Asparrena (codigo_ine: 1009)
+UPDATE dim_municipios SET codigo_postal = '01250' WHERE codigo_ine = 1009;
 
--- Barrundia
-UPDATE dim_municipios SET codigo_postal = '01110' WHERE id = 23;
+-- Barrundia (codigo_ine: 1013)
+UPDATE dim_municipios SET codigo_postal = '01110' WHERE codigo_ine = 1013;
 
--- Elburgo / Burgelu
-UPDATE dim_municipios SET codigo_postal = '01130' WHERE id = 24;
+-- Elburgo / Burgelu (codigo_ine: 1021)
+UPDATE dim_municipios SET codigo_postal = '01130' WHERE codigo_ine = 1021;
 
--- Iruraiz-Gauna
-UPDATE dim_municipios SET codigo_postal = '01259' WHERE id = 25;
+-- Iruraiz-Gauna (codigo_ine: 1027)
+UPDATE dim_municipios SET codigo_postal = '01259' WHERE codigo_ine = 1027;
 
--- Salvatierra / Agurain
-UPDATE dim_municipios SET codigo_postal = '01200' WHERE id = 26;
+-- Salvatierra / Agurain (codigo_ine: 1051)
+UPDATE dim_municipios SET codigo_postal = '01200' WHERE codigo_ine = 1051;
 
--- San Millán / Donemiliaga
-UPDATE dim_municipios SET codigo_postal = '01428' WHERE id = 27;
+-- San Millán / Donemiliaga (codigo_ine: 1053)
+UPDATE dim_municipios SET codigo_postal = '01428' WHERE codigo_ine = 1053;
 
--- Zalduondo
-UPDATE dim_municipios SET codigo_postal = '01130' WHERE id = 28;
+-- Zalduondo (codigo_ine: 1061)
+UPDATE dim_municipios SET codigo_postal = '01130' WHERE codigo_ine = 1061;
 
--- Aramaio
-UPDATE dim_municipios SET codigo_postal = '01166' WHERE id = 29;
+-- Aramaio (codigo_ine: 1003)
+UPDATE dim_municipios SET codigo_postal = '01166' WHERE codigo_ine = 1003;
 
--- Arratzua-Ubarrundia
-UPDATE dim_municipios SET codigo_postal = '01013' WHERE id = 30;
+-- Arratzua-Ubarrundia (codigo_ine: 1008)
+UPDATE dim_municipios SET codigo_postal = '01013' WHERE codigo_ine = 1008;
 
--- Legutio
-UPDATE dim_municipios SET codigo_postal = '01170' WHERE id = 31;
+-- Legutio (codigo_ine: 1036)
+UPDATE dim_municipios SET codigo_postal = '01170' WHERE codigo_ine = 1036;
 
--- Urkabustaiz
-UPDATE dim_municipios SET codigo_postal = '01138' WHERE id = 32;
+-- Urkabustaiz (codigo_ine: 1054)
+UPDATE dim_municipios SET codigo_postal = '01138' WHERE codigo_ine = 1054;
 
--- Zigoitia
-UPDATE dim_municipios SET codigo_postal = '01199' WHERE id = 33;
+-- Zigoitia (codigo_ine: 1018)
+UPDATE dim_municipios SET codigo_postal = '01199' WHERE codigo_ine = 1018;
 
--- Zuia
-UPDATE dim_municipios SET codigo_postal = '01194' WHERE id = 34;
+-- Zuia (codigo_ine: 1063)
+UPDATE dim_municipios SET codigo_postal = '01194' WHERE codigo_ine = 1063;
 
--- Añana
-UPDATE dim_municipios SET codigo_postal = '01426' WHERE id = 35;
+-- Añana (codigo_ine: 1049)
+UPDATE dim_municipios SET codigo_postal = '01426' WHERE codigo_ine = 1049;
 
--- Armiñón
-UPDATE dim_municipios SET codigo_postal = '01213' WHERE id = 36;
+-- Armiñón (codigo_ine: 1006)
+UPDATE dim_municipios SET codigo_postal = '01213' WHERE codigo_ine = 1006;
 
--- Berantevilla
-UPDATE dim_municipios SET codigo_postal = '01211' WHERE id = 37;
+-- Berantevilla (codigo_ine: 1014)
+UPDATE dim_municipios SET codigo_postal = '01211' WHERE codigo_ine = 1014;
 
--- Iruña de Oca / Iruña Oka
-UPDATE dim_municipios SET codigo_postal = '01230' WHERE id = 38;
+-- Iruña de Oca / Iruña Oka (codigo_ine: 1901)
+UPDATE dim_municipios SET codigo_postal = '01230' WHERE codigo_ine = 1901;
 
--- Kuartango
-UPDATE dim_municipios SET codigo_postal = '01478' WHERE id = 39;
+-- Kuartango (codigo_ine: 1020)
+UPDATE dim_municipios SET codigo_postal = '01478' WHERE codigo_ine = 1020;
 
--- Lantarón
-UPDATE dim_municipios SET codigo_postal = '01212' WHERE id = 40;
+-- Lantarón (codigo_ine: 1902)
+UPDATE dim_municipios SET codigo_postal = '01212' WHERE codigo_ine = 1902;
 
--- Ribera Alta / Erriberagoitia
-UPDATE dim_municipios SET codigo_postal = '01220' WHERE id = 41;
+-- Ribera Alta / Erriberagoitia (codigo_ine: 1024)
+UPDATE dim_municipios SET codigo_postal = '01220' WHERE codigo_ine = 1024;
 
--- Ribera Baja / Erriberabeitia
-UPDATE dim_municipios SET codigo_postal = '01219' WHERE id = 42;
+-- Ribera Baja / Erriberabeitia (codigo_ine: 1047)
+UPDATE dim_municipios SET codigo_postal = '01219' WHERE codigo_ine = 1047;
 
--- Sierra Brava de Badaia
-UPDATE dim_municipios SET codigo_postal = '99801' WHERE id = 43;
+-- Valdegovía / Gaubea (codigo_ine: 1055)
+UPDATE dim_municipios SET codigo_postal = '01439' WHERE codigo_ine = 1055;
 
--- Valdegovía / Gaubea
-UPDATE dim_municipios SET codigo_postal = '01439' WHERE id = 44;
+-- Zambrana (codigo_ine: 1062)
+UPDATE dim_municipios SET codigo_postal = '01214' WHERE codigo_ine = 1062;
 
--- Zambrana
-UPDATE dim_municipios SET codigo_postal = '01214' WHERE id = 45;
+-- Arraia-Maeztu (codigo_ine: 1058)
+UPDATE dim_municipios SET codigo_postal = '01196' WHERE codigo_ine = 1058;
 
--- Arraia-Maeztu
-UPDATE dim_municipios SET codigo_postal = '01196' WHERE id = 46;
+-- Bernedo (codigo_ine: 1016)
+UPDATE dim_municipios SET codigo_postal = '01118' WHERE codigo_ine = 1016;
 
--- Bernedo
-UPDATE dim_municipios SET codigo_postal = '01118' WHERE id = 47;
+-- Campezo / Kanpezu (codigo_ine: 1017)
+UPDATE dim_municipios SET codigo_postal = '01111' WHERE codigo_ine = 1017;
 
--- Campezo / Kanpezu
-UPDATE dim_municipios SET codigo_postal = '01111' WHERE id = 48;
+-- Lagrán (codigo_ine: 1030)
+UPDATE dim_municipios SET codigo_postal = '01308' WHERE codigo_ine = 1030;
 
--- Lagrán
-UPDATE dim_municipios SET codigo_postal = '01308' WHERE id = 49;
+-- Peñacerrada-Urizaharra (codigo_ine: 1044)
+UPDATE dim_municipios SET codigo_postal = '01212' WHERE codigo_ine = 1044;
 
--- Parzoneria de Entzia
-UPDATE dim_municipios SET codigo_postal = '99802' WHERE id = 50;
-
--- Peñacerrada-Urizaharra
-UPDATE dim_municipios SET codigo_postal = '01212' WHERE id = 51;
-
--- Valle de Arana / Harana
-UPDATE dim_municipios SET codigo_postal = '01268' WHERE id = 52;
+-- Valle de Arana / Harana (codigo_ine: 1056)
+UPDATE dim_municipios SET codigo_postal = '01268' WHERE codigo_ine = 1056;
 
 -- =====================================================================
 -- Verificación: Mostrar municipios con códigos postales
