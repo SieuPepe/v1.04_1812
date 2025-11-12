@@ -1594,7 +1594,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         self.campos_seleccionados = {}
         self.campos_orden = []
-        self.campo_seleccionado_idx = None  # Índice del campo seleccionado para reordenar
+        self.campo_seleccionado_key = None  # Key del campo seleccionado para reordenar (en lugar de índice)
 
         # Si hay definición del informe, usar sus campos
         if self.definicion_actual:
@@ -1737,37 +1737,34 @@ class InformesFrame(customtkinter.CTkFrame):
                 campo_info.set(False)
 
     def _seleccionar_campo_por_key(self, campo_key):
-        """Selecciona un campo mediante su key, buscando su índice actual en campos_orden"""
-        # Buscar el índice actual del campo en la lista ordenada
-        if campo_key in self.campos_orden:
-            idx = self.campos_orden.index(campo_key)
-            self._seleccionar_campo_para_reordenar(idx)
+        """Selecciona un campo mediante su key para reordenar"""
+        # Verificar que el campo existe
+        if campo_key not in self.campos_orden or campo_key not in self.campos_seleccionados:
+            return
 
-    def _seleccionar_campo_para_reordenar(self, idx):
-        """Selecciona un campo para poder reordenarlo"""
         # Deseleccionar campo anterior
-        if self.campo_seleccionado_idx is not None:
-            campo_key_anterior = self.campos_orden[self.campo_seleccionado_idx]
-            if campo_key_anterior in self.campos_seleccionados:
-                self.campos_seleccionados[campo_key_anterior]['frame'].configure(fg_color="transparent")
-                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=("gray10", "gray90"))
+        if self.campo_seleccionado_key and self.campo_seleccionado_key in self.campos_seleccionados:
+            self.campos_seleccionados[self.campo_seleccionado_key]['frame'].configure(fg_color="transparent")
+            self.campos_seleccionados[self.campo_seleccionado_key]['label'].configure(text_color=("gray10", "gray90"))
 
         # Seleccionar nuevo campo
-        self.campo_seleccionado_idx = idx
-        campo_key = self.campos_orden[idx]
+        self.campo_seleccionado_key = campo_key
         self.campos_seleccionados[campo_key]['frame'].configure(fg_color=("gray80", "gray25"))
         self.campos_seleccionados[campo_key]['label'].configure(text_color=("blue", "lightblue"))
 
-        # Habilitar/deshabilitar botones
+        # Habilitar/deshabilitar botones según posición en campos_orden
+        idx = self.campos_orden.index(campo_key)
         self.btn_mover_arriba.configure(state="normal" if idx > 0 else "disabled")
         self.btn_mover_abajo.configure(state="normal" if idx < len(self.campos_orden) - 1 else "disabled")
 
     def _mover_campo_arriba(self):
         """Mueve el campo seleccionado una posición arriba"""
-        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx == 0:
+        if not self.campo_seleccionado_key or self.campo_seleccionado_key not in self.campos_orden:
             return
 
-        idx = self.campo_seleccionado_idx
+        idx = self.campos_orden.index(self.campo_seleccionado_key)
+        if idx == 0:
+            return
 
         # Intercambiar en la lista de orden
         self.campos_orden[idx], self.campos_orden[idx - 1] = self.campos_orden[idx - 1], self.campos_orden[idx]
@@ -1775,16 +1772,17 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar visualización
         self._refrescar_orden_visual()
 
-        # Actualizar índice seleccionado
-        self.campo_seleccionado_idx = idx - 1
-        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+        # Reseleccionar el mismo campo (mantiene self.campo_seleccionado_key)
+        self._seleccionar_campo_por_key(self.campo_seleccionado_key)
 
     def _mover_campo_abajo(self):
         """Mueve el campo seleccionado una posición abajo"""
-        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx >= len(self.campos_orden) - 1:
+        if not self.campo_seleccionado_key or self.campo_seleccionado_key not in self.campos_orden:
             return
 
-        idx = self.campo_seleccionado_idx
+        idx = self.campos_orden.index(self.campo_seleccionado_key)
+        if idx >= len(self.campos_orden) - 1:
+            return
 
         # Intercambiar en la lista de orden
         self.campos_orden[idx], self.campos_orden[idx + 1] = self.campos_orden[idx + 1], self.campos_orden[idx]
@@ -1792,9 +1790,8 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar visualización
         self._refrescar_orden_visual()
 
-        # Actualizar índice seleccionado
-        self.campo_seleccionado_idx = idx + 1
-        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+        # Reseleccionar el mismo campo (mantiene self.campo_seleccionado_key)
+        self._seleccionar_campo_por_key(self.campo_seleccionado_key)
 
     def _refrescar_orden_visual(self):
         """Refresca la visualización de los campos según el orden actual"""
