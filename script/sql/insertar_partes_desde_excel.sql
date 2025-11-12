@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Script de importación de datos desde Excel a tbl_partes
--- Generado: 2025-11-12 07:09:25
+-- Generado: 2025-11-12 07:20:47
 -- Total de registros: 828
 -- NOTA: Este script NO hace TRUNCATE. Usa ON DUPLICATE KEY UPDATE.
 -- =====================================================================
