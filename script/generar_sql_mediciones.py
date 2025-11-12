@@ -100,12 +100,13 @@ def generar_sql_mediciones():
                     fecha_str = "NULL"
 
                 # Generar SELECT con subconsultas
+                # IMPORTANTE: precio_id del Excel es el CÓDIGO, no el ID interno
                 f.write("    SELECT\n")
                 f.write(f"        (SELECT id FROM tbl_partes WHERE codigo = '{codigo_parte}') AS parte_id,\n")
-                f.write(f"        {precio_id} AS precio_id,\n")
+                f.write(f"        (SELECT id FROM tbl_pres_precios WHERE codigo = '{precio_id}') AS precio_id,\n")
                 f.write(f"        {cantidad} AS cantidad,\n")
                 f.write(f"        {fecha_str} AS fecha,\n")
-                f.write(f"        (SELECT coste FROM tbl_pres_precios WHERE id = {precio_id}) AS precio_unit")
+                f.write(f"        (SELECT coste FROM tbl_pres_precios WHERE codigo = '{precio_id}') AS precio_unit")
 
                 # Añadir UNION ALL excepto en el último registro del lote
                 if idx < batch_df.index[-1]:
