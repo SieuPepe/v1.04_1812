@@ -21,7 +21,7 @@ ON DUPLICATE KEY UPDATE
 -- =====================================================================
 -- PASO 2: Insertar nuevos municipios "Varios" en dim_municipios
 -- =====================================================================
-INSERT INTO dim_municipios (id, codigo_ine, nombre, provincia_id, comarca_id, activo)
+INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo)
 VALUES
     (304, 0, 'Varios AIARA', 1, 1, 1),
     (305, 0, 'Varios LAGUA', 1, 2, 1),
@@ -32,7 +32,7 @@ VALUES
     (310, 0, 'Vitoria', 1, 9, 1),
     (311, 0, 'Varios ALAV', 1, 10, 1)
 ON DUPLICATE KEY UPDATE
-    nombre = VALUES(nombre),
+    municipio_nombre = VALUES(municipio_nombre),
     provincia_id = VALUES(provincia_id),
     comarca_id = VALUES(comarca_id),
     activo = VALUES(activo);
@@ -46,6 +46,6 @@ FROM dim_comarcas
 WHERE id IN (9, 10);
 
 SELECT 'Nuevos municipios insertados:' AS mensaje;
-SELECT id, codigo_ine, nombre, provincia_id, comarca_id, activo
+SELECT id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo
 FROM dim_municipios
 WHERE id BETWEEN 304 AND 311;

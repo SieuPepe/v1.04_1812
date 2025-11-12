@@ -10,7 +10,7 @@ ORDER BY id;
 
 -- Verificar municipios en el rango 304-311
 SELECT 'Estado actual de municipios (304-311):' AS mensaje;
-SELECT id, codigo_ine, nombre, provincia_id, comarca_id, activo
+SELECT id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo
 FROM dim_municipios
 WHERE id BETWEEN 304 AND 311
 ORDER BY id;
@@ -33,7 +33,7 @@ ON DUPLICATE KEY UPDATE
     comarca_nombre = VALUES(comarca_nombre);
 
 -- Insertar todos los municipios correctamente
-INSERT INTO dim_municipios (id, codigo_ine, nombre, provincia_id, comarca_id, activo)
+INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo)
 VALUES
     (304, 0, 'Varios AIARA', 1, 1, 1),
     (305, 0, 'Varios LAGUA', 1, 2, 1),
@@ -53,7 +53,7 @@ FROM dim_comarcas
 WHERE id IN (9, 10);
 
 SELECT 'Municipios después de corrección (304-311):' AS mensaje;
-SELECT id, codigo_ine, nombre, provincia_id, comarca_id, activo
+SELECT id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo
 FROM dim_municipios
 WHERE id BETWEEN 304 AND 311
 ORDER BY id;
