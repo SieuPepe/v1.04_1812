@@ -1635,7 +1635,7 @@ class InformesFrame(customtkinter.CTkFrame):
             campo_key_anterior = self.campos_orden[self.campo_seleccionado_idx]
             if campo_key_anterior in self.campos_seleccionados:
                 self.campos_seleccionados[campo_key_anterior]['frame'].configure(fg_color="transparent")
-                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=None)
+                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=("gray10", "gray90"))
 
         # Seleccionar nuevo campo
         self.campo_seleccionado_idx = idx

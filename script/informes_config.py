@@ -1565,7 +1565,10 @@ CAMPOS_PARTES = {
         "Red",
         "Tipo de Trabajo",
         "Código de Trabajo",
-        "Municipio"
+        "Tipo de Reparación",
+        "Municipio",
+        "Comarca",
+        "Provincia"
     ],
     "Económico": [
         "Presupuesto",
