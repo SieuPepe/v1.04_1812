@@ -1,13 +1,13 @@
 -- =====================================================================
 -- Script de importación de datos desde Excel a tbl_partes
--- Generado: 2025-11-12 07:04:08
+-- Generado: 2025-11-12 07:09:25
 -- Total de registros: 828
 -- NOTA: Este script NO hace TRUNCATE. Usa ON DUPLICATE KEY UPDATE.
 -- =====================================================================
 
 -- Insertar/actualizar los datos
 INSERT INTO tbl_partes (
-    id, codigo, red_id, tipo_trabajo_id, cod_trabajo_id, comarca_id, municipio_id, titulo, descripion, fecha_inicio, fecha_fin, latitud, longitud, estado, observaciones, creado_en, actualizado_en, descripcion_larga, descripcion_corta, id_estado, finalizada, localizacion, id_municipio, trabajadores, provincia_id, tipo_rep_id
+    id, codigo, red_id, tipo_trabajo_id, cod_trabajo_id, comarca_id, municipio_id, titulo, descripcion, fecha_inicio, fecha_fin, latitud, longitud, estado, observaciones, creado_en, actualizado_en, descripcion_larga, descripcion_corta, id_estado, finalizada, localizacion, id_municipio, trabajadores, provincia_id, tipo_rep_id
 ) VALUES
     (1, 'TP/0001', 5.0, 2, 1, 1, 3, 'Limpieza tamices en Lejarzo', 'Limpieza de las tamices de 7:00 a 12:00 en Lejarzo', '2025-08-01 00:00:00', '2025-08-01 00:00:00', 43.060111111111105, '-3.12325', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'Lejarzo', 3, '0', 1, 0),
     (2, 'OT/0092', 3.0, 1, 0, 1, 1, 'Abrir válvula en Erbi', 'Se ha abierto una válvula en Erbi de 14:50 - 15:25', '2025-08-01 00:00:00', '2025-08-01 00:00:00', 43.07491666666667, '-3.1068611111111113', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 'Erbi', 1, '0', 1, 3),
@@ -845,7 +845,7 @@ ON DUPLICATE KEY UPDATE
     comarca_id = VALUES(comarca_id),
     municipio_id = VALUES(municipio_id),
     titulo = VALUES(titulo),
-    descripion = VALUES(descripion),
+    descripcion = VALUES(descripcion),
     fecha_inicio = VALUES(fecha_inicio),
     fecha_fin = VALUES(fecha_fin),
     latitud = VALUES(latitud),

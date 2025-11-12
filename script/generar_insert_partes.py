@@ -42,6 +42,10 @@ def main():
         print(f"Registros encontrados: {len(df)}")
         print(f"Columnas: {list(df.columns)}")
 
+        # Renombrar columnas con errores de ortografía
+        df = df.rename(columns={'descripion': 'descripcion'})
+        print(f"Columnas después de renombrar: {list(df.columns)}")
+
         # Abrir archivo de salida
         with open(output_file, 'w', encoding='utf-8') as f:
             # Escribir encabezado
