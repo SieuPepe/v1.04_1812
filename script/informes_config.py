@@ -70,6 +70,12 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "codigo",
                 "grupo": "Información Básica"
             },
+            "titulo": {
+                "nombre": "Título",
+                "tipo": "texto",
+                "columna_bd": "titulo",
+                "grupo": "Información Básica"
+            },
             "descripcion": {
                 "nombre": "Descripción",
                 "tipo": "texto",
@@ -221,13 +227,18 @@ INFORMES_DEFINICIONES = {
         "filtros": {
             "mes": {
                 "campo": "mes",
-                "tipo": "fecha",
+                "tipo": "mes_anio",
                 "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
             },
             "año": {
                 "campo": "año",
-                "tipo": "numerico",
+                "tipo": "anio",
                 "operadores": ["Igual a", "Mayor a", "Menor a", "Entre"]
+            },
+            "titulo": {
+                "campo": "titulo",
+                "tipo": "texto",
+                "operadores": ["Igual a", "Diferente de", "Contiene", "No contiene"]
             },
             "estado": {
                 "campo": "estado",
@@ -414,6 +425,7 @@ INFORMES_DEFINICIONES = {
         # Campos por defecto seleccionados
         "campos_default": [
             "codigo",
+            "titulo",
             "descripcion",
             "estado",
             "red",
@@ -1557,6 +1569,7 @@ INFORMES_DEFINICIONES = {
 CAMPOS_PARTES = {
     "Información Básica": [
         "Código del parte",
+        "Título",
         "Descripción",
         "Estado"
     ],

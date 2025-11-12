@@ -1354,6 +1354,67 @@ class InformesFrame(customtkinter.CTkFrame):
                 locale='es_ES'
             )
             widget2.grid(row=0, column=2)
+
+        elif tipo_actual == 'mes_anio':
+            # Para mes/año, crear dos selectores de mes/año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+            meses = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+
+            # Primer selector (desde)
+            frame1 = customtkinter.CTkFrame(range_frame, fg_color="transparent")
+            frame1.grid(row=0, column=0, padx=(0, 5))
+
+            combo_year1 = customtkinter.CTkComboBox(frame1, values=years, width=70, state="readonly")
+            combo_year1.set(str(current_year))
+            combo_year1.grid(row=0, column=0, padx=(0, 2))
+
+            combo_month1 = customtkinter.CTkComboBox(frame1, values=meses, width=50, state="readonly")
+            combo_month1.set("01")
+            combo_month1.grid(row=0, column=1)
+
+            frame1.combo_year = combo_year1
+            frame1.combo_month = combo_month1
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            # Segundo selector (hasta)
+            frame2 = customtkinter.CTkFrame(range_frame, fg_color="transparent")
+            frame2.grid(row=0, column=2)
+
+            combo_year2 = customtkinter.CTkComboBox(frame2, values=years, width=70, state="readonly")
+            combo_year2.set(str(current_year))
+            combo_year2.grid(row=0, column=0, padx=(0, 2))
+
+            combo_month2 = customtkinter.CTkComboBox(frame2, values=meses, width=50, state="readonly")
+            combo_month2.set("12")
+            combo_month2.grid(row=0, column=1)
+
+            frame2.combo_year = combo_year2
+            frame2.combo_month = combo_month2
+
+            widget1 = frame1
+            widget2 = frame2
+
+        elif tipo_actual == 'anio':
+            # Para año, crear dos selectores de año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            widget1 = customtkinter.CTkComboBox(range_frame, values=years, width=90, state="readonly")
+            widget1.set(str(current_year - 1))
+            widget1.grid(row=0, column=0, padx=(0, 5))
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = customtkinter.CTkComboBox(range_frame, values=years, width=90, state="readonly")
+            widget2.set(str(current_year))
+            widget2.grid(row=0, column=2)
+
         else:
             # Para numéricos, usar Entry normal
             widget1 = customtkinter.CTkEntry(
@@ -1426,6 +1487,53 @@ class InformesFrame(customtkinter.CTkFrame):
                 date_pattern='yyyy-mm-dd',
                 locale='es_ES'
             )
+
+        elif tipo == 'mes_anio':
+            # Selector de mes y año (dos comboboxes)
+            frame_mes_anio = customtkinter.CTkFrame(filtro_obj['container'], fg_color="transparent")
+
+            # Generar lista de años (últimos 10 años + próximos 2)
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            # ComboBox para año
+            combo_year = customtkinter.CTkComboBox(
+                frame_mes_anio,
+                values=years,
+                width=80,
+                state="readonly"
+            )
+            combo_year.set(str(current_year))
+            combo_year.grid(row=0, column=0, padx=(0, 5))
+
+            # ComboBox para mes
+            meses = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+            combo_month = customtkinter.CTkComboBox(
+                frame_mes_anio,
+                values=meses,
+                width=60,
+                state="readonly"
+            )
+            combo_month.set(f"{datetime.datetime.now().month:02d}")
+            combo_month.grid(row=0, column=1)
+
+            # Guardar ambos combos en el widget
+            frame_mes_anio.combo_year = combo_year
+            frame_mes_anio.combo_month = combo_month
+            widget = frame_mes_anio
+
+        elif tipo == 'anio':
+            # Selector de año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=years,
+                width=100,
+                state="readonly"
+            )
+            widget.set(str(current_year))
 
         else:
             # Default: Entry de texto
@@ -1744,11 +1852,21 @@ class InformesFrame(customtkinter.CTkFrame):
                     # Obtener valor según tipo de widget
                     if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
                         valor1 = widget1.get()
+                    elif isinstance(widget1, customtkinter.CTkComboBox):
+                        valor1 = widget1.get()
+                    elif hasattr(widget1, 'combo_year') and hasattr(widget1, 'combo_month'):
+                        # Widget mes_anio personalizado
+                        valor1 = f"{widget1.combo_year.get()}-{widget1.combo_month.get()}"
                     else:
                         valor1 = ""
 
                     if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
                         valor2 = widget2.get()
+                    elif isinstance(widget2, customtkinter.CTkComboBox):
+                        valor2 = widget2.get()
+                    elif hasattr(widget2, 'combo_year') and hasattr(widget2, 'combo_month'):
+                        # Widget mes_anio personalizado
+                        valor2 = f"{widget2.combo_year.get()}-{widget2.combo_month.get()}"
                     else:
                         valor2 = ""
 
@@ -1765,6 +1883,9 @@ class InformesFrame(customtkinter.CTkFrame):
                     valor = valor_widget.get()
                 elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
+                elif hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    # Widget mes_anio personalizado
+                    valor = f"{valor_widget.combo_year.get()}-{valor_widget.combo_month.get()}"
                 else:
                     valor = ""
 
