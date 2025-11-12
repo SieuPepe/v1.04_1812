@@ -58,21 +58,21 @@ class AppManagerProject(customtkinter.CTkToplevel):
         self.grid_columnconfigure(1, weight=1)
 
         # cargar imagenes de iconos
-        image_logo_path = parent_path +"/source/logo artanda2.png"
+        image_logo_path = parent_path +"/resources/images/logo artanda2.png"
         self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 44))
-        resume_path = parent_path +"/source/resumen.png"  # quitar punto cuando ya no este en pruebas
+        resume_path = parent_path +"/resources/images/resumen.png"  # quitar punto cuando ya no este en pruebas
         self.resume_image = customtkinter.CTkImage(Image.open(resume_path),
                                                       size=(30, 30))
-        inventory_path = parent_path +"/source/registro.png" #quitar punto cuando ya no este en pruebas
+        inventory_path = parent_path +"/resources/images/registro.png" #quitar punto cuando ya no este en pruebas
         self.inventory_image = customtkinter.CTkImage(Image.open(inventory_path),
                                                  size=(30, 30))
-        catalog_path = parent_path +"/source/valvula.png"#quitar punto cuando ya no este en pruebas
+        catalog_path = parent_path +"/resources/images/valvula.png"#quitar punto cuando ya no este en pruebas
         self.catalog_image = customtkinter.CTkImage(Image.open(catalog_path),
                                                  size=(30, 30))
-        budget_path = parent_path +"/source/presupuesto.png" #quitar punto cuando ya no este en pruebas
+        budget_path = parent_path +"/resources/images/presupuesto.png" #quitar punto cuando ya no este en pruebas
         self.budget_image = customtkinter.CTkImage(Image.open(budget_path),
                                                       size=(30, 30))
-        cost_path = parent_path +"/source/certificaciones.png" #quitar punto cuando ya no este en pruebas
+        cost_path = parent_path +"/resources/images/certificaciones.png" #quitar punto cuando ya no este en pruebas
         self.cost_image = customtkinter.CTkImage(Image.open(cost_path),
                                                       size=(30, 30))
 
@@ -890,7 +890,7 @@ class AppManagerProject(customtkinter.CTkToplevel):
             self.photos_button.grid(row=3, padx=30, pady=5, sticky="nsew")
 
             # boton de guardar
-            save_path = parent_path +"/source/guardar.png"
+            save_path = parent_path +"/resources/images/guardar.png"
             self.save_image = customtkinter.CTkImage(Image.open(save_path))
             self.save_change_button = customtkinter.CTkButton(self.inventory_frame, fg_color="#005e08", height=40,
                                                               text="Guardar cambios", image=self.save_image,
@@ -1090,7 +1090,7 @@ class AppManagerProject(customtkinter.CTkToplevel):
             # actualizar totales
             self.update_total_budget_event()
 
-            image_update_path = parent_path +"/source/actualizar.png"
+            image_update_path = parent_path +"/resources/images/actualizar.png"
             self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20, 20))
             self.update_total_budget_button = customtkinter.CTkButton(self.budget_frame, text="Actualizar total",
                                                                       image=self.update_image,
@@ -2739,11 +2739,11 @@ class AppManagerProject(customtkinter.CTkToplevel):
 
     def update_data_budget (self, select_data, item_budget):
         # cargar imagen de icono
-        image_info_path = parent_path +"/source/info.png"
+        image_info_path = parent_path +"/resources/images/info.png"
         self.info_image = customtkinter.CTkImage(Image.open(image_info_path), size=(20,20))
-        image_update_path = parent_path +"/source/actualizar.png"
+        image_update_path = parent_path +"/resources/images/actualizar.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20,20))
-        image_delete_path = parent_path +"/source/papelera.png"
+        image_delete_path = parent_path +"/resources/images/papelera.png"
         self.delete_image = customtkinter.CTkImage(Image.open(image_delete_path), size=(20,20))
 
         # Listas para almacenar las variables por fila
@@ -3061,13 +3061,13 @@ class AppManagerProject(customtkinter.CTkToplevel):
 
     def update_data_cost (self, select_data, item_no_cert, item_cert):
         # cargar imagen de icono
-        image_info_path = parent_path +"/source/info.png"
+        image_info_path = parent_path +"/resources/images/info.png"
         self.info_image = customtkinter.CTkImage(Image.open(image_info_path), size=(20,20))
-        image_update_path = parent_path +"/source/actualizar.png"
+        image_update_path = parent_path +"/resources/images/actualizar.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20,20))
-        image_delete_path = parent_path +"/source/papelera.png"
+        image_delete_path = parent_path +"/resources/images/papelera.png"
         self.delete_image = customtkinter.CTkImage(Image.open(image_delete_path), size=(20,20))
-        image_cert_path = parent_path +"/source/monedas.png"
+        image_cert_path = parent_path +"/resources/images/monedas.png"
         self.cert_image = customtkinter.CTkImage(Image.open(image_cert_path), size=(20,20))
 
         # /////////////////////NO CERTIFICADAS//////////////////////////

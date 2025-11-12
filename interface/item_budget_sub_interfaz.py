@@ -107,7 +107,7 @@ class AppGroupBudgetAdd(BaseWindow):
 
         # _-_-_-__-_-_-__-_-_-__-_-_-__-_-_-__-_-_-_BOTONES_-_-_-__-_-_-__-_-_-__-_-_-__-_-_-__-_-_-_
         # boton de guardar
-        save_path = parent_path +"/source/guardar.png"
+        save_path = parent_path +"/resources/images/guardar.png"
         self.save_image = customtkinter.CTkImage(Image.open(save_path))
         self.save_button = customtkinter.CTkButton(self, text="Guardar",image=self.save_image, compound="left",fg_color="green",
                                                    font=("default", 14, "bold"),
@@ -115,7 +115,7 @@ class AppGroupBudgetAdd(BaseWindow):
         self.save_button.grid(row=8, column=1, padx=(30,1), pady=10, sticky= "ew")
 
         # boton de cancelar
-        cancel_path = parent_path +"/source/cancelar.png"
+        cancel_path = parent_path +"/resources/images/cancelar.png"
         self.cancel_image = customtkinter.CTkImage(Image.open(cancel_path))
         self.cancel_button = customtkinter.CTkButton(self, text="Cancelar",image=self.cancel_image, compound="left",fg_color="red",
                                                    font=("default", 14, "bold"),
@@ -308,7 +308,7 @@ class AppItemGroupBudgetAdd(BaseWindow):
         self.save_button.grid(row=3, column=1, padx=(30, 1), pady=10, sticky="ew")
 
         # boton de cancelar
-        cancel_path = parent_path +"/source/cancelar.png"
+        cancel_path = parent_path +"/resources/images/cancelar.png"
         self.cancel_image = customtkinter.CTkImage(Image.open(cancel_path))
         self.cancel_button = customtkinter.CTkButton(self, text="Cancelar", image=self.cancel_image, compound="left",
                                                      fg_color="red",
@@ -377,11 +377,11 @@ class AppItemGroupBudgetAdd(BaseWindow):
     
     def update_data_frame (self, select_data, items_group):
         # cargar imagen de icono
-        image_info_path = parent_path +"/source/info.png"
+        image_info_path = parent_path +"/resources/images/info.png"
         self.info_image = customtkinter.CTkImage(Image.open(image_info_path), size=(20,20))
-        image_update_path = parent_path +"/source/actualizar.png"
+        image_update_path = parent_path +"/resources/images/actualizar.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20,20))
-        image_delete_path = parent_path +"/source/papelera.png"
+        image_delete_path = parent_path +"/resources/images/papelera.png"
         self.delete_image = customtkinter.CTkImage(Image.open(image_delete_path), size=(20,20))
 
         # Listas para almacenar las variables por fila
@@ -683,7 +683,7 @@ class AppItemGroupBudgetMod(BaseWindow):
         self.save_button.grid(row=3, column=1, padx=(30, 1), pady=10, sticky="ew")
 
         # boton de cancelar
-        cancel_path = parent_path +"/source/cancelar.png"
+        cancel_path = parent_path +"/resources/images/cancelar.png"
         self.cancel_image = customtkinter.CTkImage(Image.open(cancel_path))
         self.cancel_button = customtkinter.CTkButton(self, text="Cancelar", image=self.cancel_image, compound="left",
                                                      fg_color="red",
@@ -755,11 +755,11 @@ class AppItemGroupBudgetMod(BaseWindow):
 
     def update_data_frame(self, select_data, items_group):
         # cargar imagen de icono
-        image_info_path = parent_path +"/source/info.png"
+        image_info_path = parent_path +"/resources/images/info.png"
         self.info_image = customtkinter.CTkImage(Image.open(image_info_path), size=(20, 20))
-        image_update_path = parent_path +"/source/actualizar.png"
+        image_update_path = parent_path +"/resources/images/actualizar.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20, 20))
-        image_delete_path = parent_path +"/source/papelera.png"
+        image_delete_path = parent_path +"/resources/images/papelera.png"
         self.delete_image = customtkinter.CTkImage(Image.open(image_delete_path), size=(20, 20))
 
         # Listas para almacenar las variables por fila

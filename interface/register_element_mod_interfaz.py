@@ -196,7 +196,7 @@ class AppElementModEmpty(customtkinter.CTkToplevel):  # Toplevel
 
         self.grid_rowconfigure(8, weight=1)
         # boton de guardar
-        save_path = parent_path + "/source/guardar.png"
+        save_path = parent_path + "/resources/images/guardar.png"
         self.save_image = customtkinter.CTkImage(Image.open(save_path))
         self.save_button = customtkinter.CTkButton(self, text="Guardar", image=self.save_image, compound="left",
                                                    fg_color="green",
@@ -979,7 +979,7 @@ class AppElementModNoEmpty(customtkinter.CTkToplevel):  # Toplevel
 
 
         # boton de guardar
-        save_path = parent_path +"/source/guardar.png"
+        save_path = parent_path +"/resources/images/guardar.png"
         self.save_image = customtkinter.CTkImage(Image.open(save_path))
         self.save_button = customtkinter.CTkButton(self, text="Guardar", image=self.save_image, compound="left",
                                                    fg_color="green",
