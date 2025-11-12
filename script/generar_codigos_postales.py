@@ -97,7 +97,7 @@ def main():
         f.write("    AND COLUMN_NAME = 'codigo_postal');\n\n")
 
         f.write("SET @sql_add_col = IF(@col_exists = 0,\n")
-        f.write("    'ALTER TABLE dim_municipios ADD COLUMN codigo_postal VARCHAR(10) DEFAULT NULL AFTER nombre',\n")
+        f.write("    'ALTER TABLE dim_municipios ADD COLUMN codigo_postal VARCHAR(10) DEFAULT NULL AFTER municipio_nombre',\n")
         f.write("    'SELECT \"Columna codigo_postal ya existe en dim_municipios\" AS mensaje');\n\n")
 
         f.write("PREPARE stmt FROM @sql_add_col;\n")
@@ -121,9 +121,15 @@ def main():
             f.write("-- No se encontraron duplicados en los códigos postales\n")
         f.write("\n")
 
-        # Paso 2: Actualizar códigos postales
+        # Paso 2: Actualizar provincia_id para municipios 1-52
         f.write("-- =====================================================================\n")
-        f.write("-- PASO 2: Actualizar códigos postales de municipios de Álava\n")
+        f.write("-- PASO 2: Actualizar provincia_id para municipios de Álava (1-52)\n")
+        f.write("-- =====================================================================\n")
+        f.write("UPDATE dim_municipios SET provincia_id = 1 WHERE id >= 1 AND id <= 52;\n\n")
+
+        # Paso 3: Actualizar códigos postales
+        f.write("-- =====================================================================\n")
+        f.write("-- PASO 3: Actualizar códigos postales de municipios de Álava\n")
         f.write("-- =====================================================================\n\n")
 
         for id_mun, nombre, codigo_postal, comarca_id in codigos_postales:
@@ -136,14 +142,15 @@ def main():
         f.write("-- =====================================================================\n")
         f.write("SELECT \n")
         f.write("    m.id,\n")
-        f.write("    m.nombre,\n")
+        f.write("    m.municipio_nombre,\n")
         f.write("    m.codigo_postal,\n")
+        f.write("    m.provincia_id,\n")
         f.write("    c.nombre AS comarca,\n")
         f.write("    p.nombre AS provincia\n")
         f.write("FROM dim_municipios m\n")
         f.write("LEFT JOIN dim_comarcas c ON m.comarca_id = c.id\n")
         f.write("LEFT JOIN dim_provincias p ON m.provincia_id = p.id\n")
-        f.write("WHERE m.provincia_id = 1\n")
+        f.write("WHERE m.id >= 1 AND m.id <= 52\n")
         f.write("ORDER BY m.comarca_id, m.id;\n\n")
 
         f.write("-- Contar municipios sin código postal\n")

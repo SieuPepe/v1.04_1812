@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Script para actualizar códigos postales en dim_municipios
--- Generado: 2025-11-12 07:23:31
+-- Generado: 2025-11-12 07:28:23
 -- Total de municipios: 52
 -- =====================================================================
 
@@ -14,7 +14,7 @@ SET @col_exists = (SELECT COUNT(*)
     AND COLUMN_NAME = 'codigo_postal');
 
 SET @sql_add_col = IF(@col_exists = 0,
-    'ALTER TABLE dim_municipios ADD COLUMN codigo_postal VARCHAR(10) DEFAULT NULL AFTER nombre',
+    'ALTER TABLE dim_municipios ADD COLUMN codigo_postal VARCHAR(10) DEFAULT NULL AFTER municipio_nombre',
     'SELECT "Columna codigo_postal ya existe en dim_municipios" AS mensaje');
 
 PREPARE stmt FROM @sql_add_col;
@@ -33,7 +33,12 @@ DEALLOCATE PREPARE stmt;
 -- 01212: Peñacerrada-Urizaharra
 
 -- =====================================================================
--- PASO 2: Actualizar códigos postales de municipios de Álava
+-- PASO 2: Actualizar provincia_id para municipios de Álava (1-52)
+-- =====================================================================
+UPDATE dim_municipios SET provincia_id = 1 WHERE id >= 1 AND id <= 52;
+
+-- =====================================================================
+-- PASO 3: Actualizar códigos postales de municipios de Álava
 -- =====================================================================
 
 -- Amurrio
@@ -197,14 +202,15 @@ UPDATE dim_municipios SET codigo_postal = '01268' WHERE id = 52;
 -- =====================================================================
 SELECT 
     m.id,
-    m.nombre,
+    m.municipio_nombre,
     m.codigo_postal,
+    m.provincia_id,
     c.nombre AS comarca,
     p.nombre AS provincia
 FROM dim_municipios m
 LEFT JOIN dim_comarcas c ON m.comarca_id = c.id
 LEFT JOIN dim_provincias p ON m.provincia_id = p.id
-WHERE m.provincia_id = 1
+WHERE m.id >= 1 AND m.id <= 52
 ORDER BY m.comarca_id, m.id;
 
 -- Contar municipios sin código postal
