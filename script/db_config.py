@@ -19,7 +19,11 @@ class DatabaseConfig:
     DEFAULT_HOST = 'localhost'
     DEFAULT_PORT = 3307
     DEFAULT_MANAGER_SCHEMA = 'manager'
-    DEFAULT_EXAMPLE_SCHEMA = 'proyecto_tipo'
+    DEFAULT_EXAMPLE_SCHEMA = 'cert_dev'
+
+    # Esquemas válidos para el generador de partes
+    # Solo estos esquemas están preparados con las tablas necesarias
+    VALID_PARTS_GENERATOR_SCHEMAS = ['cert_dev']
 
     def __init__(self):
         """Inicializa la configuración desde variables de entorno o valores por defecto."""

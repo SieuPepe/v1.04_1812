@@ -90,6 +90,7 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.certificaciones_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.informes_frame = customtkinter.CTkFrame(self, corner_radius=0)
+        self.ayuda_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
         # Generar vistas
         self.main_resumen()
@@ -97,6 +98,7 @@ class AppPartsManager(customtkinter.CTk):
         self.main_presupuesto()
         self.main_certificaciones()
         self.main_informes()
+        self.main_ayuda()
 
         # Seleccionar frame por defecto
         self.select_frame_by_name("resumen")
@@ -117,6 +119,9 @@ class AppPartsManager(customtkinter.CTk):
 
         informes_path = os.path.join(parent_path, "source/informes.png")
         self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
+
+        ayuda_path = os.path.join(parent_path, "source/info.png")
+        self.ayuda_image = customtkinter.CTkImage(Image.open(ayuda_path), size=(30, 30))
 
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
@@ -201,8 +206,18 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.informes_button.grid(row=7, column=0, sticky="ew")
 
+        # Botón Ayuda
+        self.ayuda_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=0, height=40,
+            border_spacing=10, text="Ayuda", fg_color="transparent",
+            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+            image=self.ayuda_image, font=customtkinter.CTkFont(size=15, weight="bold"),
+            anchor="w", command=lambda: self.select_frame_by_name("ayuda")
+        )
+        self.ayuda_button.grid(row=8, column=0, sticky="ew")
+
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(8, weight=1)
+        self.navigation_frame.grid_rowconfigure(9, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -212,7 +227,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=9, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=10, padx=30, pady=(15, 15), sticky="nsew")
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
@@ -282,6 +297,8 @@ class AppPartsManager(customtkinter.CTk):
             fg_color=("gray75", "gray25") if name == "certificaciones" else "transparent")
         self.informes_button.configure(
             fg_color=("gray75", "gray25") if name == "informes" else "transparent")
+        self.ayuda_button.configure(
+            fg_color=("gray75", "gray25") if name == "ayuda" else "transparent")
 
         # Mostrar frame seleccionado
         if name == "resumen":
@@ -308,6 +325,11 @@ class AppPartsManager(customtkinter.CTk):
             self.informes_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
         else:
             self.informes_frame.grid_forget()
+
+        if name == "ayuda":
+            self.ayuda_frame.grid(row=0, column=1, padx=30, pady=(15, 15), sticky="nsew")
+        else:
+            self.ayuda_frame.grid_forget()
 
     def main_resumen(self):
         """Pestaña Resumen - Lista de partes con KPIs"""
@@ -2809,6 +2831,393 @@ class AppPartsManager(customtkinter.CTk):
             schema=self.schema
         )
         informes_app.grid(row=0, column=0, sticky="nsew")
+
+    def main_ayuda(self):
+        """Pestaña Ayuda - Información y ayuda del programa"""
+        self.ayuda_frame.grid_columnconfigure(0, weight=1)
+        self.ayuda_frame.grid_rowconfigure(0, weight=1)
+
+        # Frame principal sin scroll (para que el TabView ocupe toda la altura)
+        main_frame = customtkinter.CTkFrame(
+            self.ayuda_frame,
+            fg_color="transparent"
+        )
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(1, weight=1)
+
+        # Título principal
+        titulo = customtkinter.CTkLabel(
+            main_frame,
+            text="Ayuda",
+            font=customtkinter.CTkFont(size=32, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # TabView para diferentes secciones de ayuda (sin height fijo)
+        tabview = customtkinter.CTkTabview(main_frame)
+        tabview.grid(row=1, column=0, sticky="nsew")
+
+        # Crear pestañas
+        tab_acerca_de = tabview.add("Acerca de")
+        tab_manual = tabview.add("Manual de Usuario")
+        tab_soporte = tabview.add("Soporte")
+
+        # ===== PESTAÑA: ACERCA DE =====
+        self._create_acerca_de_tab(tab_acerca_de)
+
+        # ===== PESTAÑA: MANUAL DE USUARIO =====
+        self._create_manual_usuario_tab(tab_manual)
+
+        # ===== PESTAÑA: SOPORTE =====
+        self._create_soporte_tab(tab_soporte)
+
+        # Seleccionar "Acerca de" por defecto
+        tabview.set("Acerca de")
+
+    def _create_acerca_de_tab(self, parent):
+        """Crea el contenido de la pestaña 'Acerca de'"""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        # Frame contenedor con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Nombre del programa
+        nombre = customtkinter.CTkLabel(
+            scroll_frame,
+            text="HydroFlow Manager",
+            font=customtkinter.CTkFont(size=28, weight="bold")
+        )
+        nombre.grid(row=0, column=0, pady=(0, 10))
+
+        # Versión
+        version = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Versión 1.04.1812",
+            font=customtkinter.CTkFont(size=18)
+        )
+        version.grid(row=1, column=0, pady=(0, 30))
+
+        # Descripción
+        descripcion = customtkinter.CTkTextbox(
+            scroll_frame,
+            height=200,
+            wrap="word",
+            font=customtkinter.CTkFont(size=14)
+        )
+        descripcion.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        descripcion.insert("1.0",
+            "HydroFlow Manager es un sistema integral de gestión de proyectos "
+            "hidroeléctricos y de infraestructura.\n\n"
+            "Permite gestionar partes de trabajo, presupuestos, certificaciones "
+            "e informes de manera eficiente y centralizada.\n\n"
+            "Características principales:\n"
+            "• Gestión de partes de trabajo\n"
+            "• Control de presupuestos\n"
+            "• Certificaciones mensuales\n"
+            "• Generación de informes personalizados\n"
+            "• Sistema de agrupación y filtrado avanzado\n"
+            "• Exportación a Excel, Word y PDF"
+        )
+        descripcion.configure(state="disabled")
+
+        # Información del desarrollador
+        separator1 = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator1.grid(row=3, column=0, sticky="ew", pady=20)
+
+        dev_label = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Desarrollado por:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        dev_label.grid(row=4, column=0, pady=(0, 10))
+
+        # Logo de Epicentrum
+        try:
+            logo_epicentrum_path = os.path.join(parent_path, "source/logo_ep_N.png")
+            if os.path.exists(logo_epicentrum_path):
+                logo_ep_image = customtkinter.CTkImage(
+                    Image.open(logo_epicentrum_path),
+                    size=(300, 100)
+                )
+                logo_ep_label = customtkinter.CTkLabel(scroll_frame, text="", image=logo_ep_image)
+                logo_ep_label.grid(row=5, column=0, pady=(0, 10))
+        except Exception as e:
+            print(f"No se pudo cargar el logo de Epicentrum: {e}")
+
+        dev_info = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Epicentrum Ingenieros",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            justify="center"
+        )
+        dev_info.grid(row=6, column=0, pady=(0, 20))
+
+        # Cliente
+        cliente_label = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Para:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        cliente_label.grid(row=7, column=0, pady=(0, 10))
+
+        # Logo de Redes Urbide
+        try:
+            logo_urbide_path = os.path.join(parent_path, "source/Logo Redes Urbide.jpg")
+            if os.path.exists(logo_urbide_path):
+                logo_urbide_image = customtkinter.CTkImage(
+                    Image.open(logo_urbide_path),
+                    size=(200, 60)
+                )
+                logo_urbide_label = customtkinter.CTkLabel(scroll_frame, text="", image=logo_urbide_image)
+                logo_urbide_label.grid(row=8, column=0, pady=(0, 10))
+        except Exception as e:
+            print(f"No se pudo cargar el logo de Redes Urbide: {e}")
+
+        cliente_info = customtkinter.CTkLabel(
+            scroll_frame,
+            text="UTE Redes Urbide",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            justify="center"
+        )
+        cliente_info.grid(row=9, column=0, pady=(0, 20))
+
+        # Información de copyright
+        separator2 = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator2.grid(row=10, column=0, sticky="ew", pady=20)
+
+        copyright_label = customtkinter.CTkLabel(
+            scroll_frame,
+            text="© 2025 Epicentrum Ingenieros. Todos los derechos reservados.",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray"
+        )
+        copyright_label.grid(row=11, column=0, pady=(0, 10))
+
+        # Tecnologías utilizadas
+        tech_label = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Tecnologías:",
+            font=customtkinter.CTkFont(size=14, weight="bold")
+        )
+        tech_label.grid(row=12, column=0, pady=(20, 5), sticky="w")
+
+        tech_info = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Python 3.11 • CustomTkinter • MySQL 8.0 • ReportLab • OpenPyXL",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray"
+        )
+        tech_info.grid(row=13, column=0, pady=(0, 30), sticky="w")
+
+    def _create_manual_usuario_tab(self, parent):
+        """Crea el contenido de la pestaña 'Manual de Usuario'"""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Título
+        titulo = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Manual de Usuario",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # Descripción
+        descripcion = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Descarga los manuales disponibles para aprender a usar HydroFlow Manager:",
+            font=customtkinter.CTkFont(size=14),
+            wraplength=600,
+            justify="left"
+        )
+        descripcion.grid(row=1, column=0, pady=(0, 30), sticky="w")
+
+        # Frame para los botones de descarga
+        botones_frame = customtkinter.CTkFrame(scroll_frame)
+        botones_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        botones_frame.grid_columnconfigure(0, weight=1)
+
+        # Manual de Usuario
+        btn_manual_usuario = customtkinter.CTkButton(
+            botones_frame,
+            text="📄 Manual de Usuario (PDF)",
+            font=customtkinter.CTkFont(size=14),
+            height=40,
+            command=lambda: self._descargar_manual("usuario")
+        )
+        btn_manual_usuario.grid(row=0, column=0, padx=20, pady=10, sticky="ew")
+
+        # Manual de Informes
+        btn_manual_informes = customtkinter.CTkButton(
+            botones_frame,
+            text="📊 Manual de Informes (PDF)",
+            font=customtkinter.CTkFont(size=14),
+            height=40,
+            command=lambda: self._descargar_manual("informes")
+        )
+        btn_manual_informes.grid(row=1, column=0, padx=20, pady=10, sticky="ew")
+
+        # Guía Técnica
+        btn_guia_tecnica = customtkinter.CTkButton(
+            botones_frame,
+            text="🔧 Guía Técnica (PDF)",
+            font=customtkinter.CTkFont(size=14),
+            height=40,
+            command=lambda: self._descargar_manual("tecnica")
+        )
+        btn_guia_tecnica.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
+
+        # Nota informativa
+        nota = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Los manuales se descargarán en formato PDF en la carpeta de Descargas.",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray",
+            wraplength=600,
+            justify="left"
+        )
+        nota.grid(row=3, column=0, pady=(20, 0), sticky="w")
+
+    def _descargar_manual(self, tipo):
+        """Descarga un manual según el tipo especificado"""
+        import os
+        import shutil
+        from tkinter import messagebox
+
+        # Definir rutas de los manuales
+        manuales = {
+            "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
+            "informes": "docs/Manual_Informes_HydroFlow.pdf",
+            "tecnica": "docs/Guia_Tecnica_HydroFlow.pdf"
+        }
+
+        manual_path = os.path.join(parent_path, manuales.get(tipo, ""))
+
+        if os.path.exists(manual_path):
+            # Copiar a carpeta de descargas del usuario
+            downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
+            destino = os.path.join(downloads_path, os.path.basename(manual_path))
+
+            try:
+                shutil.copy(manual_path, destino)
+                messagebox.showinfo(
+                    "Descarga completada",
+                    f"El manual se ha descargado en:\n{destino}"
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Error de descarga",
+                    f"No se pudo copiar el manual:\n{str(e)}"
+                )
+        else:
+            messagebox.showwarning(
+                "Manual no disponible",
+                "Este manual aún no está disponible. Será añadido en futuras actualizaciones."
+            )
+
+    def _create_soporte_tab(self, parent):
+        """Crea el contenido de la pestaña 'Soporte'"""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Título
+        titulo = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Soporte Técnico",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # Información de contacto
+        contacto_frame = customtkinter.CTkFrame(scroll_frame)
+        contacto_frame.grid(row=1, column=0, sticky="ew", pady=(0, 20))
+        contacto_frame.grid_columnconfigure(1, weight=1)
+
+        # Email
+        email_label = customtkinter.CTkLabel(
+            contacto_frame,
+            text="📧 Email:",
+            font=customtkinter.CTkFont(size=14, weight="bold")
+        )
+        email_label.grid(row=0, column=0, padx=20, pady=15, sticky="w")
+
+        email_value = customtkinter.CTkLabel(
+            contacto_frame,
+            text="a.perez@epicentrum.xyz",
+            font=customtkinter.CTkFont(size=14)
+        )
+        email_value.grid(row=0, column=1, padx=20, pady=15, sticky="w")
+
+        # Preguntas frecuentes
+        separator = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator.grid(row=2, column=0, sticky="ew", pady=30)
+
+        faq_title = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Preguntas Frecuentes (FAQ)",
+            font=customtkinter.CTkFont(size=18, weight="bold")
+        )
+        faq_title.grid(row=3, column=0, pady=(0, 15), sticky="w")
+
+        faq_text = customtkinter.CTkTextbox(
+            scroll_frame,
+            height=400,
+            wrap="word",
+            font=customtkinter.CTkFont(size=13)
+        )
+        faq_text.grid(row=4, column=0, sticky="ew")
+
+        faq_content = """P: ¿Cómo puedo cambiar mi contraseña?
+R: Contacta con el administrador del sistema para cambiar tu contraseña.
+
+P: ¿Puedo exportar los datos a Excel?
+R: Sí, en el módulo de Informes puedes exportar datos a Excel, Word y PDF.
+
+P: ¿Cómo creo un nuevo parte?
+R: Haz clic en el botón verde "➕ Añadir Parte" en la barra lateral, rellena los campos obligatorios y guarda.
+
+P: No puedo ver algunos campos en la tabla, ¿qué hago?
+R: Usa el botón de configuración (⚙️) para mostrar/ocultar columnas según tus necesidades.
+
+P: ¿Los datos se guardan automáticamente?
+R: No, debes hacer clic en "Guardar" para confirmar los cambios. Esto evita pérdidas accidentales de datos.
+
+P: ¿Cómo genero una certificación mensual?
+R: Ve al módulo "Certificaciones", selecciona el periodo y los conceptos a certificar, y exporta el documento.
+
+P: ¿Puedo trabajar sin conexión a internet?
+R: HydroFlow Manager requiere conexión a la base de datos MySQL. Si el servidor está en tu red local, no necesitas internet.
+
+P: ¿Cómo recupero un parte eliminado?
+R: Los partes eliminados no se pueden recuperar. Contacta con el administrador si necesitas restaurar desde un backup.
+"""
+        faq_text.insert("1.0", faq_content)
+        faq_text.configure(state="disabled")
+
+        # Información de versión de BD
+        separator2 = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator2.grid(row=5, column=0, sticky="ew", pady=30)
+
+        info_sistema = customtkinter.CTkLabel(
+            scroll_frame,
+            text=f"Información del Sistema:\nEsquema BD: {self.schema}\nUsuario: {self.user}",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray",
+            justify="left"
+        )
+        info_sistema.grid(row=6, column=0, pady=(0, 20), sticky="w")
 
     def back_to_selector(self):
         """Volver al selector de tipo de usuario"""

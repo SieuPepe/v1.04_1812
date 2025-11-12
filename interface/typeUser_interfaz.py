@@ -84,11 +84,11 @@ class AppTypeUser(customtkinter.CTk):
     def parts_event(self, access):
         """Abrir selector de proyecto para Generador de Partes"""
         try:
+            from script.db_config import DatabaseConfig
             user, password = access[0], access[1]
             schemas = get_schemas_db(user, password)
-            schemas = [s for s in schemas if
-                       s not in ['information_schema', 'performance_schema', 'manager', 'mysql', 'sys',
-                                 'proyecto_tipo']]
+            # Solo permitir esquemas válidos para el generador de partes
+            schemas = [s for s in schemas if s in DatabaseConfig.VALID_PARTS_GENERATOR_SCHEMAS]
 
             if not schemas:
                 CTkMessagebox(

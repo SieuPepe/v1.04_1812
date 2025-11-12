@@ -1060,7 +1060,7 @@ class AppManager(customtkinter.CTk):
     def view_project_button_event (self,access):
 
         schemas = get_schemas_db(access[0], access[1])
-        schemas = [item for item in schemas if item not in ['proyecto_tipo','information_schema', 'performance_schema','manager', 'mysql', 'sys']]
+        schemas = [item for item in schemas if item not in ['cert_dev','information_schema', 'performance_schema','manager', 'mysql', 'sys']]
         print(schemas)
         if len(schemas)==0:
             mssg = f"No se ha encontrado ningún proyecto registrado, registre un nuevo proyecto en la Pestaña Nuevo Proyecto"
@@ -1191,9 +1191,9 @@ class AppManager(customtkinter.CTk):
                             result_op2A=create_schemas_db(access[0], access[1], code_project)
                             result_op2B = create_view_projects(access[0], access[1], data['code'])
                             if result_op2A=="ok" and result_op2B=="ok":
-                                tables_schema=get_table_schemas_db(access[0], access[1], 'proyecto_tipo')
+                                tables_schema=get_table_schemas_db(access[0], access[1], 'cert_dev')
                                 new_tables = [code_project+"." + table for table in tables_schema]
-                                example_tables = ["proyecto_tipo." + table for table in tables_schema]
+                                example_tables = ["cert_dev." + table for table in tables_schema]
                                 result_op3 = create_tables_schema_db(access[0], access[1], new_tables,  example_tables)
                                 province_select_data = get_filter_data_bd(access[0], access[1],  'list_provincias', 'manager', 'NAMEUNIT',province_project)
                                 cod_province = province_select_data[0][8] #cambiar indice para bbdd final

@@ -37,54 +37,86 @@ ON DUPLICATE KEY UPDATE descripcion=VALUES(descripcion), orden=VALUES(orden);
 -- Verificar si la tabla existe antes de alterarla
 -- Este script está diseñado para ejecutarse de forma segura en cualquier esquema
 
+-- Procedimiento para añadir columnas de forma segura (compatible con MySQL 5.x)
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS add_column_if_not_exists//
+CREATE PROCEDURE add_column_if_not_exists(
+    IN p_table_name VARCHAR(64),
+    IN p_column_name VARCHAR(64),
+    IN p_column_definition TEXT
+)
+BEGIN
+    DECLARE col_exists INT;
+
+    SELECT COUNT(*) INTO col_exists
+    FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = p_table_name
+    AND COLUMN_NAME = p_column_name;
+
+    IF col_exists = 0 THEN
+        SET @sql = CONCAT('ALTER TABLE ', p_table_name, ' ADD COLUMN ', p_column_name, ' ', p_column_definition);
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END//
+
+DELIMITER ;
+
 -- Añadir columna TITULO (obligatorio para describir el parte)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS titulo VARCHAR(255) COMMENT 'Título descriptivo del parte';
+CALL add_column_if_not_exists('tbl_partes', 'titulo', 'VARCHAR(255) COMMENT ''Título descriptivo del parte''');
 
 -- Añadir columna DESCRIPCION_LARGA (detalles completos)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS descripcion_larga TEXT COMMENT 'Descripción detallada del trabajo realizado';
+CALL add_column_if_not_exists('tbl_partes', 'descripcion_larga', 'TEXT COMMENT ''Descripción detallada del trabajo realizado''');
 
 -- Añadir columna DESCRIPCION_CORTA (resumen para listados)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS descripcion_corta VARCHAR(100) COMMENT 'Descripción breve para listados';
+CALL add_column_if_not_exists('tbl_partes', 'descripcion_corta', 'VARCHAR(100) COMMENT ''Descripción breve para listados''');
 
 -- Añadir columnas de FECHAS
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS fecha_inicio DATE COMMENT 'Fecha de inicio del trabajo';
+CALL add_column_if_not_exists('tbl_partes', 'fecha_inicio', 'DATE COMMENT ''Fecha de inicio del trabajo''');
 
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS fecha_fin DATE COMMENT 'Fecha de finalización del trabajo';
+CALL add_column_if_not_exists('tbl_partes', 'fecha_fin', 'DATE COMMENT ''Fecha de finalización del trabajo''');
 
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS fecha_prevista_fin DATE COMMENT 'Fecha prevista de finalización';
+CALL add_column_if_not_exists('tbl_partes', 'fecha_prevista_fin', 'DATE COMMENT ''Fecha prevista de finalización''');
 
 -- Añadir columna de ESTADO
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS id_estado INT DEFAULT 1 COMMENT 'Estado del parte (FK a tbl_parte_estados)';
+CALL add_column_if_not_exists('tbl_partes', 'id_estado', 'INT DEFAULT 1 COMMENT ''Estado del parte (FK a tbl_parte_estados)''');
 
 -- Añadir columna FINALIZADA (booleano para compatibilidad con Access)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS finalizada BOOLEAN DEFAULT FALSE COMMENT 'Indica si el parte está finalizado';
+CALL add_column_if_not_exists('tbl_partes', 'finalizada', 'BOOLEAN DEFAULT FALSE COMMENT ''Indica si el parte está finalizado''');
 
 -- Añadir columna LOCALIZACION (ubicación textual)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS localizacion VARCHAR(255) COMMENT 'Localización textual del trabajo';
+CALL add_column_if_not_exists('tbl_partes', 'localizacion', 'VARCHAR(255) COMMENT ''Localización textual del trabajo''');
 
 -- Añadir columna ID_MUNICIPIO (si no existe)
-ALTER TABLE tbl_partes
-ADD COLUMN IF NOT EXISTS id_municipio INT COMMENT 'Municipio donde se realizó el trabajo';
+CALL add_column_if_not_exists('tbl_partes', 'id_municipio', 'INT COMMENT ''Municipio donde se realizó el trabajo''');
+
+-- Limpiar procedimiento temporal
+DROP PROCEDURE IF EXISTS add_column_if_not_exists;
 
 -- ============================================================================
 -- PARTE 3: AÑADIR CLAVES FORÁNEAS
 -- ============================================================================
 
--- Añadir FK a tabla de estados
-ALTER TABLE tbl_partes
-ADD CONSTRAINT IF NOT EXISTS fk_partes_estado
-FOREIGN KEY (id_estado) REFERENCES tbl_parte_estados(id)
-ON DELETE RESTRICT
-ON UPDATE CASCADE;
+-- Añadir FK a tabla de estados (compatible con MySQL 5.x)
+SET @fk_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'tbl_partes'
+    AND CONSTRAINT_NAME = 'fk_partes_estado'
+);
+
+SET @sql = IF(@fk_exists = 0,
+    'ALTER TABLE tbl_partes ADD CONSTRAINT fk_partes_estado FOREIGN KEY (id_estado) REFERENCES tbl_parte_estados(id) ON DELETE RESTRICT ON UPDATE CASCADE',
+    'SELECT ''La FK fk_partes_estado ya existe'' AS mensaje'
+);
+
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- Añadir FK a municipios (si la tabla existe)
 -- Nota: Esta FK solo se añadirá si existe la tabla tbl_municipios
@@ -95,14 +127,21 @@ SET @table_exists = (
     AND TABLE_NAME = 'tbl_municipios'
 );
 
--- Solo ejecutar si la tabla existe
-SET @sql = IF(@table_exists > 0,
-    'ALTER TABLE tbl_partes
-     ADD CONSTRAINT IF NOT EXISTS fk_partes_municipio
-     FOREIGN KEY (id_municipio) REFERENCES tbl_municipios(id)
-     ON DELETE SET NULL
-     ON UPDATE CASCADE',
-    'SELECT "Tabla tbl_municipios no existe, FK no creada" AS mensaje'
+-- Solo ejecutar si la tabla existe y la FK no existe
+SET @fk_municipio_exists = (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'tbl_partes'
+    AND CONSTRAINT_NAME = 'fk_partes_municipio'
+);
+
+SET @sql = IF(@table_exists > 0 AND @fk_municipio_exists = 0,
+    'ALTER TABLE tbl_partes ADD CONSTRAINT fk_partes_municipio FOREIGN KEY (id_municipio) REFERENCES tbl_municipios(id) ON DELETE SET NULL ON UPDATE CASCADE',
+    IF(@table_exists = 0,
+        'SELECT "Tabla tbl_municipios no existe, FK no creada" AS mensaje',
+        'SELECT "FK fk_partes_municipio ya existe" AS mensaje'
+    )
 );
 
 PREPARE stmt FROM @sql;
@@ -113,23 +152,54 @@ DEALLOCATE PREPARE stmt;
 -- PARTE 4: CREAR ÍNDICES PARA OPTIMIZAR CONSULTAS
 -- ============================================================================
 
+-- Procedimiento para crear índices de forma segura
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS create_index_if_not_exists//
+CREATE PROCEDURE create_index_if_not_exists(
+    IN p_table_name VARCHAR(64),
+    IN p_index_name VARCHAR(64),
+    IN p_index_columns VARCHAR(255)
+)
+BEGIN
+    DECLARE idx_exists INT;
+
+    SELECT COUNT(*) INTO idx_exists
+    FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = p_table_name
+    AND INDEX_NAME = p_index_name;
+
+    IF idx_exists = 0 THEN
+        SET @sql = CONCAT('CREATE INDEX ', p_index_name, ' ON ', p_table_name, '(', p_index_columns, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END//
+
+DELIMITER ;
+
 -- Índice en estado para filtrar partes por estado
-CREATE INDEX IF NOT EXISTS idx_partes_estado ON tbl_partes(id_estado);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_estado', 'id_estado');
 
 -- Índice en finalizada para consultas frecuentes
-CREATE INDEX IF NOT EXISTS idx_partes_finalizada ON tbl_partes(finalizada);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_finalizada', 'finalizada');
 
 -- Índice en fecha_inicio para ordenar cronológicamente
-CREATE INDEX IF NOT EXISTS idx_partes_fecha_inicio ON tbl_partes(fecha_inicio);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_fecha_inicio', 'fecha_inicio');
 
 -- Índice en fecha_fin para ordenar cronológicamente
-CREATE INDEX IF NOT EXISTS idx_partes_fecha_fin ON tbl_partes(fecha_fin);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_fecha_fin', 'fecha_fin');
 
 -- Índice en municipio para agrupar por localidad
-CREATE INDEX IF NOT EXISTS idx_partes_municipio ON tbl_partes(id_municipio);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_municipio', 'id_municipio');
 
 -- Índice compuesto para consultas de partes pendientes
-CREATE INDEX IF NOT EXISTS idx_partes_estado_fecha ON tbl_partes(id_estado, fecha_inicio);
+CALL create_index_if_not_exists('tbl_partes', 'idx_partes_estado_fecha', 'id_estado, fecha_inicio');
+
+-- Limpiar procedimiento temporal
+DROP PROCEDURE IF EXISTS create_index_if_not_exists;
 
 -- ============================================================================
 -- PARTE 5: CREAR TRIGGER PARA SINCRONIZAR FINALIZADA CON ESTADO

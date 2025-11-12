@@ -28,7 +28,7 @@ class AppManagerSelectProject(customtkinter.CTk):
 
         #crea seleccionable para elegir proyecto
         schemas = get_schemas_db(access[0], access[1])
-        schema_filter = [elemento for elemento in schemas if all(exclude not in elemento for exclude in ["proyecto_tipo","_schema", "manager", "mysql", "sys"])]
+        schema_filter = [elemento for elemento in schemas if all(exclude not in elemento for exclude in ["cert_dev","_schema", "manager", "mysql", "sys"])]
         self.project_option = customtkinter.CTkOptionMenu(self,
                                                            dynamic_resizing=False,
                                                            values=schema_filter)
