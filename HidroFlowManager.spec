@@ -6,9 +6,10 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[
-        ('source/*.jpeg', 'source'),
-        ('source/*.png', 'source'),
-        ('source/*.ico', 'source'),
+        ('resources/images/*.jpeg', 'resources/images'),
+        ('resources/images/*.png', 'resources/images'),
+        ('resources/images/*.ico', 'resources/images'),
+        ('resources/images/*.jpg', 'resources/images'),
         ('output/*.xlsx', 'output'),
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
@@ -59,5 +60,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['source\\logo.ico'],
+    icon=['resources\\images\\logo.ico'],
 )

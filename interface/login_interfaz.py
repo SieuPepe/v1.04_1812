@@ -26,7 +26,7 @@ class AppLogin(customtkinter.CTk):
         self.resizable(False, False)
 
         # load and create background image
-        image_path = parent_path +"/source/fondo.jpeg"
+        image_path = parent_path +"/resources/images/fondo.jpeg"
         self.bg_image = customtkinter.CTkImage(Image.open(image_path),
                                                size=(self.width, self.height))
         self.bg_image_label = customtkinter.CTkLabel(self, image=self.bg_image)
@@ -47,7 +47,7 @@ class AppLogin(customtkinter.CTk):
 
         self.login_frame.grid_rowconfigure(4, weight=1)
 
-        image_logo_path = parent_path +"/source/logo artanda2.png"
+        image_logo_path = parent_path +"/resources/images/logo artanda2.png"
         self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200,44))
         self.lg_image_label = customtkinter.CTkLabel(self.login_frame, text=" ",image=self.lg_image)
         self.lg_image_label.grid(row=5, column=0, padx=30, pady=(15, 15))

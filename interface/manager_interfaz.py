@@ -59,18 +59,18 @@ class AppManager(customtkinter.CTk):
         self.grid_columnconfigure(1, weight=1)
 
         # cargar imagenes de iconos
-        image_logo_path = parent_path +"/source/logo artanda2.png"
+        image_logo_path = parent_path +"/resources/images/logo artanda2.png"
         self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 44))
-        new_project_path = parent_path +"/source/proyecto.png" #quitar punto cuando ya no este en pruebas
+        new_project_path = parent_path +"/resources/images/proyecto.png" #quitar punto cuando ya no este en pruebas
         self.new_project_image = customtkinter.CTkImage(Image.open(new_project_path),
                                                  size=(30, 30))
-        project_path = parent_path +"/source/herramienta.png"#quitar punto cuando ya no este en pruebas
+        project_path = parent_path +"/resources/images/herramienta.png"#quitar punto cuando ya no este en pruebas
         self.project_image = customtkinter.CTkImage(Image.open(project_path),
                                                  size=(30, 30))
-        user_path = parent_path +"/source/usuarios.png" #quitar punto cuando ya no este en pruebas
+        user_path = parent_path +"/resources/images/usuarios.png" #quitar punto cuando ya no este en pruebas
         self.user_image = customtkinter.CTkImage(Image.open(user_path),
                                                       size=(30, 30))
-        cost_path = parent_path +"/source/certificaciones.png" #quitar punto cuando ya no este en pruebas
+        cost_path = parent_path +"/resources/images/certificaciones.png" #quitar punto cuando ya no este en pruebas
         self.cost_image = customtkinter.CTkImage(Image.open(cost_path),
                                                       size=(30, 30))
 
@@ -850,7 +850,7 @@ class AppManager(customtkinter.CTk):
             self.update_data_project_frame_manager(access)
 
             # boton de guardar
-            save_path = parent_path + "/source/guardar.png"
+            save_path = parent_path + "/resources/images/guardar.png"
             self.save_image = customtkinter.CTkImage(Image.open(save_path))
             self.save_project_button = customtkinter.CTkButton(self.project_frame, corner_radius=5, height=40, width= 400 ,
                                                             border_spacing=10, text="Guardar cambios", image=self.save_image,
@@ -2447,9 +2447,9 @@ class AppManager(customtkinter.CTk):
         self.data_user_frame.grid_columnconfigure(3, weight=1)
 
         # cargar imagen de icono
-        image_password_path = parent_path +"/source/contraseña.png"
+        image_password_path = parent_path +"/resources/images/contraseña.png"
         self.password_image = customtkinter.CTkImage(Image.open(image_password_path), size=(20,20))
-        image_update_path = parent_path +"/source/permisos.png"
+        image_update_path = parent_path +"/resources/images/permisos.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20,20))
 
         # Listas para almacenar las variables por fila
@@ -2668,9 +2668,9 @@ class AppManager(customtkinter.CTk):
         self.data_cost_frame.grid_columnconfigure(3, weight=1)
 
         # cargar imagen de icono
-        image_password_path = parent_path + "/source/contraseña.png"
+        image_password_path = parent_path + "/resources/images/contraseña.png"
         self.password_image = customtkinter.CTkImage(Image.open(image_password_path), size=(20, 20))
-        image_update_path = parent_path + "/source/permisos.png"
+        image_update_path = parent_path + "/resources/images/permisos.png"
         self.update_image = customtkinter.CTkImage(Image.open(image_update_path), size=(20, 20))
 
         # Listas para almacenar las variables por fila

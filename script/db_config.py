@@ -4,7 +4,10 @@ Configuración centralizada de base de datos.
 Este módulo maneja toda la configuración de conexión a la base de datos,
 incluyendo host, puerto, y esquemas.
 
-Configuración mediante variables de entorno o valores por defecto.
+Configuración mediante (en orden de prioridad):
+1. Variables de entorno
+2. Archivo de configuración del usuario
+3. Valores por defecto
 """
 
 import os
@@ -15,7 +18,7 @@ from typing import Optional
 class DatabaseConfig:
     """Configuración de base de datos centralizada."""
 
-    # Valores por defecto (pueden ser sobrescritos por variables de entorno)
+    # Valores por defecto (pueden ser sobrescritos por variables de entorno o config de usuario)
     DEFAULT_HOST = 'localhost'
     DEFAULT_PORT = 3307
     DEFAULT_MANAGER_SCHEMA = 'manager'
@@ -29,10 +32,49 @@ class DatabaseConfig:
         """Inicializa la configuración desde variables de entorno o valores por defecto."""
         self._load_config()
 
+    def _load_user_config(self):
+        """
+        Intenta cargar la configuración del usuario desde db_user_config.
+
+        Returns:
+            dict: Configuración del usuario, o None si no existe
+        """
+        try:
+            from .db_user_config import get_connection_config
+            user_config = get_connection_config()
+            if user_config.is_configured:
+                return user_config.config
+        except (ImportError, Exception):
+            pass
+        return None
+
     def _load_config(self):
-        """Carga configuración desde variables de entorno o usa valores por defecto."""
-        self.host = os.getenv('DB_HOST', self.DEFAULT_HOST)
-        self.port = int(os.getenv('DB_PORT', self.DEFAULT_PORT))
+        """
+        Carga configuración con la siguiente prioridad:
+        1. Variables de entorno (más alta)
+        2. Archivo de configuración del usuario
+        3. Valores por defecto
+        """
+        # Intentar cargar configuración de usuario
+        user_config = self._load_user_config()
+
+        # Host: env var > user config > default
+        if os.getenv('DB_HOST'):
+            self.host = os.getenv('DB_HOST')
+        elif user_config and 'host' in user_config:
+            self.host = user_config['host']
+        else:
+            self.host = self.DEFAULT_HOST
+
+        # Port: env var > user config > default
+        if os.getenv('DB_PORT'):
+            self.port = int(os.getenv('DB_PORT'))
+        elif user_config and 'port' in user_config:
+            self.port = user_config['port']
+        else:
+            self.port = self.DEFAULT_PORT
+
+        # Esquemas (solo desde env var o default)
         self.manager_schema = os.getenv('DB_MANAGER_SCHEMA', self.DEFAULT_MANAGER_SCHEMA)
         self.example_schema = os.getenv('DB_EXAMPLE_SCHEMA', self.DEFAULT_EXAMPLE_SCHEMA)
 
