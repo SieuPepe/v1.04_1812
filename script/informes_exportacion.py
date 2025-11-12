@@ -27,13 +27,13 @@ class InformesExportador:
         self._buscar_logos()
 
     def _buscar_logos(self):
-        """Busca los logos en la raíz del proyecto y en la carpeta source"""
+        """Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # Directorios donde buscar (en orden de prioridad)
         directorios_busqueda = [
-            base_dir,  # Raíz del proyecto (prioridad 1)
-            os.path.join(base_dir, "source"),  # Carpeta source (prioridad 2)
+            os.path.join(base_dir, "resources", "images"),  # Carpeta resources/images (prioridad 1)
+            base_dir,  # Raíz del proyecto (prioridad 2)
         ]
 
         for directorio in directorios_busqueda:

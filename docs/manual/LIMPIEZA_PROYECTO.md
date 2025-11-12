@@ -621,4 +621,151 @@ python3 -c "from script.catalog_import import catalog_import;
 
 ---
 
+## 🔄 FASE 6: Corrección de Rutas de Imágenes (2025-11-12)
+
+### Problema Detectado
+Al abrir el generador de partes, la aplicación buscaba imágenes en la carpeta `source/` que ya no existe:
+```
+FileNotFoundError: logo artanda2.png not found in source/
+```
+
+### Causa Raíz
+Durante la FASE 2, se movieron todas las imágenes de `source/` a `resources/images/`, pero no se actualizaron todas las referencias en el código.
+
+### Archivos Corregidos
+
+#### 1. **interface/parts_manager_interfaz.py** (9 correcciones)
+**Líneas corregidas: 108, 111, 114, 117, 120, 123, 145, 2940, 2969**
+
+```python
+# ANTES:
+logo_path = os.path.join(parent_path, "source/logo artanda2.png")
+resumen_path = os.path.join(parent_path, "source/proyecto.png")
+# ... etc
+
+# DESPUÉS:
+logo_path = os.path.join(parent_path, "resources/images/logo artanda2.png")
+resumen_path = os.path.join(parent_path, "resources/images/proyecto.png")
+# ... etc
+```
+
+**Imágenes afectadas:**
+- logo artanda2.png
+- proyecto.png
+- herramienta.png
+- certificaciones.png
+- informes.png
+- info.png
+- guardar.png
+- logo_ep_N.png
+- Logo Redes Urbide.jpg
+
+#### 2. **HidroFlowManager.spec** (configuración PyInstaller)
+**Líneas corregidas: 9-12, 63**
+
+```python
+# ANTES:
+datas=[
+    ('source/*.jpeg', 'source'),
+    ('source/*.png', 'source'),
+    ('source/*.ico', 'source'),
+]
+icon=['source\\logo.ico']
+
+# DESPUÉS:
+datas=[
+    ('resources/images/*.jpeg', 'resources/images'),
+    ('resources/images/*.png', 'resources/images'),
+    ('resources/images/*.ico', 'resources/images'),
+    ('resources/images/*.jpg', 'resources/images'),  # Añadido
+]
+icon=['resources\\images\\logo.ico']
+```
+
+#### 3. **script/informes_header_config.py**
+**Líneas corregidas: 11-13**
+
+```python
+# ANTES:
+SOURCE_DIR = Path(__file__).parent.parent / "source"
+LOGO_REDES_URBIDE = SOURCE_DIR / "logo artanda.png"
+LOGO_URBIDE = SOURCE_DIR / "logo artanda2.png"
+
+# DESPUÉS:
+IMAGES_DIR = Path(__file__).parent.parent / "resources" / "images"
+LOGO_REDES_URBIDE = IMAGES_DIR / "logo artanda.png"
+LOGO_URBIDE = IMAGES_DIR / "logo artanda2.png"
+```
+
+#### 4. **script/informes_exportacion.py**
+**Líneas corregidas: 30, 35-36**
+
+```python
+# ANTES:
+"""Busca los logos en la raíz del proyecto y en la carpeta source"""
+directorios_busqueda = [
+    base_dir,  # Raíz del proyecto (prioridad 1)
+    os.path.join(base_dir, "source"),  # Carpeta source (prioridad 2)
+]
+
+# DESPUÉS:
+"""Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
+directorios_busqueda = [
+    os.path.join(base_dir, "resources", "images"),  # Carpeta resources/images (prioridad 1)
+    base_dir,  # Raíz del proyecto (prioridad 2)
+]
+```
+
+### Resumen de Cambios
+
+**Total de archivos corregidos:** 4
+**Total de líneas modificadas:** ~20
+
+**Cambios realizados:**
+- ✅ Todas las rutas `source/` → `resources/images/`
+- ✅ Variable `SOURCE_DIR` → `IMAGES_DIR` (semántica)
+- ✅ Añadido soporte para `.jpg` en PyInstaller
+- ✅ Actualizado orden de prioridad en búsqueda de logos (resources/images primero)
+
+### Verificación
+
+```bash
+# Verificar que no quedan referencias a source/ en código de producción
+grep -rn "\"source/" interface/ script/ main.py --include="*.py"
+# Resultado: Sin coincidencias ✅
+
+# Verificar que las imágenes existen
+ls resources/images/ | grep -E "logo|proyecto|herramienta|certificaciones|informes|guardar|info"
+# Resultado: Todas las imágenes encontradas ✅
+```
+
+### Impacto
+
+- ✅ **Generador de partes** ahora carga correctamente todos los logos e iconos
+- ✅ **Sistema de informes** encuentra los logos para encabezados
+- ✅ **PyInstaller** empaqueta las imágenes desde la ubicación correcta
+- ✅ **No más errores** de `FileNotFoundError` por imágenes
+
+### Lección Aprendida
+
+Al mover archivos entre carpetas durante refactorización:
+1. **Buscar exhaustivamente** todas las referencias en el código
+2. **Incluir archivos de configuración** (.spec, .json, etc.)
+3. **Probar todas las funcionalidades** que usen recursos movidos
+4. **Documentar los cambios** para futuras referencias
+
+**Patrón recomendado para búsqueda:**
+```bash
+# Buscar rutas absolutas
+grep -rn "\"old_path/" . --include="*.py"
+
+# Buscar variables de configuración
+grep -rn "OLD_DIR" . --include="*.py"
+
+# Verificar archivos de configuración
+grep -rn "old_path" *.spec *.json *.yaml
+```
+
+---
+
 *Última actualización: 2025-11-12*

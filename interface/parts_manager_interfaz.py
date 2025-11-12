@@ -105,22 +105,22 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_images(self):
         """Carga todas las imágenes necesarias"""
-        logo_path = os.path.join(parent_path, "source/logo artanda2.png")
+        logo_path = os.path.join(parent_path, "resources/images/logo artanda2.png")
         self.lg_image = customtkinter.CTkImage(Image.open(logo_path), size=(200, 44))
 
-        resumen_path = os.path.join(parent_path, "source/proyecto.png")
+        resumen_path = os.path.join(parent_path, "resources/images/proyecto.png")
         self.resumen_image = customtkinter.CTkImage(Image.open(resumen_path), size=(30, 30))
 
-        partes_path = os.path.join(parent_path, "source/herramienta.png")
+        partes_path = os.path.join(parent_path, "resources/images/herramienta.png")
         self.partes_image = customtkinter.CTkImage(Image.open(partes_path), size=(30, 30))
 
-        budget_path = os.path.join(parent_path, "source/certificaciones.png")
+        budget_path = os.path.join(parent_path, "resources/images/certificaciones.png")
         self.budget_image = customtkinter.CTkImage(Image.open(budget_path), size=(30, 30))
 
-        informes_path = os.path.join(parent_path, "source/informes.png")
+        informes_path = os.path.join(parent_path, "resources/images/informes.png")
         self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
 
-        ayuda_path = os.path.join(parent_path, "source/info.png")
+        ayuda_path = os.path.join(parent_path, "resources/images/info.png")
         self.ayuda_image = customtkinter.CTkImage(Image.open(ayuda_path), size=(30, 30))
 
     def _create_sidebar(self):
@@ -142,7 +142,7 @@ class AppPartsManager(customtkinter.CTk):
         self.navigation_frame_label.grid(row=1, column=0, padx=20, pady=5)
 
         # Botón Añadir Parte (destacado en verde)
-        add_parte_path = os.path.join(parent_path, "source/guardar.png")
+        add_parte_path = os.path.join(parent_path, "resources/images/guardar.png")
         self.add_parte_image = customtkinter.CTkImage(Image.open(add_parte_path), size=(25, 25))
 
         self.add_parte_button = customtkinter.CTkButton(
@@ -2937,7 +2937,7 @@ class AppPartsManager(customtkinter.CTk):
 
         # Logo de Epicentrum
         try:
-            logo_epicentrum_path = os.path.join(parent_path, "source/logo_ep_N.png")
+            logo_epicentrum_path = os.path.join(parent_path, "resources/images/logo_ep_N.png")
             if os.path.exists(logo_epicentrum_path):
                 logo_ep_image = customtkinter.CTkImage(
                     Image.open(logo_epicentrum_path),
@@ -2966,7 +2966,7 @@ class AppPartsManager(customtkinter.CTk):
 
         # Logo de Redes Urbide
         try:
-            logo_urbide_path = os.path.join(parent_path, "source/Logo Redes Urbide.jpg")
+            logo_urbide_path = os.path.join(parent_path, "resources/images/Logo Redes Urbide.jpg")
             if os.path.exists(logo_urbide_path):
                 logo_urbide_image = customtkinter.CTkImage(
                     Image.open(logo_urbide_path),
