@@ -23,7 +23,7 @@
 -- Los municipios se insertan según los códigos INE oficiales (enero 2025)
 -- y se distribuyen en las 6 comarcas/cuadrillas de Álava
 
-INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo, created_at) VALUES
+INSERT INTO dim_municipios (codigo_ine, municipio_nombre, provincia_id, comarca_id, activo, created_at) VALUES
 -- =============================================================================
 -- CUADRILLA DE VITORIA (comarca_id=3) - 19 municipios
 -- =============================================================================
@@ -96,7 +96,7 @@ INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo
 (1017, 'Campezo/Kanpezu', 1, 6, 1, NOW())
 
 ON DUPLICATE KEY UPDATE
-    nombre = VALUES(nombre),
+    municipio_nombre = VALUES(municipio_nombre),
     provincia_id = VALUES(provincia_id),
     comarca_id = VALUES(comarca_id),
     activo = 1,  -- Siempre restaurar a activo = 1
@@ -119,7 +119,7 @@ ORDER BY c.id;
 -- =====================================================================
 SELECT
     m.codigo_ine,
-    m.nombre,
+    m.municipio_nombre,
     c.comarca_nombre,
     m.activo
 FROM dim_municipios m

@@ -32,24 +32,7 @@ SELECT
 FROM dim_municipios;
 
 -- =====================================================================
--- PASO 3: Agregar columna codigo_postal si no existe
--- =====================================================================
-SET @col_exists = (SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'dim_municipios'
-    AND COLUMN_NAME = 'codigo_postal');
-
-SET @sql_add_col = IF(@col_exists = 0,
-    'ALTER TABLE dim_municipios ADD COLUMN codigo_postal VARCHAR(10) DEFAULT NULL AFTER nombre',
-    'SELECT "Columna codigo_postal ya existe" AS mensaje');
-
-PREPARE stmt FROM @sql_add_col;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- =====================================================================
--- PASO 4: Restaurar/Actualizar TODOS los municipios de Álava (provincia_id=1)
+-- PASO 3: Restaurar/Actualizar TODOS los municipios de Álava (provincia_id=1)
 -- =====================================================================
 -- Se usa INSERT ... ON DUPLICATE KEY UPDATE para:
 -- - Insertar si no existe (por codigo_ine único)
@@ -58,7 +41,7 @@ DEALLOCATE PREPARE stmt;
 
 SELECT 'Restaurando municipios de Álava...' AS Paso;
 
-INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo, created_at) VALUES
+INSERT INTO dim_municipios (codigo_ine, municipio_nombre, provincia_id, comarca_id, activo, created_at) VALUES
 -- Cuadrilla de Vitoria (comarca_id=3) - 19 municipios
 (1001, 'Alegría-Dulantzi', 1, 3, 1, NOW()),
 (1008, 'Arratzua-Ubarrundia', 1, 3, 1, NOW()),
@@ -121,7 +104,7 @@ INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo
 (1017, 'Campezo/Kanpezu', 1, 6, 1, NOW())
 
 ON DUPLICATE KEY UPDATE
-    nombre = VALUES(nombre),
+    municipio_nombre = VALUES(municipio_nombre),
     provincia_id = VALUES(provincia_id),
     comarca_id = VALUES(comarca_id),
     activo = 1,  -- RESTAURAR activo a 1
@@ -132,7 +115,7 @@ ON DUPLICATE KEY UPDATE
 -- =====================================================================
 SELECT 'Restaurando municipios de Bizkaia...' AS Paso;
 
-INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo, created_at) VALUES
+INSERT INTO dim_municipios (codigo_ine, municipio_nombre, provincia_id, comarca_id, activo, created_at) VALUES
 (48001, 'Abadiño', 2, 8, 1, NOW()),
 (48002, 'Abanto y Ciérvana-Abanto Zierbena', 2, 8, 1, NOW()),
 (48003, 'Ajangiz', 2, 8, 1, NOW()),
@@ -247,7 +230,7 @@ INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo
 (48912, 'Ziortza-Bolibar', 2, 8, 1, NOW())
 
 ON DUPLICATE KEY UPDATE
-    nombre = VALUES(nombre),
+    municipio_nombre = VALUES(municipio_nombre),
     provincia_id = VALUES(provincia_id),
     comarca_id = VALUES(comarca_id),
     activo = 1,  -- RESTAURAR activo a 1
@@ -258,7 +241,7 @@ ON DUPLICATE KEY UPDATE
 -- =====================================================================
 SELECT 'Restaurando municipios de Gipuzkoa...' AS Paso;
 
-INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo, created_at) VALUES
+INSERT INTO dim_municipios (codigo_ine, municipio_nombre, provincia_id, comarca_id, activo, created_at) VALUES
 (20001, 'Abaltzisketa', 3, 7, 1, NOW()),
 (20002, 'Aduna', 3, 7, 1, NOW()),
 (20003, 'Aia', 3, 7, 1, NOW()),
@@ -349,7 +332,7 @@ INSERT INTO dim_municipios (codigo_ine, nombre, provincia_id, comarca_id, activo
 (20088, 'Zumárraga', 3, 7, 1, NOW())
 
 ON DUPLICATE KEY UPDATE
-    nombre = VALUES(nombre),
+    municipio_nombre = VALUES(municipio_nombre),
     provincia_id = VALUES(provincia_id),
     comarca_id = VALUES(comarca_id),
     activo = 1,  -- RESTAURAR activo a 1
@@ -437,7 +420,7 @@ ORDER BY p.id;
 SELECT
     m.id,
     m.codigo_ine,
-    m.nombre,
+    m.municipio_nombre,
     m.codigo_postal,
     m.activo,
     m.created_at,
@@ -451,7 +434,7 @@ ORDER BY m.codigo_ine;
 SELECT
     m.id,
     m.codigo_ine,
-    m.nombre,
+    m.municipio_nombre,
     m.activo,
     m.created_at
 FROM dim_municipios m
@@ -463,7 +446,7 @@ LIMIT 10;
 SELECT
     m.id,
     m.codigo_ine,
-    m.nombre,
+    m.municipio_nombre,
     m.activo,
     m.created_at
 FROM dim_municipios m
