@@ -1,6 +1,6 @@
 -- =============================================================================
 -- Script de importación de mediciones desde Excel a tbl_part_presupuesto
--- Generado: 2025-11-12 00:30:34
+-- Generado: 2025-11-12 00:34:16
 -- Total de registros: 2777
 -- =============================================================================
 
@@ -22,7 +22,7 @@ SELECT COUNT(*) AS 'Registros actuales en tbl_part_presupuesto' FROM tbl_part_pr
 -- El parte_id se obtiene desde tbl_partes.codigo
 -- El precio_unit se obtiene desde tbl_pres_precios.coste
 
--- Lote 1/28 (registros 1-100)
+-- Lote 1/112 (registros 1-25)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -199,7 +199,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 2/112 (registros 26-50)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0338') AS parte_id,
         20003 AS precio_id,
@@ -374,7 +383,16 @@ SELECT * FROM (
         10.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30011) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 3/112 (registros 51-75)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0250') AS parte_id,
         20003 AS precio_id,
@@ -549,7 +567,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 4/112 (registros 76-100)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0025') AS parte_id,
         40755 AS precio_id,
@@ -726,8 +753,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 2/28 (registros 101-200)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 5/112 (registros 101-125)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -904,7 +935,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 6/112 (registros 126-150)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0336') AS parte_id,
         20002 AS precio_id,
@@ -1079,7 +1119,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 7/112 (registros 151-175)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0337') AS parte_id,
         40556 AS precio_id,
@@ -1254,7 +1303,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         '2025-10-31' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40614) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 8/112 (registros 176-200)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0124') AS parte_id,
         20002 AS precio_id,
@@ -1431,8 +1489,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 3/28 (registros 201-300)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 9/112 (registros 201-225)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -1609,7 +1671,16 @@ SELECT * FROM (
         3.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 10/112 (registros 226-250)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0095') AS parte_id,
         20005 AS precio_id,
@@ -1784,7 +1855,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 11/112 (registros 251-275)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0422') AS parte_id,
         40553 AS precio_id,
@@ -1959,7 +2039,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30008) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 12/112 (registros 276-300)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0365') AS parte_id,
         20003 AS precio_id,
@@ -2136,8 +2225,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 4/28 (registros 301-400)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 13/112 (registros 301-325)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -2314,7 +2407,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 14/112 (registros 326-350)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0287') AS parte_id,
         40059 AS precio_id,
@@ -2489,7 +2591,16 @@ SELECT * FROM (
         15.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30012) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 15/112 (registros 351-375)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0275') AS parte_id,
         40590 AS precio_id,
@@ -2664,7 +2775,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-10-20' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 16/112 (registros 376-400)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0233') AS parte_id,
         41048 AS precio_id,
@@ -2841,8 +2961,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40830) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 5/28 (registros 401-500)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 17/112 (registros 401-425)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -3019,7 +3143,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 18/112 (registros 426-450)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0354') AS parte_id,
         20004 AS precio_id,
@@ -3194,7 +3327,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         '2025-10-21' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40646) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 19/112 (registros 451-475)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0180') AS parte_id,
         40137 AS precio_id,
@@ -3369,7 +3511,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40878) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 20/112 (registros 476-500)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0220') AS parte_id,
         40024 AS precio_id,
@@ -3546,8 +3697,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 6/28 (registros 501-600)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 21/112 (registros 501-525)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -3724,7 +3879,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-10-21' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 22/112 (registros 526-550)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0238') AS parte_id,
         20007 AS precio_id,
@@ -3899,7 +4063,16 @@ SELECT * FROM (
         3.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 23/112 (registros 551-575)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'GF/0003') AS parte_id,
         10002 AS precio_id,
@@ -4074,7 +4247,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 24/112 (registros 576-600)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0268') AS parte_id,
         20004 AS precio_id,
@@ -4251,8 +4433,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40717) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 7/28 (registros 601-700)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 25/112 (registros 601-625)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -4429,7 +4615,16 @@ SELECT * FROM (
         0.5 AS cantidad,
         '2025-10-08' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40590) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 26/112 (registros 626-650)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0295') AS parte_id,
         20003 AS precio_id,
@@ -4604,7 +4799,16 @@ SELECT * FROM (
         3.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20007) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 27/112 (registros 651-675)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0162') AS parte_id,
         20003 AS precio_id,
@@ -4779,7 +4983,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 28/112 (registros 676-700)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0095') AS parte_id,
         20005 AS precio_id,
@@ -4956,8 +5169,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 8/28 (registros 701-800)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 29/112 (registros 701-725)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -5134,7 +5351,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 41185) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 30/112 (registros 726-750)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0470') AS parte_id,
         40590 AS precio_id,
@@ -5309,7 +5535,16 @@ SELECT * FROM (
         9.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30011) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 31/112 (registros 751-775)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0197') AS parte_id,
         40717 AS precio_id,
@@ -5484,7 +5719,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 32/112 (registros 776-800)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0236') AS parte_id,
         20002 AS precio_id,
@@ -5661,8 +5905,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 9/28 (registros 801-900)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 33/112 (registros 801-825)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -5839,7 +6087,16 @@ SELECT * FROM (
         10.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 34/112 (registros 826-850)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0225') AS parte_id,
         30003 AS precio_id,
@@ -6014,7 +6271,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-10-07' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 35/112 (registros 851-875)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0319') AS parte_id,
         20004 AS precio_id,
@@ -6189,7 +6455,16 @@ SELECT * FROM (
         0.5 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40798) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 36/112 (registros 876-900)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0398') AS parte_id,
         30001 AS precio_id,
@@ -6366,8 +6641,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 30011) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 10/28 (registros 901-1000)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 37/112 (registros 901-925)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -6544,7 +6823,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-10-26' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 38/112 (registros 926-950)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0424') AS parte_id,
         20002 AS precio_id,
@@ -6719,7 +7007,16 @@ SELECT * FROM (
         1.5 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40590) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 39/112 (registros 951-975)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0492') AS parte_id,
         20004 AS precio_id,
@@ -6894,7 +7191,16 @@ SELECT * FROM (
         4.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 40/112 (registros 976-1000)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0069') AS parte_id,
         20003 AS precio_id,
@@ -7071,8 +7377,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 11/28 (registros 1001-1100)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 41/112 (registros 1001-1025)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -7249,7 +7559,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 42/112 (registros 1026-1050)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0240') AS parte_id,
         20004 AS precio_id,
@@ -7424,7 +7743,16 @@ SELECT * FROM (
         30.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 41039) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 43/112 (registros 1051-1075)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0303') AS parte_id,
         40717 AS precio_id,
@@ -7599,7 +7927,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 44/112 (registros 1076-1100)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0492') AS parte_id,
         40798 AS precio_id,
@@ -7776,8 +8113,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 12/28 (registros 1101-1200)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 45/112 (registros 1101-1125)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -7954,7 +8295,16 @@ SELECT * FROM (
         12.0 AS cantidad,
         '2025-09-18' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 46/112 (registros 1126-1150)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0290') AS parte_id,
         40831 AS precio_id,
@@ -8129,7 +8479,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         '2025-09-25' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 47/112 (registros 1151-1175)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0500') AS parte_id,
         20003 AS precio_id,
@@ -8304,7 +8663,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 48/112 (registros 1176-1200)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0432') AS parte_id,
         40831 AS precio_id,
@@ -8481,8 +8849,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20005) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 13/28 (registros 1201-1300)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 49/112 (registros 1201-1225)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -8659,7 +9031,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30001) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 50/112 (registros 1226-1250)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0404') AS parte_id,
         20003 AS precio_id,
@@ -8834,7 +9215,16 @@ SELECT * FROM (
         9.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 51/112 (registros 1251-1275)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0383') AS parte_id,
         20004 AS precio_id,
@@ -9009,7 +9399,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 52/112 (registros 1276-1300)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0116') AS parte_id,
         30003 AS precio_id,
@@ -9186,8 +9585,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 14/28 (registros 1301-1400)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 53/112 (registros 1301-1325)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -9364,7 +9767,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 54/112 (registros 1326-1350)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0126') AS parte_id,
         20002 AS precio_id,
@@ -9539,7 +9951,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         '2025-09-01' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40016) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 55/112 (registros 1351-1375)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0483') AS parte_id,
         20003 AS precio_id,
@@ -9714,7 +10135,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20007) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 56/112 (registros 1376-1400)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0216') AS parte_id,
         20004 AS precio_id,
@@ -9891,8 +10321,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 41188) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 15/28 (registros 1401-1500)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 57/112 (registros 1401-1425)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -10069,7 +10503,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 58/112 (registros 1426-1450)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0337') AS parte_id,
         40798 AS precio_id,
@@ -10244,7 +10687,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 59/112 (registros 1451-1475)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0215') AS parte_id,
         40603 AS precio_id,
@@ -10419,7 +10871,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 60/112 (registros 1476-1500)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0243') AS parte_id,
         20005 AS precio_id,
@@ -10596,8 +11057,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40624) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 16/28 (registros 1501-1600)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 61/112 (registros 1501-1525)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -10774,7 +11239,16 @@ SELECT * FROM (
         30.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30012) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 62/112 (registros 1526-1550)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0041') AS parte_id,
         20004 AS precio_id,
@@ -10949,7 +11423,16 @@ SELECT * FROM (
         3.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 63/112 (registros 1551-1575)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0518') AS parte_id,
         30011 AS precio_id,
@@ -11124,7 +11607,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 64/112 (registros 1576-1600)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0510') AS parte_id,
         40717 AS precio_id,
@@ -11301,8 +11793,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40024) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 17/28 (registros 1601-1700)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 65/112 (registros 1601-1625)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -11479,7 +11975,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40371) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 66/112 (registros 1626-1650)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0203') AS parte_id,
         20003 AS precio_id,
@@ -11654,7 +12159,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-10-27' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 67/112 (registros 1651-1675)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0463') AS parte_id,
         20004 AS precio_id,
@@ -11829,7 +12343,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30011) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 68/112 (registros 1676-1700)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0396') AS parte_id,
         40611 AS precio_id,
@@ -12006,8 +12529,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 18/28 (registros 1701-1800)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 69/112 (registros 1701-1725)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -12184,7 +12711,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 41048) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 70/112 (registros 1726-1750)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0119') AS parte_id,
         30003 AS precio_id,
@@ -12359,7 +12895,16 @@ SELECT * FROM (
         0.5 AS cantidad,
         '2025-10-31' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40059) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 71/112 (registros 1751-1775)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0330') AS parte_id,
         20004 AS precio_id,
@@ -12534,7 +13079,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 72/112 (registros 1776-1800)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0079') AS parte_id,
         20004 AS precio_id,
@@ -12711,8 +13265,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 30003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 19/28 (registros 1801-1900)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 73/112 (registros 1801-1825)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -12889,7 +13447,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 74/112 (registros 1826-1850)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0098') AS parte_id,
         40645 AS precio_id,
@@ -13064,7 +13631,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-09-16' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 75/112 (registros 1851-1875)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0436') AS parte_id,
         20003 AS precio_id,
@@ -13239,7 +13815,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         '2025-10-27' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 76/112 (registros 1876-1900)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0215') AS parte_id,
         20007 AS precio_id,
@@ -13416,8 +14001,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 20/28 (registros 1901-2000)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 77/112 (registros 1901-1925)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -13594,7 +14183,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 78/112 (registros 1926-1950)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0174') AS parte_id,
         40781 AS precio_id,
@@ -13769,7 +14367,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40025) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 79/112 (registros 1951-1975)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0303') AS parte_id,
         41181 AS precio_id,
@@ -13944,7 +14551,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40028) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 80/112 (registros 1976-2000)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0103') AS parte_id,
         30003 AS precio_id,
@@ -14121,8 +14737,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 21/28 (registros 2001-2100)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 81/112 (registros 2001-2025)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -14299,7 +14919,16 @@ SELECT * FROM (
         6.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 82/112 (registros 2026-2050)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0397') AS parte_id,
         20004 AS precio_id,
@@ -14474,7 +15103,16 @@ SELECT * FROM (
         4.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 83/112 (registros 2051-2075)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0470') AS parte_id,
         20003 AS precio_id,
@@ -14649,7 +15287,16 @@ SELECT * FROM (
         0.5 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40099) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 84/112 (registros 2076-2100)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0344') AS parte_id,
         30002 AS precio_id,
@@ -14826,8 +15473,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 22/28 (registros 2101-2200)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 85/112 (registros 2101-2125)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -15004,7 +15655,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30011) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 86/112 (registros 2126-2150)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0312') AS parte_id,
         20003 AS precio_id,
@@ -15179,7 +15839,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         '2025-10-21' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 41048) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 87/112 (registros 2151-2175)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0319') AS parte_id,
         30011 AS precio_id,
@@ -15354,7 +16023,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40492) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 88/112 (registros 2176-2200)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0439') AS parte_id,
         40059 AS precio_id,
@@ -15531,8 +16209,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40108) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 23/28 (registros 2201-2300)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 89/112 (registros 2201-2225)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -15709,7 +16391,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 90/112 (registros 2226-2250)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0171') AS parte_id,
         40369 AS precio_id,
@@ -15884,7 +16575,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 91/112 (registros 2251-2275)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0395') AS parte_id,
         20003 AS precio_id,
@@ -16059,7 +16759,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 92/112 (registros 2276-2300)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0470') AS parte_id,
         20004 AS precio_id,
@@ -16236,8 +16945,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 24/28 (registros 2301-2400)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 93/112 (registros 2301-2325)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -16414,7 +17127,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40709) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 94/112 (registros 2326-2350)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0309') AS parte_id,
         20003 AS precio_id,
@@ -16589,7 +17311,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40717) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 95/112 (registros 2351-2375)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0107') AS parte_id,
         30008 AS precio_id,
@@ -16764,7 +17495,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 96/112 (registros 2376-2400)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0102') AS parte_id,
         20005 AS precio_id,
@@ -16941,8 +17681,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20004) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 25/28 (registros 2401-2500)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 97/112 (registros 2401-2425)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -17119,7 +17863,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20005) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 98/112 (registros 2426-2450)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0100') AS parte_id,
         20005 AS precio_id,
@@ -17294,7 +18047,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40177) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 99/112 (registros 2451-2475)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0303') AS parte_id,
         20003 AS precio_id,
@@ -17469,7 +18231,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         '2025-09-17' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 100/112 (registros 2476-2500)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0304') AS parte_id,
         20003 AS precio_id,
@@ -17646,8 +18417,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 26/28 (registros 2501-2600)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 101/112 (registros 2501-2525)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -17824,7 +18599,16 @@ SELECT * FROM (
         2.0 AS cantidad,
         '2025-10-06' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30008) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 102/112 (registros 2526-2550)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0124') AS parte_id,
         20004 AS precio_id,
@@ -17999,7 +18783,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 40798) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 103/112 (registros 2551-2575)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0284') AS parte_id,
         20002 AS precio_id,
@@ -18174,7 +18967,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 104/112 (registros 2576-2600)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0452') AS parte_id,
         20002 AS precio_id,
@@ -18351,8 +19153,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 40553) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 27/28 (registros 2601-2700)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 105/112 (registros 2601-2625)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -18529,7 +19335,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         '2025-10-03' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 106/112 (registros 2626-2650)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0164') AS parte_id,
         20004 AS precio_id,
@@ -18704,7 +19519,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         '2025-10-27' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30008) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 107/112 (registros 2651-2675)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0466') AS parte_id,
         20002 AS precio_id,
@@ -18879,7 +19703,16 @@ SELECT * FROM (
         16.0 AS cantidad,
         '2025-09-24' AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 108/112 (registros 2676-2700)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'TP/0182') AS parte_id,
         20003 AS precio_id,
@@ -19056,8 +19889,12 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20005) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
--- Lote 28/28 (registros 2701-2777)
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 109/112 (registros 2701-2725)
 INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
 SELECT * FROM (
     SELECT
@@ -19234,7 +20071,16 @@ SELECT * FROM (
         1.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20002) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 110/112 (registros 2726-2750)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0318') AS parte_id,
         20003 AS precio_id,
@@ -19409,7 +20255,16 @@ SELECT * FROM (
         5.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 30003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 111/112 (registros 2751-2775)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0311') AS parte_id,
         20002 AS precio_id,
@@ -19584,7 +20439,16 @@ SELECT * FROM (
         8.0 AS cantidad,
         NULL AS fecha,
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
-    UNION ALL
+) AS temp
+WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
+
+-- Pequeña pausa para evitar deadlocks
+DO SLEEP(0.01);
+
+-- Lote 112/112 (registros 2776-2777)
+INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+SELECT * FROM (
     SELECT
         (SELECT id FROM tbl_partes WHERE codigo = 'OT/0480') AS parte_id,
         40831 AS precio_id,
@@ -19600,6 +20464,7 @@ SELECT * FROM (
         (SELECT coste FROM tbl_pres_precios WHERE id = 20003) AS precio_unit
 ) AS temp
 WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;
+COMMIT;
 
 -- Verificación: contar registros después de insertar
 SELECT COUNT(*) AS 'Registros totales después de insertar' FROM tbl_part_presupuesto;

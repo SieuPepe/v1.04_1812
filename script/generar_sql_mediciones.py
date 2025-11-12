@@ -74,8 +74,8 @@ def generar_sql_mediciones():
         f.write("-- El parte_id se obtiene desde tbl_partes.codigo\n")
         f.write("-- El precio_unit se obtiene desde tbl_pres_precios.coste\n\n")
 
-        # Agrupar por lotes de 100 para mejor rendimiento
-        batch_size = 100
+        # Agrupar por lotes de 25 para evitar deadlocks
+        batch_size = 25
         total_batches = (len(df) + batch_size - 1) // batch_size
 
         for batch_num in range(total_batches):
@@ -114,7 +114,13 @@ def generar_sql_mediciones():
                     f.write("\n")
 
             f.write(") AS temp\n")
-            f.write("WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;\n\n")
+            f.write("WHERE temp.parte_id IS NOT NULL AND temp.precio_unit IS NOT NULL;\n")
+            f.write("COMMIT;\n\n")
+
+            # Añadir pequeño delay entre lotes para evitar deadlocks
+            if batch_num < total_batches - 1:
+                f.write("-- Pequeña pausa para evitar deadlocks\n")
+                f.write("DO SLEEP(0.01);\n\n")
 
         # Verificación final
         f.write("-- Verificación: contar registros después de insertar\n")
