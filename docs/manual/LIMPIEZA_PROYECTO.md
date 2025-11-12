@@ -552,4 +552,73 @@ v1.04_1812/
 
 ---
 
+## 🔧 FASE 5: Corrección de Módulos de Producción (2025-11-12)
+
+### Problema Detectado
+Al ejecutar `main.py`, se detectó el siguiente error:
+```
+ModuleNotFoundError: No module named 'script.catalog_import'
+```
+
+### Análisis
+Durante la FASE 2, los módulos `budget_import.py` y `catalog_import.py` fueron movidos incorrectamente a `dev_tools/importacion/`, clasificándolos como herramientas de desarrollo.
+
+Sin embargo, estos módulos son **funcionalidad de producción** esencial:
+
+#### **budget_import.py**
+- **Usado por**: `manager_interfaz.py` (línea 1210), `parts_manager_interfaz.py` (línea 2105)
+- **Función**: Importar presupuestos desde Excel al catálogo base
+- **Usuario final**: Necesita esta funcionalidad para crear proyectos e importar presupuestos
+
+#### **catalog_import.py**
+- **Usado por**: `manager_interfaz.py` (línea 1224)
+- **Función**: Importar catálogos desde Excel
+- **Usuario final**: Necesita esta funcionalidad para configurar proyectos
+
+### Solución Aplicada
+
+**Archivos movidos de vuelta a `script/`:**
+- ✅ `dev_tools/importacion/budget_import.py` → `script/budget_import.py`
+- ✅ `dev_tools/importacion/catalog_import.py` → `script/catalog_import.py`
+
+**Archivos que permanecen en `dev_tools/importacion/` (correcto):**
+- ✅ `importar_mediciones_ots.py` - Script de desarrollo para importar datos de ejemplo
+- ✅ `importar_partes_access.py` - Script de desarrollo para migrar datos desde Access
+
+### Resultado
+
+#### Estructura corregida de `dev_tools/importacion/`:
+```
+dev_tools/importacion/
+├── importar_mediciones_ots.py      # Script desarrollo ✅
+└── importar_partes_access.py       # Script desarrollo ✅
+```
+
+#### Módulos de importación en `script/` (producción):
+```
+script/
+├── budget_import.py                # Funcionalidad producción ✅
+├── catalog_import.py               # Funcionalidad producción ✅
+└── ... (otros módulos de producción)
+```
+
+### Verificación
+```bash
+python3 -c "from script.catalog_import import catalog_import;
+            from script.budget_import import budget_import;
+            print('✅ Imports correctos')"
+# Resultado: ✅ Imports correctos
+```
+
+### Lección Aprendida
+**Criterio para clasificar módulos:**
+- ✅ **Producción (`script/`)**: Funcionalidad usada por interfaces de usuario final
+- ✅ **Desarrollo (`dev_tools/`)**: Scripts usados solo durante desarrollo o configuración inicial
+
+**No confundir:**
+- "Importar" datos desde Excel para usuarios → **Producción**
+- "Importar" datos de ejemplo para desarrollo → **Desarrollo**
+
+---
+
 *Última actualización: 2025-11-12*
