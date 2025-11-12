@@ -3,13 +3,41 @@
 Script para verificar qué esquemas existen en la base de datos
 """
 import mysql.connector
+import os
+import sys
+import getpass
+from pathlib import Path
+
+# Añadir directorio raíz al path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from script.db_config import get_config
+
+def get_credentials():
+    """Solicita credenciales al usuario"""
+    config = get_config()
+
+    # Intentar obtener de variables de entorno primero
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+
+    # Si no están en variables de entorno, solicitar al usuario
+    if not user:
+        user = input("Usuario MySQL: ").strip()
+
+    if not password:
+        password = getpass.getpass("Contraseña: ")
+
+    return user, password
 
 try:
+    config = get_config()
+    user, password = get_credentials()
+
     conexion = mysql.connector.connect(
-        host='localhost',
-        port=3307,
-        user='root',
-        password='Cretus2021*'
+        host=config.host,
+        port=config.port,
+        user=user,
+        password=password
     )
 
     cursor = conexion.cursor()

@@ -7,22 +7,44 @@ import mysql.connector
 from datetime import datetime
 from typing import Dict, List, Tuple
 import sys
+import os
+from pathlib import Path
 
 
 class IntegrityChecker:
     """Verificador de integridad de datos"""
 
-    def __init__(self, host='localhost', port=3307, user='root', password='Cretus2021*', schema='cert_dev'):
+    def __init__(self, host=None, port=None, user=None, password=None, schema='cert_dev'):
         """
         Inicializa el verificador de integridad
 
         Args:
-            host: Host de la base de datos
-            port: Puerto de la base de datos
-            user: Usuario
-            password: Contraseña
+            host: Host de la base de datos (default: desde db_config)
+            port: Puerto de la base de datos (default: desde db_config)
+            user: Usuario (si None, se solicitará)
+            password: Contraseña (si None, se solicitará)
             schema: Esquema a verificar
         """
+        # Importar configuración
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from script.db_config import get_config
+        config = get_config()
+
+        # Usar valores de configuración si no se proporcionaron
+        if host is None:
+            host = config.host
+        if port is None:
+            port = config.port
+        if user is None:
+            user = os.getenv('DB_USER')
+            if not user:
+                user = input("Usuario MySQL: ").strip()
+        if password is None:
+            password = os.getenv('DB_PASSWORD')
+            if not password:
+                import getpass
+                password = getpass.getpass("Contraseña: ")
+
         self.connection_params = {
             'host': host,
             'port': port,
