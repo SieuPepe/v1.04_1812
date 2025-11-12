@@ -81,3 +81,31 @@ HidroFlowManager.exe
 *.db
 *.sqlite
 *.sqlite3
+
+# Bases de datos de ejemplo y desarrollo
+*.accdb
+*.mdb
+
+# Archivos de datos de ejemplo (Excel, CSV)
+*.xlsx
+*.xls
+*.csv
+!requirements*.csv
+
+# Documentos de Word temporales
+*.docx
+*.doc
+~$*.docx
+~$*.doc
+
+# Imágenes de ejemplo/documentación (mantener solo en resources/)
+/*.jpg
+/*.jpeg
+/*.png
+!resources/**/*.jpg
+!resources/**/*.jpeg
+!resources/**/*.png
+
+# Carpetas de datos de ejemplo
+ejemplos_datos/
+datos_prueba/

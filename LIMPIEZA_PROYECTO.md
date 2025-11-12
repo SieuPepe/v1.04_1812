@@ -308,4 +308,153 @@ python generar_datos_prueba.py
 
 ---
 
+## 🧹 FASE 3: Limpieza del Directorio Raíz (2025-11-12)
+
+### Archivos Eliminados
+
+#### 📊 **Base de Datos de Ejemplo** (~15MB eliminados)
+- ❌ `APLICACION CERTIFICACIONES UTE REDES URBIDE.accdb`
+  - Base de datos Access del proyecto Urbide
+  - Solo necesaria durante desarrollo inicial
+
+#### 📈 **Archivos Excel de Datos** (~500KB eliminados)
+- ❌ `LISTADO OTS.xlsx`
+- ❌ `MEDICIONES OTS.xlsx`
+- ❌ `PRECIOS UNITARIOS.xlsx`
+- ❌ `Para exportar.xlsx`
+  - Datos de ejemplo usados para alimentar la BD
+  - No necesarios en producción ni desarrollo continuo
+
+#### 🖼️ **Imágenes y Documentación** (~650KB eliminados)
+- ❌ `Logo Redes Urbide.jpg` (duplicado en resources/images/)
+- ❌ `Logo Urbide.jpg` (duplicado en resources/images/)
+- ❌ `Certificacion por capitulos.jpg` (captura de ejemplo)
+- ❌ `Informe certificaciones.jpg` (captura de ejemplo)
+- ❌ `Informe recursos.jpg` (captura de ejemplo)
+- ❌ `Definicion informes.docx` (documento de diseño)
+
+#### 📝 **Archivos SQL Temporales** (~600KB eliminados)
+- ❌ `actualizar_finalizada.sql`
+- ❌ `actualizar_finalizada_safe.sql`
+- ❌ `actualizar_finalizada_simple.sql`
+- ❌ `importar_partes_desde_excel.sql`
+- ❌ `script_cargar_precios_unitarios.sql`
+- ❌ `script_cargar_precios_unitarios_backup.sql`
+- ❌ `duplicados_detectados.csv`
+
+#### 📂 **Carpetas Eliminadas** (~25MB eliminados)
+- ❌ `backup/` - Backups SQL de desarrollo (25MB)
+  - backup_BASE.sql
+  - backup_PR001.sql
+  - backup_completo.sql
+  - backup_estructuraBBDD.sql
+  - backup_test.sql
+- ❌ `scripts/` - Carpeta duplicada (confusión con script/)
+  - update_dim_red.sql
+  - update_dim_tipo_trabajo.sql
+
+### 📊 Impacto Total de la Limpieza
+
+**Antes:**
+```
+Total archivos en raíz: ~45 archivos
+Tamaño aproximado: ~42MB
+```
+
+**Después:**
+```
+Total archivos en raíz: ~20 archivos
+Tamaño aproximado: ~0.5MB
+```
+
+**Reducción: ~41.5MB (~98% menos datos innecesarios)**
+
+### 🔒 Mejoras en .gitignore
+
+Se agregaron exclusiones para prevenir futuros commits accidentales:
+
+```gitignore
+# Bases de datos de ejemplo y desarrollo
+*.accdb
+*.mdb
+
+# Archivos de datos de ejemplo (Excel, CSV)
+*.xlsx
+*.xls
+*.csv
+!requirements*.csv
+
+# Documentos de Word temporales
+*.docx
+*.doc
+~$*.docx
+~$*.doc
+
+# Imágenes de ejemplo/documentación (mantener solo en resources/)
+/*.jpg
+/*.jpeg
+/*.png
+!resources/**/*.jpg
+!resources/**/*.jpeg
+!resources/**/*.png
+
+# Carpetas de datos de ejemplo
+ejemplos_datos/
+datos_prueba/
+```
+
+### ✅ Estado Final del Directorio Raíz
+
+```
+v1.04_1812/
+├── .editorconfig                       # Configuración del editor
+├── .env.example                        # Ejemplo de variables de entorno
+├── .env.produccion.template            # Template para producción
+├── .gitignore                          # Mejorado con nuevas exclusiones
+├── .pre-commit-config.yaml             # Hooks de pre-commit
+├── ESTRUCTURA_PROYECTO.md              # Documentación de estructura
+├── HidroFlowManager.spec               # Configuración PyInstaller
+├── INSTALACION_Y_CONFIGURACION.md      # Guía de instalación
+├── LIMPIEZA_PROYECTO.md                # Este documento
+├── VERIFICACION_INFORMES.md            # Guía de verificación
+├── build.py                            # Script de compilación
+├── installer.iss                       # Configuración instalador
+├── main.py                             # Punto de entrada
+├── pyproject.toml                      # Configuración Python
+├── requirements.txt                    # Dependencias producción
+├── requirements-dev.txt                # Dependencias desarrollo
+│
+├── dev_tools/                          # Herramientas de desarrollo
+├── docs/                               # Documentación
+├── ejemplos_informes_generados/        # Ejemplos de salida
+├── informes_exhaustivos/               # Informes detallados
+├── informes_guardados/                 # Informes guardados por usuario
+├── interface/                          # Código GUI
+├── INFORME TIPO/                       # Plantilla de informes
+├── resources/                          # Recursos de la aplicación
+├── script/                             # Lógica de negocio
+├── tests/                              # Tests automáticos
+└── tools/                              # Herramientas de usuario
+```
+
+### 🎯 Beneficios Logrados
+
+1. ✅ **Repositorio más limpio**: Solo archivos esenciales y de configuración
+2. ✅ **Menos confusión**: No hay datos de ejemplo mezclados con código
+3. ✅ **Mejor seguridad**: No se commitean accidentalmente archivos de datos
+4. ✅ **Menor tamaño**: ~42MB menos en el repositorio
+5. ✅ **Más profesional**: Estructura clara y organizada
+6. ✅ **.gitignore robusto**: Previene futuros commits de archivos innecesarios
+
+### 📌 Notas Importantes
+
+- Los archivos eliminados eran específicos del proyecto Urbide (ejemplo)
+- Los datos necesarios ya están en la base de datos MySQL
+- Las imágenes importantes se mantienen en `resources/images/`
+- Los backups SQL de desarrollo ya no son necesarios
+- La documentación de usuario se mantiene en la raíz
+- La estructura de producción permanece intacta
+
+---
+
 *Última actualización: 2025-11-12*
