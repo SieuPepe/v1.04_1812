@@ -28,7 +28,7 @@ class AppTypeUser(customtkinter.CTk):
         self.resizable(False, False)
 
         # load and create background image
-        image_path = parent_path +"/source/fondo.jpeg"
+        image_path = parent_path +"/resources/images/fondo.jpeg"
         self.bg_image = customtkinter.CTkImage(Image.open(image_path),
                                                size=(self.width, self.height))
         self.bg_image_label = customtkinter.CTkLabel(self, text='', image=self.bg_image)
@@ -38,12 +38,12 @@ class AppTypeUser(customtkinter.CTk):
         self.select_frame = customtkinter.CTkFrame(self, corner_radius=0, height= 500)
         self.select_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        image_logo_path = parent_path +"/source/logo artanda2.png"
+        image_logo_path = parent_path +"/resources/images/logo artanda2.png"
         self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200,44))
         self.lg_image_label = customtkinter.CTkLabel(self.select_frame, text=" ",image=self.lg_image)
         self.lg_image_label.grid(row=0, column=0, padx=30, pady=(15, 15), columnspan=2)
 
-        user_path = parent_path +"/source/tecnico.png"
+        user_path = parent_path +"/resources/images/tecnico.png"
         self.user_image = customtkinter.CTkImage(Image.open(user_path),
                                                size=(100, 100))
         self.user_image_label = customtkinter.CTkLabel(self.select_frame, text='', image=self.user_image)
@@ -51,7 +51,7 @@ class AppTypeUser(customtkinter.CTk):
         self.user_button = customtkinter.CTkButton(self.select_frame, text="Técnico", command=lambda:self.user_event(access), width=200)
         self.user_button.grid(row=2, column=0, padx=30, pady=(15, 15))
 
-        manager_path = parent_path +"/source/manager.png"
+        manager_path = parent_path +"/resources/images/manager.png"
         self.admin_image = customtkinter.CTkImage(Image.open(manager_path),
                                                size=(100, 100))
         self.admin_label = customtkinter.CTkLabel(self.select_frame,  text='',image=self.admin_image)

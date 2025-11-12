@@ -41,7 +41,7 @@ class AppItemAdd(BaseWindow):
         self.grid_rowconfigure(2,weight=1)
 
         # boton de guardar
-        save_path = parent_path +"/source/guardar.png"
+        save_path = parent_path +"/resources/images/guardar.png"
         self.save_image = customtkinter.CTkImage(Image.open(save_path))
         self.save_button = customtkinter.CTkButton(self, text="Guardar",image=self.save_image, compound="left",fg_color="green",
                                                    font=("default", 14, "bold"),
@@ -49,7 +49,7 @@ class AppItemAdd(BaseWindow):
         self.save_button.grid(row=3, column=0, padx=(30,10), pady=(10,30), sticky= "ew")
 
         # boton de cancelar
-        cancel_path = parent_path +"/source/cancelar.png"
+        cancel_path = parent_path +"/resources/images/cancelar.png"
         self.cancel_image = customtkinter.CTkImage(Image.open(cancel_path))
         self.cancel_button = customtkinter.CTkButton(self, text="Cancelar",image=self.cancel_image, compound="left",fg_color="red",
                                                    font=("default", 14, "bold"),

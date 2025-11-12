@@ -1354,6 +1354,67 @@ class InformesFrame(customtkinter.CTkFrame):
                 locale='es_ES'
             )
             widget2.grid(row=0, column=2)
+
+        elif tipo_actual == 'mes_anio':
+            # Para mes/año, crear dos selectores de mes/año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+            meses = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+
+            # Primer selector (desde)
+            frame1 = customtkinter.CTkFrame(range_frame, fg_color="transparent")
+            frame1.grid(row=0, column=0, padx=(0, 5))
+
+            combo_year1 = customtkinter.CTkComboBox(frame1, values=years, width=70, state="readonly")
+            combo_year1.set(str(current_year))
+            combo_year1.grid(row=0, column=0, padx=(0, 2))
+
+            combo_month1 = customtkinter.CTkComboBox(frame1, values=meses, width=50, state="readonly")
+            combo_month1.set("01")
+            combo_month1.grid(row=0, column=1)
+
+            frame1.combo_year = combo_year1
+            frame1.combo_month = combo_month1
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            # Segundo selector (hasta)
+            frame2 = customtkinter.CTkFrame(range_frame, fg_color="transparent")
+            frame2.grid(row=0, column=2)
+
+            combo_year2 = customtkinter.CTkComboBox(frame2, values=years, width=70, state="readonly")
+            combo_year2.set(str(current_year))
+            combo_year2.grid(row=0, column=0, padx=(0, 2))
+
+            combo_month2 = customtkinter.CTkComboBox(frame2, values=meses, width=50, state="readonly")
+            combo_month2.set("12")
+            combo_month2.grid(row=0, column=1)
+
+            frame2.combo_year = combo_year2
+            frame2.combo_month = combo_month2
+
+            widget1 = frame1
+            widget2 = frame2
+
+        elif tipo_actual == 'anio':
+            # Para año, crear dos selectores de año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            widget1 = customtkinter.CTkComboBox(range_frame, values=years, width=90, state="readonly")
+            widget1.set(str(current_year - 1))
+            widget1.grid(row=0, column=0, padx=(0, 5))
+
+            # Label "y"
+            label_y = customtkinter.CTkLabel(range_frame, text="y", width=15)
+            label_y.grid(row=0, column=1, padx=(0, 5))
+
+            widget2 = customtkinter.CTkComboBox(range_frame, values=years, width=90, state="readonly")
+            widget2.set(str(current_year))
+            widget2.grid(row=0, column=2)
+
         else:
             # Para numéricos, usar Entry normal
             widget1 = customtkinter.CTkEntry(
@@ -1426,6 +1487,53 @@ class InformesFrame(customtkinter.CTkFrame):
                 date_pattern='yyyy-mm-dd',
                 locale='es_ES'
             )
+
+        elif tipo == 'mes_anio':
+            # Selector de mes y año (dos comboboxes)
+            frame_mes_anio = customtkinter.CTkFrame(filtro_obj['container'], fg_color="transparent")
+
+            # Generar lista de años (últimos 10 años + próximos 2)
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            # ComboBox para año
+            combo_year = customtkinter.CTkComboBox(
+                frame_mes_anio,
+                values=years,
+                width=80,
+                state="readonly"
+            )
+            combo_year.set(str(current_year))
+            combo_year.grid(row=0, column=0, padx=(0, 5))
+
+            # ComboBox para mes
+            meses = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
+            combo_month = customtkinter.CTkComboBox(
+                frame_mes_anio,
+                values=meses,
+                width=60,
+                state="readonly"
+            )
+            combo_month.set(f"{datetime.datetime.now().month:02d}")
+            combo_month.grid(row=0, column=1)
+
+            # Guardar ambos combos en el widget
+            frame_mes_anio.combo_year = combo_year
+            frame_mes_anio.combo_month = combo_month
+            widget = frame_mes_anio
+
+        elif tipo == 'anio':
+            # Selector de año
+            current_year = datetime.datetime.now().year
+            years = [str(year) for year in range(current_year - 10, current_year + 3)]
+
+            widget = customtkinter.CTkComboBox(
+                filtro_obj['container'],
+                values=years,
+                width=100,
+                state="readonly"
+            )
+            widget.set(str(current_year))
 
         else:
             # Default: Entry de texto
@@ -1635,7 +1743,7 @@ class InformesFrame(customtkinter.CTkFrame):
             campo_key_anterior = self.campos_orden[self.campo_seleccionado_idx]
             if campo_key_anterior in self.campos_seleccionados:
                 self.campos_seleccionados[campo_key_anterior]['frame'].configure(fg_color="transparent")
-                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=None)
+                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=("gray10", "gray90"))
 
         # Seleccionar nuevo campo
         self.campo_seleccionado_idx = idx
@@ -1703,6 +1811,83 @@ class InformesFrame(customtkinter.CTkFrame):
             icon="info"
         )
 
+    def _mostrar_dialogo_configuracion_informe(self):
+        """Muestra diálogo para configurar título y fecha del informe antes de exportar"""
+        import tkinter as tk
+        from tkinter import ttk
+
+        # Crear ventana modal
+        dialogo = tk.Toplevel(self)
+        dialogo.title("Configuración del Informe")
+        dialogo.geometry("500x200")
+        dialogo.resizable(False, False)
+        dialogo.transient(self)
+        dialogo.grab_set()
+
+        # Centrar la ventana
+        dialogo.update_idletasks()
+        x = (dialogo.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialogo.winfo_screenheight() // 2) - (200 // 2)
+        dialogo.geometry(f"500x200+{x}+{y}")
+
+        # Variable para almacenar el resultado
+        resultado = {}
+
+        # Frame principal
+        frame = customtkinter.CTkFrame(dialogo)
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Título del informe
+        label_titulo = customtkinter.CTkLabel(frame, text="Título del informe:", font=("Arial", 12, "bold"))
+        label_titulo.grid(row=0, column=0, sticky="w", pady=(0, 5))
+
+        entry_titulo = customtkinter.CTkEntry(frame, width=400)
+        entry_titulo.insert(0, self.informe_seleccionado if self.informe_seleccionado else "")
+        entry_titulo.grid(row=1, column=0, pady=(0, 15))
+
+        # Fecha de generación
+        label_fecha = customtkinter.CTkLabel(frame, text="Fecha de generación:", font=("Arial", 12, "bold"))
+        label_fecha.grid(row=2, column=0, sticky="w", pady=(0, 5))
+
+        entry_fecha = customtkinter.CTkEntry(frame, width=200)
+        entry_fecha.insert(0, datetime.datetime.now().strftime("%d/%m/%Y"))
+        entry_fecha.grid(row=3, column=0, sticky="w", pady=(0, 20))
+
+        # Frame para botones
+        frame_botones = customtkinter.CTkFrame(frame, fg_color="transparent")
+        frame_botones.grid(row=4, column=0, pady=(10, 0))
+
+        def aceptar():
+            resultado['titulo'] = entry_titulo.get().strip()
+            resultado['fecha'] = entry_fecha.get().strip()
+            dialogo.destroy()
+
+        def cancelar():
+            dialogo.destroy()
+
+        btn_aceptar = customtkinter.CTkButton(
+            frame_botones,
+            text="Aceptar",
+            command=aceptar,
+            width=100
+        )
+        btn_aceptar.grid(row=0, column=0, padx=(0, 10))
+
+        btn_cancelar = customtkinter.CTkButton(
+            frame_botones,
+            text="Cancelar",
+            command=cancelar,
+            width=100,
+            fg_color="gray"
+        )
+        btn_cancelar.grid(row=0, column=1)
+
+        # Esperar a que se cierre el diálogo
+        dialogo.wait_window()
+
+        # Retornar resultado o None si se canceló
+        return resultado if resultado else None
+
     def _preview_report(self):
         """Previsualiza el informe ejecutando el query y mostrando resultados"""
         from CTkMessagebox import CTkMessagebox
@@ -1744,11 +1929,21 @@ class InformesFrame(customtkinter.CTkFrame):
                     # Obtener valor según tipo de widget
                     if isinstance(widget1, (customtkinter.CTkEntry, DateEntry)):
                         valor1 = widget1.get()
+                    elif isinstance(widget1, customtkinter.CTkComboBox):
+                        valor1 = widget1.get()
+                    elif hasattr(widget1, 'combo_year') and hasattr(widget1, 'combo_month'):
+                        # Widget mes_anio personalizado
+                        valor1 = f"{widget1.combo_year.get()}-{widget1.combo_month.get()}"
                     else:
                         valor1 = ""
 
                     if isinstance(widget2, (customtkinter.CTkEntry, DateEntry)):
                         valor2 = widget2.get()
+                    elif isinstance(widget2, customtkinter.CTkComboBox):
+                        valor2 = widget2.get()
+                    elif hasattr(widget2, 'combo_year') and hasattr(widget2, 'combo_month'):
+                        # Widget mes_anio personalizado
+                        valor2 = f"{widget2.combo_year.get()}-{widget2.combo_month.get()}"
                     else:
                         valor2 = ""
 
@@ -1765,6 +1960,9 @@ class InformesFrame(customtkinter.CTkFrame):
                     valor = valor_widget.get()
                 elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
+                elif hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    # Widget mes_anio personalizado
+                    valor = f"{valor_widget.combo_year.get()}-{valor_widget.combo_month.get()}"
                 else:
                     valor = ""
 
@@ -2440,18 +2638,26 @@ class InformesFrame(customtkinter.CTkFrame):
         if not archivo:
             return  # Usuario canceló
 
+        # Mostrar diálogo de configuración del informe
+        config_informe = self._mostrar_dialogo_configuracion_informe()
+        if not config_informe:
+            return  # Usuario canceló
+
+        titulo_informe = config_informe['titulo']
+        fecha_generacion = config_informe['fecha']
+
         # Crear archivo Word usando el exportador profesional
         try:
             exportador = InformesExportador(self.schema)
 
             exito = exportador.exportar_a_word(
                 filepath=archivo,
-                informe_nombre=self.informe_seleccionado,
+                informe_nombre=titulo_informe,
                 columnas=columnas,
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
-                proyecto_nombre=self.schema,
-                proyecto_codigo=self.schema
+                proyecto_nombre="",
+                proyecto_codigo=""
             )
 
             if exito:
@@ -2679,18 +2885,26 @@ class InformesFrame(customtkinter.CTkFrame):
         if not archivo:
             return  # Usuario canceló
 
+        # Mostrar diálogo de configuración del informe
+        config_informe = self._mostrar_dialogo_configuracion_informe()
+        if not config_informe:
+            return  # Usuario canceló
+
+        titulo_informe = config_informe['titulo']
+        fecha_generacion = config_informe['fecha']
+
         # Crear archivo Excel usando el exportador profesional
         try:
             exportador = InformesExportador(self.schema)
 
             exito = exportador.exportar_a_excel(
                 filepath=archivo,
-                informe_nombre=self.informe_seleccionado,
+                informe_nombre=titulo_informe,
                 columnas=columnas,
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
-                proyecto_nombre=self.schema,
-                proyecto_codigo=self.schema
+                proyecto_nombre="",
+                proyecto_codigo=""
             )
 
             if exito:

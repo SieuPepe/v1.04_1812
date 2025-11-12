@@ -1,5 +1,0 @@
-﻿id,codigo,red_id,tipo_trabajo_id,cod_trabajo_id,comarca_id,municipio_id,titulo,descripcion,fecha_inicio,fecha_fin,latitud,longitud,estado,observaciones,creado_en,actualizado_en,descripcion_larga,descripcion_corta,id_estado,finalizada,localizacion,id_municipio,trabajadores,provincia_id,tipo_rep_id
-285,OT/0250,3.0,1,0,1,1,Reparacion de fuga en Amurrio,Reparacion fuga en Aldai 38,2025-09-01 00:00:00,2025-09-01 00:00:00,43.046377,-3.004386,,,,,,,,True,Amurrio,1,0,1,1
-288,OT/0250,5.0,1,0,5,44,Desatasco en Tuesta,Desatasco en Tuesta,2025-09-04 00:00:00,2025-09-04 00:00:00,42.809203,-3.025301,,,,,,,,True,Tuesta,44,0,1,2
-538,TP/0252,5.0,2,1,3,3,Mantenimiento preventivo saneamiento C/Urzabal en Agurain,Mantenimiento preventivo saneamiento C/Urzabal en Agurain,2025-10-06 00:00:00,2025-10-06 00:00:00,42.848553,-2.39076,,,,,,,,True,Agurain,3,EMILIO,1,0
-544,TP/0252,3.0,2,8,1,1,Instalación de contador en C/Batzalarrim n8 (Llodio),Instalación de contador en C/Batzalarrim n8 (Llodio),2025-10-02 00:00:00,2025-10-02 00:00:00,43.14236,-2.963007,,,,,,,,True,Llodio,1,TOMAS,1,0

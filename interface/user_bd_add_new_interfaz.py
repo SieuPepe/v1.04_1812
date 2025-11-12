@@ -83,7 +83,7 @@ class AppUserBdAddNew(BaseWindow):
         self.grid_rowconfigure(5, weight=1)
 
         # boton de guardar
-        save_path = parent_path +"/source/ok.png"
+        save_path = parent_path +"/resources/images/ok.png"
         self.save_image = customtkinter.CTkImage(Image.open(save_path))
         self.save_button = customtkinter.CTkButton(self, text="Aceptar",image=self.save_image, compound="left",fg_color="green",
                                                    font=("default", 14, "bold"),
@@ -91,7 +91,7 @@ class AppUserBdAddNew(BaseWindow):
         self.save_button.grid(row=6, column=0, padx=(30,1), pady=10, sticky= "ew")
 
         # boton de cancelar
-        cancel_path = parent_path +"/source/cancelar.png"
+        cancel_path = parent_path +"/resources/images/cancelar.png"
         self.cancel_image = customtkinter.CTkImage(Image.open(cancel_path))
         self.cancel_button = customtkinter.CTkButton(self, text="Cancelar",image=self.cancel_image, compound="left",fg_color="red",
                                                    font=("default", 14, "bold"),
