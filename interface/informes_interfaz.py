@@ -1818,49 +1818,79 @@ class InformesFrame(customtkinter.CTkFrame):
     def _mostrar_dialogo_configuracion_informe(self):
         """Muestra diálogo para configurar título y fecha del informe antes de exportar"""
         import tkinter as tk
-        from tkinter import ttk
-
-        # Crear ventana modal
-        dialogo = tk.Toplevel(self)
-        dialogo.title("Configuración del Informe")
-        dialogo.geometry("700x350")
-        dialogo.resizable(False, False)
-        dialogo.transient(self)
-        dialogo.grab_set()
-
-        # Centrar la ventana
-        dialogo.update_idletasks()
-        x = (dialogo.winfo_screenwidth() // 2) - (700 // 2)
-        y = (dialogo.winfo_screenheight() // 2) - (350 // 2)
-        dialogo.geometry(f"700x350+{x}+{y}")
 
         # Variable para almacenar el resultado
         resultado = {}
 
-        # Frame principal con configuración de grid
-        frame = customtkinter.CTkFrame(dialogo)
-        frame.pack(fill="both", expand=True, padx=30, pady=30)
-        frame.grid_columnconfigure(0, weight=1)
+        # Crear ventana modal usando CTkToplevel
+        dialogo = customtkinter.CTkToplevel(self)
+        dialogo.title("Configuración del Informe")
+        dialogo.transient(self)
+        dialogo.grab_set()
+
+        # Configurar tamaño FIJO y centrar
+        ancho = 750
+        alto = 400
+        dialogo.geometry(f"{ancho}x{alto}")
+        dialogo.resizable(False, False)
+
+        # Centrar después de configurar geometría
+        dialogo.update_idletasks()
+        x = (dialogo.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (dialogo.winfo_screenheight() // 2) - (alto // 2)
+        dialogo.geometry(f"{ancho}x{alto}+{x}+{y}")
+
+        # Usar grid para TODO el layout (no mezclar con pack)
+        dialogo.grid_rowconfigure(0, weight=0)  # Label título
+        dialogo.grid_rowconfigure(1, weight=0)  # Entry título
+        dialogo.grid_rowconfigure(2, weight=0)  # Label fecha
+        dialogo.grid_rowconfigure(3, weight=0)  # Entry fecha
+        dialogo.grid_rowconfigure(4, weight=1)  # Spacer
+        dialogo.grid_rowconfigure(5, weight=0)  # Botones
+        dialogo.grid_columnconfigure(0, weight=1)
 
         # Título del informe
-        label_titulo = customtkinter.CTkLabel(frame, text="Título del informe:", font=("Arial", 14, "bold"))
-        label_titulo.grid(row=0, column=0, sticky="w", pady=(0, 8))
+        label_titulo = customtkinter.CTkLabel(
+            dialogo,
+            text="Título del informe:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        label_titulo.grid(row=0, column=0, sticky="w", padx=40, pady=(40, 10))
 
-        entry_titulo = customtkinter.CTkEntry(frame, width=500, height=35, font=("Arial", 12))
+        entry_titulo = customtkinter.CTkEntry(
+            dialogo,
+            height=40,
+            font=customtkinter.CTkFont(size=14)
+        )
         entry_titulo.insert(0, self.informe_seleccionado if self.informe_seleccionado else "")
-        entry_titulo.grid(row=1, column=0, pady=(0, 20), sticky="ew")
+        entry_titulo.grid(row=1, column=0, sticky="ew", padx=40, pady=(0, 30))
 
         # Fecha de generación
-        label_fecha = customtkinter.CTkLabel(frame, text="Fecha de generación:", font=("Arial", 14, "bold"))
-        label_fecha.grid(row=2, column=0, sticky="w", pady=(0, 8))
+        label_fecha = customtkinter.CTkLabel(
+            dialogo,
+            text="Fecha de generación:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        label_fecha.grid(row=2, column=0, sticky="w", padx=40, pady=(0, 10))
 
-        entry_fecha = customtkinter.CTkEntry(frame, width=250, height=35, font=("Arial", 12))
+        entry_fecha = customtkinter.CTkEntry(
+            dialogo,
+            width=200,
+            height=40,
+            font=customtkinter.CTkFont(size=14)
+        )
         entry_fecha.insert(0, datetime.datetime.now().strftime("%d/%m/%Y"))
-        entry_fecha.grid(row=3, column=0, sticky="w", pady=(0, 30))
+        entry_fecha.grid(row=3, column=0, sticky="w", padx=40, pady=(0, 20))
 
         # Frame para botones
-        frame_botones = customtkinter.CTkFrame(frame, fg_color="transparent")
-        frame_botones.grid(row=4, column=0, pady=(20, 0))
+        frame_botones = customtkinter.CTkFrame(dialogo, fg_color="transparent")
+        frame_botones.grid(row=5, column=0, sticky="ew", padx=40, pady=(0, 40))
+
+        # Centrar botones dentro del frame
+        frame_botones.grid_columnconfigure(0, weight=1)
+        frame_botones.grid_columnconfigure(1, weight=0)
+        frame_botones.grid_columnconfigure(2, weight=0)
+        frame_botones.grid_columnconfigure(3, weight=1)
 
         def aceptar():
             resultado['titulo'] = entry_titulo.get().strip()
@@ -1872,25 +1902,27 @@ class InformesFrame(customtkinter.CTkFrame):
 
         btn_aceptar = customtkinter.CTkButton(
             frame_botones,
-            text="✓ Aceptar",
+            text="✓ Generar Informe",
             command=aceptar,
-            width=120,
-            height=40,
-            font=("Arial", 13, "bold"),
-            fg_color="#2fa572"
+            width=180,
+            height=45,
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color="#2fa572",
+            hover_color="#26844f"
         )
-        btn_aceptar.grid(row=0, column=0, padx=(0, 15))
+        btn_aceptar.grid(row=0, column=1, padx=10)
 
         btn_cancelar = customtkinter.CTkButton(
             frame_botones,
             text="✗ Cancelar",
             command=cancelar,
-            width=120,
-            height=40,
-            font=("Arial", 13, "bold"),
-            fg_color="#d32f2f"
+            width=140,
+            height=45,
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color="#d32f2f",
+            hover_color="#9a2424"
         )
-        btn_cancelar.grid(row=0, column=1)
+        btn_cancelar.grid(row=0, column=2, padx=10)
 
         # Esperar a que se cierre el diálogo
         dialogo.wait_window()
