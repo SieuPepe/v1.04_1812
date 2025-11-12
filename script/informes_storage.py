@@ -33,7 +33,7 @@ class InformesConfigStorage:
         if not os.path.exists(self.storage_dir):
             os.makedirs(self.storage_dir)
 
-    def guardar_configuracion(self, nombre, informe_nombre, filtros, clasificaciones, campos_seleccionados, descripcion=""):
+    def guardar_configuracion(self, nombre, informe_nombre, filtros, ordenaciones, campos_seleccionados, descripcion=""):
         """
         Guarda una configuración de informe
 
@@ -41,7 +41,7 @@ class InformesConfigStorage:
             nombre: Nombre de la configuración (será el nombre del archivo)
             informe_nombre: Nombre del informe base
             filtros: Lista de filtros aplicados
-            clasificaciones: Lista de clasificaciones aplicadas
+            ordenaciones: Lista de ordenaciones aplicadas
             campos_seleccionados: Lista de campos seleccionados
             descripcion: Descripción opcional de la configuración
 
@@ -54,7 +54,7 @@ class InformesConfigStorage:
                 "descripcion": descripcion,
                 "informe_base": informe_nombre,
                 "filtros": filtros,
-                "clasificaciones": clasificaciones,
+                "ordenaciones": ordenaciones,
                 "campos_seleccionados": campos_seleccionados,
                 "fecha_creacion": datetime.now().isoformat(),
                 "fecha_modificacion": datetime.now().isoformat(),
@@ -129,7 +129,7 @@ class InformesConfigStorage:
                             'fecha_creacion': config.get('fecha_creacion', ''),
                             'fecha_modificacion': config.get('fecha_modificacion', ''),
                             'num_filtros': len(config.get('filtros', [])),
-                            'num_clasificaciones': len(config.get('clasificaciones', [])),
+                            'num_ordenaciones': len(config.get('ordenaciones', [])),
                             'num_campos': len(config.get('campos_seleccionados', []))
                         })
                     except:
@@ -167,14 +167,14 @@ class InformesConfigStorage:
             print(f"❌ Error al eliminar configuración: {e}")
             return False
 
-    def actualizar_configuracion(self, nombre, filtros, clasificaciones, campos_seleccionados):
+    def actualizar_configuracion(self, nombre, filtros, ordenaciones, campos_seleccionados):
         """
         Actualiza una configuración existente
 
         Args:
             nombre: Nombre de la configuración
             filtros: Nuevos filtros
-            clasificaciones: Nuevas clasificaciones
+            ordenaciones: Nuevas ordenaciones
             campos_seleccionados: Nuevos campos seleccionados
 
         Returns:
@@ -188,7 +188,7 @@ class InformesConfigStorage:
 
             # Actualizar datos
             config['filtros'] = filtros
-            config['clasificaciones'] = clasificaciones
+            config['ordenaciones'] = ordenaciones
             config['campos_seleccionados'] = campos_seleccionados
             config['fecha_modificacion'] = datetime.now().isoformat()
 
@@ -252,7 +252,7 @@ class InformesConfigStorage:
                 nombre,
                 config.get('informe_base', ''),
                 config.get('filtros', []),
-                config.get('clasificaciones', []),
+                config.get('ordenaciones', []),
                 config.get('campos_seleccionados', []),
                 config.get('descripcion', '')
             )

@@ -1648,8 +1648,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
                 # Bind click event para seleccionar
-                label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
-                campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                label.bind("<Button-1>", lambda e, key=campo_key: self._seleccionar_campo_por_key(key))
+                campo_frame.bind("<Button-1>", lambda e, key=campo_key: self._seleccionar_campo_por_key(key))
 
                 self.campos_seleccionados[campo_key] = {
                     'var': var,
@@ -1706,8 +1706,8 @@ class InformesFrame(customtkinter.CTkFrame):
                         label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
                         # Bind click event
-                        label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
-                        campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                        label.bind("<Button-1>", lambda e, key=campo: self._seleccionar_campo_por_key(key))
+                        campo_frame.bind("<Button-1>", lambda e, key=campo: self._seleccionar_campo_por_key(key))
 
                         self.campos_seleccionados[campo] = {
                             'var': var,
@@ -1735,6 +1735,13 @@ class InformesFrame(customtkinter.CTkFrame):
             else:
                 # Compatibilidad con versión antigua
                 campo_info.set(False)
+
+    def _seleccionar_campo_por_key(self, campo_key):
+        """Selecciona un campo mediante su key, buscando su índice actual en campos_orden"""
+        # Buscar el índice actual del campo en la lista ordenada
+        if campo_key in self.campos_orden:
+            idx = self.campos_orden.index(campo_key)
+            self._seleccionar_campo_para_reordenar(idx)
 
     def _seleccionar_campo_para_reordenar(self, idx):
         """Selecciona un campo para poder reordenarlo"""
@@ -1819,16 +1826,16 @@ class InformesFrame(customtkinter.CTkFrame):
         # Crear ventana modal
         dialogo = tk.Toplevel(self)
         dialogo.title("Configuración del Informe")
-        dialogo.geometry("500x200")
+        dialogo.geometry("600x300")
         dialogo.resizable(False, False)
         dialogo.transient(self)
         dialogo.grab_set()
 
         # Centrar la ventana
         dialogo.update_idletasks()
-        x = (dialogo.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialogo.winfo_screenheight() // 2) - (200 // 2)
-        dialogo.geometry(f"500x200+{x}+{y}")
+        x = (dialogo.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialogo.winfo_screenheight() // 2) - (300 // 2)
+        dialogo.geometry(f"600x300+{x}+{y}")
 
         # Variable para almacenar el resultado
         resultado = {}
