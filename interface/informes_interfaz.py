@@ -1823,43 +1823,44 @@ class InformesFrame(customtkinter.CTkFrame):
         # Crear ventana modal
         dialogo = tk.Toplevel(self)
         dialogo.title("Configuración del Informe")
-        dialogo.geometry("600x300")
+        dialogo.geometry("700x350")
         dialogo.resizable(False, False)
         dialogo.transient(self)
         dialogo.grab_set()
 
         # Centrar la ventana
         dialogo.update_idletasks()
-        x = (dialogo.winfo_screenwidth() // 2) - (600 // 2)
-        y = (dialogo.winfo_screenheight() // 2) - (300 // 2)
-        dialogo.geometry(f"600x300+{x}+{y}")
+        x = (dialogo.winfo_screenwidth() // 2) - (700 // 2)
+        y = (dialogo.winfo_screenheight() // 2) - (350 // 2)
+        dialogo.geometry(f"700x350+{x}+{y}")
 
         # Variable para almacenar el resultado
         resultado = {}
 
-        # Frame principal
+        # Frame principal con configuración de grid
         frame = customtkinter.CTkFrame(dialogo)
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        frame.pack(fill="both", expand=True, padx=30, pady=30)
+        frame.grid_columnconfigure(0, weight=1)
 
         # Título del informe
-        label_titulo = customtkinter.CTkLabel(frame, text="Título del informe:", font=("Arial", 12, "bold"))
-        label_titulo.grid(row=0, column=0, sticky="w", pady=(0, 5))
+        label_titulo = customtkinter.CTkLabel(frame, text="Título del informe:", font=("Arial", 14, "bold"))
+        label_titulo.grid(row=0, column=0, sticky="w", pady=(0, 8))
 
-        entry_titulo = customtkinter.CTkEntry(frame, width=400)
+        entry_titulo = customtkinter.CTkEntry(frame, width=500, height=35, font=("Arial", 12))
         entry_titulo.insert(0, self.informe_seleccionado if self.informe_seleccionado else "")
-        entry_titulo.grid(row=1, column=0, pady=(0, 15))
+        entry_titulo.grid(row=1, column=0, pady=(0, 20), sticky="ew")
 
         # Fecha de generación
-        label_fecha = customtkinter.CTkLabel(frame, text="Fecha de generación:", font=("Arial", 12, "bold"))
-        label_fecha.grid(row=2, column=0, sticky="w", pady=(0, 5))
+        label_fecha = customtkinter.CTkLabel(frame, text="Fecha de generación:", font=("Arial", 14, "bold"))
+        label_fecha.grid(row=2, column=0, sticky="w", pady=(0, 8))
 
-        entry_fecha = customtkinter.CTkEntry(frame, width=200)
+        entry_fecha = customtkinter.CTkEntry(frame, width=250, height=35, font=("Arial", 12))
         entry_fecha.insert(0, datetime.datetime.now().strftime("%d/%m/%Y"))
-        entry_fecha.grid(row=3, column=0, sticky="w", pady=(0, 20))
+        entry_fecha.grid(row=3, column=0, sticky="w", pady=(0, 30))
 
         # Frame para botones
         frame_botones = customtkinter.CTkFrame(frame, fg_color="transparent")
-        frame_botones.grid(row=4, column=0, pady=(10, 0))
+        frame_botones.grid(row=4, column=0, pady=(20, 0))
 
         def aceptar():
             resultado['titulo'] = entry_titulo.get().strip()
@@ -1871,18 +1872,23 @@ class InformesFrame(customtkinter.CTkFrame):
 
         btn_aceptar = customtkinter.CTkButton(
             frame_botones,
-            text="Aceptar",
+            text="✓ Aceptar",
             command=aceptar,
-            width=100
+            width=120,
+            height=40,
+            font=("Arial", 13, "bold"),
+            fg_color="#2fa572"
         )
-        btn_aceptar.grid(row=0, column=0, padx=(0, 10))
+        btn_aceptar.grid(row=0, column=0, padx=(0, 15))
 
         btn_cancelar = customtkinter.CTkButton(
             frame_botones,
-            text="Cancelar",
+            text="✗ Cancelar",
             command=cancelar,
-            width=100,
-            fg_color="gray"
+            width=120,
+            height=40,
+            font=("Arial", 13, "bold"),
+            fg_color="#d32f2f"
         )
         btn_cancelar.grid(row=0, column=1)
 
