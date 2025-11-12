@@ -224,7 +224,7 @@ class IntegrityChecker:
                 COUNT(*) as total
             FROM tbl_partes p
             LEFT JOIN tbl_parte_estados e ON p.id_estado = e.id
-            GROUP BY estado
+            GROUP BY e.nombre
             ORDER BY total DESC
         """
         results = self.execute_query(query)
@@ -286,16 +286,16 @@ class IntegrityChecker:
             print(f"  ✓ Todos los presupuestos tienen grupo")
 
     def verify_part_presupuesto_integrity(self):
-        """Verifica integridad de la relación partes-presupuesto"""
-        print("\n=== VERIFICANDO INTEGRIDAD DE RELACIÓN PARTES-PRESUPUESTO ===")
+        """Verifica integridad de la relación partes-mediciones (tbl_part_presupuesto)"""
+        print("\n=== VERIFICANDO INTEGRIDAD DE RELACIÓN PARTES-MEDICIONES ===")
 
         # 1. Registros con parte inexistente
         print("\n1. Verificando referencias a partes...")
         query = """
             SELECT COUNT(*) as total
             FROM tbl_part_presupuesto pp
-            LEFT JOIN tbl_partes p ON pp.id_parte = p.id
-            WHERE pp.id_parte IS NOT NULL AND p.id IS NULL
+            LEFT JOIN tbl_partes p ON pp.parte_id = p.id
+            WHERE pp.parte_id IS NOT NULL AND p.id IS NULL
         """
         result = self.execute_query(query)
         if result and result[0]['total'] > 0:
@@ -304,84 +304,62 @@ class IntegrityChecker:
         else:
             print(f"  ✓ Todas las referencias a partes son válidas")
 
-        # 2. Registros con presupuesto inexistente
-        print("\n2. Verificando referencias a presupuestos...")
+        # 2. Registros con precio inexistente
+        print("\n2. Verificando referencias a precios...")
         query = """
             SELECT COUNT(*) as total
             FROM tbl_part_presupuesto pp
-            LEFT JOIN tbl_presupuesto p ON pp.id_presupuesto = p.id
-            WHERE pp.id_presupuesto IS NOT NULL AND p.id IS NULL
+            LEFT JOIN tbl_pres_precios pr ON pp.precio_id = pr.id
+            WHERE pp.precio_id IS NOT NULL AND pr.id IS NULL
         """
         result = self.execute_query(query)
         if result and result[0]['total'] > 0:
-            self.errors.append(f"{result[0]['total']} registros referencian presupuestos inexistentes")
-            print(f"  ✗ {result[0]['total']} registros con presupuestos inexistentes")
+            self.errors.append(f"{result[0]['total']} registros referencian precios inexistentes")
+            print(f"  ✗ {result[0]['total']} registros con precios inexistentes")
         else:
-            print(f"  ✓ Todas las referencias a presupuestos son válidas")
+            print(f"  ✓ Todas las referencias a precios son válidas")
 
-        # 3. Cantidad certificada sin fecha
-        print("\n3. Verificando fechas de certificación...")
+        # 3. Mediciones sin fecha
+        print("\n3. Verificando fechas de mediciones...")
         query = """
             SELECT COUNT(*) as total
             FROM tbl_part_presupuesto
-            WHERE cantidad_certificada > 0 AND fecha IS NULL
+            WHERE cantidad > 0 AND fecha IS NULL
         """
         result = self.execute_query(query)
         if result and result[0]['total'] > 0:
-            self.warnings.append(f"{result[0]['total']} certificaciones sin fecha")
-            print(f"  ⚠ {result[0]['total']} certificaciones sin fecha")
+            self.warnings.append(f"{result[0]['total']} mediciones sin fecha")
+            print(f"  ⚠ {result[0]['total']} mediciones sin fecha")
         else:
-            print(f"  ✓ Todas las certificaciones tienen fecha")
+            print(f"  ✓ Todas las mediciones tienen fecha")
 
-        # 4. Cantidad certificada mayor que cantidad presupuestada
-        print("\n4. Verificando cantidades certificadas vs presupuestadas...")
+        # 4. Cantidades negativas o cero
+        print("\n4. Verificando cantidades de mediciones...")
         query = """
             SELECT COUNT(*) as total
-            FROM tbl_part_presupuesto pp
-            INNER JOIN tbl_presupuesto p ON pp.id_presupuesto = p.id
-            WHERE pp.cantidad_certificada > p.cantidad
+            FROM tbl_part_presupuesto
+            WHERE cantidad IS NULL OR cantidad <= 0
         """
         result = self.execute_query(query)
         if result and result[0]['total'] > 0:
-            self.warnings.append(f"{result[0]['total']} certificaciones exceden cantidad presupuestada")
-            print(f"  ⚠ {result[0]['total']} certificaciones exceden presupuesto")
-
-            # Mostrar detalle
-            query_detail = """
-                SELECT
-                    pt.codigo as parte,
-                    pp.cantidad_certificada,
-                    p.cantidad as cantidad_presupuesto,
-                    (pp.cantidad_certificada - p.cantidad) as exceso
-                FROM tbl_part_presupuesto pp
-                INNER JOIN tbl_presupuesto p ON pp.id_presupuesto = p.id
-                INNER JOIN tbl_partes pt ON pp.id_parte = pt.id
-                WHERE pp.cantidad_certificada > p.cantidad
-                ORDER BY exceso DESC
-                LIMIT 5
-            """
-            details = self.execute_query(query_detail)
-            if details:
-                print("  Ejemplos de excesos:")
-                for d in details:
-                    print(f"    - Parte {d['parte']}: certificado={d['cantidad_certificada']:.2f}, "
-                          f"presupuesto={d['cantidad_presupuesto']:.2f}, exceso={d['exceso']:.2f}")
+            self.warnings.append(f"{result[0]['total']} mediciones con cantidad inválida")
+            print(f"  ⚠ {result[0]['total']} mediciones con cantidad <= 0 o NULL")
         else:
-            print(f"  ✓ Todas las certificaciones están dentro del presupuesto")
+            print(f"  ✓ Todas las cantidades son válidas")
 
-        # 5. Partes sin presupuesto asignado
-        print("\n5. Verificando partes con/sin presupuesto...")
+        # 5. Partes sin mediciones
+        print("\n5. Verificando partes con/sin mediciones...")
         query = """
             SELECT COUNT(*) as total
             FROM tbl_partes p
-            LEFT JOIN tbl_part_presupuesto pp ON p.id = pp.id_parte
+            LEFT JOIN tbl_part_presupuesto pp ON p.id = pp.parte_id
             WHERE pp.id IS NULL
         """
         result = self.execute_query(query)
         if result and result[0]['total'] > 0:
-            print(f"  ℹ {result[0]['total']} partes sin presupuesto asignado")
+            print(f"  ℹ {result[0]['total']} partes sin mediciones asignadas")
         else:
-            print(f"  ✓ Todos los partes tienen presupuesto")
+            print(f"  ✓ Todos los partes tienen mediciones")
 
     def verify_data_consistency(self):
         """Verifica consistencia general de datos"""
