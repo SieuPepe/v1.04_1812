@@ -50,13 +50,13 @@ class InformesExportador:
 
                 # Logo izquierdo (Logo Redes Urbide) - prioridad exacta
                 if not self.logo_redes_path:
-                    if file_lower in ["logo redes urbide.jpg", "logo redes urbide.png", "logo artanda.png"]:
+                    if file_lower in ["logo redes urbide.jpg", "logo redes urbide.png"]:
                         self.logo_redes_path = os.path.join(directorio, file)
                         print(f"✓ Logo izquierdo (Redes Urbide) encontrado: {file}")
 
                 # Logo derecho (Logo Urbide) - prioridad exacta
                 if not self.logo_urbide_path:
-                    if file_lower in ["logo urbide.jpg", "logo urbide.png", "logo artanda2.png"]:
+                    if file_lower in ["logo urbide.jpg", "logo urbide.png"]:
                         self.logo_urbide_path = os.path.join(directorio, file)
                         print(f"✓ Logo derecho (Urbide) encontrado: {file}")
 
