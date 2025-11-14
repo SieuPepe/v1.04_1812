@@ -16,6 +16,12 @@ from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 import subprocess
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 
 class InformesExportador:
@@ -157,6 +163,10 @@ class InformesExportador:
         try:
             workbook = xlsxwriter.Workbook(filepath)
             worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
+
+            # Configurar impresión: horizontal y ajustar todas las columnas en una página
+            worksheet.set_landscape()  # Orientación horizontal
+            worksheet.fit_to_pages(1, 0)  # Ajustar ancho a 1 página, alto ilimitado
 
             # Definir formatos
             formato_titulo = workbook.add_format({
@@ -300,47 +310,44 @@ class InformesExportador:
             # Fila actual
             row = 0
 
-            # Configurar altura de la fila de encabezado para acomodar logos y título
-            worksheet.set_row(row, 60)
+            # Configurar altura de la primera fila: 2.1cm = ~59.5 puntos
+            # (2.1cm / 2.54cm/inch * 72 puntos/inch = 59.5)
+            worksheet.set_row(row, 59.5)
 
-            # Configurar ancho de primera columna para el logo
+            # Configurar ancho de primera y última columna para los logos
             worksheet.set_column(0, 0, 15)
-
-            # Logo izquierdo (Logo Redes Urbide)
-            # Opciones para ajustar imagen a celda:
-            # - positioning=1: Mover pero no escalar con celda
-            # - x_offset, y_offset: Desplazamiento desde esquina superior izquierda de celda
-            # El objetivo es que la imagen llene la celda (ancho 15 unidades ≈ 105 píxeles, alto 60 puntos ≈ 80 píxeles)
-            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 1.0,  # Tamaño completo
-                    'y_scale': 1.0,  # Tamaño completo
-                    'x_offset': 2,   # Pequeño margen
-                    'y_offset': 2,   # Pequeño margen
-                    'object_position': 1  # Mover con celdas pero no escalar
-                })
-
-            # Título del informe en el centro (entre los logos)
-            # Calcular columnas centrales para el título
-            num_cols = len(columnas)
-            col_inicio_titulo = 2 if num_cols > 4 else 1
-            col_fin_titulo = num_cols - 3 if num_cols > 4 else num_cols - 2
-            if col_fin_titulo <= col_inicio_titulo:
-                col_fin_titulo = col_inicio_titulo + 1
-
-            worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre.upper(), formato_titulo)
-
-            # Logo derecho (Logo Urbide)
-            # Configurar ancho de última columna para el logo
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
 
+            # Logo izquierdo (Logo Redes Urbide) - alineado a la izquierda
+            # Altura de imagen: 2.1cm
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                worksheet.insert_image(row, 0, self.logo_redes_path, {
+                    'x_scale': 1.0,
+                    'y_scale': 1.0,
+                    'x_offset': 2,   # Alineado a la izquierda con pequeño margen
+                    'y_offset': 2,
+                    'object_position': 1
+                })
+
+            # Título del informe - combinar todas las celdas excepto primera y última
+            num_cols = len(columnas)
+            # Merge desde columna 1 (segunda) hasta columna num_cols-2 (penúltima)
+            if num_cols > 2:
+                worksheet.merge_range(row, 1, row, num_cols - 2, informe_nombre.upper(), formato_titulo)
+            else:
+                worksheet.write(row, 1, informe_nombre.upper(), formato_titulo)
+
+            # Logo derecho (Logo Urbide) - alineado a la derecha
+            # Altura de imagen: 2.1cm
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                # Para alinear a la derecha, calculamos el offset basado en el ancho de la columna
+                # Ancho columna 15 ≈ 105 píxeles. Necesitamos offset para alinear a la derecha
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 1.0,  # Tamaño completo
-                    'y_scale': 1.0,  # Tamaño completo
-                    'x_offset': 2,   # Pequeño margen
-                    'y_offset': 2,   # Pequeño margen
-                    'object_position': 1  # Mover con celdas pero no escalar
+                    'x_scale': 1.0,
+                    'y_scale': 1.0,
+                    'x_offset': 50,  # Offset para alinear a la derecha
+                    'y_offset': 2,
+                    'object_position': 1
                 })
 
             row += 2  # Espacio después del encabezado
@@ -650,11 +657,18 @@ class InformesExportador:
                 section.bottom_margin = Cm(2)
                 section.left_margin = Cm(2)
                 section.right_margin = Cm(2)
+                # Configurar encabezado desde arriba: 0,2cm
+                section.header_distance = Cm(0.2)
 
             # Encabezado con logos
             header = sections[0].header
-            header_table = header.add_table(rows=1, cols=3, width=Inches(7))
+            header_table = header.add_table(rows=1, cols=3, width=Cm(24))
             header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+            # Configurar anchos de columnas: 3,5cm, 17cm, 3,5cm
+            header_table.columns[0].width = Cm(3.5)
+            header_table.columns[1].width = Cm(17)
+            header_table.columns[2].width = Cm(3.5)
 
             # Logo izquierdo (Logo Redes Urbide)
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
@@ -933,7 +947,7 @@ class InformesExportador:
         proyecto_codigo: str = ""
     ) -> bool:
         """
-        Exporta el informe a PDF (genera Word y lo convierte a PDF)
+        Exporta el informe a PDF usando ReportLab
 
         Args:
             filepath: Ruta del archivo PDF a crear
@@ -941,152 +955,172 @@ class InformesExportador:
             columnas: Lista de nombres de columnas
             datos: Datos del informe
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
-            proyecto_nombre: Nombre del proyecto
-            proyecto_codigo: Código del proyecto
+            proyecto_nombre: Nombre del proyecto (no se usa, se deja vacío)
+            proyecto_codigo: Código del proyecto (no se usa, se deja vacío)
 
         Returns:
             True si la exportación fue exitosa
         """
         try:
-            # Generar Word temporal
-            word_path = filepath.replace('.pdf', '_temp.docx')
+            # Crear documento PDF en orientación horizontal
+            doc = SimpleDocTemplate(
+                filepath,
+                pagesize=landscape(A4),
+                rightMargin=1*cm,
+                leftMargin=1*cm,
+                topMargin=1*cm,
+                bottomMargin=1*cm
+            )
 
-            if not self.exportar_a_word(
-                word_path,
-                informe_nombre,
-                columnas,
-                datos,
-                resultado_agrupacion,
-                proyecto_nombre,
-                proyecto_codigo
-            ):
-                return False
+            # Elementos del documento
+            elements = []
 
-            # Convertir a PDF usando LibreOffice (si está disponible)
-            # Intentar encontrar LibreOffice/soffice
-            soffice_paths = [
-                # Linux/Mac en PATH
-                'soffice',
-                'libreoffice',
-                '/usr/bin/soffice',
-                '/usr/bin/libreoffice',
-                '/usr/local/bin/soffice',
-                '/usr/local/bin/libreoffice',
-                # Windows rutas comunes (orden de búsqueda prioritario)
-                r'C:\Program Files\LibreOffice\program\soffice.exe',
-                r'C:\Program Files (x86)\LibreOffice\program\soffice.exe',
-                r'C:\Program Files\LibreOffice 7\program\soffice.exe',
-                r'C:\Program Files\LibreOffice 24\program\soffice.exe',
-                r'C:\Program Files\LibreOffice 6\program\soffice.exe',
-                r'C:\Program Files (x86)\LibreOffice 6\program\soffice.exe',
-                # Snap en Linux
-                '/snap/bin/libreoffice',
-            ]
+            # Estilos
+            styles = getSampleStyleSheet()
+            titulo_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=20,
+                textColor=colors.HexColor('#000000'),
+                spaceAfter=12,
+                alignment=TA_CENTER
+            )
 
-            soffice_cmd = None
-            for path in soffice_paths:
-                try:
-                    # Primero verificar si el archivo existe (más rápido y confiable en Windows)
-                    if os.path.exists(path):
-                        print(f"✓ LibreOffice encontrado en: {path}")
-                        # Intentar obtener la versión (opcional, no crítico)
-                        try:
-                            result = subprocess.run([path, '--version'],
-                                                   capture_output=True,
-                                                   timeout=5,
-                                                   text=True)
-                            if result.returncode == 0:
-                                version = result.stdout.strip().split('\n')[0] if result.stdout else ''
-                                print(f"  Versión: {version}")
-                        except:
-                            print(f"  (No se pudo obtener la versión, pero el ejecutable existe)")
+            # Encabezado con logos y título
+            header_data = []
+            header_row = []
 
-                        soffice_cmd = path
-                        break
-                    # Si no existe como archivo, probar ejecutarlo (para comandos en PATH)
-                    elif path in ['soffice', 'libreoffice', '/snap/bin/libreoffice']:
-                        result = subprocess.run([path, '--version'],
-                                               capture_output=True,
-                                               timeout=5,
-                                               text=True)
-                        if result.returncode == 0:
-                            soffice_cmd = path
-                            version = result.stdout.strip().split('\n')[0] if result.stdout else ''
-                            print(f"✓ LibreOffice encontrado: {path}")
-                            print(f"  Versión: {version}")
-                            break
-                except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError) as e:
-                    # Debug: mostrar qué rutas se probaron y fallaron
-                    if '--version' in str(e) or 'soffice' in path:
-                        print(f"  ✗ No encontrado en: {path}")
-                    continue
-
-            if soffice_cmd:
-                try:
-                    print(f"\n📄 Convirtiendo Word a PDF...")
-                    print(f"   Origen: {word_path}")
-                    print(f"   Destino: {filepath}")
-
-                    # Ejecutar conversión
-                    result = subprocess.run([
-                        soffice_cmd,
-                        '--headless',
-                        '--convert-to', 'pdf',
-                        '--outdir', os.path.dirname(filepath) if os.path.dirname(filepath) else '.',
-                        os.path.abspath(word_path)
-                    ], capture_output=True, timeout=120, text=True)
-
-                    # Mostrar salida de LibreOffice para debug
-                    if result.stdout:
-                        print(f"   Salida: {result.stdout}")
-                    if result.stderr:
-                        print(f"   Advertencias: {result.stderr}")
-
-                    # Verificar si se generó el PDF
-                    generated_pdf = os.path.splitext(word_path)[0] + '.pdf'
-
-                    if os.path.exists(generated_pdf):
-                        # Renombrar si es necesario
-                        if generated_pdf != filepath:
-                            if os.path.exists(filepath):
-                                os.remove(filepath)
-                            os.rename(generated_pdf, filepath)
-
-                        print(f"✓ PDF generado correctamente: {filepath}")
-
-                        # Eliminar Word temporal
-                        if os.path.exists(word_path):
-                            os.remove(word_path)
-
-                        return True
-                    else:
-                        print(f"⚠ El PDF no se generó en la ubicación esperada: {generated_pdf}")
-                        print(f"   Código de salida: {result.returncode}")
-                        print(f"   Archivo Word disponible: {word_path}")
-                        return True
-
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                    print(f"⚠ Error al convertir a PDF: {e}")
-                    if hasattr(e, 'stderr') and e.stderr:
-                        print(f"   Detalles del error: {e.stderr}")
-                    if hasattr(e, 'stdout') and e.stdout:
-                        print(f"   Salida estándar: {e.stdout}")
-                    print(f"   Se ha generado el archivo Word: {word_path}")
-                    return True
+            # Logo izquierdo (Logo Redes Urbide)
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                logo_redes = Image(self.logo_redes_path, width=3.5*cm, height=2.1*cm, kind='proportional')
+                header_row.append(logo_redes)
             else:
-                # Si LibreOffice no está disponible, dejar el archivo Word
-                print("\n⚠ LibreOffice no está instalado o no se puede encontrar.")
-                print("   Rutas verificadas:")
-                for path in soffice_paths[:5]:  # Mostrar solo las primeras 5 rutas
-                    exists_mark = "✓" if os.path.exists(path) else "✗"
-                    print(f"     {exists_mark} {path}")
-                print("   ...")
-                print("\n   Para generar PDFs, instale LibreOffice desde:")
-                print("   - Windows/Mac: https://www.libreoffice.org/download/")
-                print("   - Linux: sudo apt install libreoffice (Debian/Ubuntu)")
-                print(f"\n   Archivo Word generado: {word_path}")
-                print("   Puede convertirlo manualmente a PDF abriendo el archivo en Word o LibreOffice.")
-                return True
+                header_row.append("")
+
+            # Título en el centro
+            titulo_para = Paragraph(informe_nombre.upper(), titulo_style)
+            header_row.append(titulo_para)
+
+            # Logo derecho (Logo Urbide)
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                logo_urbide = Image(self.logo_urbide_path, width=3.5*cm, height=2.1*cm, kind='proportional')
+                header_row.append(logo_urbide)
+            else:
+                header_row.append("")
+
+            header_data.append(header_row)
+
+            # Crear tabla del encabezado
+            header_table = Table(header_data, colWidths=[3.5*cm, 17*cm, 3.5*cm])
+            header_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+
+            elements.append(header_table)
+            elements.append(Spacer(1, 0.5*cm))
+
+            # Fecha
+            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            fecha_style = ParagraphStyle(
+                'Fecha',
+                parent=styles['Normal'],
+                fontSize=10,
+                fontName='Helvetica-Bold'
+            )
+            fecha_para = Paragraph(f"FECHA: {fecha_actual}", fecha_style)
+            elements.append(fecha_para)
+            elements.append(Spacer(1, 0.3*cm))
+
+            # Preparar datos de la tabla
+            table_data = []
+
+            # Si hay agrupaciones, procesarlas
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Encabezados de columna
+                table_data.append(columnas)
+
+                # Procesar grupos recursivamente
+                def procesar_grupos_pdf(grupos, nivel=0):
+                    for grupo in grupos:
+                        # Encabezado del grupo
+                        grupo_row = [grupo.get('titulo', '')] + [''] * (len(columnas) - 1)
+                        table_data.append(grupo_row)
+
+                        # Filas de datos del grupo
+                        if grupo.get('filas'):
+                            for fila in grupo['filas']:
+                                table_data.append(list(fila))
+
+                        # Subtotal del grupo
+                        if grupo.get('subtotal'):
+                            subtotal_row = ['SUBTOTAL:'] + [''] * (len(columnas) - 1)
+                            table_data.append(subtotal_row)
+
+                        # Subgrupos
+                        if grupo.get('subgrupos'):
+                            procesar_grupos_pdf(grupo['subgrupos'], nivel + 1)
+
+                procesar_grupos_pdf(resultado_agrupacion['grupos'])
+
+                # Totales generales
+                if resultado_agrupacion.get('totales'):
+                    total_row = ['TOTAL GENERAL:'] + [''] * (len(columnas) - 1)
+                    table_data.append(total_row)
+
+            else:
+                # Sin agrupaciones, tabla simple
+                table_data.append(columnas)
+                for fila in datos:
+                    # Convertir valores a strings
+                    fila_str = []
+                    for valor in fila:
+                        if isinstance(valor, (datetime, date)):
+                            fila_str.append(valor.strftime('%d/%m/%Y'))
+                        elif valor is None:
+                            fila_str.append('')
+                        else:
+                            fila_str.append(str(valor))
+                    table_data.append(fila_str)
+
+            # Calcular anchos de columna dinámicamente
+            num_cols = len(columnas)
+            ancho_disponible = 24*cm  # Ancho total disponible en landscape
+            col_widths = [ancho_disponible / num_cols] * num_cols
+
+            # Crear tabla
+            data_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+            # Estilos de la tabla
+            table_style = TableStyle([
+                # Encabezado
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                ('TOPPADDING', (0, 0), (-1, 0), 6),
+
+                # Datos
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F0F0F0')]),
+            ])
+
+            data_table.setStyle(table_style)
+            elements.append(data_table)
+
+            # Construir PDF
+            doc.build(elements)
+
+            print(f"✓ PDF generado correctamente: {filepath}")
+            return True
 
         except Exception as e:
             print(f"Error al exportar a PDF: {e}")
