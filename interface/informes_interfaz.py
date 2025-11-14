@@ -3150,8 +3150,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 CTkMessagebox(
                     title="Exportación Exitosa",
                     message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
-                            f"Registros exportados: {len(datos)}\n\n"
-                            f"Nota: Si LibreOffice no está disponible, se habrá generado un archivo Word.",
+                            f"Registros exportados: {len(datos)}",
                     icon="check"
                 )
             else:
