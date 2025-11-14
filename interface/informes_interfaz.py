@@ -1594,7 +1594,7 @@ class InformesFrame(customtkinter.CTkFrame):
 
         self.campos_seleccionados = {}
         self.campos_orden = []
-        self.campo_seleccionado_idx = None  # Índice del campo seleccionado para reordenar
+        self.campo_seleccionado_key = None  # Key del campo seleccionado para reordenar (en lugar de índice)
 
         # Si hay definición del informe, usar sus campos
         if self.definicion_actual:
@@ -1648,8 +1648,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
                 # Bind click event para seleccionar
-                label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
-                campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                label.bind("<Button-1>", lambda e, key=campo_key: self._seleccionar_campo_por_key(key))
+                campo_frame.bind("<Button-1>", lambda e, key=campo_key: self._seleccionar_campo_por_key(key))
 
                 self.campos_seleccionados[campo_key] = {
                     'var': var,
@@ -1706,8 +1706,8 @@ class InformesFrame(customtkinter.CTkFrame):
                         label.grid(row=0, column=1, sticky="ew", padx=(0, 5))
 
                         # Bind click event
-                        label.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
-                        campo_frame.bind("<Button-1>", lambda e, idx=row: self._seleccionar_campo_para_reordenar(idx))
+                        label.bind("<Button-1>", lambda e, key=campo: self._seleccionar_campo_por_key(key))
+                        campo_frame.bind("<Button-1>", lambda e, key=campo: self._seleccionar_campo_por_key(key))
 
                         self.campos_seleccionados[campo] = {
                             'var': var,
@@ -1736,31 +1736,35 @@ class InformesFrame(customtkinter.CTkFrame):
                 # Compatibilidad con versión antigua
                 campo_info.set(False)
 
-    def _seleccionar_campo_para_reordenar(self, idx):
-        """Selecciona un campo para poder reordenarlo"""
+    def _seleccionar_campo_por_key(self, campo_key):
+        """Selecciona un campo mediante su key para reordenar"""
+        # Verificar que el campo existe
+        if campo_key not in self.campos_orden or campo_key not in self.campos_seleccionados:
+            return
+
         # Deseleccionar campo anterior
-        if self.campo_seleccionado_idx is not None:
-            campo_key_anterior = self.campos_orden[self.campo_seleccionado_idx]
-            if campo_key_anterior in self.campos_seleccionados:
-                self.campos_seleccionados[campo_key_anterior]['frame'].configure(fg_color="transparent")
-                self.campos_seleccionados[campo_key_anterior]['label'].configure(text_color=("gray10", "gray90"))
+        if self.campo_seleccionado_key and self.campo_seleccionado_key in self.campos_seleccionados:
+            self.campos_seleccionados[self.campo_seleccionado_key]['frame'].configure(fg_color="transparent")
+            self.campos_seleccionados[self.campo_seleccionado_key]['label'].configure(text_color=("gray10", "gray90"))
 
         # Seleccionar nuevo campo
-        self.campo_seleccionado_idx = idx
-        campo_key = self.campos_orden[idx]
+        self.campo_seleccionado_key = campo_key
         self.campos_seleccionados[campo_key]['frame'].configure(fg_color=("gray80", "gray25"))
         self.campos_seleccionados[campo_key]['label'].configure(text_color=("blue", "lightblue"))
 
-        # Habilitar/deshabilitar botones
+        # Habilitar/deshabilitar botones según posición en campos_orden
+        idx = self.campos_orden.index(campo_key)
         self.btn_mover_arriba.configure(state="normal" if idx > 0 else "disabled")
         self.btn_mover_abajo.configure(state="normal" if idx < len(self.campos_orden) - 1 else "disabled")
 
     def _mover_campo_arriba(self):
         """Mueve el campo seleccionado una posición arriba"""
-        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx == 0:
+        if not self.campo_seleccionado_key or self.campo_seleccionado_key not in self.campos_orden:
             return
 
-        idx = self.campo_seleccionado_idx
+        idx = self.campos_orden.index(self.campo_seleccionado_key)
+        if idx == 0:
+            return
 
         # Intercambiar en la lista de orden
         self.campos_orden[idx], self.campos_orden[idx - 1] = self.campos_orden[idx - 1], self.campos_orden[idx]
@@ -1768,16 +1772,17 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar visualización
         self._refrescar_orden_visual()
 
-        # Actualizar índice seleccionado
-        self.campo_seleccionado_idx = idx - 1
-        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+        # Reseleccionar el mismo campo (mantiene self.campo_seleccionado_key)
+        self._seleccionar_campo_por_key(self.campo_seleccionado_key)
 
     def _mover_campo_abajo(self):
         """Mueve el campo seleccionado una posición abajo"""
-        if self.campo_seleccionado_idx is None or self.campo_seleccionado_idx >= len(self.campos_orden) - 1:
+        if not self.campo_seleccionado_key or self.campo_seleccionado_key not in self.campos_orden:
             return
 
-        idx = self.campo_seleccionado_idx
+        idx = self.campos_orden.index(self.campo_seleccionado_key)
+        if idx >= len(self.campos_orden) - 1:
+            return
 
         # Intercambiar en la lista de orden
         self.campos_orden[idx], self.campos_orden[idx + 1] = self.campos_orden[idx + 1], self.campos_orden[idx]
@@ -1785,9 +1790,8 @@ class InformesFrame(customtkinter.CTkFrame):
         # Actualizar visualización
         self._refrescar_orden_visual()
 
-        # Actualizar índice seleccionado
-        self.campo_seleccionado_idx = idx + 1
-        self._seleccionar_campo_para_reordenar(self.campo_seleccionado_idx)
+        # Reseleccionar el mismo campo (mantiene self.campo_seleccionado_key)
+        self._seleccionar_campo_por_key(self.campo_seleccionado_key)
 
     def _refrescar_orden_visual(self):
         """Refresca la visualización de los campos según el orden actual"""
@@ -1814,48 +1818,79 @@ class InformesFrame(customtkinter.CTkFrame):
     def _mostrar_dialogo_configuracion_informe(self):
         """Muestra diálogo para configurar título y fecha del informe antes de exportar"""
         import tkinter as tk
-        from tkinter import ttk
-
-        # Crear ventana modal
-        dialogo = tk.Toplevel(self)
-        dialogo.title("Configuración del Informe")
-        dialogo.geometry("500x200")
-        dialogo.resizable(False, False)
-        dialogo.transient(self)
-        dialogo.grab_set()
-
-        # Centrar la ventana
-        dialogo.update_idletasks()
-        x = (dialogo.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialogo.winfo_screenheight() // 2) - (200 // 2)
-        dialogo.geometry(f"500x200+{x}+{y}")
 
         # Variable para almacenar el resultado
         resultado = {}
 
-        # Frame principal
-        frame = customtkinter.CTkFrame(dialogo)
-        frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Crear ventana modal usando CTkToplevel
+        dialogo = customtkinter.CTkToplevel(self)
+        dialogo.title("Configuración del Informe")
+        dialogo.transient(self)
+        dialogo.grab_set()
+
+        # Configurar tamaño FIJO y centrar
+        ancho = 750
+        alto = 400
+        dialogo.geometry(f"{ancho}x{alto}")
+        dialogo.resizable(False, False)
+
+        # Centrar después de configurar geometría
+        dialogo.update_idletasks()
+        x = (dialogo.winfo_screenwidth() // 2) - (ancho // 2)
+        y = (dialogo.winfo_screenheight() // 2) - (alto // 2)
+        dialogo.geometry(f"{ancho}x{alto}+{x}+{y}")
+
+        # Usar grid para TODO el layout (no mezclar con pack)
+        dialogo.grid_rowconfigure(0, weight=0)  # Label título
+        dialogo.grid_rowconfigure(1, weight=0)  # Entry título
+        dialogo.grid_rowconfigure(2, weight=0)  # Label fecha
+        dialogo.grid_rowconfigure(3, weight=0)  # Entry fecha
+        dialogo.grid_rowconfigure(4, weight=1)  # Spacer
+        dialogo.grid_rowconfigure(5, weight=0)  # Botones
+        dialogo.grid_columnconfigure(0, weight=1)
 
         # Título del informe
-        label_titulo = customtkinter.CTkLabel(frame, text="Título del informe:", font=("Arial", 12, "bold"))
-        label_titulo.grid(row=0, column=0, sticky="w", pady=(0, 5))
+        label_titulo = customtkinter.CTkLabel(
+            dialogo,
+            text="Título del informe:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        label_titulo.grid(row=0, column=0, sticky="w", padx=40, pady=(40, 10))
 
-        entry_titulo = customtkinter.CTkEntry(frame, width=400)
+        entry_titulo = customtkinter.CTkEntry(
+            dialogo,
+            height=40,
+            font=customtkinter.CTkFont(size=14)
+        )
         entry_titulo.insert(0, self.informe_seleccionado if self.informe_seleccionado else "")
-        entry_titulo.grid(row=1, column=0, pady=(0, 15))
+        entry_titulo.grid(row=1, column=0, sticky="ew", padx=40, pady=(0, 30))
 
         # Fecha de generación
-        label_fecha = customtkinter.CTkLabel(frame, text="Fecha de generación:", font=("Arial", 12, "bold"))
-        label_fecha.grid(row=2, column=0, sticky="w", pady=(0, 5))
+        label_fecha = customtkinter.CTkLabel(
+            dialogo,
+            text="Fecha de generación:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        label_fecha.grid(row=2, column=0, sticky="w", padx=40, pady=(0, 10))
 
-        entry_fecha = customtkinter.CTkEntry(frame, width=200)
+        entry_fecha = customtkinter.CTkEntry(
+            dialogo,
+            width=200,
+            height=40,
+            font=customtkinter.CTkFont(size=14)
+        )
         entry_fecha.insert(0, datetime.datetime.now().strftime("%d/%m/%Y"))
-        entry_fecha.grid(row=3, column=0, sticky="w", pady=(0, 20))
+        entry_fecha.grid(row=3, column=0, sticky="w", padx=40, pady=(0, 20))
 
         # Frame para botones
-        frame_botones = customtkinter.CTkFrame(frame, fg_color="transparent")
-        frame_botones.grid(row=4, column=0, pady=(10, 0))
+        frame_botones = customtkinter.CTkFrame(dialogo, fg_color="transparent")
+        frame_botones.grid(row=5, column=0, sticky="ew", padx=40, pady=(0, 40))
+
+        # Centrar botones dentro del frame
+        frame_botones.grid_columnconfigure(0, weight=1)
+        frame_botones.grid_columnconfigure(1, weight=0)
+        frame_botones.grid_columnconfigure(2, weight=0)
+        frame_botones.grid_columnconfigure(3, weight=1)
 
         def aceptar():
             resultado['titulo'] = entry_titulo.get().strip()
@@ -1867,20 +1902,27 @@ class InformesFrame(customtkinter.CTkFrame):
 
         btn_aceptar = customtkinter.CTkButton(
             frame_botones,
-            text="Aceptar",
+            text="✓ Generar Informe",
             command=aceptar,
-            width=100
+            width=180,
+            height=45,
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color="#2fa572",
+            hover_color="#26844f"
         )
-        btn_aceptar.grid(row=0, column=0, padx=(0, 10))
+        btn_aceptar.grid(row=0, column=1, padx=10)
 
         btn_cancelar = customtkinter.CTkButton(
             frame_botones,
-            text="Cancelar",
+            text="✗ Cancelar",
             command=cancelar,
-            width=100,
-            fg_color="gray"
+            width=140,
+            height=45,
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color="#d32f2f",
+            hover_color="#9a2424"
         )
-        btn_cancelar.grid(row=0, column=1)
+        btn_cancelar.grid(row=0, column=2, padx=10)
 
         # Esperar a que se cierre el diálogo
         dialogo.wait_window()
@@ -3138,12 +3180,12 @@ class InformesFrame(customtkinter.CTkFrame):
 
             exito = exportador.exportar_a_pdf(
                 filepath=archivo,
-                informe_nombre=self.informe_seleccionado,
+                informe_nombre=titulo_informe,
                 columnas=columnas,
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
-                proyecto_nombre=self.schema,
-                proyecto_codigo=self.schema
+                proyecto_nombre="",
+                proyecto_codigo=""
             )
 
             if exito:
@@ -3433,24 +3475,36 @@ class InformesFrame(customtkinter.CTkFrame):
             dialog.destroy()
         
         def eliminar_config(nombre):
+            # Destruir el diálogo de configuraciones primero para evitar bloqueos
+            dialog.destroy()
+
+            # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
             respuesta = CTkMessagebox(
-                title="Confirmar",
+                title="Confirmar Eliminación",
                 message=f"¿Está seguro de eliminar la configuración '{nombre}'?",
                 icon="question",
                 option_1="Cancelar",
                 option_2="Eliminar"
             )
-            
+
             if respuesta.get() == "Eliminar":
                 if self.storage.eliminar_configuracion(nombre):
+                    # Mostrar mensaje de éxito
                     CTkMessagebox(
                         title="Éxito",
-                        message=f"Configuración '{nombre}' eliminada.",
+                        message=f"Configuración '{nombre}' eliminada correctamente.",
                         icon="check"
                     )
-                    dialog.destroy()
-                    # Reabrir diálogo actualizado
-                    self._cargar_configuracion()
+                else:
+                    # Mostrar error
+                    CTkMessagebox(
+                        title="Error",
+                        message=f"No se pudo eliminar la configuración '{nombre}'.",
+                        icon="cancel"
+                    )
+
+            # Reabrir el diálogo de configuraciones actualizado
+            self.after(100, self._cargar_configuracion)
         
         # Botón cerrar
         cancelar_btn = customtkinter.CTkButton(
