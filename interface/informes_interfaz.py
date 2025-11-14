@@ -3482,17 +3482,28 @@ class InformesFrame(customtkinter.CTkFrame):
                 option_1="Cancelar",
                 option_2="Eliminar"
             )
-            
+
             if respuesta.get() == "Eliminar":
                 if self.storage.eliminar_configuracion(nombre):
+                    # Primero destruir el diálogo actual
+                    dialog.destroy()
+
+                    # Mostrar mensaje de éxito después de destruir el diálogo
                     CTkMessagebox(
                         title="Éxito",
-                        message=f"Configuración '{nombre}' eliminada.",
+                        message=f"Configuración '{nombre}' eliminada correctamente.",
                         icon="check"
                     )
-                    dialog.destroy()
-                    # Reabrir diálogo actualizado
-                    self._cargar_configuracion()
+
+                    # Reabrir diálogo actualizado con un pequeño delay
+                    self.after(100, self._cargar_configuracion)
+                else:
+                    # Si falla la eliminación, mostrar error pero NO destruir el diálogo
+                    CTkMessagebox(
+                        title="Error",
+                        message=f"No se pudo eliminar la configuración '{nombre}'.",
+                        icon="cancel"
+                    )
         
         # Botón cerrar
         cancelar_btn = customtkinter.CTkButton(
