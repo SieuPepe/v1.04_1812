@@ -5,6 +5,7 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
+import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import xlsxwriter
@@ -85,6 +86,41 @@ class InformesExportador:
                     if not self.logo_urbide_path and "urbide" in file_lower and "redes" not in file_lower:
                         self.logo_urbide_path = os.path.join(directorio, file)
                         print(f"⚠ Usando logo alternativo (derecho): {file}")
+
+    def _es_fecha(self, valor) -> bool:
+        """Detecta si un valor es una fecha"""
+        if isinstance(valor, datetime):
+            return True
+        if isinstance(valor, str):
+            # Detectar formatos comunes de fecha: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+            patrones_fecha = [
+                r'^\d{2}/\d{2}/\d{4}$',  # DD/MM/YYYY
+                r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
+                r'^\d{2}-\d{2}-\d{4}$',  # DD-MM-YYYY
+            ]
+            for patron in patrones_fecha:
+                if re.match(patron, valor.strip()):
+                    return True
+        return False
+
+    def _convertir_fecha_excel(self, valor) -> datetime:
+        """Convierte un valor de fecha a datetime para Excel"""
+        if isinstance(valor, datetime):
+            return valor
+        if isinstance(valor, str):
+            valor = valor.strip()
+            # Intentar parsear diferentes formatos
+            formatos = [
+                '%d/%m/%Y',  # DD/MM/YYYY
+                '%Y-%m-%d',  # YYYY-MM-DD
+                '%d-%m-%Y',  # DD-MM-YYYY
+            ]
+            for formato in formatos:
+                try:
+                    return datetime.strptime(valor, formato)
+                except ValueError:
+                    continue
+        return None
 
     def exportar_a_excel(
         self,
@@ -245,6 +281,15 @@ class InformesExportador:
                 'bold': True
             })
 
+            formato_fecha_celda = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': 'dd/mm/yyyy',
+                'border': 1,
+                'align': 'center',
+                'valign': 'vcenter'
+            })
+
             # Fila actual
             row = 0
 
@@ -254,8 +299,8 @@ class InformesExportador:
             # Logo izquierdo (Logo Redes Urbide)
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 0.15,
-                    'y_scale': 0.15,
+                    'x_scale': 0.5,
+                    'y_scale': 0.5,
                     'x_offset': 5,
                     'y_offset': 5
                 })
@@ -273,8 +318,8 @@ class InformesExportador:
             # Logo derecho (Logo Urbide)
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 0.15,
-                    'y_scale': 0.15,
+                    'x_scale': 0.5,
+                    'y_scale': 0.5,
                     'x_offset': 5,
                     'y_offset': 5
                 })
@@ -374,6 +419,13 @@ class InformesExportador:
                             else:
                                 # Por defecto, números decimales con 2 decimales
                                 worksheet.write(row, col_idx, valor, formato_decimal)
+                        elif self._es_fecha(valor):
+                            # Detectar y formatear fechas
+                            fecha_dt = self._convertir_fecha_excel(valor)
+                            if fecha_dt:
+                                worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                            else:
+                                worksheet.write(row, col_idx, valor, formato_datos)
                         else:
                             worksheet.write(row, col_idx, valor, formato_datos)
                     row += 1
@@ -474,6 +526,22 @@ class InformesExportador:
                             else:
                                 # Por defecto, números decimales con 2 decimales
                                 worksheet.write(row, col_idx, valor, formato_decimal)
+                        elif self._es_fecha(valor):
+                            # Detectar y formatear fechas
+                            fecha_dt = self._convertir_fecha_excel(valor)
+                            if fecha_dt:
+                                # Necesitamos obtener formato_fecha_celda desde la función padre
+                                formato_fecha_celda = workbook.add_format({
+                                    'font_size': 8,
+                                    'font_name': 'Tahoma',
+                                    'num_format': 'dd/mm/yyyy',
+                                    'border': 1,
+                                    'align': 'center',
+                                    'valign': 'vcenter'
+                                })
+                                worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                            else:
+                                worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                         else:
                             worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                     row += 1
