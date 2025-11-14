@@ -3180,12 +3180,12 @@ class InformesFrame(customtkinter.CTkFrame):
 
             exito = exportador.exportar_a_pdf(
                 filepath=archivo,
-                informe_nombre=self.informe_seleccionado,
+                informe_nombre=titulo_informe,
                 columnas=columnas,
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
-                proyecto_nombre=self.schema,
-                proyecto_codigo=self.schema
+                proyecto_nombre="",
+                proyecto_codigo=""
             )
 
             if exito:
@@ -3475,8 +3475,12 @@ class InformesFrame(customtkinter.CTkFrame):
             dialog.destroy()
         
         def eliminar_config(nombre):
+            # Destruir el diálogo de configuraciones primero para evitar bloqueos
+            dialog.destroy()
+
+            # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
             respuesta = CTkMessagebox(
-                title="Confirmar",
+                title="Confirmar Eliminación",
                 message=f"¿Está seguro de eliminar la configuración '{nombre}'?",
                 icon="question",
                 option_1="Cancelar",
@@ -3485,25 +3489,22 @@ class InformesFrame(customtkinter.CTkFrame):
 
             if respuesta.get() == "Eliminar":
                 if self.storage.eliminar_configuracion(nombre):
-                    # Primero destruir el diálogo actual
-                    dialog.destroy()
-
-                    # Mostrar mensaje de éxito después de destruir el diálogo
+                    # Mostrar mensaje de éxito
                     CTkMessagebox(
                         title="Éxito",
                         message=f"Configuración '{nombre}' eliminada correctamente.",
                         icon="check"
                     )
-
-                    # Reabrir diálogo actualizado con un pequeño delay
-                    self.after(100, self._cargar_configuracion)
                 else:
-                    # Si falla la eliminación, mostrar error pero NO destruir el diálogo
+                    # Mostrar error
                     CTkMessagebox(
                         title="Error",
                         message=f"No se pudo eliminar la configuración '{nombre}'.",
                         icon="cancel"
                     )
+
+            # Reabrir el diálogo de configuraciones actualizado
+            self.after(100, self._cargar_configuracion)
         
         # Botón cerrar
         cancelar_btn = customtkinter.CTkButton(

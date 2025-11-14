@@ -6,7 +6,7 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 
 import os
 import re
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 import xlsxwriter
 from docx import Document
@@ -89,7 +89,8 @@ class InformesExportador:
 
     def _es_fecha(self, valor) -> bool:
         """Detecta si un valor es una fecha"""
-        if isinstance(valor, datetime):
+        # Detectar datetime.datetime y datetime.date
+        if isinstance(valor, (datetime, date)):
             return True
         if isinstance(valor, str):
             # Detectar formatos comunes de fecha: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
@@ -97,23 +98,29 @@ class InformesExportador:
                 r'^\d{2}/\d{2}/\d{4}$',  # DD/MM/YYYY
                 r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
                 r'^\d{2}-\d{2}-\d{4}$',  # DD-MM-YYYY
+                r'^\d{1,2}/\d{1,2}/\d{4}$',  # D/M/YYYY o DD/M/YYYY
             ]
             for patron in patrones_fecha:
-                if re.match(patron, valor.strip()):
+                if re.match(patron, str(valor).strip()):
                     return True
         return False
 
-    def _convertir_fecha_excel(self, valor) -> datetime:
+    def _convertir_fecha_excel(self, valor):
         """Convierte un valor de fecha a datetime para Excel"""
+        # Si ya es datetime o date, convertir a datetime
         if isinstance(valor, datetime):
             return valor
+        if isinstance(valor, date):
+            return datetime.combine(valor, datetime.min.time())
         if isinstance(valor, str):
-            valor = valor.strip()
+            valor = str(valor).strip()
             # Intentar parsear diferentes formatos
             formatos = [
                 '%d/%m/%Y',  # DD/MM/YYYY
                 '%Y-%m-%d',  # YYYY-MM-DD
                 '%d-%m-%Y',  # DD-MM-YYYY
+                '%Y-%m-%d %H:%M:%S',  # YYYY-MM-DD HH:MM:SS
+                '%d/%m/%Y %H:%M:%S',  # DD/MM/YYYY HH:MM:SS
             ]
             for formato in formatos:
                 try:
@@ -296,13 +303,21 @@ class InformesExportador:
             # Configurar altura de la fila de encabezado para acomodar logos y título
             worksheet.set_row(row, 60)
 
+            # Configurar ancho de primera columna para el logo
+            worksheet.set_column(0, 0, 15)
+
             # Logo izquierdo (Logo Redes Urbide)
+            # Opciones para ajustar imagen a celda:
+            # - positioning=1: Mover pero no escalar con celda
+            # - x_offset, y_offset: Desplazamiento desde esquina superior izquierda de celda
+            # El objetivo es que la imagen llene la celda (ancho 15 unidades ≈ 105 píxeles, alto 60 puntos ≈ 80 píxeles)
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 0.5,
-                    'y_scale': 0.5,
-                    'x_offset': 5,
-                    'y_offset': 5
+                    'x_scale': 1.0,  # Tamaño completo
+                    'y_scale': 1.0,  # Tamaño completo
+                    'x_offset': 2,   # Pequeño margen
+                    'y_offset': 2,   # Pequeño margen
+                    'object_position': 1  # Mover con celdas pero no escalar
                 })
 
             # Título del informe en el centro (entre los logos)
@@ -316,12 +331,16 @@ class InformesExportador:
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre.upper(), formato_titulo)
 
             # Logo derecho (Logo Urbide)
+            # Configurar ancho de última columna para el logo
+            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
+
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 0.5,
-                    'y_scale': 0.5,
-                    'x_offset': 5,
-                    'y_offset': 5
+                    'x_scale': 1.0,  # Tamaño completo
+                    'y_scale': 1.0,  # Tamaño completo
+                    'x_offset': 2,   # Pequeño margen
+                    'y_offset': 2,   # Pequeño margen
+                    'object_position': 1  # Mover con celdas pero no escalar
                 })
 
             row += 2  # Espacio después del encabezado
@@ -620,9 +639,13 @@ class InformesExportador:
         try:
             doc = Document()
 
-            # Configurar márgenes
+            # Configurar márgenes y orientación horizontal
             sections = doc.sections
             for section in sections:
+                # Cambiar a orientación horizontal (landscape)
+                section.orientation = 1  # 1 = landscape, 0 = portrait
+                # Intercambiar ancho y alto para landscape
+                section.page_width, section.page_height = section.page_height, section.page_width
                 section.top_margin = Cm(2)
                 section.bottom_margin = Cm(2)
                 section.left_margin = Cm(2)
