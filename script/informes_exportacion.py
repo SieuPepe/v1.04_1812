@@ -5,8 +5,7 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
-import re
-from datetime import datetime, date
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 import xlsxwriter
 from docx import Document
@@ -15,12 +14,11 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-import subprocess
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 
@@ -93,48 +91,6 @@ class InformesExportador:
                         self.logo_urbide_path = os.path.join(directorio, file)
                         print(f"⚠ Usando logo alternativo (derecho): {file}")
 
-    def _es_fecha(self, valor) -> bool:
-        """Detecta si un valor es una fecha"""
-        # Detectar datetime.datetime y datetime.date
-        if isinstance(valor, (datetime, date)):
-            return True
-        if isinstance(valor, str):
-            # Detectar formatos comunes de fecha: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
-            patrones_fecha = [
-                r'^\d{2}/\d{2}/\d{4}$',  # DD/MM/YYYY
-                r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
-                r'^\d{2}-\d{2}-\d{4}$',  # DD-MM-YYYY
-                r'^\d{1,2}/\d{1,2}/\d{4}$',  # D/M/YYYY o DD/M/YYYY
-            ]
-            for patron in patrones_fecha:
-                if re.match(patron, str(valor).strip()):
-                    return True
-        return False
-
-    def _convertir_fecha_excel(self, valor):
-        """Convierte un valor de fecha a datetime para Excel"""
-        # Si ya es datetime o date, convertir a datetime
-        if isinstance(valor, datetime):
-            return valor
-        if isinstance(valor, date):
-            return datetime.combine(valor, datetime.min.time())
-        if isinstance(valor, str):
-            valor = str(valor).strip()
-            # Intentar parsear diferentes formatos
-            formatos = [
-                '%d/%m/%Y',  # DD/MM/YYYY
-                '%Y-%m-%d',  # YYYY-MM-DD
-                '%d-%m-%Y',  # DD-MM-YYYY
-                '%Y-%m-%d %H:%M:%S',  # YYYY-MM-DD HH:MM:SS
-                '%d/%m/%Y %H:%M:%S',  # DD/MM/YYYY HH:MM:SS
-            ]
-            for formato in formatos:
-                try:
-                    return datetime.strptime(valor, formato)
-                except ValueError:
-                    continue
-        return None
-
     def exportar_a_excel(
         self,
         filepath: str,
@@ -164,17 +120,36 @@ class InformesExportador:
             workbook = xlsxwriter.Workbook(filepath)
             worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
 
-            # Configurar impresión: horizontal y ajustar todas las columnas en una página
-            worksheet.set_landscape()  # Orientación horizontal
-            worksheet.fit_to_pages(1, 0)  # Ajustar ancho a 1 página, alto ilimitado
+            # Función helper para detectar y convertir fechas
+            def detectar_y_convertir_fecha(valor_str):
+                """Detecta formatos comunes de fecha y los convierte a datetime"""
+                import re
+                if not isinstance(valor_str, str):
+                    return None
+
+                # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+                patrones_fecha = [
+                    (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                    (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                    (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+                ]
+
+                for patron, formato in patrones_fecha:
+                    if re.match(patron, valor_str.strip()):
+                        try:
+                            from datetime import datetime as dt
+                            return dt.strptime(valor_str.strip(), formato)
+                        except ValueError:
+                            continue
+                return None
 
             # Definir formatos
             formato_titulo = workbook.add_format({
                 'bold': True,
                 'font_size': 20,
                 'font_name': 'Calibri',
-                'align': 'left',
-                'valign': 'vcenter'
+                'align': 'center',  # Centrado horizontal
+                'valign': 'vcenter'  # Centrado vertical
             })
 
             formato_subtitulo = workbook.add_format({
@@ -298,35 +273,35 @@ class InformesExportador:
                 'bold': True
             })
 
+            # Formato para celdas de fecha (dd/mm/yyyy)
             formato_fecha_celda = workbook.add_format({
                 'font_size': 8,
                 'font_name': 'Tahoma',
-                'num_format': 'dd/mm/yyyy',
                 'border': 1,
-                'align': 'center',
+                'num_format': 'dd/mm/yyyy',
+                'align': 'left',
                 'valign': 'vcenter'
             })
 
             # Fila actual
             row = 0
 
-            # Configurar altura de la primera fila: 2.1cm = ~59.5 puntos
-            # (2.1cm / 2.54cm/inch * 72 puntos/inch = 59.5)
+            # Configurar altura de la fila de encabezado para acomodar logos y título
+            # 2.1 cm ≈ 59.5 puntos
             worksheet.set_row(row, 59.5)
 
             # Configurar ancho de primera y última columna para los logos
             worksheet.set_column(0, 0, 15)
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
 
-            # Logo izquierdo (Logo Redes Urbide) - alineado a la izquierda
-            # Altura de imagen: 2.1cm
+            # Logo izquierdo (Logo Redes Urbide) - altura 2.1cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 1.0,
-                    'y_scale': 1.0,
-                    'x_offset': 2,   # Alineado a la izquierda con pequeño margen
+                    'x_scale': 1.0,  # Escala 100%
+                    'y_scale': 1.0,  # Escala 100%
+                    'x_offset': 2,
                     'y_offset': 2,
-                    'object_position': 1
+                    'object_position': 1  # Mover con celda y redimensionar
                 })
 
             # Título del informe - combinar todas las celdas excepto primera y última
@@ -337,17 +312,16 @@ class InformesExportador:
             else:
                 worksheet.write(row, 1, informe_nombre.upper(), formato_titulo)
 
-            # Logo derecho (Logo Urbide) - alineado a la derecha
-            # Altura de imagen: 2.1cm
+            # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 # Para alinear a la derecha, calculamos el offset basado en el ancho de la columna
                 # Ancho columna 15 ≈ 105 píxeles. Necesitamos offset para alinear a la derecha
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 1.0,
-                    'y_scale': 1.0,
+                    'x_scale': 1.0,  # Escala 100%
+                    'y_scale': 1.0,  # Escala 100%
                     'x_offset': 50,  # Offset para alinear a la derecha
                     'y_offset': 2,
-                    'object_position': 1
+                    'object_position': 1  # Mover con celda y redimensionar
                 })
 
             row += 2  # Espacio después del encabezado
@@ -379,6 +353,7 @@ class InformesExportador:
                     formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
+                    formato_fecha_celda,
                     resultado_agrupacion.get('modo', 'detalle'),
                     resultado_agrupacion
                 )
@@ -436,8 +411,12 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar y manejar fechas
+                        fecha_dt = detectar_y_convertir_fecha(valor)
+                        if fecha_dt:
+                            worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
@@ -445,13 +424,6 @@ class InformesExportador:
                             else:
                                 # Por defecto, números decimales con 2 decimales
                                 worksheet.write(row, col_idx, valor, formato_decimal)
-                        elif self._es_fecha(valor):
-                            # Detectar y formatear fechas
-                            fecha_dt = self._convertir_fecha_excel(valor)
-                            if fecha_dt:
-                                worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
-                            else:
-                                worksheet.write(row, col_idx, valor, formato_datos)
                         else:
                             worksheet.write(row, col_idx, valor, formato_datos)
                     row += 1
@@ -485,10 +457,34 @@ class InformesExportador:
         formato_decimal,
         formato_subtotal,
         formato_subtotal_texto,
+        formato_fecha_celda,
         modo: str = 'detalle',
         resultado_agrupacion: Optional[Dict] = None
     ) -> int:
         """Exporta grupos jerárquicos a Excel (recursivo)"""
+        # Función helper para detectar y convertir fechas
+        def detectar_y_convertir_fecha(valor_str):
+            """Detecta formatos comunes de fecha y los convierte a datetime"""
+            import re
+            if not isinstance(valor_str, str):
+                return None
+
+            # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+            patrones_fecha = [
+                (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+            ]
+
+            for patron, formato in patrones_fecha:
+                if re.match(patron, valor_str.strip()):
+                    try:
+                        from datetime import datetime as dt
+                        return dt.strptime(valor_str.strip(), formato)
+                    except ValueError:
+                        continue
+            return None
+
         row = start_row
 
         formatos_por_nivel = [formato_nivel0, formato_nivel1, formato_nivel2]
@@ -527,6 +523,7 @@ class InformesExportador:
                     formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
+                    formato_fecha_celda,
                     modo,
                     resultado_agrupacion
                 )
@@ -543,8 +540,12 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar y manejar fechas
+                        fecha_dt = detectar_y_convertir_fecha(valor)
+                        if fecha_dt:
+                            worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
@@ -552,22 +553,6 @@ class InformesExportador:
                             else:
                                 # Por defecto, números decimales con 2 decimales
                                 worksheet.write(row, col_idx, valor, formato_decimal)
-                        elif self._es_fecha(valor):
-                            # Detectar y formatear fechas
-                            fecha_dt = self._convertir_fecha_excel(valor)
-                            if fecha_dt:
-                                # Necesitamos obtener formato_fecha_celda desde la función padre
-                                formato_fecha_celda = workbook.add_format({
-                                    'font_size': 8,
-                                    'font_name': 'Tahoma',
-                                    'num_format': 'dd/mm/yyyy',
-                                    'border': 1,
-                                    'align': 'center',
-                                    'valign': 'vcenter'
-                                })
-                                worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
-                            else:
-                                worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                         else:
                             worksheet.write(row, col_idx, str(valor) if valor is not None else "", formato_datos)
                     row += 1
@@ -646,7 +631,7 @@ class InformesExportador:
         try:
             doc = Document()
 
-            # Configurar márgenes y orientación horizontal
+            # Configurar márgenes y orientación
             sections = doc.sections
             for section in sections:
                 # Cambiar a orientación horizontal (landscape)
@@ -1156,170 +1141,209 @@ class InformesExportador:
             columnas: Lista de nombres de columnas
             datos: Datos del informe
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
-            proyecto_nombre: Nombre del proyecto (no se usa, se deja vacío)
-            proyecto_codigo: Código del proyecto (no se usa, se deja vacío)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
 
         Returns:
             True si la exportación fue exitosa
         """
         try:
-            # Crear documento PDF en orientación horizontal
+            # Crear el documento PDF en orientación horizontal
+            # A4 landscape = 29.7cm x 21cm
+            # Márgenes: 1cm a cada lado
+            # Ancho disponible = 29.7cm - 1cm - 1cm = 27.7cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=landscape(A4),
-                rightMargin=1*cm,
-                leftMargin=1*cm,
                 topMargin=1*cm,
-                bottomMargin=1*cm
+                bottomMargin=1*cm,
+                leftMargin=1*cm,
+                rightMargin=1*cm
             )
 
-            # Elementos del documento
+            # Lista de elementos del documento
             elements = []
 
             # Estilos
             styles = getSampleStyleSheet()
-            titulo_style = ParagraphStyle(
-                'CustomTitle',
+
+            # Calcular ancho disponible para tablas
+            ancho_pagina = landscape(A4)[0]  # 29.7cm en puntos
+            ancho_disponible = ancho_pagina - (1*cm * 2)  # Restar márgenes (27.7cm en puntos)
+
+            # Estilo para título
+            style_titulo = ParagraphStyle(
+                'Titulo',
                 parent=styles['Heading1'],
                 fontSize=20,
-                textColor=colors.HexColor('#000000'),
-                spaceAfter=12,
-                alignment=TA_CENTER
+                textColor=colors.black,
+                alignment=TA_CENTER,
+                spaceAfter=12
             )
 
-            # Encabezado con logos y título
+            # Estilo para subtítulo
+            style_subtitulo = ParagraphStyle(
+                'Subtitulo',
+                parent=styles['Normal'],
+                fontSize=10,
+                textColor=colors.HexColor('#7C7C7C'),
+                italic=True,
+                alignment=TA_LEFT,
+                spaceAfter=6
+            )
+
+            # Crear tabla de encabezado con logos y título
             header_data = []
             header_row = []
 
-            # Logo izquierdo (Logo Redes Urbide)
+            # Logo izquierdo (Logo Redes Urbide) - 2.1cm de altura
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                logo_redes = Image(self.logo_redes_path, width=3.5*cm, height=2.1*cm, kind='proportional')
-                header_row.append(logo_redes)
+                img_left = Image(self.logo_redes_path, height=2.1*cm, width=None)
+                header_row.append(img_left)
             else:
-                header_row.append("")
+                header_row.append('')
 
             # Título en el centro
-            titulo_para = Paragraph(informe_nombre.upper(), titulo_style)
+            titulo_para = Paragraph(informe_nombre.upper(), style_titulo)
             header_row.append(titulo_para)
 
-            # Logo derecho (Logo Urbide)
+            # Logo derecho (Logo Urbide) - 2.1cm de altura
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                logo_urbide = Image(self.logo_urbide_path, width=3.5*cm, height=2.1*cm, kind='proportional')
-                header_row.append(logo_urbide)
+                img_right = Image(self.logo_urbide_path, height=2.1*cm, width=None)
+                header_row.append(img_right)
             else:
-                header_row.append("")
+                header_row.append('')
 
             header_data.append(header_row)
 
-            # Crear tabla del encabezado
-            header_table = Table(header_data, colWidths=[3.5*cm, 17*cm, 3.5*cm])
+            # Tabla de encabezado con anchos: 3.5cm, resto, 3.5cm
+            # Ancho disponible = 27.7cm (calculado arriba)
+            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 27.7cm - 7cm = 20.7cm
+            header_table = Table(header_data, colWidths=[3.5*cm, ancho_titulo, 3.5*cm])
             header_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),   # Logo izquierdo alineado a la izquierda
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'), # Título centrado
+                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),  # Logo derecho alineado a la derecha
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
-
             elements.append(header_table)
             elements.append(Spacer(1, 0.5*cm))
 
+            # Información del proyecto
+            if proyecto_nombre:
+                p_proyecto = Paragraph(proyecto_nombre, style_subtitulo)
+                elements.append(p_proyecto)
+
             # Fecha
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
-            fecha_style = ParagraphStyle(
+            style_fecha = ParagraphStyle(
                 'Fecha',
                 parent=styles['Normal'],
                 fontSize=10,
-                fontName='Helvetica-Bold'
+                fontName='Helvetica-Bold',
+                spaceAfter=12
             )
-            fecha_para = Paragraph(f"FECHA: {fecha_actual}", fecha_style)
-            elements.append(fecha_para)
-            elements.append(Spacer(1, 0.3*cm))
+            p_fecha = Paragraph(f"FECHA: {fecha_actual}", style_fecha)
+            elements.append(p_fecha)
+            elements.append(Spacer(1, 0.5*cm))
 
             # Preparar datos de la tabla
-            table_data = []
-
-            # Si hay agrupaciones, procesarlas
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
-                # Encabezados de columna
-                table_data.append(columnas)
-
-                # Procesar grupos recursivamente
-                def procesar_grupos_pdf(grupos, nivel=0):
-                    for grupo in grupos:
-                        # Encabezado del grupo
-                        grupo_row = [grupo.get('titulo', '')] + [''] * (len(columnas) - 1)
-                        table_data.append(grupo_row)
-
-                        # Filas de datos del grupo
-                        if grupo.get('filas'):
-                            for fila in grupo['filas']:
-                                table_data.append(list(fila))
-
-                        # Subtotal del grupo
-                        if grupo.get('subtotal'):
-                            subtotal_row = ['SUBTOTAL:'] + [''] * (len(columnas) - 1)
-                            table_data.append(subtotal_row)
-
-                        # Subgrupos
-                        if grupo.get('subgrupos'):
-                            procesar_grupos_pdf(grupo['subgrupos'], nivel + 1)
-
-                procesar_grupos_pdf(resultado_agrupacion['grupos'])
+                # Si hay agrupaciones, crear estructura jerárquica
+                tabla_datos = self._crear_tabla_grupos_pdf(
+                    resultado_agrupacion['grupos'],
+                    columnas,
+                    resultado_agrupacion.get('modo', 'detalle'),
+                    resultado_agrupacion,
+                    ancho_disponible
+                )
+                elements.extend(tabla_datos)
 
                 # Totales generales
-                if resultado_agrupacion.get('totales'):
-                    total_row = ['TOTAL GENERAL:'] + [''] * (len(columnas) - 1)
-                    table_data.append(total_row)
+                if resultado_agrupacion.get('totales_generales'):
+                    elements.append(Spacer(1, 0.3*cm))
 
-            else:
-                # Sin agrupaciones, tabla simple
-                table_data.append(columnas)
-                for fila in datos:
-                    # Convertir valores a strings
-                    fila_str = []
-                    for valor in fila:
-                        if isinstance(valor, (datetime, date)):
-                            fila_str.append(valor.strftime('%d/%m/%Y'))
-                        elif valor is None:
-                            fila_str.append('')
+                    style_total = ParagraphStyle(
+                        'Total',
+                        parent=styles['Normal'],
+                        fontSize=12,
+                        fontName='Helvetica-Bold',
+                        spaceAfter=6
+                    )
+                    p_total = Paragraph("═══ TOTAL GENERAL ═══", style_total)
+                    elements.append(p_total)
+
+                    totales = resultado_agrupacion['totales_generales']
+                    for key, valor in totales.items():
+                        if isinstance(valor, (int, float)):
+                            texto = f"{key}: {valor:,.2f} €"
                         else:
-                            fila_str.append(str(valor))
-                    table_data.append(fila_str)
+                            texto = f"{key}: {valor}"
+                        p = Paragraph(texto, styles['Normal'])
+                        elements.append(p)
+            else:
+                # Tabla simple sin agrupaciones
+                tabla_datos = [columnas]
 
-            # Calcular anchos de columna dinámicamente
-            num_cols = len(columnas)
-            ancho_disponible = 24*cm  # Ancho total disponible en landscape
-            col_widths = [ancho_disponible / num_cols] * num_cols
+                # Formatear datos
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                for fila in datos:
+                    fila_formateada = []
+                    for col_idx, valor in enumerate(fila):
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
-            # Crear tabla
-            data_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                fila_formateada.append(f"{valor:,.2f} €")
+                            else:
+                                fila_formateada.append(f"{valor:,.2f}")
+                        else:
+                            fila_formateada.append(str(valor) if valor is not None else "")
+                    tabla_datos.append(fila_formateada)
 
-            # Estilos de la tabla
-            table_style = TableStyle([
-                # Encabezado
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-                ('TOPPADDING', (0, 0), (-1, 0), 6),
+                # Calcular anchos de columnas dinámicos
+                num_columnas = len(columnas)
+                ancho_por_columna = ancho_disponible / num_columnas
+                col_widths = [ancho_por_columna] * num_columnas
 
-                # Datos
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), 8),
-                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F0F0F0')]),
-            ])
+                # Crear tabla con anchos dinámicos
+                tabla = Table(tabla_datos, colWidths=col_widths)
+                tabla.setStyle(TableStyle([
+                    # Encabezado
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    # Datos
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                    # Bordes
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ]))
+                elements.append(tabla)
 
-            data_table.setStyle(table_style)
-            elements.append(data_table)
+            # Pie de página
+            elements.append(Spacer(1, 1*cm))
+            style_footer = ParagraphStyle(
+                'Footer',
+                parent=styles['Normal'],
+                fontSize=8,
+                textColor=colors.HexColor('#7C7C7C'),
+                italic=True,
+                alignment=TA_CENTER
+            )
+            p_footer = Paragraph(
+                f"Generado el {datetime.now().strftime('%d/%m/%Y a las %H:%M')}",
+                style_footer
+            )
+            elements.append(p_footer)
 
-            # Construir PDF
+            # Construir el PDF
             doc.build(elements)
-
             print(f"✓ PDF generado correctamente: {filepath}")
             return True
 
@@ -1328,3 +1352,155 @@ class InformesExportador:
             import traceback
             traceback.print_exc()
             return False
+
+    def _crear_tabla_grupos_pdf(
+        self,
+        grupos: List[Dict],
+        columnas: List[str],
+        modo: str = 'detalle',
+        resultado_agrupacion: Optional[Dict] = None,
+        ancho_disponible: float = 24*cm
+    ) -> List:
+        """Crea elementos de tabla para grupos jerárquicos en PDF"""
+        elements = []
+        styles = getSampleStyleSheet()
+
+        for grupo in grupos:
+            clave = grupo.get('clave', '')
+            campo = grupo.get('campo', '')
+            datos = grupo.get('datos', [])
+            subtotales = grupo.get('subtotales', {})
+            subgrupos = grupo.get('subgrupos')
+            nivel = grupo.get('nivel', 0)
+
+            # Estilo del grupo según nivel
+            if nivel == 0:
+                bg_color = colors.HexColor('#4A6FA5')
+                font_size = 12
+            elif nivel == 1:
+                bg_color = colors.HexColor('#6B8FB8')
+                font_size = 11
+            else:
+                bg_color = colors.HexColor('#8AADC7')
+                font_size = 10
+
+            # Título del grupo
+            indent = "    " * nivel
+            titulo_grupo = f"{indent}📁 {campo.upper()}: {clave}"
+
+            style_grupo = ParagraphStyle(
+                f'Grupo{nivel}',
+                parent=styles['Normal'],
+                fontSize=font_size,
+                fontName='Helvetica-Bold',
+                textColor=colors.white,
+                spaceAfter=6
+            )
+
+            # Crear tabla para el título del grupo
+            grupo_data = [[Paragraph(titulo_grupo, style_grupo)]]
+            grupo_table = Table(grupo_data, colWidths=[ancho_disponible])
+            grupo_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), bg_color),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), font_size),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            elements.append(grupo_table)
+            elements.append(Spacer(1, 0.2*cm))
+
+            # Si hay subgrupos, procesarlos recursivamente
+            if subgrupos:
+                sub_elements = self._crear_tabla_grupos_pdf(
+                    subgrupos,
+                    columnas,
+                    modo,
+                    resultado_agrupacion,
+                    ancho_disponible
+                )
+                elements.extend(sub_elements)
+            elif modo == 'detalle' and datos:
+                # Crear tabla de datos
+                tabla_datos = [columnas]
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+
+                for fila in datos:
+                    fila_formateada = []
+                    for col_idx, valor in enumerate(fila):
+                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                        if isinstance(valor, (int, float)):
+                            if formato_campo == 'moneda':
+                                fila_formateada.append(f"{valor:,.2f} €")
+                            else:
+                                fila_formateada.append(f"{valor:,.2f}")
+                        else:
+                            fila_formateada.append(str(valor) if valor is not None else "")
+                    tabla_datos.append(fila_formateada)
+
+                # Calcular anchos de columnas dinámicos
+                num_columnas = len(columnas)
+                ancho_por_columna = ancho_disponible / num_columnas
+                col_widths = [ancho_por_columna] * num_columnas
+
+                tabla = Table(tabla_datos, colWidths=col_widths)
+                tabla.setStyle(TableStyle([
+                    # Encabezado
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    # Datos
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                    # Bordes
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ]))
+                elements.append(tabla)
+                elements.append(Spacer(1, 0.2*cm))
+
+            # Subtotales
+            if subtotales:
+                indent_subtotal = "    " * (nivel + 1)
+                texto_subtotales = f"{indent_subtotal}▸ Subtotal"
+
+                for key, valor in subtotales.items():
+                    if isinstance(valor, (int, float)):
+                        texto_subtotales += f"  {key}={valor:,.2f} €"
+                    else:
+                        texto_subtotales += f"  {key}={valor}"
+
+                style_subtotal = ParagraphStyle(
+                    'Subtotal',
+                    parent=styles['Normal'],
+                    fontSize=9,
+                    fontName='Helvetica-Bold',
+                    spaceAfter=6
+                )
+
+                subtotal_data = [[Paragraph(texto_subtotales, style_subtotal)]]
+                subtotal_table = Table(subtotal_data, colWidths=[ancho_disponible])
+                subtotal_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#E7E6E6')),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ]))
+                elements.append(subtotal_table)
+
+            elements.append(Spacer(1, 0.3*cm))
+
+        return elements
