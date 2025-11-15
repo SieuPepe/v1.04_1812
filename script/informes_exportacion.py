@@ -753,13 +753,39 @@ class InformesExportador:
         """
         # Buscar el párrafo que contiene el marcador
         target_paragraph = None
+        target_table = None
+        target_cell = None
+
+        # Buscar en párrafos del documento
         for paragraph in doc.paragraphs:
             if marcador_nombre in paragraph.text:
                 target_paragraph = paragraph
+                print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en párrafo")
                 break
 
+        # Si no se encuentra en párrafos, buscar en tablas existentes
         if target_paragraph is None:
-            print(f"Advertencia: No se encontró el marcador '{marcador_nombre}'")
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for paragraph in cell.paragraphs:
+                            if marcador_nombre in paragraph.text:
+                                target_paragraph = paragraph
+                                target_table = table
+                                target_cell = cell
+                                print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en celda de tabla")
+                                break
+                        if target_paragraph:
+                            break
+                    if target_paragraph:
+                        break
+                if target_paragraph:
+                    break
+
+        if target_paragraph is None:
+            print(f"Advertencia: No se encontró el marcador '{marcador_nombre}' en ninguna parte")
+            print(f"DEBUG: Párrafos totales: {len(doc.paragraphs)}")
+            print(f"DEBUG: Tablas totales: {len(doc.tables)}")
             return
 
         # Insertar tabla después del marcador
@@ -808,12 +834,21 @@ class InformesExportador:
                         run.font.size = Pt(8)
 
         # MOVER la tabla a la posición del marcador
-        # Obtener el elemento XML de la tabla
         tbl_element = table._element
-        # Obtener el elemento XML del párrafo del marcador
-        p_element = target_paragraph._element
-        # Insertar la tabla DESPUÉS del párrafo
-        p_element.addnext(tbl_element)
+
+        if target_table is not None:
+            # El marcador está dentro de una tabla existente
+            # Reemplazar la tabla completa con la nueva
+            old_tbl_element = target_table._element
+            old_tbl_element.addnext(tbl_element)  # Insertar nueva tabla después
+            old_tbl_element.getparent().remove(old_tbl_element)  # Eliminar tabla vieja
+            print(f"DEBUG: Tabla antigua reemplazada con nueva tabla")
+        else:
+            # El marcador está en un párrafo simple
+            # Insertar la tabla DESPUÉS del párrafo
+            p_element = target_paragraph._element
+            p_element.addnext(tbl_element)
+            print(f"DEBUG: Tabla insertada después del párrafo")
 
         # Limpiar el marcador del párrafo
         target_paragraph.text = ""
