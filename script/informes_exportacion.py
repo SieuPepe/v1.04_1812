@@ -362,9 +362,14 @@ class InformesExportador:
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 x_scale_der, _, _, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
                 ancho_img_px_escalado_derecha = ancho_px_der * x_scale_der
-                # Convertir píxeles a caracteres: chars = (pixels - 5) / 7
-                # Añadir margen de 10px (≈1.4 chars) para espacio
-                ancho_col_der_chars = max(15, int((ancho_img_px_escalado_derecha + 10) / 7))
+                # El ancho de columna debe ser suficiente para la imagen
+                # Usar directamente el ancho de la imagen escalada sin añadir margen extra
+                # Fórmula inversa: chars = (pixels + 5) / 7
+                ancho_col_der_chars = max(15, int((ancho_img_px_escalado_derecha + 5) / 7) + 1)
+
+                print(f"DEBUG Cálculo ancho columna derecha:")
+                print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Ancho columna calculado: {ancho_col_der_chars} chars")
 
             # Configurar ancho de primera y última columna
             worksheet.set_column(0, 0, ancho_col_izq_chars)
@@ -396,19 +401,21 @@ class InformesExportador:
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_px_escalado_derecha > 0:
                 x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
-                # Calcular offset para alinear a la derecha
-                # Conversión de ancho de columna Excel a píxeles
-                # Fórmula aproximada: pixel_width = int(char_width * 7 + 5)
-                ancho_columna_px = int(ancho_col_der_chars * 7 + 5)
+                # Calcular ancho real de la columna en píxeles
+                # Fórmula de Excel: pixel_width = char_width * 7 + 5
+                ancho_columna_px = ancho_col_der_chars * 7 + 5
 
-                # Offset = ancho_celda - ancho_imagen_escalada - margen_derecho
-                # Usamos margen de 5px para que quede bien alineado
-                x_offset_derecha = ancho_columna_px - ancho_img_px_escalado_derecha - 5
+                # Para alinear a la derecha: offset = ancho_celda - ancho_imagen - margen
+                # El margen debe ser muy pequeño (2-3px) para que quede pegado al borde derecho
+                margen_derecho = 3
+                x_offset_derecha = ancho_columna_px - ancho_img_px_escalado_derecha - margen_derecho
 
-                print(f"DEBUG Logo Urbide:")
-                print(f"  Ancho columna: {ancho_col_der_chars} chars → {ancho_columna_px}px")
+                print(f"DEBUG Logo Urbide - Posicionamiento:")
+                print(f"  Ancho columna: {ancho_col_der_chars} chars")
+                print(f"  Ancho real celda: {ancho_columna_px:.1f}px")
                 print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
-                print(f"  x_offset calculado: {int(x_offset_derecha)}px")
+                print(f"  Margen derecho: {margen_derecho}px")
+                print(f"  x_offset = {ancho_columna_px:.1f} - {ancho_img_px_escalado_derecha:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
 
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
