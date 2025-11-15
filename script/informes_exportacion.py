@@ -772,35 +772,26 @@ class InformesExportador:
                 reemplazado = True
 
         # Buscar en encabezados
-        print(f"DEBUG: Buscando '{marcador_texto}' - Secciones totales: {len(doc.sections)}")
         for idx_section, section in enumerate(doc.sections):
             # Buscar en párrafos del encabezado
-            print(f"DEBUG: Sección {idx_section} - Párrafos en encabezado: {len(section.header.paragraphs)}")
             for idx_para, paragraph in enumerate(section.header.paragraphs):
-                print(f"DEBUG:   Párrafo {idx_para}: '{paragraph.text}'")
                 if reemplazar_en_paragrafo(paragraph):
                     reemplazado = True
-                    print(f"DEBUG:   ✓ Marcador encontrado y reemplazado en párrafo {idx_para}")
 
             # Buscar también en tablas del encabezado (importante!)
-            print(f"DEBUG: Sección {idx_section} - Tablas en encabezado: {len(section.header.tables)}")
             for idx_table, table in enumerate(section.header.tables):
                 for idx_row, row in enumerate(table.rows):
                     for idx_cell, cell in enumerate(row.cells):
                         for idx_para, paragraph in enumerate(cell.paragraphs):
-                            print(f"DEBUG:   Tabla {idx_table}, Fila {idx_row}, Celda {idx_cell}, Párrafo {idx_para}: '{paragraph.text}'")
                             if reemplazar_en_paragrafo(paragraph):
                                 reemplazado = True
-                                print(f"DEBUG:   ✓ Marcador encontrado en tabla del encabezado")
 
             # Buscar en pies de página
             for paragraph in section.footer.paragraphs:
                 if reemplazar_en_paragrafo(paragraph):
                     reemplazado = True
 
-        if reemplazado:
-            print(f"DEBUG: Marcador '{marcador_texto}' reemplazado con '{texto_reemplazo}'")
-        else:
+        if not reemplazado:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
 
     def _insertar_tabla_en_marcador(self, doc, marcador_texto: str, columnas: List[str],
@@ -822,7 +813,6 @@ class InformesExportador:
         for paragraph in doc.paragraphs:
             if marcador_texto in paragraph.text:
                 target_paragraph = paragraph
-                print(f"DEBUG: Marcador '{marcador_texto}' encontrado en párrafo del cuerpo")
                 break
 
         # Si no se encuentra en párrafos, buscar en tablas
@@ -833,7 +823,6 @@ class InformesExportador:
                         for paragraph in cell.paragraphs:
                             if marcador_texto in paragraph.text:
                                 target_paragraph = paragraph
-                                print(f"DEBUG: Marcador '{marcador_texto}' encontrado en tabla existente")
                                 break
                         if target_paragraph:
                             break
@@ -844,7 +833,6 @@ class InformesExportador:
 
         if target_paragraph is None:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
-            print(f"DEBUG: Párrafos totales: {len(doc.paragraphs)}, Tablas: {len(doc.tables)}")
             return
 
         # Insertar tabla después del marcador
@@ -857,12 +845,13 @@ class InformesExportador:
         table.autofit = False
         table.allow_autofit = False
 
-        # Ajustar ancho de tabla al ancho de página (27.7cm)
-        table.width = Cm(27.7)
-        self._set_table_width(table, 27.7)
+        # Ajustar ancho de tabla al ancho de página (26.7cm)
+        # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+        table.width = Cm(26.7)
+        self._set_table_width(table, 26.7)
 
         # Distribuir ancho equitativamente entre columnas
-        col_width_cm = 27.7 / len(columnas)
+        col_width_cm = 26.7 / len(columnas)
 
         # Establecer ancho usando XML directo
         for row in table.rows:
@@ -901,8 +890,6 @@ class InformesExportador:
 
         # Eliminar completamente el párrafo del marcador (sustituirlo por la tabla)
         p_element.getparent().remove(p_element)
-
-        print(f"DEBUG: Tabla insertada sustituyendo al marcador '{marcador_texto}'")
 
     def exportar_a_word(
         self,
@@ -1022,13 +1009,14 @@ class InformesExportador:
                 table.autofit = False
                 table.allow_autofit = False
 
-                # Ajustar ancho de tabla al ancho de página (27.7cm)
-                table.width = Cm(27.7)
+                # Ajustar ancho de tabla al ancho de página (26.7cm)
+                # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+                table.width = Cm(26.7)
                 # Forzar ancho de tabla usando XML directo
-                self._set_table_width(table, 27.7)
+                self._set_table_width(table, 26.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width_cm = 27.7 / len(columnas)
+                col_width_cm = 26.7 / len(columnas)
 
                 # Establecer ancho usando XML directo (más confiable)
                 for row in table.rows:
@@ -1375,15 +1363,15 @@ class InformesExportador:
         try:
             # Crear el documento PDF en orientación horizontal
             # A4 landscape = 29.7cm x 21cm
-            # Márgenes: 1cm a cada lado
-            # Ancho disponible = 29.7cm - 1cm - 1cm = 27.7cm
+            # Márgenes: 1.5cm a cada lado
+            # Ancho disponible = 29.7cm - 1.5cm - 1.5cm = 26.7cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=landscape(A4),
-                topMargin=1*cm,
-                bottomMargin=1*cm,
-                leftMargin=1*cm,
-                rightMargin=1*cm
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm,
+                leftMargin=1.5*cm,
+                rightMargin=1.5*cm
             )
 
             # Lista de elementos del documento
@@ -1394,7 +1382,7 @@ class InformesExportador:
 
             # Calcular ancho disponible para tablas
             ancho_pagina = landscape(A4)[0]  # 29.7cm en puntos
-            ancho_disponible = ancho_pagina - (1*cm * 2)  # Restar márgenes (27.7cm en puntos)
+            ancho_disponible = ancho_pagina - (1.5*cm * 2)  # Restar márgenes (26.7cm en puntos)
 
             # Estilo para título
             style_titulo = ParagraphStyle(
@@ -1442,8 +1430,8 @@ class InformesExportador:
             header_data.append(header_row)
 
             # Tabla de encabezado con anchos: 3.5cm, resto, 3.5cm
-            # Ancho disponible = 27.7cm (calculado arriba)
-            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 27.7cm - 7cm = 20.7cm
+            # Ancho disponible = 26.7cm (calculado arriba)
+            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 26.7cm - 7cm = 19.7cm
             header_table = Table(header_data, colWidths=[3.5*cm, ancho_titulo, 3.5*cm])
             header_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),   # Logo izquierdo alineado a la izquierda
