@@ -2491,6 +2491,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
@@ -2738,6 +2741,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
@@ -2985,6 +2991,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
