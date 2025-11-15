@@ -387,12 +387,6 @@ class InformesExportador:
             # Escribir el título combinando celdas
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
 
-            # Segunda fila: Fecha de generación centrada
-            worksheet.set_row(row + 1, 20)  # Altura para la fecha
-            # Usar fecha proporcionada por el usuario o generar automáticamente
-            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
-            worksheet.merge_range(row + 1, col_inicio_titulo, row + 1, col_fin_titulo, f"Fecha: {fecha_actual}", formato_fecha)
-
             # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
@@ -422,14 +416,15 @@ class InformesExportador:
                     'object_position': 1  # Mover con celda y redimensionar
                 })
 
-            row += 3  # Espacio después del encabezado (2 filas de encabezado + 1 de espacio)
+            row += 2  # Espacio después del encabezado (1 fila de encabezado + 1 de espacio)
 
             # Información del proyecto
             if proyecto_nombre:
                 worksheet.merge_range(row, 0, row, len(columnas) - 1, proyecto_nombre, formato_subtitulo)
                 row += 1
 
-            # Fecha (ya establecida arriba con fecha_informe o auto-generada)
+            # Fecha - usar fecha proporcionada por el usuario o generar automáticamente
+            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
             worksheet.write(row, 0, f"FECHA: {fecha_actual}", formato_fecha)
             row += 2
 
