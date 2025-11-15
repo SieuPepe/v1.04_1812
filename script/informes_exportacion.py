@@ -42,25 +42,39 @@ class InformesExportador:
             altura_deseada_cm: Altura deseada en centímetros (default 2.0cm)
 
         Returns:
-            Tupla (x_scale, y_scale, ancho_escalado_px) para mantener aspect ratio con la altura deseada
+            Tupla (x_scale, y_scale, ancho_escalado_cm) para mantener aspect ratio con la altura deseada
         """
         try:
-            # Abrir imagen y obtener dimensiones
+            # Abrir imagen y obtener dimensiones en píxeles
             img = PILImage.open(ruta_imagen)
             ancho_px, alto_px = img.size
 
-            # Excel usa 72 DPI: 1cm = 28.3465 puntos = 28.3465 px a 72 DPI
-            altura_deseada_px = altura_deseada_cm * 28.3465
+            # Obtener DPI de la imagen (por defecto 96 si no está definido)
+            dpi = img.info.get('dpi', (96, 96))
+            if isinstance(dpi, tuple):
+                dpi = dpi[0]  # Usar DPI horizontal
+
+            # Calcular tamaño actual de la imagen en cm
+            # px / DPI = pulgadas; pulgadas * 2.54 = cm
+            altura_actual_cm = (alto_px / dpi) * 2.54
+            ancho_actual_cm = (ancho_px / dpi) * 2.54
 
             # Calcular escala necesaria
-            scale = altura_deseada_px / alto_px
+            scale = altura_deseada_cm / altura_actual_cm
 
-            # Calcular ancho resultante (para alineación)
-            ancho_escalado_px = ancho_px * scale
+            # Calcular ancho resultante en cm
+            ancho_escalado_cm = ancho_actual_cm * scale
 
-            return (scale, scale, ancho_escalado_px)  # Mantener aspect ratio
+            print(f"DEBUG Imagen {ruta_imagen.split('/')[-1]}: {ancho_px}x{alto_px}px @ {dpi}DPI")
+            print(f"  Tamaño actual: {ancho_actual_cm:.2f}x{altura_actual_cm:.2f}cm")
+            print(f"  Scale calculado: {scale:.4f}")
+            print(f"  Tamaño final: {ancho_escalado_cm:.2f}x{altura_deseada_cm:.2f}cm")
+
+            return (scale, scale, ancho_escalado_cm)
         except Exception as e:
             print(f"Error calculando escala de imagen {ruta_imagen}: {e}")
+            import traceback
+            traceback.print_exc()
             return (1.0, 1.0, 0)  # Escala por defecto
 
     def _buscar_logos(self):
@@ -153,10 +167,20 @@ class InformesExportador:
             worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
 
             # Función helper para detectar y convertir fechas
-            def detectar_y_convertir_fecha(valor_str):
+            def detectar_y_convertir_fecha(valor):
                 """Detecta formatos comunes de fecha y los convierte a datetime"""
                 import re
-                if not isinstance(valor_str, str):
+                from datetime import datetime as dt, date
+
+                # Si ya es un objeto datetime o date, retornarlo
+                if isinstance(valor, (dt, date)):
+                    if isinstance(valor, date) and not isinstance(valor, dt):
+                        # Convertir date a datetime
+                        return dt.combine(valor, dt.min.time())
+                    return valor
+
+                # Si es string, detectar formato
+                if not isinstance(valor, str):
                     return None
 
                 # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
@@ -167,10 +191,9 @@ class InformesExportador:
                 ]
 
                 for patron, formato in patrones_fecha:
-                    if re.match(patron, valor_str.strip()):
+                    if re.match(patron, valor.strip()):
                         try:
-                            from datetime import datetime as dt
-                            return dt.strptime(valor_str.strip(), formato)
+                            return dt.strptime(valor.strip(), formato)
                         except ValueError:
                             continue
                 return None
@@ -509,10 +532,20 @@ class InformesExportador:
     ) -> int:
         """Exporta grupos jerárquicos a Excel (recursivo)"""
         # Función helper para detectar y convertir fechas
-        def detectar_y_convertir_fecha(valor_str):
+        def detectar_y_convertir_fecha(valor):
             """Detecta formatos comunes de fecha y los convierte a datetime"""
             import re
-            if not isinstance(valor_str, str):
+            from datetime import datetime as dt, date
+
+            # Si ya es un objeto datetime o date, retornarlo
+            if isinstance(valor, (dt, date)):
+                if isinstance(valor, date) and not isinstance(valor, dt):
+                    # Convertir date a datetime
+                    return dt.combine(valor, dt.min.time())
+                return valor
+
+            # Si es string, detectar formato
+            if not isinstance(valor, str):
                 return None
 
             # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
@@ -523,10 +556,9 @@ class InformesExportador:
             ]
 
             for patron, formato in patrones_fecha:
-                if re.match(patron, valor_str.strip()):
+                if re.match(patron, valor.strip()):
                     try:
-                        from datetime import datetime as dt
-                        return dt.strptime(valor_str.strip(), formato)
+                        return dt.strptime(valor.strip(), formato)
                     except ValueError:
                         continue
             return None
@@ -797,14 +829,12 @@ class InformesExportador:
                 table.width = Cm(27.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width = Cm(27.7 / len(columnas))
-                for column in table.columns:
-                    column.width = col_width
+                col_width_cm = 27.7 / len(columnas)
 
-                # IMPORTANTE: Establecer ancho en cada celda para forzar el tamaño
+                # Establecer ancho usando XML directo (más confiable)
                 for row in table.rows:
-                    for idx, cell in enumerate(row.cells):
-                        cell.width = col_width
+                    for cell in row.cells:
+                        self._set_cell_width(cell, col_width_cm)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -921,14 +951,12 @@ class InformesExportador:
                 table.width = Cm(27.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width = Cm(27.7 / len(columnas))
-                for column in table.columns:
-                    column.width = col_width
+                col_width_cm = 27.7 / len(columnas)
 
-                # IMPORTANTE: Establecer ancho en cada celda para forzar el tamaño
+                # Establecer ancho usando XML directo (más confiable)
                 for row in table.rows:
-                    for idx, cell in enumerate(row.cells):
-                        cell.width = col_width
+                    for cell in row.cells:
+                        self._set_cell_width(cell, col_width_cm)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -987,6 +1015,31 @@ class InformesExportador:
         shading_elm = OxmlElement('w:shd')
         shading_elm.set(qn('w:fill'), color_hex)
         cell._element.get_or_add_tcPr().append(shading_elm)
+
+    def _set_cell_width(self, cell, width_cm):
+        """
+        Establece el ancho de una celda usando XML directo (más confiable que cell.width)
+
+        Args:
+            cell: Celda de la tabla
+            width_cm: Ancho deseado en centímetros
+        """
+        # Convertir cm a twips (1 cm = 567 twips)
+        width_twips = int(width_cm * 567)
+
+        # Obtener o crear el elemento tcPr (propiedades de celda)
+        tc = cell._element
+        tcPr = tc.get_or_add_tcPr()
+
+        # Buscar si ya existe tcW (ancho de celda)
+        tcW = tcPr.find(qn('w:tcW'))
+        if tcW is None:
+            tcW = OxmlElement('w:tcW')
+            tcPr.append(tcW)
+
+        # Establecer el ancho
+        tcW.set(qn('w:w'), str(width_twips))
+        tcW.set(qn('w:type'), 'dxa')  # dxa = twentieths of a point (twips)
 
     def _add_page_number(self, run):
         """Añade número de página a Word"""
