@@ -752,15 +752,13 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones (opcional)
         """
         # Buscar el párrafo que contiene el marcador
-        paragraph_index = None
-        for i, paragraph in enumerate(doc.paragraphs):
+        target_paragraph = None
+        for paragraph in doc.paragraphs:
             if marcador_nombre in paragraph.text:
-                paragraph_index = i
-                # Limpiar el marcador
-                paragraph.text = ""
+                target_paragraph = paragraph
                 break
 
-        if paragraph_index is None:
+        if target_paragraph is None:
             print(f"Advertencia: No se encontró el marcador '{marcador_nombre}'")
             return
 
@@ -768,7 +766,7 @@ class InformesExportador:
         # Calcular número de filas necesarias
         num_filas = 1 + len(datos)  # Encabezado + datos
 
-        # Crear tabla
+        # Crear tabla (se añade al final del documento)
         table = doc.add_table(rows=num_filas, cols=len(columnas))
         table.style = 'Light Grid Accent 1'
         table.autofit = False
@@ -809,6 +807,17 @@ class InformesExportador:
                         run.font.name = 'Tahoma'
                         run.font.size = Pt(8)
 
+        # MOVER la tabla a la posición del marcador
+        # Obtener el elemento XML de la tabla
+        tbl_element = table._element
+        # Obtener el elemento XML del párrafo del marcador
+        p_element = target_paragraph._element
+        # Insertar la tabla DESPUÉS del párrafo
+        p_element.addnext(tbl_element)
+
+        # Limpiar el marcador del párrafo
+        target_paragraph.text = ""
+
     def exportar_a_word(
         self,
         filepath: str,
@@ -847,8 +856,15 @@ class InformesExportador:
                 doc = Document()
                 # TODO: Implementar creación manual si no hay plantilla
             else:
-                # Abrir la plantilla directamente
-                doc = Document(plantilla_path)
+                # IMPORTANTE: Copiar la plantilla primero, no abrirla directamente
+                # para no modificar el archivo original
+                import shutil
+
+                # Copiar plantilla al destino final
+                shutil.copy2(plantilla_path, filepath)
+
+                # Ahora abrir la copia para modificarla
+                doc = Document(filepath)
 
             # Reemplazar marcadores en la plantilla
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
