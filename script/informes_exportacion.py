@@ -35,30 +35,33 @@ class InformesExportador:
     @staticmethod
     def _calcular_escala_imagen(ruta_imagen: str, altura_deseada_cm: float = 2.0) -> tuple:
         """
-        Calcula la escala necesaria para que una imagen tenga una altura específica
+        Calcula la escala necesaria para que una imagen tenga una altura específica en Excel
 
         Args:
             ruta_imagen: Ruta a la imagen
             altura_deseada_cm: Altura deseada en centímetros (default 2.0cm)
 
         Returns:
-            Tupla (x_scale, y_scale) para mantener aspect ratio con la altura deseada
+            Tupla (x_scale, y_scale, ancho_escalado_px) para mantener aspect ratio con la altura deseada
         """
         try:
             # Abrir imagen y obtener dimensiones
             img = PILImage.open(ruta_imagen)
             ancho_px, alto_px = img.size
 
-            # Convertir altura deseada de cm a píxeles (96 DPI = 37.795 px/cm)
-            altura_deseada_px = altura_deseada_cm * 37.795
+            # Excel usa 72 DPI: 1cm = 28.3465 puntos = 28.3465 px a 72 DPI
+            altura_deseada_px = altura_deseada_cm * 28.3465
 
             # Calcular escala necesaria
             scale = altura_deseada_px / alto_px
 
-            return (scale, scale)  # Mantener aspect ratio
+            # Calcular ancho resultante (para alineación)
+            ancho_escalado_px = ancho_px * scale
+
+            return (scale, scale, ancho_escalado_px)  # Mantener aspect ratio
         except Exception as e:
             print(f"Error calculando escala de imagen {ruta_imagen}: {e}")
-            return (1.0, 1.0)  # Escala por defecto
+            return (1.0, 1.0, 0)  # Escala por defecto
 
     def _buscar_logos(self):
         """Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
@@ -325,7 +328,7 @@ class InformesExportador:
 
             # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                x_scale, y_scale = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                x_scale, y_scale, ancho_img = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
@@ -350,13 +353,19 @@ class InformesExportador:
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
             worksheet.merge_range(row + 1, col_inicio_titulo, row + 1, col_fin_titulo, f"Fecha: {fecha_actual}", formato_fecha)
 
-            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado verticalmente
+            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                x_scale, y_scale = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+                x_scale, y_scale, ancho_img = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+
+                # Calcular offset para alinear a la derecha
+                # Ancho de columna 15 caracteres ≈ 107 píxeles
+                ancho_columna_px = 107
+                x_offset_derecha = ancho_columna_px - ancho_img - 5  # 5px margen derecho
+
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
-                    'x_offset': 5,  # Pequeño margen desde el borde izquierdo de la celda
+                    'x_offset': int(x_offset_derecha),
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
@@ -792,6 +801,11 @@ class InformesExportador:
                 for column in table.columns:
                     column.width = col_width
 
+                # IMPORTANTE: Establecer ancho en cada celda para forzar el tamaño
+                for row in table.rows:
+                    for idx, cell in enumerate(row.cells):
+                        cell.width = col_width
+
                 # Encabezados
                 header_cells = table.rows[0].cells
                 for idx, col_name in enumerate(columnas):
@@ -910,6 +924,11 @@ class InformesExportador:
                 col_width = Cm(27.7 / len(columnas))
                 for column in table.columns:
                     column.width = col_width
+
+                # IMPORTANTE: Establecer ancho en cada celda para forzar el tamaño
+                for row in table.rows:
+                    for idx, cell in enumerate(row.cells):
+                        cell.width = col_width
 
                 # Encabezados
                 header_cells = table.rows[0].cells
