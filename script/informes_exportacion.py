@@ -304,18 +304,16 @@ class InformesExportador:
                     'object_position': 1  # Mover con celda y redimensionar
                 })
 
-            # Título del informe - combinar todas las celdas excepto primera y última
+            # Título del informe en el centro (entre los logos)
+            # Calcular columnas centrales para el título
             num_cols = len(columnas)
-            # Merge desde columna 1 (segunda) hasta columna num_cols-2 (penúltima)
-            if num_cols > 2:
-                worksheet.merge_range(row, 1, row, num_cols - 2, informe_nombre.upper(), formato_titulo)
-            else:
-                worksheet.write(row, 1, informe_nombre.upper(), formato_titulo)
+            col_inicio_titulo = 2 if num_cols > 4 else 1
+            col_fin_titulo = num_cols - 3 if num_cols > 4 else num_cols - 2
+            if col_fin_titulo <= col_inicio_titulo:
+                col_fin_titulo = col_inicio_titulo + 1
 
             # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                # Para alinear a la derecha, calculamos el offset basado en el ancho de la columna
-                # Ancho columna 15 ≈ 105 píxeles. Necesitamos offset para alinear a la derecha
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': 1.0,  # Escala 100%
                     'y_scale': 1.0,  # Escala 100%
@@ -967,8 +965,8 @@ class InformesExportador:
             columnas: Lista de nombres de columnas
             datos: Datos del informe
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
-            proyecto_nombre: Nombre del proyecto (no se usa, se deja vacío)
-            proyecto_codigo: Código del proyecto (no se usa, se deja vacío)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
 
         Returns:
             True si la exportación fue exitosa
