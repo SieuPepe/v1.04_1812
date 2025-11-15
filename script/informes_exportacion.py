@@ -847,8 +847,25 @@ class InformesExportador:
                 doc = Document()
                 # TODO: Implementar creación manual si no hay plantilla
             else:
-                # Abrir la plantilla
-                doc = Document(plantilla_path)
+                # python-docx no puede abrir .dotx directamente
+                # Copiar plantilla a archivo temporal .docx
+                import tempfile
+                import shutil
+
+                temp_docx = tempfile.NamedTemporaryFile(suffix='.docx', delete=False)
+                temp_docx.close()
+
+                # Copiar plantilla .dotx a temporal .docx
+                shutil.copy2(plantilla_path, temp_docx.name)
+
+                # Abrir el archivo temporal
+                doc = Document(temp_docx.name)
+
+                # Eliminar archivo temporal después de abrirlo
+                try:
+                    os.unlink(temp_docx.name)
+                except:
+                    pass  # No importa si falla
 
             # Reemplazar marcadores en la plantilla
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
