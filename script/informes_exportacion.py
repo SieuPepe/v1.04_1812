@@ -398,13 +398,21 @@ class InformesExportador:
                 x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
                 # Calcular offset para alinear a la derecha
-                # Ancho de columna en píxeles: caracteres × 7 píxeles/carácter
-                ancho_columna_px = ancho_col_der_chars * 7
+                # Conversión más precisa de ancho de columna Excel a píxeles
+                # Fórmula de xlsxwriter: pixel_width = int(char_width * 7 + 5)
+                ancho_columna_px = int(ancho_col_der_chars * 7 + 5)
+
                 # Ancho de imagen en píxeles: cm × 37.8 píxeles/cm @ 96 DPI
                 ancho_img_px = ancho_img_cm * 37.8
-                x_offset_derecha = ancho_columna_px - ancho_img_px - 5  # 5px margen derecho
 
-                print(f"  x_offset calculado: {int(x_offset_derecha)}px (ancho columna: {ancho_columna_px}px, ancho img: {ancho_img_px:.1f}px)")
+                # Offset = ancho_celda - ancho_imagen - margen_derecho
+                # Usamos margen de 3px para que quede bien alineado
+                x_offset_derecha = ancho_columna_px - ancho_img_px - 3
+
+                print(f"DEBUG Logo Urbide:")
+                print(f"  Ancho columna: {ancho_col_der_chars} chars → {ancho_columna_px}px")
+                print(f"  Ancho imagen: {ancho_img_cm:.2f}cm → {ancho_img_px:.1f}px")
+                print(f"  x_offset calculado: {int(x_offset_derecha)}px")
 
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
