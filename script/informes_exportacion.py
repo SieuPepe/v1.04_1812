@@ -345,13 +345,28 @@ class InformesExportador:
             # 2.1 cm ≈ 59.5 puntos
             worksheet.set_row(row, 59.5)
 
-            # Configurar ancho de primera y última columna para los logos
-            worksheet.set_column(0, 0, 15)
-            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
+            # Calcular anchos de columnas para los logos dinámicamente
+            # Logo Redes Urbide (izquierda)
+            ancho_col_izq_chars = 15  # Default
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                _, _, ancho_redes_cm = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                # 1 cm ≈ 5.4 caracteres en Excel
+                ancho_col_izq_chars = max(15, int(ancho_redes_cm * 5.4) + 2)  # +2 para margen
+
+            # Logo Urbide (derecha)
+            ancho_col_der_chars = 15  # Default
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                _, _, ancho_urbide_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+                # 1 cm ≈ 5.4 caracteres en Excel
+                ancho_col_der_chars = max(15, int(ancho_urbide_cm * 5.4) + 2)  # +2 para margen
+
+            # Configurar ancho de primera y última columna
+            worksheet.set_column(0, 0, ancho_col_izq_chars)
+            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, ancho_col_der_chars)
 
             # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                x_scale, y_scale, ancho_img = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
@@ -378,12 +393,16 @@ class InformesExportador:
 
             # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                x_scale, y_scale, ancho_img = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+                x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
                 # Calcular offset para alinear a la derecha
-                # Ancho de columna 15 caracteres ≈ 107 píxeles
-                ancho_columna_px = 107
-                x_offset_derecha = ancho_columna_px - ancho_img - 5  # 5px margen derecho
+                # Ancho de columna en píxeles: caracteres × 7 píxeles/carácter
+                ancho_columna_px = ancho_col_der_chars * 7
+                # Ancho de imagen en píxeles: cm × 37.8 píxeles/cm @ 96 DPI
+                ancho_img_px = ancho_img_cm * 37.8
+                x_offset_derecha = ancho_columna_px - ancho_img_px - 5  # 5px margen derecho
+
+                print(f"  x_offset calculado: {int(x_offset_derecha)}px (ancho columna: {ancho_columna_px}px, ancho img: {ancho_img_px:.1f}px)")
 
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
@@ -484,6 +503,9 @@ class InformesExportador:
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
                             worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                        # Debug: imprimir valores que parecen fechas pero no se detectan
+                        elif col_name and 'fecha' in col_name.lower() and valor:
+                            print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
@@ -622,6 +644,9 @@ class InformesExportador:
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
                             worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                        # Debug: imprimir valores que parecen fechas pero no se detectan
+                        elif col_name and 'fecha' in col_name.lower() and valor:
+                            print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
@@ -827,6 +852,8 @@ class InformesExportador:
 
                 # Ajustar ancho de tabla al ancho de página (27.7cm)
                 table.width = Cm(27.7)
+                # Forzar ancho de tabla usando XML directo
+                self._set_table_width(table, 27.7)
 
                 # Distribuir ancho equitativamente entre columnas
                 col_width_cm = 27.7 / len(columnas)
@@ -949,6 +976,8 @@ class InformesExportador:
 
                 # Ajustar ancho de tabla al ancho de página (27.7cm)
                 table.width = Cm(27.7)
+                # Forzar ancho de tabla usando XML directo
+                self._set_table_width(table, 27.7)
 
                 # Distribuir ancho equitativamente entre columnas
                 col_width_cm = 27.7 / len(columnas)
@@ -1040,6 +1069,43 @@ class InformesExportador:
         # Establecer el ancho
         tcW.set(qn('w:w'), str(width_twips))
         tcW.set(qn('w:type'), 'dxa')  # dxa = twentieths of a point (twips)
+
+    def _set_table_width(self, table, width_cm):
+        """
+        Establece el ancho de una tabla usando XML directo
+
+        Args:
+            table: Tabla de Word
+            width_cm: Ancho deseado en centímetros
+        """
+        # Convertir cm a twips (1 cm = 567 twips)
+        width_twips = int(width_cm * 567)
+
+        # Obtener el elemento tbl
+        tbl = table._element
+
+        # Obtener o crear tblPr (propiedades de tabla)
+        tblPr = tbl.find(qn('w:tblPr'))
+        if tblPr is None:
+            tblPr = OxmlElement('w:tblPr')
+            tbl.insert(0, tblPr)
+
+        # Buscar si ya existe tblW (ancho de tabla)
+        tblW = tblPr.find(qn('w:tblW'))
+        if tblW is None:
+            tblW = OxmlElement('w:tblW')
+            tblPr.append(tblW)
+
+        # Establecer el ancho
+        tblW.set(qn('w:w'), str(width_twips))
+        tblW.set(qn('w:type'), 'dxa')  # dxa = twentieths of a point (twips)
+
+        # Forzar layout fijo (desactivar autofit)
+        tblLayout = tblPr.find(qn('w:tblLayout'))
+        if tblLayout is None:
+            tblLayout = OxmlElement('w:tblLayout')
+            tblPr.append(tblLayout)
+        tblLayout.set(qn('w:type'), 'fixed')
 
     def _add_page_number(self, run):
         """Añade número de página a Word"""
