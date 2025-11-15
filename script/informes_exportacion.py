@@ -145,7 +145,8 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a Excel con formato profesional
@@ -388,7 +389,8 @@ class InformesExportador:
 
             # Segunda fila: Fecha de generación centrada
             worksheet.set_row(row + 1, 20)  # Altura para la fecha
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            # Usar fecha proporcionada por el usuario o generar automáticamente
+            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
             worksheet.merge_range(row + 1, col_inicio_titulo, row + 1, col_fin_titulo, f"Fecha: {fecha_actual}", formato_fecha)
 
             # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
@@ -419,8 +421,7 @@ class InformesExportador:
                 worksheet.merge_range(row, 0, row, len(columnas) - 1, proyecto_nombre, formato_subtitulo)
                 row += 1
 
-            # Fecha
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            # Fecha (ya establecida arriba con fecha_informe o auto-generada)
             worksheet.write(row, 0, f"FECHA: {fecha_actual}", formato_fecha)
             row += 2
 
@@ -858,7 +859,8 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a Word usando plantilla profesional
@@ -899,7 +901,8 @@ class InformesExportador:
                 doc = Document(filepath)
 
             # Reemplazar marcadores en la plantilla
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            # Usar fecha proporcionada por el usuario o generar automáticamente
+            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
 
             # Reemplazar marcadores de texto literal
             self._reemplazar_marcador(doc, "[TITULO_DEL_INFORME]", informe_nombre.upper())
@@ -1123,7 +1126,8 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
@@ -1157,7 +1161,8 @@ class InformesExportador:
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre=proyecto_nombre,
-                proyecto_codigo=proyecto_codigo
+                proyecto_codigo=proyecto_codigo,
+                fecha_informe=fecha_informe
             )
 
             if not exito_word:
