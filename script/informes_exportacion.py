@@ -772,10 +772,26 @@ class InformesExportador:
                 reemplazado = True
 
         # Buscar en encabezados
-        for section in doc.sections:
-            for paragraph in section.header.paragraphs:
+        print(f"DEBUG: Buscando '{marcador_texto}' - Secciones totales: {len(doc.sections)}")
+        for idx_section, section in enumerate(doc.sections):
+            # Buscar en párrafos del encabezado
+            print(f"DEBUG: Sección {idx_section} - Párrafos en encabezado: {len(section.header.paragraphs)}")
+            for idx_para, paragraph in enumerate(section.header.paragraphs):
+                print(f"DEBUG:   Párrafo {idx_para}: '{paragraph.text}'")
                 if reemplazar_en_paragrafo(paragraph):
                     reemplazado = True
+                    print(f"DEBUG:   ✓ Marcador encontrado y reemplazado en párrafo {idx_para}")
+
+            # Buscar también en tablas del encabezado (importante!)
+            print(f"DEBUG: Sección {idx_section} - Tablas en encabezado: {len(section.header.tables)}")
+            for idx_table, table in enumerate(section.header.tables):
+                for idx_row, row in enumerate(table.rows):
+                    for idx_cell, cell in enumerate(row.cells):
+                        for idx_para, paragraph in enumerate(cell.paragraphs):
+                            print(f"DEBUG:   Tabla {idx_table}, Fila {idx_row}, Celda {idx_cell}, Párrafo {idx_para}: '{paragraph.text}'")
+                            if reemplazar_en_paragrafo(paragraph):
+                                reemplazado = True
+                                print(f"DEBUG:   ✓ Marcador encontrado en tabla del encabezado")
 
             # Buscar en pies de página
             for paragraph in section.footer.paragraphs:
