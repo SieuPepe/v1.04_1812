@@ -3174,6 +3174,14 @@ class InformesFrame(customtkinter.CTkFrame):
         if not archivo:
             return  # Usuario canceló
 
+        # Mostrar diálogo de configuración del informe
+        config_informe = self._mostrar_dialogo_configuracion_informe()
+        if not config_informe:
+            return  # Usuario canceló
+
+        titulo_informe = config_informe['titulo']
+        fecha_generacion = config_informe['fecha']
+
         # Crear archivo PDF usando el exportador profesional
         try:
             exportador = InformesExportador(self.schema)
