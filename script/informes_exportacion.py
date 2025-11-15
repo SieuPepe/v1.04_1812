@@ -358,17 +358,19 @@ class InformesExportador:
 
             # Logo Urbide (derecha)
             ancho_col_der_chars = 15  # Default
-            ancho_img_px_escalado_derecha = 0  # Para usar más tarde
+            ancho_img_cm_derecha = 0  # Para usar más tarde
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                x_scale_der, _, _, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
-                ancho_img_px_escalado_derecha = ancho_px_der * x_scale_der
-                # El ancho de columna debe ser suficiente para la imagen
-                # Usar directamente el ancho de la imagen escalada sin añadir margen extra
-                # Fórmula inversa: chars = (pixels + 5) / 7
-                ancho_col_der_chars = max(15, int((ancho_img_px_escalado_derecha + 5) / 7) + 1)
+                x_scale_der, _, ancho_img_cm_derecha, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+
+                # Calcular ancho en píxeles a 96 DPI (que usa Excel)
+                # cm → pulgadas → píxeles @ 96 DPI
+                ancho_img_px_excel = (ancho_img_cm_derecha / 2.54) * 96
+
+                # Convertir píxeles a caracteres: chars = (pixels + 5) / 7
+                ancho_col_der_chars = max(15, int((ancho_img_px_excel + 5) / 7) + 1)
 
                 print(f"DEBUG Cálculo ancho columna derecha:")
-                print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Ancho imagen: {ancho_img_cm_derecha:.2f}cm = {ancho_img_px_excel:.1f}px @ 96 DPI")
                 print(f"  Ancho columna calculado: {ancho_col_der_chars} chars")
 
             # Configurar ancho de primera y última columna
@@ -398,8 +400,11 @@ class InformesExportador:
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
 
             # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
-            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_px_escalado_derecha > 0:
-                x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_cm_derecha > 0:
+                x_scale, y_scale, _, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+
+                # Calcular ancho de imagen en píxeles @ 96 DPI (que usa Excel)
+                ancho_img_px_excel = (ancho_img_cm_derecha / 2.54) * 96
 
                 # Calcular ancho real de la columna en píxeles
                 # Fórmula de Excel: pixel_width = char_width * 7 + 5
@@ -408,14 +413,13 @@ class InformesExportador:
                 # Para alinear a la derecha: offset = ancho_celda - ancho_imagen - margen
                 # El margen debe ser muy pequeño (2-3px) para que quede pegado al borde derecho
                 margen_derecho = 3
-                x_offset_derecha = ancho_columna_px - ancho_img_px_escalado_derecha - margen_derecho
+                x_offset_derecha = ancho_columna_px - ancho_img_px_excel - margen_derecho
 
                 print(f"DEBUG Logo Urbide - Posicionamiento:")
-                print(f"  Ancho columna: {ancho_col_der_chars} chars")
-                print(f"  Ancho real celda: {ancho_columna_px:.1f}px")
-                print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Ancho columna: {ancho_col_der_chars} chars → {ancho_columna_px:.1f}px")
+                print(f"  Ancho imagen: {ancho_img_cm_derecha:.2f}cm → {ancho_img_px_excel:.1f}px @ 96 DPI")
                 print(f"  Margen derecho: {margen_derecho}px")
-                print(f"  x_offset = {ancho_columna_px:.1f} - {ancho_img_px_escalado_derecha:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
+                print(f"  x_offset = {ancho_columna_px:.1f} - {ancho_img_px_excel:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
 
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
