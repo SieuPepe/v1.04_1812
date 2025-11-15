@@ -716,38 +716,43 @@ class InformesExportador:
             texto_reemplazo: Texto con el que reemplazar el marcador
         """
         from docx.oxml.shared import qn
+        from docx.oxml import OxmlElement
 
         # Buscar en todo el documento (párrafos, encabezados, pies)
         def buscar_y_reemplazar_en_elemento(element):
-            # Buscar elementos bookmarkStart con el nombre del marcador
-            bookmarks = element.xpath(f'.//w:bookmarkStart[@w:name="{marcador_nombre}"]',
-                                     namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
+            # Buscar elementos bookmarkStart iterando por todos los descendientes
+            for child in element.iter():
+                if child.tag == qn('w:bookmarkStart'):
+                    # Verificar si el atributo name coincide
+                    name_attr = child.get(qn('w:name'))
+                    if name_attr == marcador_nombre:
+                        # Encontrar el párrafo que contiene el marcador
+                        parent = child.getparent()
+                        while parent is not None and parent.tag != qn('w:p'):
+                            parent = parent.getparent()
 
-            for bookmark in bookmarks:
-                # Encontrar el párrafo que contiene el marcador
-                parent = bookmark.getparent()
-                while parent is not None and parent.tag != qn('w:p'):
-                    parent = parent.getparent()
+                        if parent is not None:
+                            # Limpiar el párrafo - eliminar todos los runs existentes
+                            runs_to_remove = []
+                            for run_elem in parent.iter():
+                                if run_elem.tag == qn('w:r'):
+                                    runs_to_remove.append(run_elem)
 
-                if parent is not None:
-                    # Limpiar el párrafo y añadir el texto nuevo
-                    # Eliminar todos los runs existentes
-                    for run_element in parent.xpath('.//w:r', namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}):
-                        parent.remove(run_element)
+                            for run_elem in runs_to_remove:
+                                run_elem.getparent().remove(run_elem)
 
-                    # Crear nuevo run con el texto
-                    from docx.oxml import OxmlElement
-                    new_run = OxmlElement('w:r')
-                    new_text = OxmlElement('w:t')
-                    new_text.text = texto_reemplazo
-                    new_run.append(new_text)
+                            # Crear nuevo run con el texto
+                            new_run = OxmlElement('w:r')
+                            new_text = OxmlElement('w:t')
+                            new_text.text = texto_reemplazo
+                            new_run.append(new_text)
 
-                    # Insertar después del bookmarkStart
-                    bookmark_index = list(parent).index(bookmark)
-                    parent.insert(bookmark_index + 1, new_run)
+                            # Insertar después del bookmarkStart
+                            bookmark_index = list(parent).index(child)
+                            parent.insert(bookmark_index + 1, new_run)
 
-                    print(f"DEBUG: Marcador '{marcador_nombre}' reemplazado con '{texto_reemplazo}'")
-                    return True
+                            print(f"DEBUG: Marcador '{marcador_nombre}' reemplazado con '{texto_reemplazo}'")
+                            return True
             return False
 
         # Buscar en párrafos del cuerpo
@@ -785,13 +790,21 @@ class InformesExportador:
         target_paragraph = None
         bookmark_element = None
 
-        # Buscar en todo el documento usando XPath
+        # Función helper para buscar marcador en un elemento
+        def buscar_marcador_en_elemento(element):
+            for child in element.iter():
+                if child.tag == qn('w:bookmarkStart'):
+                    name_attr = child.get(qn('w:name'))
+                    if name_attr == marcador_nombre:
+                        return child
+            return None
+
+        # Buscar en párrafos del cuerpo
         for paragraph in doc.paragraphs:
-            bookmarks = paragraph._element.xpath(f'.//w:bookmarkStart[@w:name="{marcador_nombre}"]',
-                                                namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
-            if bookmarks:
+            bookmark = buscar_marcador_en_elemento(paragraph._element)
+            if bookmark is not None:
                 target_paragraph = paragraph
-                bookmark_element = bookmarks[0]
+                bookmark_element = bookmark
                 print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en párrafo del cuerpo")
                 break
 
@@ -801,11 +814,10 @@ class InformesExportador:
                 for row in table.rows:
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
-                            bookmarks = paragraph._element.xpath(f'.//w:bookmarkStart[@w:name="{marcador_nombre}"]',
-                                                                namespaces={'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'})
-                            if bookmarks:
+                            bookmark = buscar_marcador_en_elemento(paragraph._element)
+                            if bookmark is not None:
                                 target_paragraph = paragraph
-                                bookmark_element = bookmarks[0]
+                                bookmark_element = bookmark
                                 print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en tabla existente")
                                 break
                         if target_paragraph:
