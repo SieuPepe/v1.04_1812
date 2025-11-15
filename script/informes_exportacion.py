@@ -42,7 +42,7 @@ class InformesExportador:
             altura_deseada_cm: Altura deseada en centímetros (default 2.0cm)
 
         Returns:
-            Tupla (x_scale, y_scale, ancho_escalado_cm) para mantener aspect ratio con la altura deseada
+            Tupla (x_scale, y_scale, ancho_escalado_cm, ancho_px, alto_px) para mantener aspect ratio con la altura deseada
         """
         try:
             # Abrir imagen y obtener dimensiones en píxeles
@@ -70,12 +70,12 @@ class InformesExportador:
             print(f"  Scale calculado: {scale:.4f}")
             print(f"  Tamaño final: {ancho_escalado_cm:.2f}x{altura_deseada_cm:.2f}cm")
 
-            return (scale, scale, ancho_escalado_cm)
+            return (scale, scale, ancho_escalado_cm, ancho_px, alto_px)
         except Exception as e:
             print(f"Error calculando escala de imagen {ruta_imagen}: {e}")
             import traceback
             traceback.print_exc()
-            return (1.0, 1.0, 0)  # Escala por defecto
+            return (1.0, 1.0, 0, 0, 0)  # Escala por defecto
 
     def _buscar_logos(self):
         """Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
@@ -350,16 +350,21 @@ class InformesExportador:
             # Logo Redes Urbide (izquierda)
             ancho_col_izq_chars = 15  # Default
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                _, _, ancho_redes_cm = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
-                # 1 cm ≈ 5.4 caracteres en Excel
-                ancho_col_izq_chars = max(15, int(ancho_redes_cm * 5.4) + 2)  # +2 para margen
+                x_scale_izq, _, _, ancho_px_izq, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                ancho_escalado_px_izq = ancho_px_izq * x_scale_izq
+                # Convertir píxeles a caracteres: chars = (pixels - 5) / 7
+                # Añadir margen de 10px (≈1.4 chars) para espacio
+                ancho_col_izq_chars = max(15, int((ancho_escalado_px_izq + 10) / 7))
 
             # Logo Urbide (derecha)
             ancho_col_der_chars = 15  # Default
+            ancho_img_px_escalado_derecha = 0  # Para usar más tarde
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                _, _, ancho_urbide_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
-                # 1 cm ≈ 5.4 caracteres en Excel
-                ancho_col_der_chars = max(15, int(ancho_urbide_cm * 5.4) + 2)  # +2 para margen
+                x_scale_der, _, _, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+                ancho_img_px_escalado_derecha = ancho_px_der * x_scale_der
+                # Convertir píxeles a caracteres: chars = (pixels - 5) / 7
+                # Añadir margen de 10px (≈1.4 chars) para espacio
+                ancho_col_der_chars = max(15, int((ancho_img_px_escalado_derecha + 10) / 7))
 
             # Configurar ancho de primera y última columna
             worksheet.set_column(0, 0, ancho_col_izq_chars)
@@ -367,7 +372,7 @@ class InformesExportador:
 
             # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
@@ -388,24 +393,21 @@ class InformesExportador:
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
 
             # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado a la derecha
-            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                x_scale, y_scale, ancho_img_cm = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_px_escalado_derecha > 0:
+                x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
                 # Calcular offset para alinear a la derecha
-                # Conversión más precisa de ancho de columna Excel a píxeles
-                # Fórmula de xlsxwriter: pixel_width = int(char_width * 7 + 5)
+                # Conversión de ancho de columna Excel a píxeles
+                # Fórmula aproximada: pixel_width = int(char_width * 7 + 5)
                 ancho_columna_px = int(ancho_col_der_chars * 7 + 5)
 
-                # Ancho de imagen en píxeles: cm × 37.8 píxeles/cm @ 96 DPI
-                ancho_img_px = ancho_img_cm * 37.8
-
-                # Offset = ancho_celda - ancho_imagen - margen_derecho
-                # Usamos margen de 3px para que quede bien alineado
-                x_offset_derecha = ancho_columna_px - ancho_img_px - 3
+                # Offset = ancho_celda - ancho_imagen_escalada - margen_derecho
+                # Usamos margen de 5px para que quede bien alineado
+                x_offset_derecha = ancho_columna_px - ancho_img_px_escalado_derecha - 5
 
                 print(f"DEBUG Logo Urbide:")
                 print(f"  Ancho columna: {ancho_col_der_chars} chars → {ancho_columna_px}px")
-                print(f"  Ancho imagen: {ancho_img_cm:.2f}cm → {ancho_img_px:.1f}px")
+                print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
                 print(f"  x_offset calculado: {int(x_offset_derecha)}px")
 
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
