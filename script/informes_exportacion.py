@@ -906,7 +906,7 @@ class InformesExportador:
             self._reemplazar_marcador(doc, "[FECHA]", fecha_actual)
 
             # Insertar tabla en el marcador
-            self._insertar_tabla_en_marcador(doc, "[Tabla_de_datos]", columnas, datos, resultado_agrupacion)
+            self._insertar_tabla_en_marcador(doc, "[TABLA_DE_DATOS]", columnas, datos, resultado_agrupacion)
 
             # Guardar el documento
             doc.save(filepath)
