@@ -837,7 +837,7 @@ class InformesExportador:
         try:
             # Buscar la plantilla
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plantilla_path = os.path.join(base_dir, "plantillas", "PLantilla_listado_partes.dotx")
+            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.dotx")
 
             # Verificar si existe la plantilla
             if not os.path.exists(plantilla_path):
