@@ -399,40 +399,29 @@ class InformesExportador:
             # Escribir el título combinando celdas
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
 
-            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado al borde derecho de la tabla
+            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado al borde derecho de la última columna
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_cm_derecha > 0:
                 x_scale, y_scale, _, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
                 # Calcular ancho de imagen en píxeles @ 96 DPI (que usa Excel)
                 ancho_img_px_excel = (ancho_img_cm_derecha / 2.54) * 96
 
-                # Calcular ancho total de la tabla sumando TODAS las columnas
-                # Columna 0: logo izquierdo
-                ancho_total_tabla_px = ancho_col_izq_chars * 7 + 5
+                # Calcular ancho de la última columna en píxeles
+                ancho_ultima_col_px = ancho_col_der_chars * 7 + 5
 
-                # Columnas intermedias (1 a n-2): ancho por defecto de Excel (8.43 chars según estándar)
-                num_columnas_intermedias = len(columnas) - 2
-                if num_columnas_intermedias > 0:
-                    ancho_col_defecto_chars = 8.43  # Ancho por defecto de Excel
-                    ancho_total_tabla_px += num_columnas_intermedias * (ancho_col_defecto_chars * 7 + 5)
-
-                # Columna última: logo derecho
-                ancho_total_tabla_px += ancho_col_der_chars * 7 + 5
-
-                # Para alinear con el borde derecho de la tabla:
-                # Insertar en columna 0 con offset = ancho_total_tabla - ancho_imagen - margen
+                # Para alinear a la derecha de la última columna:
+                # offset = ancho_columna - ancho_imagen - margen
                 margen_derecho = 3
-                x_offset_derecha = ancho_total_tabla_px - ancho_img_px_excel - margen_derecho
+                x_offset_derecha = ancho_ultima_col_px - ancho_img_px_excel - margen_derecho
 
-                print(f"DEBUG Logo Urbide - Posicionamiento en tabla completa:")
-                print(f"  Número de columnas: {len(columnas)}")
-                print(f"  Ancho total tabla: {ancho_total_tabla_px:.1f}px")
+                print(f"DEBUG Logo Urbide - Posicionamiento en última columna:")
+                print(f"  Ancho última columna: {ancho_col_der_chars} chars → {ancho_ultima_col_px:.1f}px")
                 print(f"  Ancho imagen: {ancho_img_cm_derecha:.2f}cm → {ancho_img_px_excel:.1f}px @ 96 DPI")
                 print(f"  Margen derecho: {margen_derecho}px")
-                print(f"  x_offset = {ancho_total_tabla_px:.1f} - {ancho_img_px_excel:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
+                print(f"  x_offset = {ancho_ultima_col_px:.1f} - {ancho_img_px_excel:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
 
-                # Insertar en la primera columna con offset grande para llegar al final de la tabla
-                worksheet.insert_image(row, 0, self.logo_urbide_path, {
+                # Insertar en la ÚLTIMA columna con offset para alinear a la derecha
+                worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
                     'x_offset': int(x_offset_derecha),
