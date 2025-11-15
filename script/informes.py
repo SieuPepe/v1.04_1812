@@ -176,15 +176,27 @@ def build_filter_condition(filtro, definicion_informe, schema="", user="", passw
     else:
         columna_bd = f"p.{campo_def.get('columna_bd', campo_key)}"
 
+    # DEBUG: Imprimir información del filtro
+    print(f"\n[DEBUG FILTRO]")
+    print(f"  Campo: {campo_key}")
+    print(f"  Tipo campo: {tipo_campo}")
+    print(f"  Operador: {operador}")
+    print(f"  Valor: {valor}")
+    print(f"  Columna BD: {columna_bd}")
+
     # Construir condición según operador y tipo
     if operador == "Igual a":
-        if tipo_campo in ['texto', 'dimension', 'fecha']:
-            return f"{columna_bd} = '{valor}'"
+        if tipo_campo in ['texto', 'dimension', 'fecha', 'calculado']:
+            condicion = f"{columna_bd} = '{valor}'"
+            print(f"  Condición generada (CON comillas): {condicion}\n")
+            return condicion
         else:
-            return f"{columna_bd} = {valor}"
+            condicion = f"{columna_bd} = {valor}"
+            print(f"  Condición generada (SIN comillas): {condicion}\n")
+            return condicion
 
     elif operador == "Diferente de":
-        if tipo_campo in ['texto', 'dimension', 'fecha']:
+        if tipo_campo in ['texto', 'dimension', 'fecha', 'calculado']:
             return f"{columna_bd} != '{valor}'"
         else:
             return f"{columna_bd} != {valor}"
@@ -196,33 +208,33 @@ def build_filter_condition(filtro, definicion_informe, schema="", user="", passw
         return f"{columna_bd} NOT LIKE '%{valor}%'"
 
     elif operador == "Mayor a":
-        if tipo_campo == 'fecha':
+        if tipo_campo in ['fecha', 'calculado']:
             return f"{columna_bd} > '{valor}'"
         else:
             return f"{columna_bd} > {valor}"
 
     elif operador == "Menor a":
-        if tipo_campo == 'fecha':
+        if tipo_campo in ['fecha', 'calculado']:
             return f"{columna_bd} < '{valor}'"
         else:
             return f"{columna_bd} < {valor}"
 
     elif operador == "Mayor o igual a":
-        if tipo_campo == 'fecha':
+        if tipo_campo in ['fecha', 'calculado']:
             return f"{columna_bd} >= '{valor}'"
         else:
             return f"{columna_bd} >= {valor}"
 
     elif operador == "Menor o igual a":
-        if tipo_campo == 'fecha':
+        if tipo_campo in ['fecha', 'calculado']:
             return f"{columna_bd} <= '{valor}'"
         else:
             return f"{columna_bd} <= {valor}"
 
     elif operador == "Entre":
         valor1, valor2 = valor  # Espera tupla (min, max)
-        # Para fechas y textos, necesitamos comillas
-        if tipo_campo in ['fecha', 'texto', 'dimension']:
+        # Para fechas, textos y calculados, necesitamos comillas
+        if tipo_campo in ['fecha', 'texto', 'dimension', 'calculado']:
             return f"{columna_bd} BETWEEN '{valor1}' AND '{valor2}'"
         else:
             # Para numéricos, sin comillas
