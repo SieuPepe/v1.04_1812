@@ -710,6 +710,7 @@ class InformesExportador:
     def _reemplazar_marcador(self, doc, marcador_texto: str, texto_reemplazo: str):
         """
         Reemplaza un marcador de TEXTO literal en el documento Word
+        Maneja casos donde el marcador está dividido en múltiples runs
 
         Args:
             doc: Documento de Word
@@ -718,30 +719,68 @@ class InformesExportador:
         """
         reemplazado = False
 
+        def reemplazar_en_paragrafo(paragraph):
+            """Función helper para reemplazar en un párrafo"""
+            if marcador_texto in paragraph.text:
+                # El marcador está en este párrafo (puede estar dividido en múltiples runs)
+                # Reconstruir todo el texto del párrafo
+                texto_completo = paragraph.text
+                nuevo_texto = texto_completo.replace(marcador_texto, texto_reemplazo)
+
+                # Guardar el formato del primer run (si existe)
+                primer_run_formato = None
+                if paragraph.runs:
+                    primer_run = paragraph.runs[0]
+                    primer_run_formato = {
+                        'bold': primer_run.bold,
+                        'italic': primer_run.italic,
+                        'font_name': primer_run.font.name,
+                        'font_size': primer_run.font.size,
+                        'font_color': primer_run.font.color.rgb if primer_run.font.color.rgb else None
+                    }
+
+                # Limpiar todos los runs del párrafo
+                for run in paragraph.runs:
+                    run.text = ""
+
+                # Crear un nuevo run con el texto reemplazado
+                if paragraph.runs:
+                    # Usar el primer run existente
+                    paragraph.runs[0].text = nuevo_texto
+                else:
+                    # Crear un nuevo run
+                    nuevo_run = paragraph.add_run(nuevo_texto)
+                    # Aplicar formato guardado si existe
+                    if primer_run_formato:
+                        if primer_run_formato['bold'] is not None:
+                            nuevo_run.bold = primer_run_formato['bold']
+                        if primer_run_formato['italic'] is not None:
+                            nuevo_run.italic = primer_run_formato['italic']
+                        if primer_run_formato['font_name']:
+                            nuevo_run.font.name = primer_run_formato['font_name']
+                        if primer_run_formato['font_size']:
+                            nuevo_run.font.size = primer_run_formato['font_size']
+                        if primer_run_formato['font_color']:
+                            nuevo_run.font.color.rgb = primer_run_formato['font_color']
+
+                return True
+            return False
+
         # Buscar en párrafos del cuerpo
         for paragraph in doc.paragraphs:
-            if marcador_texto in paragraph.text:
-                for run in paragraph.runs:
-                    if marcador_texto in run.text:
-                        run.text = run.text.replace(marcador_texto, texto_reemplazo)
-                        reemplazado = True
+            if reemplazar_en_paragrafo(paragraph):
+                reemplazado = True
 
         # Buscar en encabezados
         for section in doc.sections:
             for paragraph in section.header.paragraphs:
-                if marcador_texto in paragraph.text:
-                    for run in paragraph.runs:
-                        if marcador_texto in run.text:
-                            run.text = run.text.replace(marcador_texto, texto_reemplazo)
-                            reemplazado = True
+                if reemplazar_en_paragrafo(paragraph):
+                    reemplazado = True
 
             # Buscar en pies de página
             for paragraph in section.footer.paragraphs:
-                if marcador_texto in paragraph.text:
-                    for run in paragraph.runs:
-                        if marcador_texto in run.text:
-                            run.text = run.text.replace(marcador_texto, texto_reemplazo)
-                            reemplazado = True
+                if reemplazar_en_paragrafo(paragraph):
+                    reemplazado = True
 
         if reemplazado:
             print(f"DEBUG: Marcador '{marcador_texto}' reemplazado con '{texto_reemplazo}'")
@@ -841,15 +880,13 @@ class InformesExportador:
         tbl_element = table._element
         p_element = target_paragraph._element
 
-        # Insertar la tabla DESPUÉS del párrafo que contiene el marcador
-        p_element.addnext(tbl_element)
+        # Insertar la tabla ANTES del párrafo que contiene el marcador
+        p_element.addprevious(tbl_element)
 
-        # Limpiar solo el texto del marcador, no todo el párrafo
-        for run in target_paragraph.runs:
-            if marcador_texto in run.text:
-                run.text = run.text.replace(marcador_texto, "")
+        # Eliminar completamente el párrafo del marcador (sustituirlo por la tabla)
+        p_element.getparent().remove(p_element)
 
-        print(f"DEBUG: Tabla insertada después del marcador '{marcador_texto}'")
+        print(f"DEBUG: Tabla insertada sustituyendo al marcador '{marcador_texto}'")
 
     def exportar_a_word(
         self,
