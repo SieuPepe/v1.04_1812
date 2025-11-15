@@ -837,7 +837,7 @@ class InformesExportador:
         try:
             # Buscar la plantilla
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.dotx")
+            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.docx")
 
             # Verificar si existe la plantilla
             if not os.path.exists(plantilla_path):
@@ -847,25 +847,8 @@ class InformesExportador:
                 doc = Document()
                 # TODO: Implementar creación manual si no hay plantilla
             else:
-                # python-docx no puede abrir .dotx directamente
-                # Copiar plantilla a archivo temporal .docx
-                import tempfile
-                import shutil
-
-                temp_docx = tempfile.NamedTemporaryFile(suffix='.docx', delete=False)
-                temp_docx.close()
-
-                # Copiar plantilla .dotx a temporal .docx
-                shutil.copy2(plantilla_path, temp_docx.name)
-
-                # Abrir el archivo temporal
-                doc = Document(temp_docx.name)
-
-                # Eliminar archivo temporal después de abrirlo
-                try:
-                    os.unlink(temp_docx.name)
-                except:
-                    pass  # No importa si falla
+                # Abrir la plantilla directamente
+                doc = Document(plantilla_path)
 
             # Reemplazar marcadores en la plantilla
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
