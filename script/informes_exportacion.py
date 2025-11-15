@@ -5,9 +5,10 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 import xlsxwriter
+from PIL import Image as PILImage
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -294,11 +295,26 @@ class InformesExportador:
             worksheet.set_column(0, 0, 15)
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
 
-            # Logo izquierdo (Logo Redes Urbide) - altura 2.1cm, alineado a la izquierda
+            # Logo izquierdo (Logo Redes Urbide) - altura 2.0cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                # Leer el tamaño de la imagen para calcular el scale correcto
+                img_redes = PILImage.open(self.logo_redes_path)
+                ancho_px_redes, alto_px_redes = img_redes.size
+                dpi_redes = img_redes.info.get('dpi', (96, 96))[0]
+
+                # Calcular el scale necesario para 2cm de altura
+                altura_deseada_cm = 2.0  # 2cm de altura
+                altura_actual_cm = (alto_px_redes / dpi_redes) * 2.54
+                scale_redes = altura_deseada_cm / altura_actual_cm
+
+                print(f"DEBUG Logo Redes: {ancho_px_redes}x{alto_px_redes}px @ {dpi_redes}DPI")
+                print(f"  Altura actual: {altura_actual_cm:.2f}cm")
+                print(f"  Scale: {scale_redes:.4f}")
+                print(f"  Tamaño final: {(ancho_px_redes * scale_redes / dpi_redes * 2.54):.2f}x{altura_deseada_cm:.2f}cm")
+
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 1.0,  # Escala 100%
-                    'y_scale': 1.0,  # Escala 100%
+                    'x_scale': scale_redes,
+                    'y_scale': scale_redes,
                     'x_offset': 2,
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
@@ -312,12 +328,37 @@ class InformesExportador:
             if col_fin_titulo <= col_inicio_titulo:
                 col_fin_titulo = col_inicio_titulo + 1
 
-            # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha
+            # Logo derecho (Logo Urbide) - altura 2.0cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                # Leer el tamaño de la imagen para calcular el offset correcto
+                img_urbide = PILImage.open(self.logo_urbide_path)
+                ancho_px_urbide, alto_px_urbide = img_urbide.size
+                dpi_urbide = img_urbide.info.get('dpi', (96, 96))[0]
+
+                # Calcular el tamaño en cm
+                altura_deseada_cm = 2.0  # 2cm de altura
+                altura_actual_cm = (alto_px_urbide / dpi_urbide) * 2.54
+                scale_urbide = altura_deseada_cm / altura_actual_cm
+                ancho_escalado_px = ancho_px_urbide * scale_urbide
+
+                # Convertir el ancho de la columna de caracteres a píxeles
+                # En Excel: 1 carácter ≈ 7 píxeles (default font 11pt Calibri)
+                ancho_celda_px = 15 * 7  # 15 caracteres de ancho
+
+                # Calcular offset para alinear a la derecha
+                # x_offset en xlsxwriter está en píxeles
+                x_offset_derecha = ancho_celda_px - ancho_escalado_px - 2  # -2 píxeles de margen
+
+                print(f"DEBUG Logo Urbide: {ancho_px_urbide}x{alto_px_urbide}px @ {dpi_urbide}DPI")
+                print(f"  Altura actual: {altura_actual_cm:.2f}cm")
+                print(f"  Scale: {scale_urbide:.4f}")
+                print(f"  Tamaño final: {(ancho_px_urbide * scale_urbide / dpi_urbide * 2.54):.2f}x{altura_deseada_cm:.2f}cm")
+                print(f"  x_offset calculado: {int(x_offset_derecha)}px")
+
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 1.0,  # Escala 100%
-                    'y_scale': 1.0,  # Escala 100%
-                    'x_offset': 50,  # Offset para alinear a la derecha
+                    'x_scale': scale_urbide,
+                    'y_scale': scale_urbide,
+                    'x_offset': int(x_offset_derecha),
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
@@ -746,12 +787,11 @@ class InformesExportador:
                 table.allow_autofit = False
 
                 # Ajustar ancho de tabla al ancho de página (27.7cm)
-                table.width = Cm(27.7)
+                # Establecer en el XML directamente para forzar el ancho
+                self._set_table_width(table, 27.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width = Cm(27.7 / len(columnas))
-                for column in table.columns:
-                    column.width = col_width
+                col_width_cm = 27.7 / len(columnas)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -768,6 +808,9 @@ class InformesExportador:
 
                     # Color de fondo
                     self._set_cell_background(cell, "D9D9D9")
+
+                    # Establecer ancho de celda directamente en XML
+                    self._set_cell_width(cell, col_width_cm)
 
                 # Datos
                 formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
@@ -795,6 +838,9 @@ class InformesExportador:
                             for run in paragraph.runs:
                                 run.font.name = 'Tahoma'
                                 run.font.size = Pt(8)
+
+                        # Establecer ancho de celda directamente en XML
+                        self._set_cell_width(cell, col_width_cm)
 
             # Pie de página con paginación
             footer = sections[0].footer
@@ -865,12 +911,11 @@ class InformesExportador:
                 table.allow_autofit = False
 
                 # Ajustar ancho de tabla al ancho de página (27.7cm)
-                table.width = Cm(27.7)
+                # Establecer en el XML directamente para forzar el ancho
+                self._set_table_width(table, 27.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width = Cm(27.7 / len(columnas))
-                for column in table.columns:
-                    column.width = col_width
+                col_width_cm = 27.7 / len(columnas)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -882,6 +927,9 @@ class InformesExportador:
                             run.font.bold = True
                             run.font.name = 'Tahoma'
                             run.font.size = Pt(9)
+
+                    # Establecer ancho de celda directamente en XML
+                    self._set_cell_width(cell, col_width_cm)
 
                 # Datos
                 formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
@@ -909,6 +957,9 @@ class InformesExportador:
                                 run.font.name = 'Tahoma'
                                 run.font.size = Pt(8)
 
+                        # Establecer ancho de celda directamente en XML
+                        self._set_cell_width(cell, col_width_cm)
+
             # Subtotales
             if subtotales:
                 indent_subtotal = "    " * (nivel_grupo + 1)
@@ -929,6 +980,71 @@ class InformesExportador:
         shading_elm = OxmlElement('w:shd')
         shading_elm.set(qn('w:fill'), color_hex)
         cell._element.get_or_add_tcPr().append(shading_elm)
+
+    def _set_cell_width(self, cell, width_cm: float):
+        """
+        Establece el ancho de una celda en Word directamente en el XML
+
+        Args:
+            cell: Celda de la tabla de Word
+            width_cm: Ancho deseado en centímetros
+        """
+        # Convertir cm a twips (twentieths of a point)
+        # 1 cm = 567 twips
+        width_twips = int(width_cm * 567)
+
+        # Obtener o crear el elemento tcPr (table cell properties)
+        tcPr = cell._element.get_or_add_tcPr()
+
+        # Buscar si ya existe un elemento tcW
+        tcW = tcPr.find(qn('w:tcW'))
+        if tcW is None:
+            # Crear nuevo elemento tcW
+            tcW = OxmlElement('w:tcW')
+            tcPr.append(tcW)
+
+        # Establecer el ancho
+        tcW.set(qn('w:w'), str(width_twips))
+        tcW.set(qn('w:type'), 'dxa')  # dxa = twips (formato estándar)
+
+    def _set_table_width(self, table, width_cm: float):
+        """
+        Establece el ancho de una tabla en Word directamente en el XML
+
+        Args:
+            table: Tabla de Word
+            width_cm: Ancho deseado en centímetros
+        """
+        # Convertir cm a twips (twentieths of a point)
+        # 1 cm = 567 twips
+        width_twips = int(width_cm * 567)
+
+        # Obtener el elemento tbl
+        tbl = table._element
+
+        # Obtener o crear tblPr (table properties)
+        tblPr = tbl.find(qn('w:tblPr'))
+        if tblPr is None:
+            tblPr = OxmlElement('w:tblPr')
+            tbl.insert(0, tblPr)
+
+        # Buscar si ya existe un elemento tblW
+        tblW = tblPr.find(qn('w:tblW'))
+        if tblW is None:
+            # Crear nuevo elemento tblW
+            tblW = OxmlElement('w:tblW')
+            tblPr.append(tblW)
+
+        # Establecer el ancho
+        tblW.set(qn('w:w'), str(width_twips))
+        tblW.set(qn('w:type'), 'dxa')  # dxa = twips (formato estándar)
+
+        # Asegurar que autofit esté desactivado
+        tblLayout = tblPr.find(qn('w:tblLayout'))
+        if tblLayout is None:
+            tblLayout = OxmlElement('w:tblLayout')
+            tblPr.append(tblLayout)
+        tblLayout.set(qn('w:type'), 'fixed')  # fixed layout, no autofit
 
     def _add_page_number(self, run):
         """Añade número de página a Word"""
