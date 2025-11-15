@@ -2702,7 +2702,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
-                proyecto_codigo=""
+                proyecto_codigo="",
+                fecha_informe=fecha_generacion
             )
 
             if exito:
@@ -2952,7 +2953,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
-                proyecto_codigo=""
+                proyecto_codigo="",
+                fecha_informe=fecha_generacion
             )
 
             if exito:
@@ -3202,7 +3204,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
-                proyecto_codigo=""
+                proyecto_codigo="",
+                fecha_informe=fecha_generacion
             )
 
             if exito:

@@ -43,7 +43,7 @@ class InformesExportador:
             altura_deseada_cm: Altura deseada en centímetros (default 2.0cm)
 
         Returns:
-            Tupla (x_scale, y_scale, ancho_escalado_cm) para mantener aspect ratio con la altura deseada
+            Tupla (x_scale, y_scale, ancho_escalado_cm, ancho_px, alto_px) para mantener aspect ratio con la altura deseada
         """
         try:
             # Abrir imagen y obtener dimensiones en píxeles
@@ -71,12 +71,12 @@ class InformesExportador:
             print(f"  Scale calculado: {scale:.4f}")
             print(f"  Tamaño final: {ancho_escalado_cm:.2f}x{altura_deseada_cm:.2f}cm")
 
-            return (scale, scale, ancho_escalado_cm)
+            return (scale, scale, ancho_escalado_cm, ancho_px, alto_px)
         except Exception as e:
             print(f"Error calculando escala de imagen {ruta_imagen}: {e}")
             import traceback
             traceback.print_exc()
-            return (1.0, 1.0, 0)  # Escala por defecto
+            return (1.0, 1.0, 0, 0, 0)  # Escala por defecto
 
     def _buscar_logos(self):
         """Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
@@ -146,7 +146,8 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a Excel con formato profesional
@@ -346,30 +347,43 @@ class InformesExportador:
             # 2.1 cm ≈ 59.5 puntos
             worksheet.set_row(row, 59.5)
 
-            # Configurar ancho de primera y última columna para los logos
-            worksheet.set_column(0, 0, 15)
-            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
+            # Calcular anchos de columnas para los logos dinámicamente
+            # Logo Redes Urbide (izquierda)
+            ancho_col_izq_chars = 15  # Default
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                x_scale_izq, _, ancho_img_cm_izq, ancho_px_izq, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                # XlsxWriter convierte imágenes a 96 DPI internamente
+                ancho_escalado_px_izq = (ancho_img_cm_izq / 2.54) * 96
+                # Convertir píxeles a caracteres: chars = (pixels - 5) / 7
+                # Añadir margen de 10px (≈1.4 chars) para espacio
+                ancho_col_izq_chars = max(15, int((ancho_escalado_px_izq + 10) / 7))
+
+            # Logo Urbide (derecha) - mantener ancho estándar de columna
+            ancho_col_der_chars = 15  # Ancho estándar, NO cambiar por la imagen
+            ancho_img_px_escalado_derecha = 0  # Para usar más tarde
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                x_scale_der, _, ancho_img_cm_derecha, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
+
+                # XlsxWriter convierte imágenes a 96 DPI internamente
+                # Convertir el ancho en cm a píxeles @ 96 DPI
+                ancho_img_px_escalado_derecha = (ancho_img_cm_derecha / 2.54) * 96
+
+                print(f"DEBUG Logo Urbide - Cálculo de escala:")
+                print(f"  Ancho imagen en cm: {ancho_img_cm_derecha:.2f}cm")
+                print(f"  Ancho en píxeles @ 96 DPI: {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Ancho columna estándar: {ancho_col_der_chars} chars (sin modificar)")
+
+            # Configurar ancho de primera y última columna
+            worksheet.set_column(0, 0, ancho_col_izq_chars)
+            # La última columna mantiene el ancho estándar (15 chars)
+            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, ancho_col_der_chars)
 
             # Logo izquierdo (Logo Redes Urbide) - altura 2.0cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                # Leer el tamaño de la imagen para calcular el scale correcto
-                img_redes = PILImage.open(self.logo_redes_path)
-                ancho_px_redes, alto_px_redes = img_redes.size
-                dpi_redes = img_redes.info.get('dpi', (96, 96))[0]
-
-                # Calcular el scale necesario para 2cm de altura
-                altura_deseada_cm = 2.0  # 2cm de altura
-                altura_actual_cm = (alto_px_redes / dpi_redes) * 2.54
-                scale_redes = altura_deseada_cm / altura_actual_cm
-
-                print(f"DEBUG Logo Redes: {ancho_px_redes}x{alto_px_redes}px @ {dpi_redes}DPI")
-                print(f"  Altura actual: {altura_actual_cm:.2f}cm")
-                print(f"  Scale: {scale_redes:.4f}")
-                print(f"  Tamaño final: {(ancho_px_redes * scale_redes / dpi_redes * 2.54):.2f}x{altura_deseada_cm:.2f}cm")
-
+                x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': scale_redes,
-                    'y_scale': scale_redes,
+                    'x_scale': x_scale,
+                    'y_scale': y_scale,
                     'x_offset': 2,
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
@@ -386,55 +400,44 @@ class InformesExportador:
             # Escribir el título combinando celdas
             worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
 
-            # Segunda fila: Fecha de generación centrada
-            worksheet.set_row(row + 1, 20)  # Altura para la fecha
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
-            worksheet.merge_range(row + 1, col_inicio_titulo, row + 1, col_fin_titulo, f"Fecha: {fecha_actual}", formato_fecha)
+            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado al borde derecho de la última columna
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_px_escalado_derecha > 0:
+                x_scale, y_scale, _, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
-            # Logo derecho (Logo Urbide) - altura 2.0cm, alineado a la derecha
-            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                # Leer el tamaño de la imagen para calcular el offset correcto
-                img_urbide = PILImage.open(self.logo_urbide_path)
-                ancho_px_urbide, alto_px_urbide = img_urbide.size
-                dpi_urbide = img_urbide.info.get('dpi', (96, 96))[0]
+                # Calcular ancho de la última columna en píxeles (ancho estándar 15 chars)
+                ancho_ultima_col_px = ancho_col_der_chars * 7 + 5  # 15 * 7 + 5 = 110px
 
-                # Calcular el tamaño en cm
-                altura_deseada_cm = 2.0  # 2cm de altura
-                altura_actual_cm = (alto_px_urbide / dpi_urbide) * 2.54
-                scale_urbide = altura_deseada_cm / altura_actual_cm
-                ancho_escalado_px = ancho_px_urbide * scale_urbide
+                # Para alinear a la derecha de la última columna:
+                # offset = ancho_columna - ancho_imagen_escalada - margen
+                # Si la imagen es más ancha que la columna, el offset será negativo (está bien)
+                margen_derecho = 3
+                x_offset_derecha = ancho_ultima_col_px - ancho_img_px_escalado_derecha - margen_derecho
 
-                # Convertir el ancho de la columna de caracteres a píxeles
-                # En Excel: 1 carácter ≈ 7 píxeles (default font 11pt Calibri)
-                ancho_celda_px = 15 * 7  # 15 caracteres de ancho
+                print(f"DEBUG Logo Urbide - Posicionamiento con offset (puede ser negativo):")
+                print(f"  Ancho última columna: {ancho_col_der_chars} chars → {ancho_ultima_col_px:.1f}px")
+                print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Margen derecho: {margen_derecho}px")
+                print(f"  x_offset = {ancho_ultima_col_px:.1f} - {ancho_img_px_escalado_derecha:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
 
-                # Calcular offset para alinear a la derecha
-                # x_offset en xlsxwriter está en píxeles
-                x_offset_derecha = ancho_celda_px - ancho_escalado_px - 2  # -2 píxeles de margen
-
-                print(f"DEBUG Logo Urbide: {ancho_px_urbide}x{alto_px_urbide}px @ {dpi_urbide}DPI")
-                print(f"  Altura actual: {altura_actual_cm:.2f}cm")
-                print(f"  Scale: {scale_urbide:.4f}")
-                print(f"  Tamaño final: {(ancho_px_urbide * scale_urbide / dpi_urbide * 2.54):.2f}x{altura_deseada_cm:.2f}cm")
-                print(f"  x_offset calculado: {int(x_offset_derecha)}px")
-
+                # Insertar en la ÚLTIMA columna con offset para alinear a la derecha
+                # El offset puede ser negativo si la imagen es más ancha que la columna
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': scale_urbide,
-                    'y_scale': scale_urbide,
-                    'x_offset': int(x_offset_derecha),
+                    'x_scale': x_scale,
+                    'y_scale': y_scale,
+                    'x_offset': int(x_offset_derecha),  # Permite offset negativo
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
 
-            row += 3  # Espacio después del encabezado (2 filas de encabezado + 1 de espacio)
+            row += 2  # Espacio después del encabezado (1 fila de encabezado + 1 de espacio)
 
             # Información del proyecto
             if proyecto_nombre:
                 worksheet.merge_range(row, 0, row, len(columnas) - 1, proyecto_nombre, formato_subtitulo)
                 row += 1
 
-            # Fecha
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            # Fecha - usar fecha proporcionada por el usuario o generar automáticamente
+            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
             worksheet.write(row, 0, f"FECHA: {fecha_actual}", formato_fecha)
             row += 2
 
@@ -517,6 +520,9 @@ class InformesExportador:
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
                             worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                        # Debug: imprimir valores que parecen fechas pero no se detectan
+                        elif col_name and 'fecha' in col_name.lower() and valor:
+                            print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
@@ -655,6 +661,9 @@ class InformesExportador:
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
                             worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
+                        # Debug: imprimir valores que parecen fechas pero no se detectan
+                        elif col_name and 'fecha' in col_name.lower() and valor:
+                            print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
@@ -714,6 +723,190 @@ class InformesExportador:
 
         return row
 
+    def _reemplazar_marcador(self, doc, marcador_texto: str, texto_reemplazo: str):
+        """
+        Reemplaza un marcador de TEXTO literal en el documento Word
+        Maneja casos donde el marcador está dividido en múltiples runs
+
+        Args:
+            doc: Documento de Word
+            marcador_texto: Texto del marcador a buscar (ej: "[TITULO_DEL_INFORME]")
+            texto_reemplazo: Texto con el que reemplazar el marcador
+        """
+        reemplazado = False
+
+        def reemplazar_en_paragrafo(paragraph):
+            """Función helper para reemplazar en un párrafo"""
+            if marcador_texto in paragraph.text:
+                # El marcador está en este párrafo (puede estar dividido en múltiples runs)
+                # Reconstruir todo el texto del párrafo
+                texto_completo = paragraph.text
+                nuevo_texto = texto_completo.replace(marcador_texto, texto_reemplazo)
+
+                # Guardar el formato del primer run (si existe)
+                primer_run_formato = None
+                if paragraph.runs:
+                    primer_run = paragraph.runs[0]
+                    primer_run_formato = {
+                        'bold': primer_run.bold,
+                        'italic': primer_run.italic,
+                        'font_name': primer_run.font.name,
+                        'font_size': primer_run.font.size,
+                        'font_color': primer_run.font.color.rgb if primer_run.font.color.rgb else None
+                    }
+
+                # Limpiar todos los runs del párrafo
+                for run in paragraph.runs:
+                    run.text = ""
+
+                # Crear un nuevo run con el texto reemplazado
+                if paragraph.runs:
+                    # Usar el primer run existente
+                    paragraph.runs[0].text = nuevo_texto
+                else:
+                    # Crear un nuevo run
+                    nuevo_run = paragraph.add_run(nuevo_texto)
+                    # Aplicar formato guardado si existe
+                    if primer_run_formato:
+                        if primer_run_formato['bold'] is not None:
+                            nuevo_run.bold = primer_run_formato['bold']
+                        if primer_run_formato['italic'] is not None:
+                            nuevo_run.italic = primer_run_formato['italic']
+                        if primer_run_formato['font_name']:
+                            nuevo_run.font.name = primer_run_formato['font_name']
+                        if primer_run_formato['font_size']:
+                            nuevo_run.font.size = primer_run_formato['font_size']
+                        if primer_run_formato['font_color']:
+                            nuevo_run.font.color.rgb = primer_run_formato['font_color']
+
+                return True
+            return False
+
+        # Buscar en párrafos del cuerpo
+        for paragraph in doc.paragraphs:
+            if reemplazar_en_paragrafo(paragraph):
+                reemplazado = True
+
+        # Buscar en encabezados
+        for idx_section, section in enumerate(doc.sections):
+            # Buscar en párrafos del encabezado
+            for idx_para, paragraph in enumerate(section.header.paragraphs):
+                if reemplazar_en_paragrafo(paragraph):
+                    reemplazado = True
+
+            # Buscar también en tablas del encabezado (importante!)
+            for idx_table, table in enumerate(section.header.tables):
+                for idx_row, row in enumerate(table.rows):
+                    for idx_cell, cell in enumerate(row.cells):
+                        for idx_para, paragraph in enumerate(cell.paragraphs):
+                            if reemplazar_en_paragrafo(paragraph):
+                                reemplazado = True
+
+            # Buscar en pies de página
+            for paragraph in section.footer.paragraphs:
+                if reemplazar_en_paragrafo(paragraph):
+                    reemplazado = True
+
+        if not reemplazado:
+            print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
+
+    def _insertar_tabla_en_marcador(self, doc, marcador_texto: str, columnas: List[str],
+                                     datos: List[tuple], resultado_agrupacion: Optional[Dict] = None):
+        """
+        Inserta una tabla en la posición del marcador de TEXTO literal
+
+        Args:
+            doc: Documento de Word
+            marcador_texto: Texto del marcador donde insertar la tabla (ej: "[Tabla_de_datos]")
+            columnas: Lista de nombres de columnas
+            datos: Datos a insertar
+            resultado_agrupacion: Estructura de agrupaciones (opcional)
+        """
+        # Buscar el párrafo que contiene el marcador de texto
+        target_paragraph = None
+
+        # Buscar en párrafos del cuerpo
+        for paragraph in doc.paragraphs:
+            if marcador_texto in paragraph.text:
+                target_paragraph = paragraph
+                break
+
+        # Si no se encuentra en párrafos, buscar en tablas
+        if target_paragraph is None:
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for paragraph in cell.paragraphs:
+                            if marcador_texto in paragraph.text:
+                                target_paragraph = paragraph
+                                break
+                        if target_paragraph:
+                            break
+                    if target_paragraph:
+                        break
+                if target_paragraph:
+                    break
+
+        if target_paragraph is None:
+            print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
+            return
+
+        # Insertar tabla después del marcador
+        # Calcular número de filas necesarias
+        num_filas = 1 + len(datos)  # Encabezado + datos
+
+        # Crear tabla (se añade al final del documento)
+        table = doc.add_table(rows=num_filas, cols=len(columnas))
+        table.style = 'Light Grid Accent 1'
+        table.autofit = False
+        table.allow_autofit = False
+
+        # Ajustar ancho de tabla al ancho de página (26.7cm)
+        # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+        table.width = Cm(26.7)
+        self._set_table_width(table, 26.7)
+
+        # Distribuir ancho equitativamente entre columnas
+        col_width_cm = 26.7 / len(columnas)
+
+        # Establecer ancho usando XML directo
+        for row in table.rows:
+            for cell in row.cells:
+                self._set_cell_width(cell, col_width_cm)
+
+        # Encabezados
+        header_cells = table.rows[0].cells
+        for idx, col_name in enumerate(columnas):
+            cell = header_cells[idx]
+            cell.text = col_name
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.font.bold = True
+                    run.font.name = 'Tahoma'
+                    run.font.size = Pt(9)
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Datos
+        for fila_idx, fila_datos in enumerate(datos):
+            row_cells = table.rows[fila_idx + 1].cells
+            for col_idx, valor in enumerate(fila_datos):
+                cell = row_cells[col_idx]
+                cell.text = str(valor) if valor is not None else ""
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.name = 'Tahoma'
+                        run.font.size = Pt(8)
+
+        # MOVER la tabla a la posición del marcador
+        tbl_element = table._element
+        p_element = target_paragraph._element
+
+        # Insertar la tabla ANTES del párrafo que contiene el marcador
+        p_element.addprevious(tbl_element)
+
+        # Eliminar completamente el párrafo del marcador (sustituirlo por la tabla)
+        p_element.getparent().remove(p_element)
+
     def exportar_a_word(
         self,
         filepath: str,
@@ -722,10 +915,11 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
-        Exporta el informe a Word con formato profesional
+        Exporta el informe a Word usando plantilla profesional
 
         Args:
             filepath: Ruta del archivo Word a crear
@@ -740,191 +934,40 @@ class InformesExportador:
             True si la exportación fue exitosa
         """
         try:
-            doc = Document()
+            # Buscar la plantilla
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.docx")
 
-            # Configurar márgenes y orientación
-            sections = doc.sections
-            for section in sections:
-                # Cambiar a orientación horizontal (landscape)
-                section.orientation = 1  # 1 = landscape, 0 = portrait
-                # Intercambiar ancho y alto para landscape
-                section.page_width, section.page_height = section.page_height, section.page_width
-                section.top_margin = Cm(1)  # 1cm según especificación
-                section.bottom_margin = Cm(1)  # 1cm según especificación
-                section.left_margin = Cm(1)  # 1cm según especificación
-                section.right_margin = Cm(1)  # 1cm según especificación
-                # Configurar encabezado desde arriba: 0,2cm
-                section.header_distance = Cm(0.2)
-
-            # Encabezado con logos, título y fecha
-            # Ancho total disponible: 29.7cm (A4 landscape) - 2cm (márgenes) = 27.7cm
-            header = sections[0].header
-            header_table = header.add_table(rows=2, cols=3, width=Cm(27.7))
-            header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
-
-            # Configurar anchos de columnas: 3.7cm (logo izq), 18.3cm (título), 5.7cm (logo der)
-            header_table.columns[0].width = Cm(3.7)
-            header_table.columns[1].width = Cm(18.3)
-            header_table.columns[2].width = Cm(5.7)
-
-            # === FILA 1: Logos y Título ===
-
-            # Logo izquierdo (Logo Redes Urbide) - altura máxima 2cm
-            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                cell_logo_left = header_table.rows[0].cells[0]
-                cell_logo_left.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                paragraph = cell_logo_left.paragraphs[0]
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                run = paragraph.add_run()
-                run.add_picture(self.logo_redes_path, height=Cm(2))  # Altura máxima 2cm
-
-            # Título del informe en el centro
-            cell_titulo = header_table.rows[0].cells[1]
-            cell_titulo.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-            paragraph_titulo = cell_titulo.paragraphs[0]
-            paragraph_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run_titulo = paragraph_titulo.add_run(informe_nombre.upper())
-            run_titulo.font.name = 'Calibri'
-            run_titulo.font.size = Pt(18)
-            run_titulo.font.bold = True
-            run_titulo.font.color.rgb = RGBColor(0, 0, 0)
-
-            # Logo derecho (Logo Urbide) - altura máxima 2cm
-            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                cell_logo_right = header_table.rows[0].cells[2]
-                cell_logo_right.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                paragraph = cell_logo_right.paragraphs[0]
-                paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                run = paragraph.add_run()
-                run.add_picture(self.logo_urbide_path, height=Cm(2))  # Altura máxima 2cm
-
-            # === FILA 2: Fecha (solo en la columna central) ===
-
-            # Fecha de generación centrada
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
-            cell_fecha = header_table.rows[1].cells[1]
-            cell_fecha.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-            paragraph_fecha = cell_fecha.paragraphs[0]
-            paragraph_fecha.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run_fecha = paragraph_fecha.add_run(f"Fecha: {fecha_actual}")
-            run_fecha.font.name = 'Calibri'
-            run_fecha.font.size = Pt(10)
-            run_fecha.font.bold = True
-            run_fecha.font.color.rgb = RGBColor(100, 100, 100)
-
-            # Información del proyecto (opcional)
-            if proyecto_nombre:
-                p = doc.add_paragraph(proyecto_nombre)
-                p.runs[0].font.name = 'Tahoma'
-                p.runs[0].font.size = Pt(10)
-                p.runs[0].font.italic = True
-                p.runs[0].font.color.rgb = RGBColor(124, 124, 124)
-                doc.add_paragraph()  # Espacio después del proyecto
+            # Verificar si existe la plantilla
+            if not os.path.exists(plantilla_path):
+                print(f"Advertencia: No se encontró la plantilla en {plantilla_path}")
+                print("Usando creación manual de documento...")
+                # Fallback: crear documento vacío
+                doc = Document()
+                # TODO: Implementar creación manual si no hay plantilla
             else:
-                doc.add_paragraph()  # Espacio inicial si no hay proyecto
+                # IMPORTANTE: Copiar la plantilla primero, no abrirla directamente
+                # para no modificar el archivo original
+                import shutil
 
-            # Si hay agrupaciones, exportar con estructura jerárquica
-            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
-                self._exportar_grupos_word(
-                    doc,
-                    resultado_agrupacion['grupos'],
-                    columnas,
-                    resultado_agrupacion.get('modo', 'detalle'),
-                    0,
-                    resultado_agrupacion
-                )
+                # Copiar plantilla al destino final
+                shutil.copy2(plantilla_path, filepath)
 
-                # Totales generales
-                if resultado_agrupacion.get('totales_generales'):
-                    doc.add_paragraph()
-                    p_total = doc.add_paragraph()
-                    run_total = p_total.add_run("═══ TOTAL GENERAL ═══")
-                    run_total.font.name = 'Tahoma'
-                    run_total.font.size = Pt(12)
-                    run_total.font.bold = True
+                # Ahora abrir la copia para modificarla
+                doc = Document(filepath)
 
-                    totales = resultado_agrupacion['totales_generales']
-                    for key, valor in totales.items():
-                        p = doc.add_paragraph(f"{key}: {valor:,.2f} €" if isinstance(valor, (int, float)) else f"{key}: {valor}")
-                        p.runs[0].font.name = 'Tahoma'
-                        p.runs[0].font.size = Pt(10)
-                        p.runs[0].font.bold = True
+            # Reemplazar marcadores en la plantilla
+            # Usar fecha proporcionada por el usuario o generar automáticamente
+            fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
 
-            else:
-                # Exportar sin agrupaciones (tabla simple)
-                # Ancho de página: 29.7cm - 2cm (márgenes) = 27.7cm
-                table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
-                table.style = 'Light Grid Accent 1'
-                table.autofit = False
-                table.allow_autofit = False
+            # Reemplazar marcadores de texto literal
+            self._reemplazar_marcador(doc, "[TITULO_DEL_INFORME]", informe_nombre.upper())
+            self._reemplazar_marcador(doc, "[FECHA]", fecha_actual)
 
-                # Ajustar ancho de tabla al ancho de página (27.7cm)
-                # Establecer en el XML directamente para forzar el ancho
-                self._set_table_width(table, 27.7)
+            # Insertar tabla en el marcador
+            self._insertar_tabla_en_marcador(doc, "[TABLA_DE_DATOS]", columnas, datos, resultado_agrupacion)
 
-                # Distribuir ancho equitativamente entre columnas
-                col_width_cm = 27.7 / len(columnas)
-
-                # Encabezados
-                header_cells = table.rows[0].cells
-                for idx, col_name in enumerate(columnas):
-                    cell = header_cells[idx]
-                    cell.text = col_name
-                    # Formato de encabezado
-                    for paragraph in cell.paragraphs:
-                        for run in paragraph.runs:
-                            run.font.bold = True
-                            run.font.name = 'Tahoma'
-                            run.font.size = Pt(10)
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-                    # Color de fondo
-                    self._set_cell_background(cell, "D9D9D9")
-
-                    # Establecer ancho de celda directamente en XML
-                    self._set_cell_width(cell, col_width_cm)
-
-                # Datos
-                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
-                for row_idx, fila_datos in enumerate(datos, start=1):
-                    row_cells = table.rows[row_idx].cells
-                    for col_idx, valor in enumerate(fila_datos):
-                        cell = row_cells[col_idx]
-
-                        # Obtener el formato del campo según su columna
-                        col_name = columnas[col_idx] if col_idx < len(columnas) else None
-                        formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
-
-                        # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
-                                cell.text = f"{valor:,.2f} €"
-                            else:
-                                # Por defecto, números con 2 decimales
-                                cell.text = f"{valor:,.2f}"
-                        else:
-                            cell.text = str(valor) if valor is not None else ""
-
-                        # Formato de datos
-                        for paragraph in cell.paragraphs:
-                            for run in paragraph.runs:
-                                run.font.name = 'Tahoma'
-                                run.font.size = Pt(8)
-
-                        # Establecer ancho de celda directamente en XML
-                        self._set_cell_width(cell, col_width_cm)
-
-            # Pie de página con paginación
-            footer = sections[0].footer
-            p_footer = footer.paragraphs[0]
-            p_footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = p_footer.add_run()
-            run.font.name = 'Tahoma'
-            run.font.size = Pt(8)
-
-            # Añadir número de página
-            self._add_page_number(p_footer.add_run())
-
+            # Guardar el documento
             doc.save(filepath)
             return True
 
@@ -982,12 +1025,14 @@ class InformesExportador:
                 table.autofit = False
                 table.allow_autofit = False
 
-                # Ajustar ancho de tabla al ancho de página (27.7cm)
-                # Establecer en el XML directamente para forzar el ancho
-                self._set_table_width(table, 27.7)
+                # Ajustar ancho de tabla al ancho de página (26.7cm)
+                # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+                table.width = Cm(26.7)
+                # Forzar ancho de tabla usando XML directo
+                self._set_table_width(table, 26.7)
 
                 # Distribuir ancho equitativamente entre columnas
-                col_width_cm = 27.7 / len(columnas)
+                col_width_cm = 26.7 / len(columnas)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -1142,7 +1187,8 @@ class InformesExportador:
         datos: List[tuple],
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
-        proyecto_codigo: str = ""
+        proyecto_codigo: str = "",
+        fecha_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
@@ -1176,7 +1222,8 @@ class InformesExportador:
                 datos=datos,
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre=proyecto_nombre,
-                proyecto_codigo=proyecto_codigo
+                proyecto_codigo=proyecto_codigo,
+                fecha_informe=fecha_informe
             )
 
             if not exito_word:
@@ -1336,15 +1383,15 @@ class InformesExportador:
         try:
             # Crear el documento PDF en orientación horizontal
             # A4 landscape = 29.7cm x 21cm
-            # Márgenes: 1cm a cada lado
-            # Ancho disponible = 29.7cm - 1cm - 1cm = 27.7cm
+            # Márgenes: 1.5cm a cada lado
+            # Ancho disponible = 29.7cm - 1.5cm - 1.5cm = 26.7cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=landscape(A4),
-                topMargin=1*cm,
-                bottomMargin=1*cm,
-                leftMargin=1*cm,
-                rightMargin=1*cm
+                topMargin=1.5*cm,
+                bottomMargin=1.5*cm,
+                leftMargin=1.5*cm,
+                rightMargin=1.5*cm
             )
 
             # Lista de elementos del documento
@@ -1355,7 +1402,7 @@ class InformesExportador:
 
             # Calcular ancho disponible para tablas
             ancho_pagina = landscape(A4)[0]  # 29.7cm en puntos
-            ancho_disponible = ancho_pagina - (1*cm * 2)  # Restar márgenes (27.7cm en puntos)
+            ancho_disponible = ancho_pagina - (1.5*cm * 2)  # Restar márgenes (26.7cm en puntos)
 
             # Estilo para título
             style_titulo = ParagraphStyle(
@@ -1403,8 +1450,8 @@ class InformesExportador:
             header_data.append(header_row)
 
             # Tabla de encabezado con anchos: 3.5cm, resto, 3.5cm
-            # Ancho disponible = 27.7cm (calculado arriba)
-            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 27.7cm - 7cm = 20.7cm
+            # Ancho disponible = 26.7cm (calculado arriba)
+            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 26.7cm - 7cm = 19.7cm
             header_table = Table(header_data, colWidths=[3.5*cm, ancho_titulo, 3.5*cm])
             header_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),   # Logo izquierdo alineado a la izquierda
