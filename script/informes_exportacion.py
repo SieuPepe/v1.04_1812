@@ -706,106 +706,67 @@ class InformesExportador:
 
         return row
 
-    def _reemplazar_marcador(self, doc, marcador_nombre: str, texto_reemplazo: str):
+    def _reemplazar_marcador(self, doc, marcador_texto: str, texto_reemplazo: str):
         """
-        Reemplaza un marcador (bookmark) REAL de Word con texto
+        Reemplaza un marcador de TEXTO literal en el documento Word
 
         Args:
             doc: Documento de Word
-            marcador_nombre: Nombre del marcador a buscar
+            marcador_texto: Texto del marcador a buscar (ej: "[TITULO_DEL_INFORME]")
             texto_reemplazo: Texto con el que reemplazar el marcador
         """
-        from docx.oxml.shared import qn
-        from docx.oxml import OxmlElement
-
-        # Buscar en todo el documento (párrafos, encabezados, pies)
-        def buscar_y_reemplazar_en_elemento(element):
-            # Buscar elementos bookmarkStart iterando por todos los descendientes
-            for child in element.iter():
-                if child.tag == qn('w:bookmarkStart'):
-                    # Verificar si el atributo name coincide
-                    name_attr = child.get(qn('w:name'))
-                    if name_attr == marcador_nombre:
-                        # Encontrar el párrafo que contiene el marcador
-                        parent = child.getparent()
-                        while parent is not None and parent.tag != qn('w:p'):
-                            parent = parent.getparent()
-
-                        if parent is not None:
-                            # Limpiar el párrafo - eliminar todos los runs existentes
-                            runs_to_remove = []
-                            for run_elem in parent.iter():
-                                if run_elem.tag == qn('w:r'):
-                                    runs_to_remove.append(run_elem)
-
-                            for run_elem in runs_to_remove:
-                                run_elem.getparent().remove(run_elem)
-
-                            # Crear nuevo run con el texto
-                            new_run = OxmlElement('w:r')
-                            new_text = OxmlElement('w:t')
-                            new_text.text = texto_reemplazo
-                            new_run.append(new_text)
-
-                            # Insertar después del bookmarkStart
-                            bookmark_index = list(parent).index(child)
-                            parent.insert(bookmark_index + 1, new_run)
-
-                            print(f"DEBUG: Marcador '{marcador_nombre}' reemplazado con '{texto_reemplazo}'")
-                            return True
-            return False
+        reemplazado = False
 
         # Buscar en párrafos del cuerpo
         for paragraph in doc.paragraphs:
-            if buscar_y_reemplazar_en_elemento(paragraph._element):
-                return
+            if marcador_texto in paragraph.text:
+                for run in paragraph.runs:
+                    if marcador_texto in run.text:
+                        run.text = run.text.replace(marcador_texto, texto_reemplazo)
+                        reemplazado = True
 
-        # Buscar en encabezados y pies de página
+        # Buscar en encabezados
         for section in doc.sections:
             for paragraph in section.header.paragraphs:
-                if buscar_y_reemplazar_en_elemento(paragraph._element):
-                    return
+                if marcador_texto in paragraph.text:
+                    for run in paragraph.runs:
+                        if marcador_texto in run.text:
+                            run.text = run.text.replace(marcador_texto, texto_reemplazo)
+                            reemplazado = True
 
+            # Buscar en pies de página
             for paragraph in section.footer.paragraphs:
-                if buscar_y_reemplazar_en_elemento(paragraph._element):
-                    return
+                if marcador_texto in paragraph.text:
+                    for run in paragraph.runs:
+                        if marcador_texto in run.text:
+                            run.text = run.text.replace(marcador_texto, texto_reemplazo)
+                            reemplazado = True
 
-        print(f"Advertencia: No se encontró el marcador '{marcador_nombre}'")
+        if reemplazado:
+            print(f"DEBUG: Marcador '{marcador_texto}' reemplazado con '{texto_reemplazo}'")
+        else:
+            print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
 
-    def _insertar_tabla_en_marcador(self, doc, marcador_nombre: str, columnas: List[str],
+    def _insertar_tabla_en_marcador(self, doc, marcador_texto: str, columnas: List[str],
                                      datos: List[tuple], resultado_agrupacion: Optional[Dict] = None):
         """
-        Inserta una tabla en la posición del marcador REAL de Word
+        Inserta una tabla en la posición del marcador de TEXTO literal
 
         Args:
             doc: Documento de Word
-            marcador_nombre: Nombre del marcador donde insertar la tabla
+            marcador_texto: Texto del marcador donde insertar la tabla (ej: "[Tabla_de_datos]")
             columnas: Lista de nombres de columnas
             datos: Datos a insertar
             resultado_agrupacion: Estructura de agrupaciones (opcional)
         """
-        from docx.oxml.shared import qn
-
-        # Buscar el marcador bookmarkStart en el XML del documento
+        # Buscar el párrafo que contiene el marcador de texto
         target_paragraph = None
-        bookmark_element = None
-
-        # Función helper para buscar marcador en un elemento
-        def buscar_marcador_en_elemento(element):
-            for child in element.iter():
-                if child.tag == qn('w:bookmarkStart'):
-                    name_attr = child.get(qn('w:name'))
-                    if name_attr == marcador_nombre:
-                        return child
-            return None
 
         # Buscar en párrafos del cuerpo
         for paragraph in doc.paragraphs:
-            bookmark = buscar_marcador_en_elemento(paragraph._element)
-            if bookmark is not None:
+            if marcador_texto in paragraph.text:
                 target_paragraph = paragraph
-                bookmark_element = bookmark
-                print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en párrafo del cuerpo")
+                print(f"DEBUG: Marcador '{marcador_texto}' encontrado en párrafo del cuerpo")
                 break
 
         # Si no se encuentra en párrafos, buscar en tablas
@@ -814,11 +775,9 @@ class InformesExportador:
                 for row in table.rows:
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
-                            bookmark = buscar_marcador_en_elemento(paragraph._element)
-                            if bookmark is not None:
+                            if marcador_texto in paragraph.text:
                                 target_paragraph = paragraph
-                                bookmark_element = bookmark
-                                print(f"DEBUG: Marcador '{marcador_nombre}' encontrado en tabla existente")
+                                print(f"DEBUG: Marcador '{marcador_texto}' encontrado en tabla existente")
                                 break
                         if target_paragraph:
                             break
@@ -828,7 +787,7 @@ class InformesExportador:
                     break
 
         if target_paragraph is None:
-            print(f"Advertencia: No se encontró el marcador '{marcador_nombre}'")
+            print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
             print(f"DEBUG: Párrafos totales: {len(doc.paragraphs)}, Tablas: {len(doc.tables)}")
             return
 
@@ -884,12 +843,12 @@ class InformesExportador:
         # Insertar la tabla DESPUÉS del párrafo que contiene el marcador
         p_element.addnext(tbl_element)
 
-        # Limpiar el contenido del párrafo (mantener el marcador para que no se rompa el documento)
-        # Solo eliminamos el texto, no el párrafo completo
+        # Limpiar solo el texto del marcador, no todo el párrafo
         for run in target_paragraph.runs:
-            run.text = ""
+            if marcador_texto in run.text:
+                run.text = run.text.replace(marcador_texto, "")
 
-        print(f"DEBUG: Tabla insertada después del marcador '{marcador_nombre}'")
+        print(f"DEBUG: Tabla insertada después del marcador '{marcador_texto}'")
 
     def exportar_a_word(
         self,
@@ -942,14 +901,12 @@ class InformesExportador:
             # Reemplazar marcadores en la plantilla
             fecha_actual = datetime.now().strftime("%d/%m/%Y")
 
-            # Reemplazar "Titulo_del_informe" en el encabezado
-            self._reemplazar_marcador(doc, "Titulo_del_informe", informe_nombre.upper())
+            # Reemplazar marcadores de texto literal
+            self._reemplazar_marcador(doc, "[TITULO_DEL_INFORME]", informe_nombre.upper())
+            self._reemplazar_marcador(doc, "[FECHA]", fecha_actual)
 
-            # Reemplazar "Fecha_creacion_informe" en el pie de página
-            self._reemplazar_marcador(doc, "Fecha_creacion_informe", fecha_actual)
-
-            # Insertar tabla en el marcador "Tabla_de_datos"
-            self._insertar_tabla_en_marcador(doc, "Tabla_de_datos", columnas, datos, resultado_agrupacion)
+            # Insertar tabla en el marcador
+            self._insertar_tabla_en_marcador(doc, "[Tabla_de_datos]", columnas, datos, resultado_agrupacion)
 
             # Guardar el documento
             doc.save(filepath)
