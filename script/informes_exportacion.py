@@ -5,9 +5,10 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 import xlsxwriter
+from PIL import Image as PILImage
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -377,7 +378,7 @@ class InformesExportador:
             # La última columna mantiene el ancho estándar (15 chars)
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, ancho_col_der_chars)
 
-            # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
+            # Logo izquierdo (Logo Redes Urbide) - altura 2.0cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 x_scale, y_scale, ancho_img_cm, _, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
@@ -1033,11 +1034,6 @@ class InformesExportador:
                 # Distribuir ancho equitativamente entre columnas
                 col_width_cm = 26.7 / len(columnas)
 
-                # Establecer ancho usando XML directo (más confiable)
-                for row in table.rows:
-                    for cell in row.cells:
-                        self._set_cell_width(cell, col_width_cm)
-
                 # Encabezados
                 header_cells = table.rows[0].cells
                 for idx, col_name in enumerate(columnas):
@@ -1048,6 +1044,9 @@ class InformesExportador:
                             run.font.bold = True
                             run.font.name = 'Tahoma'
                             run.font.size = Pt(9)
+
+                    # Establecer ancho de celda directamente en XML
+                    self._set_cell_width(cell, col_width_cm)
 
                 # Datos
                 formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
@@ -1075,6 +1074,9 @@ class InformesExportador:
                                 run.font.name = 'Tahoma'
                                 run.font.size = Pt(8)
 
+                        # Establecer ancho de celda directamente en XML
+                        self._set_cell_width(cell, col_width_cm)
+
             # Subtotales
             if subtotales:
                 indent_subtotal = "    " * (nivel_grupo + 1)
@@ -1096,67 +1098,70 @@ class InformesExportador:
         shading_elm.set(qn('w:fill'), color_hex)
         cell._element.get_or_add_tcPr().append(shading_elm)
 
-    def _set_cell_width(self, cell, width_cm):
+    def _set_cell_width(self, cell, width_cm: float):
         """
-        Establece el ancho de una celda usando XML directo (más confiable que cell.width)
+        Establece el ancho de una celda en Word directamente en el XML
 
         Args:
-            cell: Celda de la tabla
+            cell: Celda de la tabla de Word
             width_cm: Ancho deseado en centímetros
         """
-        # Convertir cm a twips (1 cm = 567 twips)
+        # Convertir cm a twips (twentieths of a point)
+        # 1 cm = 567 twips
         width_twips = int(width_cm * 567)
 
-        # Obtener o crear el elemento tcPr (propiedades de celda)
-        tc = cell._element
-        tcPr = tc.get_or_add_tcPr()
+        # Obtener o crear el elemento tcPr (table cell properties)
+        tcPr = cell._element.get_or_add_tcPr()
 
-        # Buscar si ya existe tcW (ancho de celda)
+        # Buscar si ya existe un elemento tcW
         tcW = tcPr.find(qn('w:tcW'))
         if tcW is None:
+            # Crear nuevo elemento tcW
             tcW = OxmlElement('w:tcW')
             tcPr.append(tcW)
 
         # Establecer el ancho
         tcW.set(qn('w:w'), str(width_twips))
-        tcW.set(qn('w:type'), 'dxa')  # dxa = twentieths of a point (twips)
+        tcW.set(qn('w:type'), 'dxa')  # dxa = twips (formato estándar)
 
-    def _set_table_width(self, table, width_cm):
+    def _set_table_width(self, table, width_cm: float):
         """
-        Establece el ancho de una tabla usando XML directo
+        Establece el ancho de una tabla en Word directamente en el XML
 
         Args:
             table: Tabla de Word
             width_cm: Ancho deseado en centímetros
         """
-        # Convertir cm a twips (1 cm = 567 twips)
+        # Convertir cm a twips (twentieths of a point)
+        # 1 cm = 567 twips
         width_twips = int(width_cm * 567)
 
         # Obtener el elemento tbl
         tbl = table._element
 
-        # Obtener o crear tblPr (propiedades de tabla)
+        # Obtener o crear tblPr (table properties)
         tblPr = tbl.find(qn('w:tblPr'))
         if tblPr is None:
             tblPr = OxmlElement('w:tblPr')
             tbl.insert(0, tblPr)
 
-        # Buscar si ya existe tblW (ancho de tabla)
+        # Buscar si ya existe un elemento tblW
         tblW = tblPr.find(qn('w:tblW'))
         if tblW is None:
+            # Crear nuevo elemento tblW
             tblW = OxmlElement('w:tblW')
             tblPr.append(tblW)
 
         # Establecer el ancho
         tblW.set(qn('w:w'), str(width_twips))
-        tblW.set(qn('w:type'), 'dxa')  # dxa = twentieths of a point (twips)
+        tblW.set(qn('w:type'), 'dxa')  # dxa = twips (formato estándar)
 
-        # Forzar layout fijo (desactivar autofit)
+        # Asegurar que autofit esté desactivado
         tblLayout = tblPr.find(qn('w:tblLayout'))
         if tblLayout is None:
             tblLayout = OxmlElement('w:tblLayout')
             tblPr.append(tblLayout)
-        tblLayout.set(qn('w:type'), 'fixed')
+        tblLayout.set(qn('w:type'), 'fixed')  # fixed layout, no autofit
 
     def _add_page_number(self, run):
         """Añade número de página a Word"""
