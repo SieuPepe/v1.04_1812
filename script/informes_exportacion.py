@@ -20,6 +20,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from PIL import Image as PILImage
 
 
 class InformesExportador:
@@ -30,6 +31,34 @@ class InformesExportador:
         self.logo_redes_path = None
         self.logo_urbide_path = None
         self._buscar_logos()
+
+    @staticmethod
+    def _calcular_escala_imagen(ruta_imagen: str, altura_deseada_cm: float = 2.0) -> tuple:
+        """
+        Calcula la escala necesaria para que una imagen tenga una altura específica
+
+        Args:
+            ruta_imagen: Ruta a la imagen
+            altura_deseada_cm: Altura deseada en centímetros (default 2.0cm)
+
+        Returns:
+            Tupla (x_scale, y_scale) para mantener aspect ratio con la altura deseada
+        """
+        try:
+            # Abrir imagen y obtener dimensiones
+            img = PILImage.open(ruta_imagen)
+            ancho_px, alto_px = img.size
+
+            # Convertir altura deseada de cm a píxeles (96 DPI = 37.795 px/cm)
+            altura_deseada_px = altura_deseada_cm * 37.795
+
+            # Calcular escala necesaria
+            scale = altura_deseada_px / alto_px
+
+            return (scale, scale)  # Mantener aspect ratio
+        except Exception as e:
+            print(f"Error calculando escala de imagen {ruta_imagen}: {e}")
+            return (1.0, 1.0)  # Escala por defecto
 
     def _buscar_logos(self):
         """Busca los logos en la raíz del proyecto y en la carpeta resources/images"""
@@ -294,35 +323,45 @@ class InformesExportador:
             worksheet.set_column(0, 0, 15)
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
 
-            # Logo izquierdo (Logo Redes Urbide) - altura 2.1cm, alineado a la izquierda
+            # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                x_scale, y_scale = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
-                    'x_scale': 1.0,  # Escala 100%
-                    'y_scale': 1.0,  # Escala 100%
+                    'x_scale': x_scale,
+                    'y_scale': y_scale,
                     'x_offset': 2,
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
 
             # Título del informe en el centro (entre los logos)
-            # Calcular columnas centrales para el título
+            # Combinar celdas centrales y escribir el título
             num_cols = len(columnas)
-            col_inicio_titulo = 2 if num_cols > 4 else 1
-            col_fin_titulo = num_cols - 3 if num_cols > 4 else num_cols - 2
+            col_inicio_titulo = 1
+            col_fin_titulo = num_cols - 2
             if col_fin_titulo <= col_inicio_titulo:
-                col_fin_titulo = col_inicio_titulo + 1
+                col_fin_titulo = col_inicio_titulo
 
-            # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha
+            # Escribir el título combinando celdas
+            worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre, formato_titulo)
+
+            # Segunda fila: Fecha de generación centrada
+            worksheet.set_row(row + 1, 20)  # Altura para la fecha
+            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            worksheet.merge_range(row + 1, col_inicio_titulo, row + 1, col_fin_titulo, f"Fecha: {fecha_actual}", formato_fecha)
+
+            # Logo derecho (Logo Urbide) - altura exacta 2cm, alineado verticalmente
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                x_scale, y_scale = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
-                    'x_scale': 1.0,  # Escala 100%
-                    'y_scale': 1.0,  # Escala 100%
-                    'x_offset': 50,  # Offset para alinear a la derecha
+                    'x_scale': x_scale,
+                    'y_scale': y_scale,
+                    'x_offset': 5,  # Pequeño margen desde el borde izquierdo de la celda
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
 
-            row += 2  # Espacio después del encabezado
+            row += 3  # Espacio después del encabezado (2 filas de encabezado + 1 de espacio)
 
             # Información del proyecto
             if proyecto_nombre:
@@ -649,10 +688,10 @@ class InformesExportador:
             header_table = header.add_table(rows=2, cols=3, width=Cm(27.7))
             header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-            # Configurar anchos de columnas: 4cm (logo), resto para título, 4cm (logo)
-            header_table.columns[0].width = Cm(4)
-            header_table.columns[1].width = Cm(19.7)  # 27.7 - 4 - 4
-            header_table.columns[2].width = Cm(4)
+            # Configurar anchos de columnas: 3.7cm (logo izq), 18.3cm (título), 5.7cm (logo der)
+            header_table.columns[0].width = Cm(3.7)
+            header_table.columns[1].width = Cm(18.3)
+            header_table.columns[2].width = Cm(5.7)
 
             # === FILA 1: Logos y Título ===
 
