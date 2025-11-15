@@ -356,8 +356,8 @@ class InformesExportador:
                 # Añadir margen de 10px (≈1.4 chars) para espacio
                 ancho_col_izq_chars = max(15, int((ancho_escalado_px_izq + 10) / 7))
 
-            # Logo Urbide (derecha)
-            ancho_col_der_chars = 15  # Default
+            # Logo Urbide (derecha) - mantener ancho estándar de columna
+            ancho_col_der_chars = 15  # Ancho estándar, NO cambiar por la imagen
             ancho_img_px_escalado_derecha = 0  # Para usar más tarde
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 x_scale_der, _, ancho_img_cm_derecha, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
@@ -366,15 +366,13 @@ class InformesExportador:
                 # XlsxWriter usa directamente los píxeles escalados, NO convierte a 96 DPI
                 ancho_img_px_escalado_derecha = ancho_px_der * x_scale_der
 
-                # Convertir píxeles a caracteres: chars = (pixels + 5) / 7
-                ancho_col_der_chars = max(15, int((ancho_img_px_escalado_derecha + 5) / 7) + 1)
-
-                print(f"DEBUG Cálculo ancho columna derecha:")
+                print(f"DEBUG Logo Urbide - Cálculo de escala:")
                 print(f"  Ancho imagen original: {ancho_px_der}px × scale {x_scale_der:.4f} = {ancho_img_px_escalado_derecha:.1f}px")
-                print(f"  Ancho columna calculado: {ancho_col_der_chars} chars")
+                print(f"  Ancho columna estándar: {ancho_col_der_chars} chars (sin modificar)")
 
             # Configurar ancho de primera y última columna
             worksheet.set_column(0, 0, ancho_col_izq_chars)
+            # La última columna mantiene el ancho estándar (15 chars)
             worksheet.set_column(len(columnas) - 1, len(columnas) - 1, ancho_col_der_chars)
 
             # Logo izquierdo (Logo Redes Urbide) - altura exacta 2cm, alineado a la izquierda
@@ -403,25 +401,27 @@ class InformesExportador:
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path) and ancho_img_px_escalado_derecha > 0:
                 x_scale, y_scale, _, _, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
-                # Calcular ancho de la última columna en píxeles
-                ancho_ultima_col_px = ancho_col_der_chars * 7 + 5
+                # Calcular ancho de la última columna en píxeles (ancho estándar 15 chars)
+                ancho_ultima_col_px = ancho_col_der_chars * 7 + 5  # 15 * 7 + 5 = 110px
 
                 # Para alinear a la derecha de la última columna:
                 # offset = ancho_columna - ancho_imagen_escalada - margen
+                # Si la imagen es más ancha que la columna, el offset será negativo (está bien)
                 margen_derecho = 3
                 x_offset_derecha = ancho_ultima_col_px - ancho_img_px_escalado_derecha - margen_derecho
 
-                print(f"DEBUG Logo Urbide - Posicionamiento en última columna:")
+                print(f"DEBUG Logo Urbide - Posicionamiento con offset (puede ser negativo):")
                 print(f"  Ancho última columna: {ancho_col_der_chars} chars → {ancho_ultima_col_px:.1f}px")
                 print(f"  Ancho imagen escalada: {ancho_img_px_escalado_derecha:.1f}px")
                 print(f"  Margen derecho: {margen_derecho}px")
                 print(f"  x_offset = {ancho_ultima_col_px:.1f} - {ancho_img_px_escalado_derecha:.1f} - {margen_derecho} = {x_offset_derecha:.1f}px")
 
                 # Insertar en la ÚLTIMA columna con offset para alinear a la derecha
+                # El offset puede ser negativo si la imagen es más ancha que la columna
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': x_scale,
                     'y_scale': y_scale,
-                    'x_offset': int(x_offset_derecha),
+                    'x_offset': int(x_offset_derecha),  # Permite offset negativo
                     'y_offset': 2,
                     'object_position': 1  # Mover con celda y redimensionar
                 })
