@@ -120,6 +120,29 @@ class InformesExportador:
             workbook = xlsxwriter.Workbook(filepath)
             worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
 
+            # Función helper para detectar y convertir fechas
+            def detectar_y_convertir_fecha(valor_str):
+                """Detecta formatos comunes de fecha y los convierte a datetime"""
+                import re
+                if not isinstance(valor_str, str):
+                    return None
+
+                # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+                patrones_fecha = [
+                    (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                    (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                    (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+                ]
+
+                for patron, formato in patrones_fecha:
+                    if re.match(patron, valor_str.strip()):
+                        try:
+                            from datetime import datetime as dt
+                            return dt.strptime(valor_str.strip(), formato)
+                        except ValueError:
+                            continue
+                return None
+
             # Definir formatos
             formato_titulo = workbook.add_format({
                 'bold': True,
@@ -250,6 +273,16 @@ class InformesExportador:
                 'bold': True
             })
 
+            # Formato para celdas de fecha (dd/mm/yyyy)
+            formato_fecha_celda = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'border': 1,
+                'num_format': 'dd/mm/yyyy',
+                'align': 'left',
+                'valign': 'vcenter'
+            })
+
             # Fila actual
             row = 0
 
@@ -257,13 +290,18 @@ class InformesExportador:
             # 2.1 cm ≈ 59.5 puntos
             worksheet.set_row(row, 59.5)
 
+            # Configurar ancho de primera y última columna para los logos
+            worksheet.set_column(0, 0, 15)
+            worksheet.set_column(len(columnas) - 1, len(columnas) - 1, 15)
+
             # Logo izquierdo (Logo Redes Urbide) - altura 2.1cm, alineado a la izquierda
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 worksheet.insert_image(row, 0, self.logo_redes_path, {
                     'x_scale': 1.0,  # Escala 100%
                     'y_scale': 1.0,  # Escala 100%
-                    'x_offset': 5,
-                    'y_offset': 5
+                    'x_offset': 2,
+                    'y_offset': 2,
+                    'object_position': 1  # Mover con celda y redimensionar
                 })
 
             # Título del informe en el centro (entre los logos)
@@ -274,15 +312,14 @@ class InformesExportador:
             if col_fin_titulo <= col_inicio_titulo:
                 col_fin_titulo = col_inicio_titulo + 1
 
-            worksheet.merge_range(row, col_inicio_titulo, row, col_fin_titulo, informe_nombre.upper(), formato_titulo)
-
-            # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha con offset
+            # Logo derecho (Logo Urbide) - altura 2.1cm, alineado a la derecha
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 worksheet.insert_image(row, len(columnas) - 1, self.logo_urbide_path, {
                     'x_scale': 1.0,  # Escala 100%
                     'y_scale': 1.0,  # Escala 100%
-                    'x_offset': 50,  # Offset a la derecha
-                    'y_offset': 5
+                    'x_offset': 50,  # Offset para alinear a la derecha
+                    'y_offset': 2,
+                    'object_position': 1  # Mover con celda y redimensionar
                 })
 
             row += 2  # Espacio después del encabezado
@@ -314,6 +351,7 @@ class InformesExportador:
                     formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
+                    formato_fecha_celda,
                     resultado_agrupacion.get('modo', 'detalle'),
                     resultado_agrupacion
                 )
@@ -371,8 +409,12 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar y manejar fechas
+                        fecha_dt = detectar_y_convertir_fecha(valor)
+                        if fecha_dt:
+                            worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
@@ -413,10 +455,34 @@ class InformesExportador:
         formato_decimal,
         formato_subtotal,
         formato_subtotal_texto,
+        formato_fecha_celda,
         modo: str = 'detalle',
         resultado_agrupacion: Optional[Dict] = None
     ) -> int:
         """Exporta grupos jerárquicos a Excel (recursivo)"""
+        # Función helper para detectar y convertir fechas
+        def detectar_y_convertir_fecha(valor_str):
+            """Detecta formatos comunes de fecha y los convierte a datetime"""
+            import re
+            if not isinstance(valor_str, str):
+                return None
+
+            # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+            patrones_fecha = [
+                (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+            ]
+
+            for patron, formato in patrones_fecha:
+                if re.match(patron, valor_str.strip()):
+                    try:
+                        from datetime import datetime as dt
+                        return dt.strptime(valor_str.strip(), formato)
+                    except ValueError:
+                        continue
+            return None
+
         row = start_row
 
         formatos_por_nivel = [formato_nivel0, formato_nivel1, formato_nivel2]
@@ -455,6 +521,7 @@ class InformesExportador:
                     formato_decimal,
                     formato_subtotal,
                     formato_subtotal_texto,
+                    formato_fecha_celda,
                     modo,
                     resultado_agrupacion
                 )
@@ -471,8 +538,12 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar y manejar fechas
+                        fecha_dt = detectar_y_convertir_fecha(valor)
+                        if fecha_dt:
+                            worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha_celda)
                         # Aplicar formato según el tipo de campo
-                        if isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float)):
                             if formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
@@ -558,74 +629,86 @@ class InformesExportador:
         try:
             doc = Document()
 
-            # Configurar márgenes
+            # Configurar márgenes y orientación
             sections = doc.sections
             for section in sections:
-                section.top_margin = Cm(2)
-                section.bottom_margin = Cm(2)
-                section.left_margin = Cm(2)
-                section.right_margin = Cm(2)
+                # Cambiar a orientación horizontal (landscape)
+                section.orientation = 1  # 1 = landscape, 0 = portrait
+                # Intercambiar ancho y alto para landscape
+                section.page_width, section.page_height = section.page_height, section.page_width
+                section.top_margin = Cm(1)  # 1cm según especificación
+                section.bottom_margin = Cm(1)  # 1cm según especificación
+                section.left_margin = Cm(1)  # 1cm según especificación
+                section.right_margin = Cm(1)  # 1cm según especificación
+                # Configurar encabezado desde arriba: 0,2cm
+                section.header_distance = Cm(0.2)
 
-            # Encabezado con logos
+            # Encabezado con logos, título y fecha
+            # Ancho total disponible: 29.7cm (A4 landscape) - 2cm (márgenes) = 27.7cm
             header = sections[0].header
-            header_table = header.add_table(rows=1, cols=3, width=Inches(7))
+            header_table = header.add_table(rows=2, cols=3, width=Cm(27.7))
             header_table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
-            # Configurar anchos de columnas: 3.5cm, 17cm, 3.5cm
-            header_table.columns[0].width = Cm(3.5)
-            header_table.columns[1].width = Cm(17)
-            header_table.columns[2].width = Cm(3.5)
+            # Configurar anchos de columnas: 4cm (logo), resto para título, 4cm (logo)
+            header_table.columns[0].width = Cm(4)
+            header_table.columns[1].width = Cm(19.7)  # 27.7 - 4 - 4
+            header_table.columns[2].width = Cm(4)
 
-            # Logo izquierdo (Logo Redes Urbide) - altura 2.1cm
+            # === FILA 1: Logos y Título ===
+
+            # Logo izquierdo (Logo Redes Urbide) - altura máxima 2cm
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                 cell_logo_left = header_table.rows[0].cells[0]
                 cell_logo_left.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 paragraph = cell_logo_left.paragraphs[0]
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 run = paragraph.add_run()
-                run.add_picture(self.logo_redes_path, height=Cm(2.1))
+                run.add_picture(self.logo_redes_path, height=Cm(2))  # Altura máxima 2cm
 
-            # Título del informe en el centro (entre los logos) - centrado horizontal y vertical
+            # Título del informe en el centro
             cell_titulo = header_table.rows[0].cells[1]
             cell_titulo.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             paragraph_titulo = cell_titulo.paragraphs[0]
             paragraph_titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run_titulo = paragraph_titulo.add_run(informe_nombre.upper())
             run_titulo.font.name = 'Calibri'
-            run_titulo.font.size = Pt(20)
+            run_titulo.font.size = Pt(18)
             run_titulo.font.bold = True
             run_titulo.font.color.rgb = RGBColor(0, 0, 0)
 
-            # Logo derecho (Logo Urbide) - altura 1.3cm
+            # Logo derecho (Logo Urbide) - altura máxima 2cm
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 cell_logo_right = header_table.rows[0].cells[2]
                 cell_logo_right.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 paragraph = cell_logo_right.paragraphs[0]
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 run = paragraph.add_run()
-                run.add_picture(self.logo_urbide_path, height=Cm(1.3))
+                run.add_picture(self.logo_urbide_path, height=Cm(2))  # Altura máxima 2cm
 
-            # Información del proyecto
+            # === FILA 2: Fecha (solo en la columna central) ===
+
+            # Fecha de generación centrada
+            fecha_actual = datetime.now().strftime("%d/%m/%Y")
+            cell_fecha = header_table.rows[1].cells[1]
+            cell_fecha.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+            paragraph_fecha = cell_fecha.paragraphs[0]
+            paragraph_fecha.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run_fecha = paragraph_fecha.add_run(f"Fecha: {fecha_actual}")
+            run_fecha.font.name = 'Calibri'
+            run_fecha.font.size = Pt(10)
+            run_fecha.font.bold = True
+            run_fecha.font.color.rgb = RGBColor(100, 100, 100)
+
+            # Información del proyecto (opcional)
             if proyecto_nombre:
                 p = doc.add_paragraph(proyecto_nombre)
                 p.runs[0].font.name = 'Tahoma'
                 p.runs[0].font.size = Pt(10)
                 p.runs[0].font.italic = True
                 p.runs[0].font.color.rgb = RGBColor(124, 124, 124)
-
-            # Fecha
-            fecha_actual = datetime.now().strftime("%d/%m/%Y")
-            p_fecha = doc.add_paragraph()
-            run_fecha = p_fecha.add_run(f"FECHA: ")
-            run_fecha.font.name = 'Calibri'
-            run_fecha.font.size = Pt(10)
-            run_fecha.font.bold = True
-            run_valor = p_fecha.add_run(fecha_actual)
-            run_valor.font.name = 'Calibri'
-            run_valor.font.size = Pt(10)
-            run_valor.font.bold = True
-
-            doc.add_paragraph()  # Espacio
+                doc.add_paragraph()  # Espacio después del proyecto
+            else:
+                doc.add_paragraph()  # Espacio inicial si no hay proyecto
 
             # Si hay agrupaciones, exportar con estructura jerárquica
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
@@ -656,8 +739,19 @@ class InformesExportador:
 
             else:
                 # Exportar sin agrupaciones (tabla simple)
+                # Ancho de página: 29.7cm - 2cm (márgenes) = 27.7cm
                 table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
                 table.style = 'Light Grid Accent 1'
+                table.autofit = False
+                table.allow_autofit = False
+
+                # Ajustar ancho de tabla al ancho de página (27.7cm)
+                table.width = Cm(27.7)
+
+                # Distribuir ancho equitativamente entre columnas
+                col_width = Cm(27.7 / len(columnas))
+                for column in table.columns:
+                    column.width = col_width
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -767,6 +861,16 @@ class InformesExportador:
                 # Crear tabla para los datos
                 table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
                 table.style = 'Light List Accent 1'
+                table.autofit = False
+                table.allow_autofit = False
+
+                # Ajustar ancho de tabla al ancho de página (27.7cm)
+                table.width = Cm(27.7)
+
+                # Distribuir ancho equitativamente entre columnas
+                col_width = Cm(27.7 / len(columnas))
+                for column in table.columns:
+                    column.width = col_width
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -853,7 +957,181 @@ class InformesExportador:
         proyecto_codigo: str = ""
     ) -> bool:
         """
-        Exporta el informe a PDF usando ReportLab directamente
+        Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
+
+        Args:
+            filepath: Ruta del archivo PDF a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        import tempfile
+
+        try:
+            # Paso 1: Generar el archivo Word temporal
+            print("Generando archivo Word temporal...")
+            temp_word = tempfile.NamedTemporaryFile(suffix='.docx', delete=False)
+            temp_word_path = temp_word.name
+            temp_word.close()
+
+            # Usar la misma función de exportar_a_word
+            exito_word = self.exportar_a_word(
+                filepath=temp_word_path,
+                informe_nombre=informe_nombre,
+                columnas=columnas,
+                datos=datos,
+                resultado_agrupacion=resultado_agrupacion,
+                proyecto_nombre=proyecto_nombre,
+                proyecto_codigo=proyecto_codigo
+            )
+
+            if not exito_word:
+                print("Error al generar el archivo Word temporal")
+                return False
+
+            # Paso 2: Convertir Word a PDF usando el sistema
+            print(f"Convirtiendo Word a PDF: {temp_word_path} -> {filepath}")
+
+            # Intentar diferentes métodos de conversión
+            exito_conversion = self._convertir_word_a_pdf(temp_word_path, filepath)
+
+            # Paso 3: Limpiar archivo temporal
+            try:
+                os.unlink(temp_word_path)
+            except:
+                pass
+
+            if exito_conversion:
+                print(f"✓ PDF generado correctamente: {filepath}")
+                return True
+            else:
+                print("✗ Error al convertir Word a PDF")
+                return False
+
+        except Exception as e:
+            print(f"Error al exportar a PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _convertir_word_a_pdf(self, word_path: str, pdf_path: str) -> bool:
+        """
+        Convierte un archivo Word a PDF usando diferentes métodos disponibles
+
+        Args:
+            word_path: Ruta del archivo Word de entrada
+            pdf_path: Ruta del archivo PDF de salida
+
+        Returns:
+            True si la conversión fue exitosa
+        """
+        import platform
+
+        # Método 1: Intentar con win32com (Microsoft Word COM)
+        if platform.system() == 'Windows':
+            try:
+                import win32com.client
+                import pythoncom
+
+                pythoncom.CoInitialize()
+                word = win32com.client.Dispatch('Word.Application')
+                word.Visible = False
+
+                # Abrir documento
+                doc = word.Documents.Open(os.path.abspath(word_path))
+
+                # Guardar como PDF (wdFormatPDF = 17)
+                doc.SaveAs(os.path.abspath(pdf_path), FileFormat=17)
+                doc.Close()
+                word.Quit()
+
+                pythoncom.CoUninitialize()
+
+                print("✓ Conversión exitosa usando Microsoft Word COM")
+                return True
+
+            except Exception as e:
+                print(f"⚠ No se pudo usar Word COM: {e}")
+
+        # Método 2: Intentar con LibreOffice (si está instalado)
+        try:
+            # Buscar LibreOffice en ubicaciones comunes
+            libreoffice_paths = [
+                r"C:\Program Files\LibreOffice\program\soffice.exe",
+                r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+                "/usr/bin/libreoffice",
+                "/usr/local/bin/libreoffice",
+            ]
+
+            soffice_path = None
+            for path in libreoffice_paths:
+                if os.path.exists(path):
+                    soffice_path = path
+                    break
+
+            if soffice_path:
+                cmd = [
+                    soffice_path,
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", os.path.dirname(os.path.abspath(pdf_path)),
+                    os.path.abspath(word_path)
+                ]
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                # LibreOffice genera el PDF con el mismo nombre que el Word
+                generated_pdf = os.path.join(
+                    os.path.dirname(os.path.abspath(pdf_path)),
+                    os.path.splitext(os.path.basename(word_path))[0] + '.pdf'
+                )
+
+                if os.path.exists(generated_pdf):
+                    # Mover al destino final si es diferente
+                    if generated_pdf != os.path.abspath(pdf_path):
+                        import shutil
+                        shutil.move(generated_pdf, pdf_path)
+
+                    print("✓ Conversión exitosa usando LibreOffice")
+                    return True
+
+        except Exception as e:
+            print(f"⚠ No se pudo usar LibreOffice: {e}")
+
+        # Método 3: Mensaje de error si ningún método funcionó
+        print("\n" + "="*70)
+        print("ERROR: No se pudo convertir el documento Word a PDF")
+        print("="*70)
+        print("\nSoluciones posibles:")
+        print("1. Instalar Microsoft Word")
+        print("2. Instalar LibreOffice: https://www.libreoffice.org/download/")
+        print("3. Instalar la librería win32com: pip install pywin32")
+        print("\nEl archivo Word se guardó correctamente en:")
+        print(f"   {word_path}")
+        print("\nPuede abrir este archivo y guardarlo manualmente como PDF.")
+        print("="*70 + "\n")
+
+        return False
+
+    def exportar_a_pdf_old(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = ""
+    ) -> bool:
+        """
+        [VERSIÓN ANTIGUA] Exporta el informe a PDF usando ReportLab
+        Esta función se mantiene por compatibilidad pero ya no se usa
 
         Args:
             filepath: Ruta del archivo PDF a crear
@@ -869,13 +1147,16 @@ class InformesExportador:
         """
         try:
             # Crear el documento PDF en orientación horizontal
+            # A4 landscape = 29.7cm x 21cm
+            # Márgenes: 1cm a cada lado
+            # Ancho disponible = 29.7cm - 1cm - 1cm = 27.7cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=landscape(A4),
-                topMargin=2*cm,
-                bottomMargin=2*cm,
-                leftMargin=2*cm,
-                rightMargin=2*cm
+                topMargin=1*cm,
+                bottomMargin=1*cm,
+                leftMargin=1*cm,
+                rightMargin=1*cm
             )
 
             # Lista de elementos del documento
@@ -883,6 +1164,10 @@ class InformesExportador:
 
             # Estilos
             styles = getSampleStyleSheet()
+
+            # Calcular ancho disponible para tablas
+            ancho_pagina = landscape(A4)[0]  # 29.7cm en puntos
+            ancho_disponible = ancho_pagina - (1*cm * 2)  # Restar márgenes (27.7cm en puntos)
 
             # Estilo para título
             style_titulo = ParagraphStyle(
@@ -929,8 +1214,10 @@ class InformesExportador:
 
             header_data.append(header_row)
 
-            # Tabla de encabezado con anchos: 3.5cm, 17cm, 3.5cm
-            header_table = Table(header_data, colWidths=[3.5*cm, 17*cm, 3.5*cm])
+            # Tabla de encabezado con anchos: 3.5cm, resto, 3.5cm
+            # Ancho disponible = 27.7cm (calculado arriba)
+            ancho_titulo = ancho_disponible - (3.5*cm * 2)  # 27.7cm - 7cm = 20.7cm
+            header_table = Table(header_data, colWidths=[3.5*cm, ancho_titulo, 3.5*cm])
             header_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),   # Logo izquierdo alineado a la izquierda
                 ('ALIGN', (1, 0), (1, 0), 'CENTER'), # Título centrado
@@ -965,7 +1252,8 @@ class InformesExportador:
                     resultado_agrupacion['grupos'],
                     columnas,
                     resultado_agrupacion.get('modo', 'detalle'),
-                    resultado_agrupacion
+                    resultado_agrupacion,
+                    ancho_disponible
                 )
                 elements.extend(tabla_datos)
 
@@ -1012,8 +1300,13 @@ class InformesExportador:
                             fila_formateada.append(str(valor) if valor is not None else "")
                     tabla_datos.append(fila_formateada)
 
-                # Crear tabla
-                tabla = Table(tabla_datos)
+                # Calcular anchos de columnas dinámicos
+                num_columnas = len(columnas)
+                ancho_por_columna = ancho_disponible / num_columnas
+                col_widths = [ancho_por_columna] * num_columnas
+
+                # Crear tabla con anchos dinámicos
+                tabla = Table(tabla_datos, colWidths=col_widths)
                 tabla.setStyle(TableStyle([
                     # Encabezado
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
@@ -1063,7 +1356,8 @@ class InformesExportador:
         grupos: List[Dict],
         columnas: List[str],
         modo: str = 'detalle',
-        resultado_agrupacion: Optional[Dict] = None
+        resultado_agrupacion: Optional[Dict] = None,
+        ancho_disponible: float = 24*cm
     ) -> List:
         """Crea elementos de tabla para grupos jerárquicos en PDF"""
         elements = []
@@ -1103,7 +1397,7 @@ class InformesExportador:
 
             # Crear tabla para el título del grupo
             grupo_data = [[Paragraph(titulo_grupo, style_grupo)]]
-            grupo_table = Table(grupo_data, colWidths=[24*cm])
+            grupo_table = Table(grupo_data, colWidths=[ancho_disponible])
             grupo_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, -1), bg_color),
                 ('TEXTCOLOR', (0, 0), (-1, -1), colors.white),
@@ -1124,7 +1418,8 @@ class InformesExportador:
                     subgrupos,
                     columnas,
                     modo,
-                    resultado_agrupacion
+                    resultado_agrupacion,
+                    ancho_disponible
                 )
                 elements.extend(sub_elements)
             elif modo == 'detalle' and datos:
@@ -1147,7 +1442,12 @@ class InformesExportador:
                             fila_formateada.append(str(valor) if valor is not None else "")
                     tabla_datos.append(fila_formateada)
 
-                tabla = Table(tabla_datos)
+                # Calcular anchos de columnas dinámicos
+                num_columnas = len(columnas)
+                ancho_por_columna = ancho_disponible / num_columnas
+                col_widths = [ancho_por_columna] * num_columnas
+
+                tabla = Table(tabla_datos, colWidths=col_widths)
                 tabla.setStyle(TableStyle([
                     # Encabezado
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#D9D9D9')),
@@ -1186,7 +1486,7 @@ class InformesExportador:
                 )
 
                 subtotal_data = [[Paragraph(texto_subtotales, style_subtotal)]]
-                subtotal_table = Table(subtotal_data, colWidths=[24*cm])
+                subtotal_table = Table(subtotal_data, colWidths=[ancho_disponible])
                 subtotal_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#E7E6E6')),
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),

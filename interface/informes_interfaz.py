@@ -2491,6 +2491,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
@@ -2738,6 +2741,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
@@ -2985,6 +2991,9 @@ class InformesFrame(customtkinter.CTkFrame):
         from CTkMessagebox import CTkMessagebox
         from tkinter import filedialog
         import datetime
+        import importlib
+        import script.informes_exportacion
+        importlib.reload(script.informes_exportacion)  # Forzar recarga del módulo para ver cambios
         from script.informes_exportacion import InformesExportador
 
         # Validaciones
@@ -3173,6 +3182,14 @@ class InformesFrame(customtkinter.CTkFrame):
 
         if not archivo:
             return  # Usuario canceló
+
+        # Mostrar diálogo de configuración del informe
+        config_informe = self._mostrar_dialogo_configuracion_informe()
+        if not config_informe:
+            return  # Usuario canceló
+
+        titulo_informe = config_informe['titulo']
+        fecha_generacion = config_informe['fecha']
 
         # Crear archivo PDF usando el exportador profesional
         try:
