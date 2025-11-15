@@ -350,8 +350,9 @@ class InformesExportador:
             # Logo Redes Urbide (izquierda)
             ancho_col_izq_chars = 15  # Default
             if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                x_scale_izq, _, _, ancho_px_izq, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
-                ancho_escalado_px_izq = ancho_px_izq * x_scale_izq
+                x_scale_izq, _, ancho_img_cm_izq, ancho_px_izq, _ = self._calcular_escala_imagen(self.logo_redes_path, 2.0)
+                # XlsxWriter convierte imágenes a 96 DPI internamente
+                ancho_escalado_px_izq = (ancho_img_cm_izq / 2.54) * 96
                 # Convertir píxeles a caracteres: chars = (pixels - 5) / 7
                 # Añadir margen de 10px (≈1.4 chars) para espacio
                 ancho_col_izq_chars = max(15, int((ancho_escalado_px_izq + 10) / 7))
@@ -362,12 +363,13 @@ class InformesExportador:
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 x_scale_der, _, ancho_img_cm_derecha, ancho_px_der, _ = self._calcular_escala_imagen(self.logo_urbide_path, 2.0)
 
-                # Calcular ancho real de la imagen escalada en píxeles
-                # XlsxWriter usa directamente los píxeles escalados, NO convierte a 96 DPI
-                ancho_img_px_escalado_derecha = ancho_px_der * x_scale_der
+                # XlsxWriter convierte imágenes a 96 DPI internamente
+                # Convertir el ancho en cm a píxeles @ 96 DPI
+                ancho_img_px_escalado_derecha = (ancho_img_cm_derecha / 2.54) * 96
 
                 print(f"DEBUG Logo Urbide - Cálculo de escala:")
-                print(f"  Ancho imagen original: {ancho_px_der}px × scale {x_scale_der:.4f} = {ancho_img_px_escalado_derecha:.1f}px")
+                print(f"  Ancho imagen en cm: {ancho_img_cm_derecha:.2f}cm")
+                print(f"  Ancho en píxeles @ 96 DPI: {ancho_img_px_escalado_derecha:.1f}px")
                 print(f"  Ancho columna estándar: {ancho_col_der_chars} chars (sin modificar)")
 
             # Configurar ancho de primera y última columna
