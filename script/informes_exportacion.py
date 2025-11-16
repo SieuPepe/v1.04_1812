@@ -1642,6 +1642,409 @@ class InformesExportador:
             traceback.print_exc()
             return False
 
+    def _exportar_pdf_ordenes_recursos(
+        self,
+        filepath: str,
+        resultado_ordenes: Dict,
+        config: Dict,
+        proyecto_nombre: str,
+        proyecto_codigo: str,
+        fecha_informe: str,
+        informe_nombre: str
+    ) -> bool:
+        """
+        Renderiza PDF especial para informe de Órdenes de Trabajo con Recursos
+
+        Formato:
+        - Encabezado con logos + título
+        - Para cada orden:
+            * Cabecera con datos de la orden (código, título, fecha, localización, coordenadas)
+            * Tabla de recursos presupuestados
+            * Total de la orden
+        - Si hay agrupaciones, mostrar subtotales por grupo
+        - Gran total al final
+        - Pie de página con fecha y paginación
+
+        Args:
+            filepath: Ruta del PDF a generar
+            resultado_ordenes: Estructura con órdenes y recursos
+            config: Configuración PDF del tipo de informe
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            informe_nombre: Nombre del informe
+
+        Returns:
+            True si se generó correctamente
+        """
+        try:
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.units import cm
+            from reportlab.lib import colors as reportlab_colors
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+            from datetime import datetime
+
+            print(f"Generando PDF de Órdenes con Recursos: {filepath}")
+
+            # Crear documento
+            doc = SimpleDocTemplate(
+                filepath,
+                pagesize=A4,  # Vertical (Portrait)
+                rightMargin=2*cm,
+                leftMargin=2*cm,
+                topMargin=2*cm,
+                bottomMargin=2*cm
+            )
+
+            # Estilos
+            styles = getSampleStyleSheet()
+            style_titulo = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=18,
+                textColor=reportlab_colors.HexColor(config.get('color_titulo', '#E65100')),
+                spaceAfter=12,
+                alignment=TA_CENTER
+            )
+            style_orden_header = ParagraphStyle(
+                'OrdenHeader',
+                parent=styles['Normal'],
+                fontSize=10,
+                textColor=reportlab_colors.HexColor('#FF9800'),
+                spaceBefore=10,
+                spaceAfter=6,
+                fontName='Helvetica-Bold'
+            )
+            style_normal = ParagraphStyle(
+                'CustomNormal',
+                parent=styles['Normal'],
+                fontSize=9,
+                spaceAfter=4
+            )
+            style_grupo = ParagraphStyle(
+                'GrupoHeader',
+                parent=styles['Heading2'],
+                fontSize=12,
+                textColor=reportlab_colors.white,
+                backColor=reportlab_colors.HexColor(config.get('color_grupo_nivel0', '#E65100')),
+                spaceBefore=12,
+                spaceAfter=8,
+                fontName='Helvetica-Bold'
+            )
+
+            # Elementos del PDF
+            elements = []
+
+            # ENCABEZADO: Logos + Título
+            header_table_data = []
+            logo_izq = None
+            logo_der = None
+
+            # Logo izquierdo
+            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                from reportlab.platypus import Image
+                logo_izq = Image(self.logo_redes_path, width=3*cm, height=2*cm)
+
+            # Logo derecho
+            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                from reportlab.platypus import Image
+                logo_der = Image(self.logo_urbide_path, width=3*cm, height=2*cm)
+
+            # Título centrado
+            titulo_para = Paragraph(informe_nombre.upper(), style_titulo)
+
+            if logo_izq and logo_der:
+                header_table_data.append([logo_izq, titulo_para, logo_der])
+                header_table = Table(header_table_data, colWidths=[3.5*cm, None, 3.5*cm])
+                header_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                    ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                elements.append(header_table)
+            else:
+                elements.append(titulo_para)
+
+            elements.append(Spacer(1, 0.5*cm))
+
+            # Obtener datos
+            ordenes = resultado_ordenes.get('ordenes', [])
+            grupos = resultado_ordenes.get('grupos', [])
+            agrupaciones = resultado_ordenes.get('agrupaciones', [])
+            gran_total = resultado_ordenes.get('gran_total', 0)
+
+            # Función auxiliar para renderizar una orden
+            def renderizar_orden(orden_data):
+                """Renderiza una orden con su cabecera y tabla de recursos"""
+                elementos_orden = []
+
+                datos_orden = orden_data['datos_orden']
+                recursos = orden_data['recursos']
+                total_orden = orden_data['total_orden']
+
+                # CABECERA DE LA ORDEN
+                # Primera fila: Código + Título (ambos en la misma fila, como dos columnas)
+                codigo = datos_orden.get('codigo', '')
+                titulo = datos_orden.get('titulo', '')
+
+                cabecera_fila1 = Table(
+                    [[Paragraph(f"<b>{codigo}</b>", style_normal),
+                      Paragraph(f"<b>{titulo}</b>", style_normal)]],
+                    colWidths=[4*cm, None]
+                )
+                cabecera_fila1.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFCCBC')),
+                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#FF9800')),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elementos_orden.append(cabecera_fila1)
+
+                # Resto de campos de la orden (FECHA, LOCALIZACIÓN, LATITUD/LONGITUD)
+                fecha_fin = datos_orden.get('fecha_fin', '')
+                if isinstance(fecha_fin, datetime):
+                    fecha_fin = fecha_fin.strftime('%d/%m/%Y')
+                elif isinstance(fecha_fin, date):
+                    fecha_fin = fecha_fin.strftime('%d/%m/%Y')
+
+                municipio = datos_orden.get('municipio', '')
+                localizacion = datos_orden.get('localizacion', '')
+                latitud = datos_orden.get('latitud', '')
+                longitud = datos_orden.get('longitud', '')
+
+                # Combinar municipio + localización
+                loc_completa = f"{municipio}"
+                if localizacion:
+                    loc_completa += f" - {localizacion}"
+
+                # Tabla con el resto de datos
+                datos_cabecera = [
+                    [Paragraph("<b>FECHA:</b>", style_normal), Paragraph(str(fecha_fin), style_normal)],
+                    [Paragraph("<b>LOCALIZACIÓN:</b>", style_normal), Paragraph(loc_completa, style_normal)],
+                ]
+
+                # Fila con latitud y longitud (2 columnas en cada celda)
+                if latitud and longitud:
+                    lat_lon_table = Table(
+                        [[Paragraph(f"<b>LATITUD:</b> {latitud}", style_normal),
+                          Paragraph(f"<b>LONGITUD:</b> {longitud}", style_normal)]],
+                        colWidths=[None, None]
+                    )
+                    lat_lon_table.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ]))
+                    datos_cabecera.append([lat_lon_table, ''])
+
+                cabecera_datos = Table(datos_cabecera, colWidths=[4*cm, None])
+                cabecera_datos.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFF3E0')),
+                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#FF9800')),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elementos_orden.append(cabecera_datos)
+                elementos_orden.append(Spacer(1, 0.3*cm))
+
+                # TABLA DE RECURSOS
+                if recursos:
+                    # Encabezados
+                    headers = ['Código', 'Cantidad', 'Ud.', 'Recurso / Material', 'Precio unit.', 'Importe']
+                    tabla_datos = [headers]
+
+                    # Filas de recursos
+                    for recurso in recursos:
+                        fila = [
+                            recurso.get('codigo', ''),
+                            f"{recurso.get('cantidad', 0):.2f}",
+                            recurso.get('unidad', ''),
+                            recurso.get('resumen', ''),
+                            f"{recurso.get('coste', 0):.2f} €",
+                            f"{recurso.get('coste_total', 0):.2f} €"
+                        ]
+                        tabla_datos.append(fila)
+
+                    # Fila de total
+                    tabla_datos.append([
+                        '', '', '', '', Paragraph("<b>TOTAL ORDEN:</b>", style_normal),
+                        Paragraph(f"<b>{total_orden:.2f} €</b>", style_normal)
+                    ])
+
+                    # Anchos de columnas
+                    col_widths = [2*cm, 2*cm, 1.5*cm, 7*cm, 2.5*cm, 2.5*cm]
+
+                    tabla_recursos = Table(tabla_datos, colWidths=col_widths)
+                    tabla_recursos.setStyle(TableStyle([
+                        # Encabezado
+                        ('BACKGROUND', (0, 0), (-1, 0), reportlab_colors.HexColor('#FFCCBC')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), reportlab_colors.black),
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+
+                        # Datos
+                        ('ALIGN', (0, 1), (2, -2), 'CENTER'),
+                        ('ALIGN', (3, 1), (3, -2), 'LEFT'),
+                        ('ALIGN', (4, 1), (5, -2), 'RIGHT'),
+                        ('FONTSIZE', (0, 1), (-1, -2), 8),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [reportlab_colors.white, reportlab_colors.HexColor('#FFF9F5')]),
+
+                        # Fila de total
+                        ('BACKGROUND', (0, -1), (-1, -1), reportlab_colors.HexColor('#FFE0B2')),
+                        ('ALIGN', (4, -1), (-1, -1), 'RIGHT'),
+                        ('FONTNAME', (4, -1), (-1, -1), 'Helvetica-Bold'),
+
+                        # Bordes
+                        ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.black),
+                        ('INNERGRID', (0, 0), (-1, -1), 0.5, reportlab_colors.grey),
+
+                        # Padding
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                    ]))
+
+                    elementos_orden.append(tabla_recursos)
+                else:
+                    # No hay recursos
+                    elementos_orden.append(Paragraph("<i>Sin recursos presupuestados</i>", style_normal))
+
+                elementos_orden.append(Spacer(1, config.get('espaciado_entre_ordenes', 10)))
+                return elementos_orden
+
+            # Función auxiliar para renderizar grupos recursivamente
+            def renderizar_grupos(grupos_lista, nivel=0):
+                """Renderiza grupos jerárquicamente"""
+                elementos_grupos = []
+
+                for grupo in grupos_lista:
+                    campo = grupo['campo']
+                    valor = grupo['valor']
+                    subtotal = grupo['subtotal']
+                    ordenes_grupo = grupo.get('ordenes', [])
+                    subgrupos = grupo.get('subgrupos', [])
+
+                    # Color según nivel
+                    if nivel == 0:
+                        color_fondo = config.get('color_grupo_nivel0', '#E65100')
+                    elif nivel == 1:
+                        color_fondo = config.get('color_grupo_nivel1', '#FF9800')
+                    else:
+                        color_fondo = config.get('color_grupo_nivel2', '#FFB74D')
+
+                    # Header del grupo
+                    style_grupo_nivel = ParagraphStyle(
+                        f'Grupo_Nivel_{nivel}',
+                        parent=style_grupo,
+                        backColor=reportlab_colors.HexColor(color_fondo)
+                    )
+                    elementos_grupos.append(Paragraph(f"<b>{campo.upper()}: {valor}</b>", style_grupo_nivel))
+                    elementos_grupos.append(Spacer(1, 0.2*cm))
+
+                    # Si hay subgrupos, renderizarlos
+                    if subgrupos:
+                        elementos_grupos.extend(renderizar_grupos(subgrupos, nivel + 1))
+                    # Si no hay subgrupos, renderizar las órdenes
+                    elif ordenes_grupo:
+                        for orden in ordenes_grupo:
+                            elementos_grupos.extend(renderizar_orden(orden))
+
+                    # Subtotal del grupo
+                    tabla_subtotal = Table(
+                        [[Paragraph(f"<b>SUBTOTAL {campo.upper()}: {valor}</b>", style_normal),
+                          Paragraph(f"<b>{subtotal:.2f} €</b>", style_normal)]],
+                        colWidths=[None, 3*cm]
+                    )
+                    tabla_subtotal.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFE0B2')),
+                        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                        ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.black),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ]))
+                    elementos_grupos.append(tabla_subtotal)
+                    elementos_grupos.append(Spacer(1, 0.5*cm))
+
+                return elementos_grupos
+
+            # Renderizar contenido
+            if grupos:
+                # Con agrupaciones
+                elements.extend(renderizar_grupos(grupos))
+            else:
+                # Sin agrupaciones, mostrar órdenes directamente
+                for orden in ordenes:
+                    elements.extend(renderizar_orden(orden))
+
+            # GRAN TOTAL
+            if config.get('mostrar_gran_total', True):
+                tabla_gran_total = Table(
+                    [[Paragraph("<b>TOTAL GENERAL:</b>", style_titulo),
+                      Paragraph(f"<b>{gran_total:.2f} €</b>", style_titulo)]],
+                    colWidths=[None, 4*cm]
+                )
+                tabla_gran_total.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#E65100')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), reportlab_colors.white),
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 14),
+                    ('BOX', (0, 0), (-1, -1), 2, reportlab_colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(Spacer(1, 0.5*cm))
+                elements.append(tabla_gran_total)
+
+            # PIE DE PÁGINA (con fecha y paginación)
+            def pie_pagina(canvas, doc):
+                """Función para agregar pie de página en cada página"""
+                canvas.saveState()
+                fecha_str = fecha_informe or datetime.now().strftime('%d/%m/%Y')
+                pagina_str = f"Página {doc.page} de {doc.page}"  # Se actualizará en el segundo paso
+
+                # Fecha a la izquierda
+                canvas.setFont('Helvetica', 9)
+                canvas.drawString(2*cm, 1.5*cm, fecha_str)
+
+                # Paginación a la derecha
+                canvas.drawRightString(A4[0] - 2*cm, 1.5*cm, f"Página {canvas.getPageNumber()}")
+                canvas.restoreState()
+
+            # Construir PDF
+            doc.build(elements, onFirstPage=pie_pagina, onLaterPages=pie_pagina)
+
+            print(f"✓ PDF de Órdenes con Recursos generado: {filepath}")
+            return True
+
+        except Exception as e:
+            print(f"Error al generar PDF de Órdenes con Recursos: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def exportar_a_pdf_word(
         self,
         filepath: str,
