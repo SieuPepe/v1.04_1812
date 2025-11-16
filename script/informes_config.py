@@ -17,8 +17,7 @@ CATEGORIAS_INFORMES = {
         "Listado de Partidas del Presupuesto",
         "Recursos Presupuestados",
         "Recursos Certificados",
-        "Recursos Pendientes",
-        "Trabajos por Actuación"
+        "Recursos Pendientes"
     ],
 
     "💰 Presupuestos": [
@@ -1264,134 +1263,6 @@ INFORMES_DEFINICIONES = {
             "resumen",
             "coste",
             "coste_total"
-        ]
-    },
-
-    "Trabajos por Actuación": {
-        "categoria": "📦 Recursos",
-        "descripcion": "Listado de partes en los que está presupuestada una unidad de obra específica.",
-        "tabla_principal": "tbl_partes",
-        "require_selector": True,  # Requiere selector especial de partida
-        "selector_config": {
-            "tipo": "partida_presupuesto",
-            "tabla": "tbl_pres_precios",
-            "campo_mostrar": "codigo",
-            "campo_descripcion": "resumen"
-        },
-
-        "campos": {
-            "mes": {
-                "nombre": "Mes",
-                "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
-                "grupo": "Temporal"
-            },
-            "año": {
-                "nombre": "Año",
-                "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
-                "grupo": "Temporal"
-            },
-            "partida_seleccionada": {
-                "nombre": "Partida",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "codigo_parte": {
-                "nombre": "Código Parte",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "descripcion_parte": {
-                "nombre": "Descripción Parte",
-                "tipo": "texto",
-                "columna_bd": "descripcion",
-                "grupo": "Información Básica"
-            },
-            "estado": {
-                "nombre": "Estado",
-                "tipo": "texto",
-                "columna_bd": "estado",
-                "grupo": "Información Básica"
-            },
-            "cantidad_presupuestada": {
-                "nombre": "Cantidad",
-                "tipo": "calculado",
-                "formula": "(SELECT pp.cantidad FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
-                "formato": "decimal",
-                "grupo": "Presupuesto"
-            },
-            "importe": {
-                "nombre": "Importe",
-                "tipo": "calculado",
-                "formula": "(SELECT pp.cantidad * pp.precio_unit FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
-                "formato": "moneda",
-                "grupo": "Presupuesto"
-            },
-            "fecha_inicio": {
-                "nombre": "Fecha Inicio",
-                "tipo": "fecha",
-                "columna_bd": "fecha_inicio",
-                "grupo": "Fechas"
-            }
-        },
-
-        "filtros": {
-            "estado": {
-                "campo": "estado",
-                "tipo": "select",
-                "operadores": ["Igual a", "Diferente de"],
-                "valores": ["Pendiente", "En curso", "Finalizado"]
-            },
-            "fecha_inicio": {
-                "campo": "fecha_inicio",
-                "tipo": "fecha",
-                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
-            }
-        },
-
-        "ordenaciones": [
-            "mes",
-            "año",
-            "estado",
-            "fecha_inicio",
-            "cantidad_presupuestada"
-        ],
-
-        "agrupaciones": {
-            "campos_permitidos": [
-                "mes",
-                "año",
-                "estado"
-            ],
-            "max_niveles": 1,
-            "modo_default": "detalle"
-        },
-
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            }
-        },
-
-        "campos_default": [
-            "partida_seleccionada",
-            "codigo_parte",
-            "descripcion_parte",
-            "estado",
-            "cantidad_presupuestada",
-            "importe"
         ]
     },
 
