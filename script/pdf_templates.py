@@ -64,17 +64,16 @@ class NumberedCanvas(canvas.Canvas):
         template = self.pdf_template
         ancho_pagina, alto_pagina = template.pagesize
 
-        # Altura del encabezado (reducida)
-        altura_encabezado = 2.0 * cm
-        y_pos = alto_pagina - template.margen_superior - altura_encabezado
+        # Posición del encabezado (cerca del borde superior)
+        # El encabezado se dibuja desde el borde superior hacia abajo
+        y_pos = alto_pagina - template.margen_superior_encabezado - template.altura_encabezado
 
         # Logo izquierdo
         if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
             try:
                 img = PILImage.open(template.logo_izquierdo_path)
                 aspect_ratio = img.size[0] / img.size[1]
-                altura_logo = 2.0 * cm
-                ancho_logo = altura_logo * aspect_ratio
+                ancho_logo = template.altura_encabezado * aspect_ratio
 
                 x_logo_izq = template.margen_izquierdo
                 self.drawImage(
@@ -82,7 +81,7 @@ class NumberedCanvas(canvas.Canvas):
                     x_logo_izq,
                     y_pos,
                     width=ancho_logo,
-                    height=altura_logo,
+                    height=template.altura_encabezado,
                     preserveAspectRatio=True
                 )
             except:
@@ -94,7 +93,7 @@ class NumberedCanvas(canvas.Canvas):
         titulo = template.titulo.upper()
         ancho_texto = self.stringWidth(titulo, 'Helvetica-Bold', 20)
         x_titulo = (ancho_pagina - ancho_texto) / 2
-        y_titulo = y_pos + altura_encabezado / 2
+        y_titulo = y_pos + template.altura_encabezado / 2
         self.drawString(x_titulo, y_titulo, titulo)
 
         # Logo derecho
@@ -102,8 +101,7 @@ class NumberedCanvas(canvas.Canvas):
             try:
                 img = PILImage.open(template.logo_derecho_path)
                 aspect_ratio = img.size[0] / img.size[1]
-                altura_logo = 2.0 * cm
-                ancho_logo = altura_logo * aspect_ratio
+                ancho_logo = template.altura_encabezado * aspect_ratio
 
                 x_logo_der = ancho_pagina - template.margen_derecho - ancho_logo
                 self.drawImage(
@@ -111,7 +109,7 @@ class NumberedCanvas(canvas.Canvas):
                     x_logo_der,
                     y_pos,
                     width=ancho_logo,
-                    height=altura_logo,
+                    height=template.altura_encabezado,
                     preserveAspectRatio=True
                 )
             except:
@@ -136,17 +134,18 @@ class NumberedCanvas(canvas.Canvas):
         template = self.pdf_template
         ancho_pagina, _ = template.pagesize
 
-        # Posición del pie de página
-        y_pos = template.margen_inferior - 0.5 * cm
+        # Posición del pie de página (cerca del borde inferior)
+        y_pos = template.margen_inferior_pie + template.altura_pie
 
-        # Línea separadora
+        # Línea separadora (por encima del texto del pie)
         self.setStrokeColor(colors.HexColor('#CCCCCC'))
         self.setLineWidth(0.5)
+        y_linea = y_pos + template.altura_pie
         self.line(
             template.margen_izquierdo,
-            y_pos + 0.5 * cm,
+            y_linea,
             ancho_pagina - template.margen_derecho,
-            y_pos + 0.5 * cm
+            y_linea
         )
 
         # Texto del pie de página
@@ -210,11 +209,22 @@ class PDFTemplate:
         else:
             self.pagesize = A4  # 21 x 29.7 cm
 
-        # Márgenes (en cm) - ajustados para encabezado y pie de página
-        self.margen_superior = 3.5 * cm  # Espacio para encabezado (2cm logos + 1.5cm margen)
-        self.margen_inferior = 2.0 * cm  # Espacio para pie de página
+        # Márgenes para el contenido del documento
         self.margen_izquierdo = 1.5 * cm
         self.margen_derecho = 1.5 * cm
+
+        # Márgenes superior e inferior ajustados para encabezado y pie de página
+        # El encabezado se dibuja en el espacio del margen superior
+        self.margen_superior_encabezado = 0.8 * cm  # Espacio desde el borde hasta el encabezado
+        self.altura_encabezado = 2.0 * cm  # Altura del encabezado (logos)
+        self.espacio_tras_encabezado = 0.7 * cm  # Espacio entre encabezado y contenido
+        self.margen_superior = self.margen_superior_encabezado + self.altura_encabezado + self.espacio_tras_encabezado  # Total: ~3.5cm
+
+        # Pie de página
+        self.margen_inferior_pie = 0.8 * cm  # Espacio desde el borde hasta el pie
+        self.altura_pie = 0.5 * cm  # Altura del pie de página
+        self.espacio_antes_pie = 0.7 * cm  # Espacio entre contenido y pie
+        self.margen_inferior = self.margen_inferior_pie + self.altura_pie + self.espacio_antes_pie  # Total: ~2cm
 
         # Buscar logos
         self.logo_izquierdo_path = None

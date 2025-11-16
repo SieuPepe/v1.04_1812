@@ -405,6 +405,11 @@ def build_query(informe_nombre, filtros=None, ordenaciones=None, campos_seleccio
             campo_key = clasif['campo']
             orden = clasif.get('orden', 'Ascendente')
 
+            # VALIDACIÓN: Solo permitir ordenar por campos que están en el SELECT
+            if campo_key not in campos_seleccionados:
+                print(f"⚠ Advertencia: Campo '{campo_key}' en ORDER BY no está en SELECT, se omite")
+                continue
+
             campo = campos_def.get(campo_key)
             if campo:
                 if campo['tipo'] == 'dimension':
