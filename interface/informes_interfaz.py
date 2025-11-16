@@ -3455,7 +3455,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 btn_frame,
                 text="Cargar",
                 width=80,
-                command=lambda f=config.get('filename', config['nombre']): seleccionar(f)
+                command=lambda f=config['filename']: seleccionar(f)
             )
             cargar_btn.pack(side="left", padx=2)
 
@@ -3465,7 +3465,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 width=40,
                 fg_color="darkred",
                 hover_color="red",
-                command=lambda f=config.get('filename', config['nombre']), n=config['nombre']: eliminar_config(f, n)
+                command=lambda f=config['filename'], n=config['nombre']: eliminar_config(f, n)
             )
             eliminar_btn.pack(side="left", padx=2)
         

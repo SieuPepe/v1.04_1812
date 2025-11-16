@@ -5,6 +5,7 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
+import subprocess
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 import xlsxwriter
