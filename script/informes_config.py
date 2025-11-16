@@ -15,7 +15,6 @@ CATEGORIAS_INFORMES = {
 
     "📦 Recursos": [
         "Listado de Partidas del Presupuesto",
-        "Consumo de Recursos",
         "Recursos Presupuestados",
         "Recursos Certificados",
         "Recursos Pendientes",
@@ -573,201 +572,143 @@ INFORMES_DEFINICIONES = {
         ]
     },
 
-    "Consumo de Recursos": {
-        "categoria": "📦 Recursos",
-        "descripcion": "Partidas del presupuesto con cantidad presupuestada e importe presupuesto, cantidad certificada e importe certificado.",
-        "tabla_principal": "tbl_pres_precios",
-        "require_joins": ["tbl_part_presupuesto", "tbl_part_certificacion"],
-
-        "campos": {
-            "capitulo": {
-                "nombre": "Capítulo",
-                "tipo": "dimension",
-                "columna_bd": "id_capitulo",
-                "tabla_dimension": "tbl_pres_capitulos",
-                "campo_nombre": "descripcion",
-                "grupo": "Ordenación"
-            },
-            "codigo": {
-                "nombre": "Código",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "unidad": {
-                "nombre": "Ud",
-                "tipo": "dimension",
-                "columna_bd": "id_unidades",
-                "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
-                "grupo": "Información Básica"
-            },
-            "resumen": {
-                "nombre": "Recurso/Material",
-                "tipo": "texto",
-                "columna_bd": "resumen",
-                "grupo": "Información Básica"
-            },
-            "precio_unitario": {
-                "nombre": "Precio",
-                "tipo": "numerico",
-                "columna_bd": "coste",
-                "formato": "moneda",
-                "grupo": "Económico"
-            },
-            "cantidad_presupuesto": {
-                "nombre": "Cant. Presupuesto",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
-                "formato": "decimal",
-                "grupo": "Presupuesto"
-            },
-            "importe_presupuesto": {
-                "nombre": "Imp. Presupuesto",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
-                "formato": "moneda",
-                "grupo": "Presupuesto"
-            },
-            "cantidad_certificado": {
-                "nombre": "Cant. Certificado",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "decimal",
-                "grupo": "Certificación"
-            },
-            "importe_certificado": {
-                "nombre": "Imp. Certificado",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "moneda",
-                "grupo": "Certificación"
-            }
-        },
-
-        "filtros": {
-            "capitulo": {
-                "campo": "capitulo",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "tbl_pres_capitulos"
-            },
-            "codigo": {
-                "campo": "codigo",
-                "tipo": "texto",
-                "operadores": ["Contiene", "Empieza con"]
-            }
-        },
-
-        "ordenaciones": [
-            "capitulo",
-            "codigo",
-            "cantidad_presupuesto",
-            "cantidad_certificado"
-        ],
-
-        "agrupaciones": {
-            "campos_permitidos": [
-                "capitulo"
-            ],
-            "max_niveles": 1,
-            "modo_default": "detalle"
-        },
-
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            }
-        },
-
-        "campos_default": [
-            "capitulo",
-            "codigo",
-            "unidad",
-            "resumen",
-            "precio_unitario",
-            "cantidad_presupuesto",
-            "importe_presupuesto",
-            "cantidad_certificado",
-            "importe_certificado"
-        ]
-    },
-
     "Recursos Presupuestados": {
         "categoria": "📦 Recursos",
         "descripcion": "Listado de recursos/partidas presupuestadas con cantidad y coste total",
-        "tabla_principal": "tbl_pres_precios",
+        "tabla_principal": "tbl_part_presupuesto",
+        "require_joins": ["tbl_pres_precios", "tbl_partes"],
         "formato_pdf": "vertical",  # Formato vertical para PDF
         "campos_fijos": True,  # No permite selección de campos
+        "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
 
         "campos": {
+            # Campos de tbl_pres_precios (tabla de precios)
             "capitulo": {
                 "nombre": "Capítulo",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Ordenación"
+                "grupo": "Precio"
             },
             "codigo": {
                 "nombre": "Código",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "cantidad": {
-                "nombre": "Cantidad",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
-                "formato": "decimal",
-                "grupo": "Datos"
+                "grupo": "Precio"
             },
             "unidad": {
                 "nombre": "Unidad",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
                 "campo_nombre": "descripcion",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "resumen": {
                 "nombre": "Resumen",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "resumen",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste",
+                "nombre": "Coste Unitario",
                 "tipo": "numerico",
-                "columna_bd": "coste",
+                "columna_bd": "precio_unit",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            "naturaleza": {
+                "nombre": "Naturaleza",
+                "tipo": "dimension",
+                "tabla_relacion": "precio",
+                "columna_bd": "id_naturaleza",
+                "tabla_dimension": "tbl_pres_naturaleza",
+                "campo_nombre": "descripcion",
+                "grupo": "Precio"
+            },
+            # Campos de tbl_part_presupuesto (mediciones)
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "numerico",
+                "columna_bd": "cantidad",
+                "formato": "decimal",
+                "grupo": "Medición"
             },
             "coste_total": {
                 "nombre": "Coste Total",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
+                "formula": "p.cantidad * p.precio_unit",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            # Campos de tbl_partes para agrupación
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "cod": {
+                "nombre": "COD",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "cod_id",
+                "tabla_dimension": "dim_cod",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "grupo": "Parte"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "YEAR(parte.fecha_inicio)",
+                "grupo": "Parte"
             }
         },
 
         "filtros": {
-            "capitulo": {
-                "campo": "capitulo",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "tbl_pres_capitulos"
-            },
             "codigo": {
                 "campo": "codigo",
                 "tipo": "texto",
@@ -777,21 +718,44 @@ INFORMES_DEFINICIONES = {
                 "campo": "resumen",
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "municipio": {
+                "campo": "municipio",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_municipios"
             }
         },
 
         "ordenaciones": [
-            "capitulo",
             "codigo",
             "cantidad",
-            "coste_total"
+            "coste_total",
+            "red",
+            "tipo_trabajo",
+            "municipio",
+            "mes"
         ],
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
+                "tipo_trabajo",
+                "cod",
+                "comarca",
+                "municipio",
+                "mes",
+                "año",
+                "naturaleza",
                 "capitulo"
             ],
-            "max_niveles": 1,
+            "max_niveles": 2,
             "modo_default": "detalle"
         },
 
@@ -810,69 +774,141 @@ INFORMES_DEFINICIONES = {
     "Recursos Certificados": {
         "categoria": "📦 Recursos",
         "descripcion": "Listado de recursos/partidas certificadas con cantidad y coste total",
-        "tabla_principal": "tbl_pres_precios",
+        "tabla_principal": "tbl_part_certificacion",
+        "require_joins": ["tbl_pres_precios", "tbl_partes"],
         "formato_pdf": "vertical",  # Formato vertical para PDF
         "campos_fijos": True,  # No permite selección de campos
+        "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
+        "filtro_certificada": True,  # Solo registros certificados
 
         "campos": {
+            # Campos de tbl_pres_precios (tabla de precios)
             "capitulo": {
                 "nombre": "Capítulo",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Ordenación"
+                "grupo": "Precio"
             },
             "codigo": {
                 "nombre": "Código",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "cantidad": {
-                "nombre": "Cantidad",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "decimal",
-                "grupo": "Datos"
+                "grupo": "Precio"
             },
             "unidad": {
                 "nombre": "Unidad",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
                 "campo_nombre": "descripcion",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "resumen": {
                 "nombre": "Resumen",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "resumen",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste",
+                "nombre": "Coste Unitario",
                 "tipo": "numerico",
-                "columna_bd": "coste",
+                "columna_bd": "precio_unit",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            "naturaleza": {
+                "nombre": "Naturaleza",
+                "tipo": "dimension",
+                "tabla_relacion": "precio",
+                "columna_bd": "id_naturaleza",
+                "tabla_dimension": "tbl_pres_naturaleza",
+                "campo_nombre": "descripcion",
+                "grupo": "Precio"
+            },
+            # Campos de tbl_part_certificacion (mediciones)
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "numerico",
+                "columna_bd": "cantidad_cert",
+                "formato": "decimal",
+                "grupo": "Medición"
             },
             "coste_total": {
                 "nombre": "Coste Total",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
+                "formula": "p.cantidad_cert * p.precio_unit",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            # Campos de tbl_partes para agrupación
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "cod": {
+                "nombre": "COD",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "cod_id",
+                "tabla_dimension": "dim_cod",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "grupo": "Parte"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "YEAR(parte.fecha_inicio)",
+                "grupo": "Parte"
             }
         },
 
         "filtros": {
-            "capitulo": {
-                "campo": "capitulo",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "tbl_pres_capitulos"
-            },
             "codigo": {
                 "campo": "codigo",
                 "tipo": "texto",
@@ -882,21 +918,44 @@ INFORMES_DEFINICIONES = {
                 "campo": "resumen",
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "municipio": {
+                "campo": "municipio",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_municipios"
             }
         },
 
         "ordenaciones": [
-            "capitulo",
             "codigo",
             "cantidad",
-            "coste_total"
+            "coste_total",
+            "red",
+            "tipo_trabajo",
+            "municipio",
+            "mes"
         ],
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
+                "tipo_trabajo",
+                "cod",
+                "comarca",
+                "municipio",
+                "mes",
+                "año",
+                "naturaleza",
                 "capitulo"
             ],
-            "max_niveles": 1,
+            "max_niveles": 2,
             "modo_default": "detalle"
         },
 
@@ -915,69 +974,140 @@ INFORMES_DEFINICIONES = {
     "Recursos Pendientes": {
         "categoria": "📦 Recursos",
         "descripcion": "Listado de recursos/partidas pendientes de certificar (diferencia entre presupuesto y certificado)",
-        "tabla_principal": "tbl_pres_precios",
+        "tabla_principal": "tbl_part_presupuesto",
+        "require_joins": ["tbl_pres_precios", "tbl_partes"],
         "formato_pdf": "vertical",  # Formato vertical para PDF
         "campos_fijos": True,  # No permite selección de campos
+        "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
 
         "campos": {
+            # Campos de tbl_pres_precios (tabla de precios)
             "capitulo": {
                 "nombre": "Capítulo",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_capitulo",
                 "tabla_dimension": "tbl_pres_capitulos",
                 "campo_nombre": "descripcion",
-                "grupo": "Ordenación"
+                "grupo": "Precio"
             },
             "codigo": {
                 "nombre": "Código",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "cantidad": {
-                "nombre": "Cantidad",
-                "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
-                "formato": "decimal",
-                "grupo": "Datos"
+                "grupo": "Precio"
             },
             "unidad": {
                 "nombre": "Unidad",
                 "tipo": "dimension",
+                "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
                 "campo_nombre": "descripcion",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "resumen": {
                 "nombre": "Resumen",
                 "tipo": "texto",
+                "tabla_relacion": "precio",
                 "columna_bd": "resumen",
-                "grupo": "Información Básica"
+                "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste",
+                "nombre": "Coste Unitario",
                 "tipo": "numerico",
-                "columna_bd": "coste",
+                "columna_bd": "precio_unit",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
-            "coste_total": {
-                "nombre": "Coste Total",
+            "naturaleza": {
+                "nombre": "Naturaleza",
+                "tipo": "dimension",
+                "tabla_relacion": "precio",
+                "columna_bd": "id_naturaleza",
+                "tabla_dimension": "tbl_pres_naturaleza",
+                "campo_nombre": "descripcion",
+                "grupo": "Precio"
+            },
+            # Campos calculados: cantidad pendiente = presupuestada - certificada
+            "cantidad": {
+                "nombre": "Cantidad Pendiente",
                 "tipo": "calculado",
-                "formula": "(COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0))",
+                "formula": "p.cantidad - COALESCE((SELECT pc.cantidad_cert FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
+                "formato": "decimal",
+                "grupo": "Medición"
+            },
+            "coste_total": {
+                "nombre": "Coste Total Pendiente",
+                "tipo": "calculado",
+                "formula": "(p.cantidad * p.precio_unit) - COALESCE((SELECT pc.cantidad_cert * pc.precio_unit FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            # Campos de tbl_partes para agrupación
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "cod": {
+                "nombre": "COD",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "cod_id",
+                "tabla_dimension": "dim_cod",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "tabla_relacion": "parte",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "descripcion",
+                "grupo": "Parte"
+            },
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "grupo": "Parte"
+            },
+            "año": {
+                "nombre": "Año",
+                "tipo": "calculado",
+                "tabla_relacion": "parte",
+                "formula": "YEAR(parte.fecha_inicio)",
+                "grupo": "Parte"
             }
         },
 
         "filtros": {
-            "capitulo": {
-                "campo": "capitulo",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "tbl_pres_capitulos"
-            },
             "codigo": {
                 "campo": "codigo",
                 "tipo": "texto",
@@ -987,21 +1117,44 @@ INFORMES_DEFINICIONES = {
                 "campo": "resumen",
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
+            },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "municipio": {
+                "campo": "municipio",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_municipios"
             }
         },
 
         "ordenaciones": [
-            "capitulo",
             "codigo",
             "cantidad",
-            "coste_total"
+            "coste_total",
+            "red",
+            "tipo_trabajo",
+            "municipio",
+            "mes"
         ],
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
+                "tipo_trabajo",
+                "cod",
+                "comarca",
+                "municipio",
+                "mes",
+                "año",
+                "naturaleza",
                 "capitulo"
             ],
-            "max_niveles": 1,
+            "max_niveles": 2,
             "modo_default": "detalle"
         },
 
