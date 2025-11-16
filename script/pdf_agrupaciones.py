@@ -228,6 +228,9 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Número de columnas
+        num_columnas = len(columnas)
+
         # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
         anchos_recursos = {
             'Código': 1.5 * cm,
@@ -254,7 +257,6 @@ class PDFAgrupaciones(PDFTemplate):
                 col_widths.append(anchos_recursos[col])
         else:
             # Distribución equitativa para otros informes
-            num_columnas = len(columnas)
             ancho_columna = ancho_disponible / num_columnas
             col_widths = [ancho_columna] * num_columnas
 
@@ -401,6 +403,9 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Número de columnas
+        num_columnas = len(columnas)
+
         # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
         anchos_recursos = {
             'Código': 1.5 * cm,
@@ -427,7 +432,6 @@ class PDFAgrupaciones(PDFTemplate):
                 col_widths.append(anchos_recursos[col])
         else:
             # Distribución equitativa para otros informes
-            num_columnas = len(columnas)
             ancho_columna = ancho_disponible / num_columnas
             col_widths = [ancho_columna] * num_columnas
 
@@ -525,6 +529,9 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Número de columnas
+        num_columnas = len(columnas)
+
         # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
         anchos_recursos = {
             'Código': 1.5 * cm,
@@ -551,7 +558,6 @@ class PDFAgrupaciones(PDFTemplate):
                 col_widths.append(anchos_recursos[col])
         else:
             # Distribución equitativa para otros informes
-            num_columnas = len(columnas)
             ancho_columna = ancho_disponible / num_columnas
             col_widths = [ancho_columna] * num_columnas
 
