@@ -977,18 +977,28 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
         - totales: Dict con totales por columna totalizable {nombre_col: total}
     """
     try:
-        # Construir query (pasando user y password para detectar columnas de dimensiones)
-        query = build_query(informe_nombre, filtros, ordenaciones, campos_seleccionados, schema, user, password)
+        # Obtener definición del informe para determinar el método de ejecución
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        usar_agregacion_sql = definicion.get('usar_agregacion_sql', False) if definicion else False
+        campos_def = definicion.get('campos', {}) if definicion else {}
+
+        # Decidir qué query builder usar
+        if usar_agregacion_sql:
+            # NUEVO: Usar query con GROUP BY y SUM en SQL (sin agrupaciones visuales)
+            query = build_query_with_sql_aggregation(
+                informe_nombre, filtros, ordenaciones, campos_seleccionados,
+                agrupaciones=None,  # Sin agrupaciones visuales en este caso
+                schema=schema, user=user, password=password
+            )
+        else:
+            # ORIGINAL: Query simple sin GROUP BY
+            query = build_query(informe_nombre, filtros, ordenaciones, campos_seleccionados, schema, user, password)
 
         print(f"\n{'='*60}")
         print(f"QUERY GENERADO PARA INFORME: {informe_nombre}")
         print(f"{'='*60}")
         print(query)
         print(f"{'='*60}\n")
-
-        # Obtener definición del informe para identificar campos totalizables
-        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
-        campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Ejecutar query
         with get_project_connection(user, password, schema) as conn:

@@ -945,11 +945,34 @@ class InformesExportador:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         # Datos
+        formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
         for fila_idx, fila_datos in enumerate(datos):
             row_cells = table.rows[fila_idx + 1].cells
             for col_idx, valor in enumerate(fila_datos):
                 cell = row_cells[col_idx]
-                cell.text = str(valor) if valor is not None else ""
+
+                # Obtener el formato del campo según su columna
+                col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                # Detectar si es una coordenada (latitud/longitud)
+                es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
+                # Aplicar formato según el tipo de campo
+                if isinstance(valor, (int, float)):
+                    if es_coordenada:
+                        # Coordenadas geográficas: 4 decimales
+                        cell.text = f"{valor:.4f}"
+                    elif formato_campo == 'moneda':
+                        cell.text = f"{valor:,.2f} €"
+                    elif formato_campo == 'decimal':
+                        cell.text = f"{valor:,.2f}"
+                    else:
+                        # Por defecto, números con 2 decimales
+                        cell.text = f"{valor:,.2f}"
+                else:
+                    cell.text = str(valor) if valor is not None else ""
+
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.name = 'Tahoma'
@@ -1123,9 +1146,15 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Aplicar formato según el tipo de campo
                         if isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas geográficas: 4 decimales
+                                cell.text = f"{valor:.4f}"
+                            elif formato_campo == 'moneda':
                                 cell.text = f"{valor:,.2f} €"
                             else:
                                 # Por defecto, números con 2 decimales
