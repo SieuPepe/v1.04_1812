@@ -1377,3 +1377,364 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
             "totales_generales": {},
             "modo": modo
         }
+
+
+def ejecutar_informe_ordenes_recursos(user, password, schema, informe_nombre, filtros=None,
+                                       ordenaciones=None, agrupaciones=None):
+    """
+    Ejecuta el informe especial de Órdenes de Trabajo con sus recursos presupuestados
+
+    Este informe muestra cada orden con su cabecera (código, título, fecha, localización, etc.)
+    seguida de una tabla de recursos presupuestados específicos de esa orden.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña de BD
+        schema: Nombre del schema/proyecto
+        informe_nombre: Nombre del informe (debe ser "Presupuesto Detallado")
+        filtros: Lista de filtros a aplicar sobre las órdenes
+        ordenaciones: Lista de ordenaciones
+        agrupaciones: Lista de campos por los que agrupar (opcional)
+
+    Returns:
+        Dict con estructura especial:
+        {
+            "tipo": "ordenes_con_recursos",
+            "ordenes": [
+                {
+                    "id": 1,
+                    "datos_orden": {"codigo": "OT-001", "titulo": "...", "fecha_fin": "...", ...},
+                    "recursos": [
+                        {"codigo": "R001", "cantidad": 12.5, "unidad": "m", ...},
+                        ...
+                    ],
+                    "total_orden": 1234.56
+                },
+                ...
+            ],
+            "grupos": [...],  # Si hay agrupaciones
+            "gran_total": 12345.67,
+            "formatos": {...}
+        }
+    """
+    try:
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        if not definicion:
+            raise ValueError(f"No se encontró definición para informe: {informe_nombre}")
+
+        campos_orden = definicion.get('campos_orden', {})
+        campos_recursos = definicion.get('campos_recursos', {})
+        campos_filtro = definicion.get('campos', {})
+
+        # PASO 1: Construir query para obtener órdenes según filtros y agrupaciones
+        query_ordenes = _build_query_ordenes(
+            definicion, filtros, ordenaciones, agrupaciones, schema, user, password
+        )
+
+        print(f"\n{'='*60}")
+        print(f"QUERY ÓRDENES PARA: {informe_nombre}")
+        print(f"{'='*60}")
+        print(query_ordenes)
+        print(f"{'='*60}\n")
+
+        # Ejecutar query de órdenes
+        with get_project_connection(user, password, schema) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query_ordenes)
+            ordenes_data = cursor.fetchall()
+            ordenes_columns = [desc[0] for desc in cursor.description]
+
+            # PASO 2: Para cada orden, obtener sus recursos
+            ordenes_con_recursos = []
+            gran_total = 0
+
+            for orden_row in ordenes_data:
+                # Crear dict con datos de la orden
+                orden_dict = dict(zip(ordenes_columns, orden_row))
+                orden_id = orden_dict.get('id')
+
+                if not orden_id:
+                    print(f"ADVERTENCIA: Orden sin ID, omitiendo: {orden_dict}")
+                    continue
+
+                # Query para obtener recursos de esta orden específica
+                query_recursos = _build_query_recursos(orden_id, campos_recursos)
+
+                cursor.execute(query_recursos)
+                recursos_data = cursor.fetchall()
+
+                # Convertir recursos a lista de diccionarios
+                recursos_list = []
+                total_orden = 0
+
+                for recurso_row in recursos_data:
+                    recurso_dict = {
+                        'codigo': recurso_row[0],
+                        'cantidad': recurso_row[1],
+                        'unidad': recurso_row[2],
+                        'resumen': recurso_row[3],
+                        'coste': recurso_row[4],
+                        'coste_total': recurso_row[5]
+                    }
+                    recursos_list.append(recurso_dict)
+                    total_orden += float(recurso_dict['coste_total'] or 0)
+
+                # Agregar orden con sus recursos
+                ordenes_con_recursos.append({
+                    'id': orden_id,
+                    'datos_orden': orden_dict,
+                    'recursos': recursos_list,
+                    'total_orden': total_orden
+                })
+
+                gran_total += total_orden
+
+            cursor.close()
+
+        # PASO 3: Si hay agrupaciones, organizar órdenes en grupos
+        grupos = []
+        if agrupaciones and ordenes_con_recursos:
+            grupos = _agrupar_ordenes(ordenes_con_recursos, agrupaciones, ordenes_columns)
+
+        # Resultado
+        resultado = {
+            'tipo': 'ordenes_con_recursos',
+            'ordenes': ordenes_con_recursos,
+            'grupos': grupos,
+            'agrupaciones': agrupaciones or [],
+            'gran_total': gran_total,
+            'campos_orden': campos_orden,
+            'campos_recursos': campos_recursos,
+            'formatos': {
+                'coste': 'moneda',
+                'coste_total': 'moneda',
+                'cantidad': 'decimal',
+                'latitud': 'decimal',
+                'longitud': 'decimal'
+            }
+        }
+
+        return resultado
+
+    except Exception as e:
+        print(f"Error al ejecutar informe de órdenes con recursos: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'tipo': 'ordenes_con_recursos',
+            'ordenes': [],
+            'grupos': [],
+            'agrupaciones': [],
+            'gran_total': 0,
+            'campos_orden': {},
+            'campos_recursos': {},
+            'formatos': {}
+        }
+
+
+def _build_query_ordenes(definicion, filtros, ordenaciones, agrupaciones, schema, user, password):
+    """Construye query SQL para obtener las órdenes de trabajo"""
+    campos = definicion.get('campos', {})
+    campos_orden = definicion.get('campos_orden', {})
+
+    # Campos a seleccionar (incluir id, campos de orden y campos de agrupación)
+    select_fields = ['p.id']
+
+    # Agregar campos de la orden
+    for campo_key, campo_def in campos_orden.items():
+        columna_bd = campo_def.get('columna_bd')
+        if columna_bd:
+            select_fields.append(f'p.{columna_bd} AS {campo_key}')
+        elif campo_def.get('tipo') == 'dimension':
+            tabla_dim = campo_def.get('tabla_dimension')
+            campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+            alias_tabla = campo_key + '_dim'
+            select_fields.append(f'{alias_tabla}.{campo_nombre} AS {campo_key}')
+
+    # Agregar campos de agrupación si existen
+    joins = []
+    if agrupaciones:
+        for agrup_key in agrupaciones:
+            campo_def = campos.get(agrup_key)
+            if not campo_def:
+                continue
+
+            if campo_def.get('tipo') == 'calculado':
+                formula = campo_def.get('formula', '')
+                select_fields.append(f'{formula} AS {agrup_key}')
+            elif campo_def.get('tipo') == 'dimension':
+                tabla_dim = campo_def.get('tabla_dimension')
+                campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+                columna_bd = campo_def.get('columna_bd')
+                alias_tabla = agrup_key + '_agrup_dim'
+                select_fields.append(f'{alias_tabla}.{campo_nombre} AS {agrup_key}')
+                joins.append(f'LEFT JOIN {tabla_dim} {alias_tabla} ON p.{columna_bd} = {alias_tabla}.id')
+            else:
+                columna_bd = campo_def.get('columna_bd')
+                if columna_bd:
+                    select_fields.append(f'p.{columna_bd} AS {agrup_key}')
+
+    # Construir FROM y JOINs para dimensiones de orden
+    from_clause = 'tbl_partes p'
+    for campo_key, campo_def in campos_orden.items():
+        if campo_def.get('tipo') == 'dimension':
+            tabla_dim = campo_def.get('tabla_dimension')
+            columna_bd = campo_def.get('columna_bd')
+            alias_tabla = campo_key + '_dim'
+            joins.append(f'LEFT JOIN {tabla_dim} {alias_tabla} ON p.{columna_bd} = {alias_tabla}.id')
+
+    # Construir WHERE (filtros)
+    where_clauses = []
+    if filtros:
+        where_clauses = _build_where_clauses(filtros, campos, schema, user, password)
+
+    # Construir ORDER BY
+    order_by_clauses = []
+    if agrupaciones:
+        # Ordenar primero por campos de agrupación
+        order_by_clauses.extend(agrupaciones)
+    if ordenaciones:
+        for ord_campo, ord_dir in ordenaciones:
+            if ord_campo not in order_by_clauses:  # Evitar duplicados
+                direccion = 'ASC' if ord_dir == 'Ascendente' else 'DESC'
+                order_by_clauses.append(f'{ord_campo} {direccion}')
+
+    # Construir query final
+    query = f"SELECT {', '.join(select_fields)} FROM {from_clause}"
+    if joins:
+        query += ' ' + ' '.join(joins)
+    if where_clauses:
+        query += f" WHERE {' AND '.join(where_clauses)}"
+    if order_by_clauses:
+        query += f" ORDER BY {', '.join(order_by_clauses)}"
+
+    return query
+
+
+def _build_query_recursos(orden_id, campos_recursos):
+    """Construye query SQL para obtener recursos de una orden específica"""
+    # Query fijo para obtener los 6 campos de recursos
+    query = f"""
+        SELECT
+            precio.codigo AS codigo,
+            pres.cantidad AS cantidad,
+            unidad_dim.descripcion AS unidad,
+            precio.resumen AS resumen,
+            precio.coste AS coste,
+            (pres.cantidad * precio.coste) AS coste_total
+        FROM tbl_part_presupuesto pres
+        LEFT JOIN tbl_pres_precios precio ON pres.precio_id = precio.id
+        LEFT JOIN tbl_pres_unidades unidad_dim ON precio.id_unidades = unidad_dim.id
+        WHERE pres.parte_id = {orden_id}
+          AND pres.cantidad > 0
+        ORDER BY precio.codigo
+    """
+    return query
+
+
+def _agrupar_ordenes(ordenes_con_recursos, agrupaciones, ordenes_columns):
+    """Organiza las órdenes en grupos jerárquicos según los campos de agrupación"""
+    if not agrupaciones or not ordenes_con_recursos:
+        return []
+
+    # Construir estructura jerárquica de grupos
+    grupos = []
+
+    def _obtener_valor_agrupacion(orden, campo_agrupacion):
+        """Obtiene el valor del campo de agrupación de una orden"""
+        return orden['datos_orden'].get(campo_agrupacion, 'Sin especificar')
+
+    def _agrupar_recursivo(ordenes, niveles_agrupacion, nivel=0):
+        """Agrupa órdenes recursivamente por múltiples niveles"""
+        if nivel >= len(niveles_agrupacion):
+            return ordenes
+
+        campo_actual = niveles_agrupacion[nivel]
+        grupos_nivel = {}
+
+        # Agrupar por el campo actual
+        for orden in ordenes:
+            valor = _obtener_valor_agrupacion(orden, campo_actual)
+            if valor not in grupos_nivel:
+                grupos_nivel[valor] = []
+            grupos_nivel[valor].append(orden)
+
+        # Construir resultado
+        resultado = []
+        for valor, ordenes_grupo in sorted(grupos_nivel.items()):
+            # Calcular subtotal del grupo
+            subtotal = sum(orden['total_orden'] for orden in ordenes_grupo)
+
+            grupo = {
+                'nivel': nivel,
+                'campo': campo_actual,
+                'valor': valor,
+                'ordenes': ordenes_grupo,
+                'subtotal': subtotal,
+                'subgrupos': []
+            }
+
+            # Si hay más niveles, agrupar recursivamente
+            if nivel + 1 < len(niveles_agrupacion):
+                grupo['subgrupos'] = _agrupar_recursivo(ordenes_grupo, niveles_agrupacion, nivel + 1)
+                # Si hay subgrupos, no incluir órdenes directamente
+                grupo['ordenes'] = []
+
+            resultado.append(grupo)
+
+        return resultado
+
+    grupos = _agrupar_recursivo(ordenes_con_recursos, agrupaciones)
+    return grupos
+
+
+def _build_where_clauses(filtros, campos_def, schema, user, password):
+    """Construye las cláusulas WHERE para los filtros"""
+    where_clauses = []
+
+    for filtro in filtros:
+        campo = filtro.get('campo')
+        operador = filtro.get('operador')
+        valor = filtro.get('valor')
+        valor2 = filtro.get('valor2')  # Para operador "Entre"
+
+        campo_def = campos_def.get(campo)
+        if not campo_def:
+            continue
+
+        # Determinar la expresión SQL del campo
+        if campo_def.get('tipo') == 'calculado':
+            campo_sql = campo_def.get('formula', campo)
+        elif campo_def.get('tipo') == 'dimension':
+            alias_tabla = campo + '_dim'
+            campo_nombre = campo_def.get('campo_nombre', 'descripcion')
+            campo_sql = f'{alias_tabla}.{campo_nombre}'
+        else:
+            columna_bd = campo_def.get('columna_bd', campo)
+            campo_sql = f'p.{columna_bd}'
+
+        # Construir cláusula WHERE según operador
+        if operador == 'Igual a':
+            where_clauses.append(f"{campo_sql} = '{valor}'")
+        elif operador == 'Diferente de':
+            where_clauses.append(f"{campo_sql} != '{valor}'")
+        elif operador == 'Contiene':
+            where_clauses.append(f"{campo_sql} LIKE '%{valor}%'")
+        elif operador == 'No contiene':
+            where_clauses.append(f"{campo_sql} NOT LIKE '%{valor}%'")
+        elif operador == 'Mayor a':
+            where_clauses.append(f"{campo_sql} > {valor}")
+        elif operador == 'Menor a':
+            where_clauses.append(f"{campo_sql} < {valor}")
+        elif operador == 'Mayor o igual a':
+            where_clauses.append(f"{campo_sql} >= {valor}")
+        elif operador == 'Menor o igual a':
+            where_clauses.append(f"{campo_sql} <= {valor}")
+        elif operador == 'Entre' and valor2:
+            where_clauses.append(f"{campo_sql} BETWEEN {valor} AND {valor2}")
+        elif operador == 'Posterior a':
+            where_clauses.append(f"{campo_sql} > '{valor}'")
+        elif operador == 'Anterior a':
+            where_clauses.append(f"{campo_sql} < '{valor}'")
+
+    return where_clauses

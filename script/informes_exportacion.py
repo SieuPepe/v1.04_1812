@@ -1524,6 +1524,18 @@ class InformesExportador:
             # Aplicar configuración de colores y estilos
             pdf = aplicar_configuracion_a_plantilla(pdf, config)
 
+            # DETECTAR SI ES INFORME ESPECIAL DE ÓRDENES CON RECURSOS
+            es_ordenes_recursos = (resultado_agrupacion and
+                                   resultado_agrupacion.get('tipo') == 'ordenes_con_recursos')
+
+            if es_ordenes_recursos:
+                # Renderizado especial para órdenes con recursos
+                print("DEBUG: Renderizando PDF especial de Órdenes con Recursos")
+                return self._exportar_pdf_ordenes_recursos(
+                    filepath, resultado_agrupacion, config, proyecto_nombre,
+                    proyecto_codigo, fecha_informe, informe_nombre
+                )
+
             # Agregar encabezado con logos (si está configurado)
             if config.get('mostrar_logos', True):
                 pdf.agregar_encabezado()

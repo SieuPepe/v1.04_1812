@@ -32,7 +32,7 @@ from script.informes_config import (
     LOGICA_FILTROS,
     CONFIG_CABECERA_DEFAULT
 )
-from script.informes import get_dimension_values, ejecutar_informe, ejecutar_informe_con_agrupacion
+from script.informes import get_dimension_values, ejecutar_informe, ejecutar_informe_con_agrupacion, ejecutar_informe_ordenes_recursos
 from script.informes_storage import InformesConfigStorage
 
 
@@ -2080,8 +2080,40 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"{'='*70}\n")
 
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos'")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Para este tipo de informe, la visualización en pantalla se simplifica
+                # mostrando solo un resumen, ya que la estructura completa se ve mejor en PDF
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+
+                # Crear resultado_agrupacion compatible para la exportación
+                resultado_agrupacion = resultado_ordenes
+                totales = {'Total Orden': resultado_ordenes.get('gran_total', 0)}
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
