@@ -3642,6 +3642,8 @@ class InformesFrame(customtkinter.CTkFrame):
         # Limpiar estado actual
         self._clear_all_filtros()
         self._clear_all_ordenaciones()
+        self._clear_all_agrupaciones()
+        self._clear_all_agregaciones()
 
         # Seleccionar informe base
         informe_base = config.get('informe_base')
@@ -3695,6 +3697,26 @@ class InformesFrame(customtkinter.CTkFrame):
             self._add_ordenacion()
             if i < len(self.ordenaciones):
                 self._configurar_ordenacion(self.ordenaciones[i], clasif_data)
+
+        # Aplicar agrupaciones
+        agrupaciones_config = config.get('agrupaciones', [])
+        for i, campo_key in enumerate(agrupaciones_config):
+            self._add_agrupacion()
+            if i < len(self.agrupaciones):
+                self._configurar_agrupacion(self.agrupaciones[i], campo_key)
+
+        # Aplicar agregaciones
+        agregaciones_config = config.get('agregaciones', [])
+        for i, agreg_data in enumerate(agregaciones_config):
+            self._add_agregacion()
+            if i < len(self.agregaciones):
+                self._configurar_agregacion(self.agregaciones[i], agreg_data)
+
+        # Aplicar modo de visualización
+        modo_config = config.get('modo', 'detalle')
+        if hasattr(self, 'modo_combo'):
+            self.modo_combo.set(modo_config.capitalize())
+            self.modo_visualizacion = modo_config
 
     def _configurar_filtro(self, filtro_obj, filtro_data):
         """Configura un filtro con los datos guardados"""
@@ -3792,6 +3814,20 @@ class InformesFrame(customtkinter.CTkFrame):
         orden = clasif_data.get('orden', 'Ascendente')
         if clasif_obj['orden_combo']:
             clasif_obj['orden_combo'].set(orden)
+
+    def _configurar_agrupacion(self, agrup_obj, campo_key):
+        """Configura una agrupación con los datos guardados"""
+        if not self.definicion_actual:
+            return
+
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # Configurar campo de agrupación
+        if campo_key and campo_key in campos_def:
+            campo_nombre = campos_def[campo_key]['nombre']
+            if agrup_obj['combo']:
+                agrup_obj['combo'].set(campo_nombre)
+                self._on_agrupacion_campo_change(agrup_obj, campo_nombre)
 
     def _guardar_config_en_cache(self):
         """Guarda la configuración actual en la caché de memoria (temporal para esta sesión)"""

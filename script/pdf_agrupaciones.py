@@ -283,10 +283,16 @@ class PDFAgrupaciones(PDFTemplate):
                 if valor is None:
                     texto_celda = ''
                 elif isinstance(valor, (int, float)):
+                    # Verificar si es coordenada geográfica (latitud/longitud)
+                    es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                     usar_estilo_derecha = True
                     if formato == 'moneda':
                         # Formato moneda: 2 decimales + símbolo €
                         texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    elif es_coordenada:
+                        # Coordenadas geográficas: 4 decimales
+                        texto_celda = f"{valor:.4f}".replace('.', ',')
                     elif formato == 'decimal':
                         # Formato decimal: 2 decimales
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
