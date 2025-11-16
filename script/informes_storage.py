@@ -114,16 +114,29 @@ class InformesConfigStorage:
         configuraciones = []
 
         try:
+            if not os.path.exists(self.storage_dir):
+                return configuraciones
+
             for filename in os.listdir(self.storage_dir):
-                if filename.endswith('.json'):
+                if filename.endswith('.json') and not filename.startswith('autosave_'):
                     filepath = os.path.join(self.storage_dir, filename)
 
                     try:
+                        # Validar que el archivo es legible y tiene JSON válido
                         with open(filepath, 'r', encoding='utf-8') as f:
                             config = json.load(f)
 
+                        # Validar estructura mínima requerida
+                        if not isinstance(config, dict):
+                            print(f"⚠ Archivo corrupto (no es dict): {filename}")
+                            continue
+
+                        # Intentar obtener nombre desde el config o desde el filename
+                        nombre = config.get('nombre', filename[:-5])
+
                         configuraciones.append({
-                            'nombre': config.get('nombre', filename[:-5]),
+                            'nombre': nombre,
+                            'filename': filename,  # Guardar filename para referencia
                             'descripcion': config.get('descripcion', ''),
                             'informe_base': config.get('informe_base', ''),
                             'fecha_creacion': config.get('fecha_creacion', ''),
@@ -132,14 +145,17 @@ class InformesConfigStorage:
                             'num_ordenaciones': len(config.get('ordenaciones', [])),
                             'num_campos': len(config.get('campos_seleccionados', []))
                         })
-                    except:
-                        # Ignorar archivos corruptos
+                    except json.JSONDecodeError as e:
+                        print(f"⚠ JSON corrupto en {filename}: {e}")
+                        continue
+                    except Exception as e:
+                        print(f"⚠ Error al leer {filename}: {e}")
                         continue
 
         except Exception as e:
             print(f"❌ Error al listar configuraciones: {e}")
 
-        return sorted(configuraciones, key=lambda x: x['fecha_modificacion'], reverse=True)
+        return sorted(configuraciones, key=lambda x: x.get('fecha_modificacion', ''), reverse=True)
 
     def eliminar_configuracion(self, nombre):
         """

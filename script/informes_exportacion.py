@@ -917,7 +917,8 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a Word usando plantilla profesional
@@ -930,18 +931,26 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe (opcional)
+            tipo_informe: Tipo de informe para seleccionar plantilla (opcional)
 
         Returns:
             True si la exportación fue exitosa
         """
         try:
-            # Buscar la plantilla
+            # Importar configuración de plantillas
+            from script.plantillas_config import obtener_plantilla_para_informe
+
+            # Buscar la plantilla apropiada según el tipo de informe
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.docx")
+
+            # Usar tipo_informe si se proporciona, sino usar informe_nombre
+            nombre_para_plantilla = tipo_informe if tipo_informe else informe_nombre
+            plantilla_path = obtener_plantilla_para_informe(nombre_para_plantilla, base_dir)
 
             # Verificar si existe la plantilla
-            if not os.path.exists(plantilla_path):
-                print(f"Advertencia: No se encontró la plantilla en {plantilla_path}")
+            if not plantilla_path or not os.path.exists(plantilla_path):
+                print(f"Advertencia: No se encontró ninguna plantilla")
                 print("Usando creación manual de documento...")
                 # Fallback: crear documento vacío
                 doc = Document()
@@ -1189,7 +1198,8 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: str = ""
     ) -> bool:
         """
         Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
@@ -1202,6 +1212,8 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe (opcional)
+            tipo_informe: Tipo de informe para seleccionar plantilla (opcional)
 
         Returns:
             True si la exportación fue exitosa
@@ -1224,7 +1236,8 @@ class InformesExportador:
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre=proyecto_nombre,
                 proyecto_codigo=proyecto_codigo,
-                fecha_informe=fecha_informe
+                fecha_informe=fecha_informe,
+                tipo_informe=tipo_informe
             )
 
             if not exito_word:

@@ -100,11 +100,33 @@ Si falla la conversión, el sistema:
 
 ```
 plantillas/
-├── Plantilla Listado Partes.docx    # Plantilla actual (listado de partes)
-├── Plantilla_Presupuesto.docx       # [FUTURO] Para presupuestos
-├── Plantilla_Certificacion.docx     # [FUTURO] Para certificaciones
-└── Plantilla_Generica.docx          # [FUTURO] Plantilla por defecto
+├── Plantilla_Partes.docx           # Para: Listado de Partes
+├── Plantilla_Recursos.docx         # Para: Listado de Partidas, Consumo, Trabajos por Actuación
+├── Plantilla_Presupuesto.docx      # Para: Contrato, Presupuesto Detallado/Resumen
+├── Plantilla_Certificacion.docx    # Para: Certificación Detallado/Resumen
+├── Plantilla_Planificacion.docx    # Para: Informe de Avance
+├── Plantilla_Generica.docx         # Plantilla por defecto (fallback)
+└── Plantilla Listado Partes.docx   # Plantilla legacy (compatibilidad)
 ```
+
+### Mapeo Automático de Plantillas
+
+El sistema selecciona automáticamente la plantilla apropiada según el tipo de informe:
+
+| Tipo de Informe | Plantilla Usada |
+|------------------|-----------------|
+| Listado de Partes | Plantilla_Partes.docx |
+| Listado de Partidas del Presupuesto | Plantilla_Recursos.docx |
+| Consumo de Recursos | Plantilla_Recursos.docx |
+| Trabajos por Actuación | Plantilla_Recursos.docx |
+| Contrato | Plantilla_Presupuesto.docx |
+| Presupuesto Detallado | Plantilla_Presupuesto.docx |
+| Presupuesto Resumen | Plantilla_Presupuesto.docx |
+| Certificación Detallado | Plantilla_Certificacion.docx |
+| Certificación Resumen | Plantilla_Certificacion.docx |
+| Informe de Avance | Plantilla_Planificacion.docx |
+
+📝 **Configuración**: Edita `script/plantillas_config.py` para cambiar el mapeo
 
 ### Marcadores de Texto
 
