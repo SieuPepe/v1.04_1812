@@ -13,7 +13,8 @@ a = Analysis(
         ('output/*.xlsx', 'output'),
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
-        ('informes_guardados', 'informes_guardados')  # Directorio para configs de informes
+        ('informes_guardados', 'informes_guardados'),  # Directorio para configs de informes
+        ('resources/plantillas/*.docx', 'resources/plantillas')  # Plantillas Word para generación de PDFs
     ],
     hiddenimports=[
         'mysql.connector',
@@ -26,10 +27,20 @@ a = Analysis(
         'xlsxwriter',
         'docx',
         'reportlab',
+        'reportlab.platypus',
+        'reportlab.lib',
+        'reportlab.lib.pagesizes',
+        'reportlab.lib.styles',
+        'reportlab.lib.colors',
+        'win32com',
+        'win32com.client',
+        'pythoncom',
+        'subprocess',
         'script.informes_storage',
         'script.informes',
         'script.informes_config',
         'script.informes_exportacion',
+        'script.plantillas_config',
         'interface.informes_interfaz'
     ],
     hookspath=[],

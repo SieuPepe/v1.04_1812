@@ -271,9 +271,26 @@ class InformesConfigStorage:
         Returns:
             str: Nombre de archivo seguro
         """
+        # Si ya termina en .json, quitarlo temporalmente
+        if nombre.endswith('.json'):
+            nombre = nombre[:-5]
+
         # Eliminar caracteres no válidos
         nombre_limpio = "".join(c for c in nombre if c.isalnum() or c in (' ', '-', '_')).strip()
+
+        # Reemplazar espacios por guiones bajos
         nombre_limpio = nombre_limpio.replace(' ', '_')
+
+        # Eliminar múltiples guiones bajos consecutivos
+        while '__' in nombre_limpio:
+            nombre_limpio = nombre_limpio.replace('__', '_')
+
+        # Eliminar guiones bajos al inicio y final
+        nombre_limpio = nombre_limpio.strip('_')
+
+        # Si quedó vacío, usar nombre por defecto
+        if not nombre_limpio:
+            nombre_limpio = 'configuracion_sin_nombre'
 
         # Asegurar extensión .json
         if not nombre_limpio.endswith('.json'):
@@ -349,3 +366,49 @@ class InformesConfigStorage:
         except Exception as e:
             print(f"⚠ Error al auto-cargar configuración de '{informe_nombre}': {e}")
             return None
+
+    def debug_configuracion(self, nombre):
+        """
+        Función de debugging para diagnosticar problemas con configuraciones
+
+        Args:
+            nombre: Nombre de la configuración a diagnosticar
+
+        Returns:
+            dict: Información de debugging
+        """
+        filename = self._generar_nombre_archivo(nombre)
+        filepath = os.path.join(self.storage_dir, filename)
+
+        debug_info = {
+            'nombre_original': nombre,
+            'filename_generado': filename,
+            'filepath_completo': filepath,
+            'archivo_existe': os.path.exists(filepath),
+            'archivos_en_directorio': [],
+            'error': None
+        }
+
+        try:
+            # Listar todos los archivos en el directorio
+            if os.path.exists(self.storage_dir):
+                debug_info['archivos_en_directorio'] = [
+                    f for f in os.listdir(self.storage_dir)
+                    if f.endswith('.json')
+                ]
+
+            # Intentar leer el archivo
+            if os.path.exists(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    debug_info['nombre_en_json'] = config.get('nombre', 'NO DEFINIDO')
+                    debug_info['json_valido'] = True
+            else:
+                debug_info['json_valido'] = False
+                debug_info['error'] = f"Archivo no encontrado: {filepath}"
+
+        except Exception as e:
+            debug_info['error'] = str(e)
+            debug_info['json_valido'] = False
+
+        return debug_info

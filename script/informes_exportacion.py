@@ -916,7 +916,8 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
     ) -> bool:
         """
         Exporta el informe a Word usando plantilla profesional
@@ -929,14 +930,19 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
 
         Returns:
             True si la exportación fue exitosa
         """
         try:
-            # Buscar la plantilla
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.docx")
+            # Importar configuración de plantillas
+            from script.plantillas_config import obtener_ruta_plantilla
+
+            # Obtener plantilla apropiada según el tipo de informe
+            # Si no se especifica tipo, usar el nombre del informe
+            plantilla_path = obtener_ruta_plantilla(tipo_informe or informe_nombre)
 
             # Verificar si existe la plantilla
             if not os.path.exists(plantilla_path):
@@ -1188,7 +1194,8 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
     ) -> bool:
         """
         Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
@@ -1201,6 +1208,8 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
 
         Returns:
             True si la exportación fue exitosa
@@ -1214,7 +1223,7 @@ class InformesExportador:
             temp_word_path = temp_word.name
             temp_word.close()
 
-            # Usar la misma función de exportar_a_word
+            # Usar la misma función de exportar_a_word (MISMO .docx para Word y PDF)
             exito_word = self.exportar_a_word(
                 filepath=temp_word_path,
                 informe_nombre=informe_nombre,
@@ -1223,7 +1232,8 @@ class InformesExportador:
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre=proyecto_nombre,
                 proyecto_codigo=proyecto_codigo,
-                fecha_informe=fecha_informe
+                fecha_informe=fecha_informe,
+                tipo_informe=tipo_informe
             )
 
             if not exito_word:
