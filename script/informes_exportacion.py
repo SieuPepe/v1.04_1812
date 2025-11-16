@@ -771,9 +771,14 @@ class InformesExportador:
 
                 # Mapear subtotales a las columnas correctas
                 for key, valor in subtotales.items():
-                    # Extraer el nombre del campo del key (ej: "SUM(presupuesto)" -> "presupuesto")
-                    # El formato es "FUNCION(campo)" o "COUNT(*)"
-                    campo_nombre = key.split('(')[1].rstrip(')')
+                    # Extraer el nombre del campo del key
+                    # Puede ser "SUM(presupuesto)" o directamente "Importe" (nuevo formato)
+                    if '(' in key and ')' in key:
+                        # Formato antiguo: "FUNCION(campo)"
+                        campo_nombre = key.split('(')[1].rstrip(')')
+                    else:
+                        # Formato nuevo: nombre directo de columna
+                        campo_nombre = key
 
                     # Determinar el formato según el tipo de agregación
                     formato_agg = formatos_agregaciones.get(key, 'ninguno')
@@ -1082,8 +1087,22 @@ class InformesExportador:
 
             # Si hay columnas_datos en resultado_agrupacion, usarlas (sin columna de agrupación)
             columnas_para_word = columnas
+            datos_para_word = datos
             if resultado_agrupacion and resultado_agrupacion.get('columnas_datos'):
                 columnas_para_word = resultado_agrupacion['columnas_datos']
+
+                # Filtrar datos para que coincidan con columnas_datos
+                # Crear mapeo de índices: columnas_datos -> columnas originales
+                indices_columnas = []
+                for col in columnas_para_word:
+                    if col in columnas:
+                        indices_columnas.append(columnas.index(col))
+
+                # Filtrar cada fila de datos usando los índices
+                datos_para_word = [
+                    tuple(fila[idx] for idx in indices_columnas)
+                    for fila in datos
+                ]
 
             # Obtener plantilla apropiada según el tipo de informe
             # Si no se especifica tipo, usar el nombre del informe
@@ -1135,7 +1154,7 @@ class InformesExportador:
                 doc,
                 "[TABLA_DE_DATOS]",
                 columnas_para_word,  # Usar columnas filtradas
-                datos,
+                datos_para_word,     # Usar datos filtrados
                 resultado_agrupacion,
                 orientacion,  # Pasar orientación
                 tipo_informe or informe_nombre  # Pasar tipo para anchos personalizados
