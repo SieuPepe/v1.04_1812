@@ -1317,11 +1317,17 @@ class InformesExportador:
         try:
             from script.pdf_agrupaciones import PDFAgrupaciones
             from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
+            from script.informes_config import INFORMES_DEFINICIONES
 
             print(f"Generando PDF con ReportLab: {filepath}")
 
             # Obtener configuración específica del tipo de informe
             config = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+
+            # Obtener definición del informe para verificar campos_fijos
+            definicion = INFORMES_DEFINICIONES.get(tipo_informe or informe_nombre, {})
+            campos_fijos = definicion.get('campos_fijos', False)
+            campos_def = definicion.get('campos', {})
 
             # Crear plantilla PDF con la configuración
             pdf = PDFAgrupaciones(
@@ -1344,24 +1350,49 @@ class InformesExportador:
             if config.get('mostrar_proyecto', True):
                 pdf.agregar_info_proyecto()
 
+            # Si el informe tiene campos_fijos, necesitamos filtrar las columnas
+            # para NO mostrar campos de agrupación que se añaden solo para GROUP BY
+            columnas_filtradas = list(columnas)
+            datos_filtrados = datos
+            formatos_filtrados = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+
+            if campos_fijos and resultado_agrupacion and resultado_agrupacion.get('agrupaciones'):
+                # Identificar columnas de agrupación por su nombre
+                columnas_a_eliminar = []
+                for agrup in resultado_agrupacion.get('agrupaciones', []):
+                    # Buscar el nombre de la columna de agrupación
+                    campo_def = campos_def.get(agrup, {})
+                    nombre_columna = campo_def.get('nombre', agrup)
+                    if nombre_columna in columnas_filtradas:
+                        columnas_a_eliminar.append(nombre_columna)
+
+                # Filtrar columnas y datos
+                if columnas_a_eliminar:
+                    indices_a_mantener = [i for i, col in enumerate(columnas) if col not in columnas_a_eliminar]
+                    columnas_filtradas = [columnas[i] for i in indices_a_mantener]
+                    datos_filtrados = [tuple(fila[i] for i in indices_a_mantener) for fila in datos]
+                    formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
+
+                    print(f"DEBUG: Filtradas {len(columnas_a_eliminar)} columnas de agrupación: {columnas_a_eliminar}")
+                    print(f"DEBUG: Columnas finales para PDF: {columnas_filtradas}")
+
             # Agregar tabla de datos
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
                 # Tabla con agrupaciones
                 modo = resultado_agrupacion.get('modo', 'detalle')
                 elementos_tabla = pdf.crear_tabla_agrupada(
-                    columnas=columnas,
-                    datos=datos,
+                    columnas=columnas_filtradas,
+                    datos=datos_filtrados,
                     resultado_agrupacion=resultado_agrupacion,
                     modo=modo
                 )
                 pdf.elements.extend(elementos_tabla)
             else:
                 # Tabla simple sin agrupaciones
-                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
                 tabla = pdf.crear_tabla_simple(
-                    columnas=columnas,
-                    datos=datos,
-                    formatos_columnas=formatos_columnas
+                    columnas=columnas_filtradas,
+                    datos=datos_filtrados,
+                    formatos_columnas=formatos_filtrados
                 )
                 pdf.elements.append(tabla)
 

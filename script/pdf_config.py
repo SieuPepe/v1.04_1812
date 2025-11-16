@@ -92,6 +92,60 @@ CONFIGURACIONES_PDF = {
         "pie_pagina_personalizado": None
     },
 
+    "Recursos Presupuestados": {
+        "orientacion": "vertical",  # A4 vertical para anchos de 18cm
+        "esquema_colores": "verde",
+        "mostrar_logos": True,
+        "mostrar_fecha": False,  # NO mostrar fecha antes de la tabla
+        "mostrar_proyecto": True,
+        "fuente_titulo": "Helvetica-Bold",
+        "tamaño_titulo": 18,
+        "color_titulo": "#2E7D32",
+        "color_header_tabla": "#E8F5E9",
+        "color_grupo_nivel0": "#2E7D32",
+        "color_grupo_nivel1": "#66BB6A",
+        "color_grupo_nivel2": "#A5D6A7",
+        "bordes_tabla": True,
+        "filas_alternadas": True,
+        "pie_pagina_personalizado": None
+    },
+
+    "Recursos Certificados": {
+        "orientacion": "vertical",  # A4 vertical para anchos de 18cm
+        "esquema_colores": "verde",
+        "mostrar_logos": True,
+        "mostrar_fecha": False,  # NO mostrar fecha antes de la tabla
+        "mostrar_proyecto": True,
+        "fuente_titulo": "Helvetica-Bold",
+        "tamaño_titulo": 18,
+        "color_titulo": "#2E7D32",
+        "color_header_tabla": "#E8F5E9",
+        "color_grupo_nivel0": "#2E7D32",
+        "color_grupo_nivel1": "#66BB6A",
+        "color_grupo_nivel2": "#A5D6A7",
+        "bordes_tabla": True,
+        "filas_alternadas": True,
+        "pie_pagina_personalizado": None
+    },
+
+    "Recursos Pendientes": {
+        "orientacion": "vertical",  # A4 vertical para anchos de 18cm
+        "esquema_colores": "verde",
+        "mostrar_logos": True,
+        "mostrar_fecha": False,  # NO mostrar fecha antes de la tabla
+        "mostrar_proyecto": True,
+        "fuente_titulo": "Helvetica-Bold",
+        "tamaño_titulo": 18,
+        "color_titulo": "#2E7D32",
+        "color_header_tabla": "#E8F5E9",
+        "color_grupo_nivel0": "#2E7D32",
+        "color_grupo_nivel1": "#66BB6A",
+        "color_grupo_nivel2": "#A5D6A7",
+        "bordes_tabla": True,
+        "filas_alternadas": True,
+        "pie_pagina_personalizado": None
+    },
+
     # ============================================================
     # PRESUPUESTOS
     # ============================================================

@@ -581,6 +581,7 @@ INFORMES_DEFINICIONES = {
         "campos_fijos": True,  # No permite selección de campos
         "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
         "usar_agregacion_sql": True,  # Usar GROUP BY y SUM en SQL
+        "campos_default": ["codigo", "cantidad", "unidad", "resumen", "coste", "coste_total"],  # Campos que siempre se muestran
 
         "campos": {
             # Campos de tbl_pres_precios (tabla de precios)
@@ -619,7 +620,8 @@ INFORMES_DEFINICIONES = {
             "coste": {
                 "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -643,7 +645,7 @@ INFORMES_DEFINICIONES = {
             "coste_total": {
                 "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "p.cantidad * p.precio_unit",
+                "formula": "p.cantidad * precio.coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },

@@ -1058,11 +1058,16 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
             # Las columnas ahora tienen nombres bonitos, necesitamos mapear de nombre a key
             nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
 
+            print(f"DEBUG ejecutar_informe - Columnas: {columnas}")
+            print(f"DEBUG ejecutar_informe - nombre_a_key: {nombre_a_key}")
+            print(f"DEBUG ejecutar_informe - campos_seleccionados: {campos_seleccionados}")
+
             if datos and campos_seleccionados:
                 for i, col_name in enumerate(columnas):
                     # Buscar el campo por nombre bonito
                     campo_key = nombre_a_key.get(col_name, col_name)
                     campo_def = campos_def.get(campo_key)
+                    print(f"DEBUG ejecutar_informe - Col '{col_name}' -> key '{campo_key}' -> def {campo_def is not None}")
                     if campo_def:
                         formato = campo_def.get('formato', '')
                         tipo = campo_def.get('tipo', '')
@@ -1203,7 +1208,8 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
                 "totales_generales": {},
                 "modo": modo,
                 "formatos_columnas": {},
-                "formatos_agregaciones": {}
+                "formatos_agregaciones": {},
+                "agrupaciones": agrupaciones or []  # Guardar agrupaciones para filtrado posterior
             }
 
             # Crear mapa de formatos de columnas
