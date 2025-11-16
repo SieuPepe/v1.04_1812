@@ -8,6 +8,7 @@ import os
 import subprocess
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional
+from decimal import Decimal
 import xlsxwriter
 from PIL import Image as PILImage
 from docx import Document
@@ -571,7 +572,11 @@ class InformesExportador:
                         elif col_name and 'fecha' in col_name.lower() and valor:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
-                        elif isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float, Decimal)):
+                            # Convertir Decimal a float para poder formatear
+                            if isinstance(valor, Decimal):
+                                valor = float(valor)
+
                             if es_coordenada:
                                 # Coordenadas: 4 decimales
                                 worksheet.write(row, col_idx, valor, formato_coordenadas)
@@ -720,7 +725,11 @@ class InformesExportador:
                         elif col_name and 'fecha' in col_name.lower() and valor:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
-                        elif isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float, Decimal)):
+                            # Convertir Decimal a float para poder formatear
+                            if isinstance(valor, Decimal):
+                                valor = float(valor)
+
                             if es_coordenada:
                                 # Coordenadas: 4 decimales
                                 worksheet.write(row, col_idx, valor, formato_coordenadas)
@@ -959,7 +968,11 @@ class InformesExportador:
                 es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
 
                 # Aplicar formato según el tipo de campo
-                if isinstance(valor, (int, float)):
+                if isinstance(valor, (int, float, Decimal)):
+                    # Convertir Decimal a float para poder formatear
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+
                     if es_coordenada:
                         # Coordenadas geográficas: 4 decimales
                         cell.text = f"{valor:.4f}"

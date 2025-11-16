@@ -7,6 +7,7 @@ Generación de informes PDF con control total del diseño, similar a Access
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
+from decimal import Decimal
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -48,7 +49,7 @@ class NumberedCanvas(canvas.Canvas):
             return
 
         # Obtener número de página actual
-        page_num = len(self._saved_page_states)
+        page_num = self._pageNumber
 
         # Dibujar encabezado
         self.draw_header()
@@ -505,13 +506,21 @@ class PDFTemplate:
                     print(f"DEBUG PDF - Columnas disponibles: {columnas}")
                     print(f"DEBUG PDF - Formatos: {formatos_columnas}")
 
+                # DEBUG: Imprimir valor y tipo para la primera fila
+                if datos.index(fila) == 0:
+                    print(f"DEBUG PDF - Col '{col_name}': valor={valor}, tipo={type(valor).__name__}, formato={formato}")
+
                 # Formatear según tipo
                 texto_celda = ''
                 usar_estilo_derecha = False
 
                 if valor is None:
                     texto_celda = ''
-                elif isinstance(valor, (int, float)):
+                elif isinstance(valor, (int, float, Decimal)):
+                    # Convertir Decimal a float para poder formatear
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+
                     # Verificar si es coordenada geográfica (latitud/longitud)
                     # Hacer la búsqueda más robusta - case insensitive
                     es_coordenada = False

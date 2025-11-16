@@ -5,6 +5,7 @@ Manejo de tablas con agrupaciones multinivel (similar a Access)
 """
 
 from typing import List, Dict, Any, Optional
+from decimal import Decimal
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import Table, TableStyle, Paragraph, Spacer, KeepTogether
@@ -282,7 +283,11 @@ class PDFAgrupaciones(PDFTemplate):
 
                 if valor is None:
                     texto_celda = ''
-                elif isinstance(valor, (int, float)):
+                elif isinstance(valor, (int, float, Decimal)):
+                    # Convertir Decimal a float para poder formatear
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+
                     # Verificar si es coordenada geográfica (latitud/longitud) - case insensitive
                     es_coordenada = False
                     if col_name:
@@ -395,7 +400,11 @@ class PDFAgrupaciones(PDFTemplate):
             formato = formatos_agregaciones.get(key, 'ninguno')
 
             # Formatear valor
-            if isinstance(valor, (int, float)):
+            if isinstance(valor, (int, float, Decimal)):
+                # Convertir Decimal a float para poder formatear
+                if isinstance(valor, Decimal):
+                    valor = float(valor)
+
                 if formato == 'moneda':
                     # Formato moneda: 2 decimales + símbolo €
                     valor_formateado = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
@@ -487,7 +496,11 @@ class PDFAgrupaciones(PDFTemplate):
             formato = formatos_agregaciones.get(key, 'ninguno')
 
             # Formatear valor
-            if isinstance(valor, (int, float)):
+            if isinstance(valor, (int, float, Decimal)):
+                # Convertir Decimal a float para poder formatear
+                if isinstance(valor, Decimal):
+                    valor = float(valor)
+
                 if formato == 'moneda':
                     # Formato moneda: 2 decimales + símbolo €
                     valor_formateado = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
