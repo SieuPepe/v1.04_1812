@@ -431,8 +431,8 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "orientacion": "vertical",  # Portrait
     "esquema_colores": "azul",  # Mismo esquema que Listado de Partes
     "mostrar_logos": True,
-    "mostrar_fecha": True,
-    "mostrar_proyecto": True,
+    "mostrar_fecha": False,  # NO mostrar fecha en encabezado (va en pie de página)
+    "mostrar_proyecto": False,  # NO mostrar proyecto en encabezado
     "fuente_titulo": "Helvetica-Bold",
     "tamaño_titulo": 20,
     "color_titulo": "#003366",  # Azul oscuro
@@ -444,7 +444,17 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "color_subtabla_header": "#B4C7E7",  # Color para encabezado de tabla de recursos
     "bordes_tabla": True,
     "filas_alternadas": True,
-    "pie_pagina_personalizado": None,
+
+    # Configuración del PIE DE PÁGINA (igual que "Recursos Presupuestados")
+    "pie_pagina_personalizado": {
+        "texto_izquierda": "Servicios para el mantenimiento y gestión de las redes de abastecimiento y saneamiento de URBIDE - EXP 24_130",
+        "mostrar_fecha": True,  # Fecha en el centro del pie de página
+        "mostrar_paginacion": True,  # "Página X de Y" a la derecha
+        "formato_paginacion": "Página {pagina} de {total}",
+        "fuente": "Helvetica",
+        "tamaño_fuente": 8,
+        "color_texto": "#666666"
+    },
 
     # Configuración específica para este informe
     "espaciado_entre_ordenes": 10,  # Espacio vertical entre órdenes (pt)
@@ -474,10 +484,9 @@ CATEGORIAS_INFORMES = {
 ### Ejemplo de Salida (PDF/Excel/Word)
 
 ```
-================================================================================
-                    LISTADO DE ÓRDENES DE TRABAJO
-================================================================================
-Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [Logo Redes Urbide]    LISTADO DE ÓRDENES DE TRABAJO    [Logo Urbide]     │
+└─────────────────────────────────────────────────────────────────────────────┘
 
 [SI HAY AGRUPACIÓN - Ejemplo: Agrupado por Tipo de Trabajo]
 ────────────────────────────────────────────────────────────────────────────────
@@ -492,7 +501,6 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
     │ LATITUD:  39.4699                LONGITUD: -0.3763                  │
     └─────────────────────────────────────────────────────────────────────┘
 
-    RECURSOS PRESUPUESTADOS:
     ┌────────┬──────────┬──────┬─────────────────────┬────────────┬──────────┐
     │ Código │ Cantidad │  Ud. │ Recurso / Material  │ Precio uni │  Importe │
     ├────────┼──────────┼──────┼─────────────────────┼────────────┼──────────┤
@@ -511,7 +519,6 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
     │ LATITUD:  39.5125                LONGITUD: -0.3854                  │
     └─────────────────────────────────────────────────────────────────────┘
 
-    RECURSOS PRESUPUESTADOS:
     ┌────────┬──────────┬──────┬─────────────────────┬────────────┬──────────┐
     │ Código │ Cantidad │  Ud. │ Recurso / Material  │ Precio uni │  Importe │
     ├────────┼──────────┼──────┼─────────────────────┼────────────┼──────────┤
@@ -536,6 +543,13 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
 ================================================================================
                     TOTAL GENERAL:                          5,234.80 €
 ================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Servicios para el mantenimiento y gestión de las redes de abastecimiento   │
+│ y saneamiento de URBIDE - EXP 24_130                                       │
+│                                                                             │
+│                    16/11/2025                          Página 1 de 3        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -648,7 +662,12 @@ def generar_pdf_ordenes_trabajo(datos, config_pdf):
    - Considerar paginación si hay muchas órdenes
 
 2. **Formato PDF:**
-   - Landscape (horizontal) para acomodar tabla de 6 columnas
+   - Portrait (vertical) para mantener consistencia con otros informes
+   - Encabezado simplificado: Logos a ambos lados + Título (sin Proyecto ni Fecha)
+   - Pie de página personalizado con 3 elementos:
+     * Texto descriptivo del contrato a la izquierda
+     * Fecha en el centro
+     * "Página X de Y" a la derecha
    - Salto de página entre órdenes si es necesario
    - Mantener orden + sub-tabla en misma página si es posible
 
