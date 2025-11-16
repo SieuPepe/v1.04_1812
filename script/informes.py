@@ -536,6 +536,10 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
         tabla_rel = campo.get('tabla_relacion', 'principal')
         alias_tabla = tabla_aliases.get(tabla_rel, 'p')
 
+        # Usar el nombre bonito del campo para el alias SQL
+        # Esto hace que las columnas en el resultado tengan los nombres correctos
+        nombre_alias = campo.get('nombre', campo_key)
+
         if campo['tipo'] == 'calculado':
             # Campo calculado
             formula = campo['formula']
@@ -554,9 +558,9 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
             # Si usamos GROUP BY y el campo es numérico/moneda, aplicar SUM
             if usar_group_by and campo.get('formato') in ['moneda', 'decimal', 'numerico']:
-                select_parts.append(f"SUM({formula_procesada}) AS {campo_key}")
+                select_parts.append(f"SUM({formula_procesada}) AS `{nombre_alias}`")
             else:
-                select_parts.append(f"({formula_procesada}) AS {campo_key}")
+                select_parts.append(f"({formula_procesada}) AS `{nombre_alias}`")
 
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión
@@ -573,7 +577,7 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             else:
                 campo_nombre = campo.get('campo_nombre', 'descripcion')
 
-            select_parts.append(f"{alias_dim}.{campo_nombre} AS {campo_key}")
+            select_parts.append(f"{alias_dim}.{campo_nombre} AS `{nombre_alias}`")
 
             # Añadir al GROUP BY si es necesario
             if usar_group_by:
@@ -585,14 +589,14 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
             # Si usamos GROUP BY, aplicar SUM
             if usar_group_by:
-                select_parts.append(f"SUM({alias_tabla}.{columna}) AS {campo_key}")
+                select_parts.append(f"SUM({alias_tabla}.{columna}) AS `{nombre_alias}`")
             else:
-                select_parts.append(f"{alias_tabla}.{columna} AS {campo_key}")
+                select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
 
         else:
             # Campo directo (texto, etc.)
             columna = campo['columna_bd']
-            select_parts.append(f"{alias_tabla}.{columna} AS {campo_key}")
+            select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
 
             # Añadir al GROUP BY si no es numérico
             if usar_group_by and campo.get('formato') not in ['moneda', 'decimal', 'numerico']:
@@ -1013,13 +1017,22 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
 
             # Calcular totales para campos totalizables (numéricos, moneda)
             totales = {}
+            formatos_columnas = {}
+
+            # Las columnas ahora tienen nombres bonitos, necesitamos mapear de nombre a key
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+
             if datos and campos_seleccionados:
                 for i, col_name in enumerate(columnas):
-                    # Buscar la definición del campo
-                    campo_def = campos_def.get(col_name)
+                    # Buscar el campo por nombre bonito
+                    campo_key = nombre_a_key.get(col_name, col_name)
+                    campo_def = campos_def.get(campo_key)
                     if campo_def:
                         formato = campo_def.get('formato', '')
                         tipo = campo_def.get('tipo', '')
+
+                        # Guardar formato de la columna
+                        formatos_columnas[col_name] = formato if formato else 'ninguno'
 
                         # Solo totalizar campos numéricos o de moneda
                         if formato in ['moneda', 'numerico'] or tipo in ['numerico', 'calculado']:
@@ -1031,7 +1044,17 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
                                 # Si no se puede convertir a número, omitir
                                 pass
 
-            return columnas, datos, totales
+            # Crear un resultado_agrupacion compatible con el que devuelve ejecutar_informe_con_agrupacion
+            resultado_agrupacion = {
+                "grupos": [],
+                "datos_planos": datos,
+                "totales_generales": totales,
+                "modo": "detalle",
+                "formatos_columnas": formatos_columnas,
+                "formatos_agregaciones": {}
+            }
+
+            return columnas, datos, resultado_agrupacion
 
     except Exception as e:
         print(f"Error al ejecutar informe: {e}")
@@ -1143,8 +1166,13 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
             }
 
             # Crear mapa de formatos de columnas
+            # Las columnas ahora tienen nombres bonitos, necesitamos mapear de nombre a key
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+
             for col in columnas:
-                campo_def = campos_def.get(col, {})
+                # Buscar el campo por nombre bonito
+                campo_key = nombre_a_key.get(col, col)
+                campo_def = campos_def.get(campo_key, {})
                 formato = campo_def.get('formato', 'ninguno')
                 resultado_agrupacion['formatos_columnas'][col] = formato
 

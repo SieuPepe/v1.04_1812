@@ -428,10 +428,35 @@ class PDFTemplate:
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
-        # Calcular anchos de columnas (distribución equitativa)
-        num_columnas = len(columnas)
-        ancho_columna = ancho_disponible / num_columnas
-        col_widths = [ancho_columna] * num_columnas
+        # Anchos personalizados para informes de Recursos (en cm convertido a puntos: 1cm = 28.35 puntos)
+        anchos_recursos = {
+            'Código': 2.5 * 28.35,            # 2.5 cm
+            'codigo': 2.5 * 28.35,
+            'Cantidad': 2.5 * 28.35,          # 2.5 cm
+            'cantidad': 2.5 * 28.35,
+            'Unidad': 2.0 * 28.35,            # 2.0 cm
+            'unidad': 2.0 * 28.35,
+            'Recurso / Material': 14.2 * 28.35,  # 14.2 cm
+            'resumen': 14.2 * 28.35,
+            'Precio unitario': 2.5 * 28.35,  # 2.5 cm
+            'coste': 2.5 * 28.35,
+            'Importe': 3.0 * 28.35,           # 3.0 cm
+            'coste_total': 3.0 * 28.35
+        }
+
+        # Calcular anchos de columnas
+        col_widths = []
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            for col in columnas:
+                col_widths.append(anchos_recursos[col])
+        else:
+            # Distribución equitativa para otros informes
+            num_columnas = len(columnas)
+            ancho_columna = ancho_disponible / num_columnas
+            col_widths = [ancho_columna] * num_columnas
 
         # Estilo para celdas de datos (texto multilínea)
         estilo_celda = ParagraphStyle(
