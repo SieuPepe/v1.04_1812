@@ -1618,7 +1618,7 @@ def _build_query_recursos(orden_id, campos_recursos):
         SELECT
             precio.codigo AS codigo,
             pres.cantidad AS cantidad,
-            unidad_dim.descripcion AS unidad,
+            unidad_dim.unidad AS unidad,
             precio.resumen AS resumen,
             precio.coste AS coste,
             (pres.cantidad * precio.coste) AS coste_total

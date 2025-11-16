@@ -467,7 +467,7 @@ INFORMES_DEFINICIONES = {
                 "tipo": "dimension",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Información Básica"
             },
             "resumen": {
@@ -606,7 +606,7 @@ INFORMES_DEFINICIONES = {
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Precio"
             },
             "resumen": {
@@ -838,7 +838,7 @@ INFORMES_DEFINICIONES = {
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Precio"
             },
             "resumen": {
@@ -1069,7 +1069,7 @@ INFORMES_DEFINICIONES = {
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Precio"
             },
             "resumen": {
@@ -1295,7 +1295,7 @@ INFORMES_DEFINICIONES = {
                 "tipo": "dimension",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Información Básica"
             },
             "resumen": {
@@ -1463,7 +1463,7 @@ INFORMES_DEFINICIONES = {
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Recurso"
             },
             "resumen": {
@@ -1919,7 +1919,7 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "id_unidades",
                 "relacionado": "tbl_pres_precios",
                 "tabla_dimension": "tbl_pres_unidades",
-                "campo_nombre": "descripcion",
+                "campo_nombre": "unidad",
                 "grupo": "Detalle"
             },
             "cantidad_certificada": {
