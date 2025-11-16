@@ -430,19 +430,20 @@ class PDFTemplate:
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
         # Anchos personalizados para informes de Recursos (en cm convertido a puntos: 1cm = 28.35 puntos)
+        # A4 vertical: 21cm - 3cm márgenes = 18cm disponible
         anchos_recursos = {
-            'Código': 2.5 * 28.35,            # 2.5 cm
-            'codigo': 2.5 * 28.35,
-            'Cantidad': 2.5 * 28.35,          # 2.5 cm
-            'cantidad': 2.5 * 28.35,
-            'Unidad': 2.0 * 28.35,            # 2.0 cm
-            'unidad': 2.0 * 28.35,
-            'Recurso / Material': 14.2 * 28.35,  # 14.2 cm
-            'resumen': 14.2 * 28.35,
-            'Precio unitario': 2.5 * 28.35,  # 2.5 cm
-            'coste': 2.5 * 28.35,
-            'Importe': 3.0 * 28.35,           # 3.0 cm
-            'coste_total': 3.0 * 28.35
+            'Código': 1.5 * 28.35,            # 1.5 cm
+            'codigo': 1.5 * 28.35,
+            'Cantidad': 2.0 * 28.35,          # 2.0 cm
+            'cantidad': 2.0 * 28.35,
+            'Ud.': 1.0 * 28.35,               # 1.0 cm
+            'unidad': 1.0 * 28.35,
+            'Recurso / Material': 11.5 * 28.35,  # 11.5 cm
+            'resumen': 11.5 * 28.35,
+            'Precio unitario': 2.0 * 28.35,  # 2.0 cm
+            'coste': 2.0 * 28.35,
+            'Importe': 2.0 * 28.35,           # 2.0 cm
+            'coste_total': 2.0 * 28.35
         }
 
         # Calcular anchos de columnas

@@ -601,7 +601,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
@@ -832,7 +832,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
@@ -1062,7 +1062,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",

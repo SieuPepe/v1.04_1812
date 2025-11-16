@@ -636,6 +636,13 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             if campo and campo['tipo'] == 'dimension':
                 dimensiones_necesarias.add(campo_key)
 
+    # Agregar agrupaciones a dimensiones necesarias (para que se hagan los JOINs)
+    if agrupaciones:
+        for campo_key in agrupaciones:
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
+
     # JOINs con dimensiones
     for campo_key in dimensiones_necesarias:
         campo = campos_def.get(campo_key)
@@ -680,6 +687,35 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
         where_clause = "WHERE " + " ".join(where_parts)
 
     # ========== CONSTRUIR GROUP BY ==========
+    # Agregar agrupaciones explícitas al GROUP BY aunque no estén en SELECT
+    if agrupaciones and usar_group_by:
+        for campo_key in agrupaciones:
+            if campo_key not in campos_seleccionados:  # Solo si no está ya en SELECT
+                campo = campos_def.get(campo_key)
+                if campo:
+                    if campo['tipo'] == 'dimension':
+                        # Campo de dimensión
+                        alias_dim = f"{campo_key}_dim"
+                        if alias_dim in [part.split('.')[0] for part in group_by_parts if '.' in part]:
+                            continue  # Ya está en group_by_parts
+
+                        tabla_dim = campo.get('tabla_dimension')
+                        if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                            campo_nombre = dimension_columns_cache[tabla_dim]
+                        else:
+                            campo_nombre = campo.get('campo_nombre', 'descripcion')
+
+                        group_by_parts.append(f"{alias_dim}.{campo_nombre}")
+                    else:
+                        # Campo normal (texto, etc.)
+                        tabla_rel = campo.get('tabla_relacion', 'principal')
+                        alias_tabla = tabla_aliases.get(tabla_rel, 'p')
+                        columna = campo.get('columna_bd', campo_key)
+
+                        campo_completo = f"{alias_tabla}.{columna}"
+                        if campo_completo not in group_by_parts:
+                            group_by_parts.append(campo_completo)
+
     group_by_clause = ""
     if usar_group_by and group_by_parts:
         group_by_clause = "GROUP BY " + ", ".join(group_by_parts)
@@ -1093,14 +1129,19 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         usar_agregacion_sql = definicion.get('usar_agregacion_sql', False) if definicion else False
 
         # IMPORTANTE: Incluir automáticamente los campos de agrupación en campos_seleccionados
-        # para que estén disponibles en el SELECT incluso si el usuario no los seleccionó explícitamente
+        # SOLO si el informe NO tiene campos_fijos
+        # Si tiene campos_fijos, las agrupaciones solo se usan en GROUP BY, no en SELECT
         campos_a_incluir = list(campos_seleccionados) if campos_seleccionados else []
+        campos_fijos = definicion.get('campos_fijos', False) if definicion else False
 
-        if agrupaciones:
+        if agrupaciones and not campos_fijos:
+            # Solo agregar campos de agrupación al SELECT si NO es campos_fijos
             for campo_agrupacion in agrupaciones:
                 if campo_agrupacion not in campos_a_incluir:
                     campos_a_incluir.append(campo_agrupacion)
                     print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT")
+        elif agrupaciones and campos_fijos:
+            print(f"DEBUG: Informe con campos_fijos=True, las agrupaciones {agrupaciones} se usarán solo en GROUP BY")
 
         # Decidir qué método usar para obtener los datos
         if usar_agregacion_sql:
