@@ -1642,7 +1642,9 @@ def _agrupar_ordenes(ordenes_con_recursos, agrupaciones, ordenes_columns):
 
     def _obtener_valor_agrupacion(orden, campo_agrupacion):
         """Obtiene el valor del campo de agrupación de una orden"""
-        return orden['datos_orden'].get(campo_agrupacion, 'Sin especificar')
+        valor = orden['datos_orden'].get(campo_agrupacion, 'Sin especificar')
+        # Si el valor existe pero es None (NULL en BD), usar 'Sin especificar'
+        return valor if valor is not None else 'Sin especificar'
 
     def _agrupar_recursivo(ordenes, niveles_agrupacion, nivel=0):
         """Agrupa órdenes recursivamente por múltiples niveles"""
