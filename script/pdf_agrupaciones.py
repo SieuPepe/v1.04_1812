@@ -221,6 +221,9 @@ class PDFAgrupaciones(PDFTemplate):
         Returns:
             Tabla con los datos
         """
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_LEFT, TA_RIGHT, TA_CENTER
+
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
@@ -229,13 +232,44 @@ class PDFAgrupaciones(PDFTemplate):
         ancho_columna = ancho_disponible / num_columnas
         col_widths = [ancho_columna] * num_columnas
 
+        # Estilo para celdas de datos (texto multilínea)
+        estilo_celda = ParagraphStyle(
+            'CeldaDatosGrupo',
+            parent=self.styles['Normal'],
+            fontName='Helvetica',
+            fontSize=8,
+            alignment=TA_LEFT,
+            leading=10
+        )
+
+        # Estilo para celdas numéricas (alineadas a la derecha)
+        estilo_celda_derecha = ParagraphStyle(
+            'CeldaDatosGrupoDerecha',
+            parent=estilo_celda,
+            alignment=TA_RIGHT
+        )
+
+        # Estilo para encabezados
+        estilo_encabezado = ParagraphStyle(
+            'EncabezadoGrupo',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#003366'),
+            leading=11
+        )
+
         # Preparar datos
         tabla_datos = []
 
-        # Encabezados
-        tabla_datos.append(columnas)
+        # Encabezados (como Paragraph)
+        encabezados_para = []
+        for col_name in columnas:
+            encabezados_para.append(Paragraph(f"<b>{col_name}</b>", estilo_encabezado))
+        tabla_datos.append(encabezados_para)
 
-        # Datos
+        # Datos (como Paragraph para texto multilínea)
         for fila in datos:
             fila_formateada = []
             for col_idx, valor in enumerate(fila):
@@ -243,19 +277,30 @@ class PDFAgrupaciones(PDFTemplate):
                 formato = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
                 # Formatear
+                texto_celda = ''
+                usar_estilo_derecha = False
+
                 if valor is None:
-                    fila_formateada.append('')
+                    texto_celda = ''
                 elif isinstance(valor, (int, float)):
+                    usar_estilo_derecha = True
                     if formato == 'moneda':
-                        fila_formateada.append(f"{valor:,.2f} €")
+                        # Formato moneda: 2 decimales + símbolo €
+                        texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'decimal':
-                        fila_formateada.append(f"{valor:,.2f}")
+                        # Formato decimal: 2 decimales
+                        texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'porcentaje':
-                        fila_formateada.append(f"{valor:.1f}%")
+                        texto_celda = f"{valor:.2f}%".replace('.', ',')
                     else:
-                        fila_formateada.append(f"{valor:,.2f}")
+                        # Por defecto: 2 decimales
+                        texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 else:
-                    fila_formateada.append(str(valor))
+                    texto_celda = str(valor)
+
+                # Crear Paragraph
+                estilo_a_usar = estilo_celda_derecha if usar_estilo_derecha else estilo_celda
+                fila_formateada.append(Paragraph(texto_celda, estilo_a_usar))
 
             tabla_datos.append(fila_formateada)
 
@@ -266,25 +311,21 @@ class PDFAgrupaciones(PDFTemplate):
         estilo_tabla = [
             # Encabezado
             ('BACKGROUND', (0, 0), (-1, 0), self.color_header_tabla),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#003366')),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('TOPPADDING', (0, 0), (-1, 0), 6),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
 
             # Datos
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
-            ('TOPPADDING', (0, 1), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 3),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
 
             # Bordes
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
             ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#666666')),
 
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            # Alineación vertical
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]
 
         # Color alternado
@@ -292,14 +333,6 @@ class PDFAgrupaciones(PDFTemplate):
             if i % 2 == 0:
                 estilo_tabla.append(
                     ('BACKGROUND', (0, i), (-1, i), self.color_alternado)
-                )
-
-        # Alineación derecha para columnas numéricas
-        for col_idx, col_name in enumerate(columnas):
-            formato = formatos_columnas.get(col_name, 'ninguno')
-            if formato in ['moneda', 'decimal', 'porcentaje']:
-                estilo_tabla.append(
-                    ('ALIGN', (col_idx, 1), (col_idx, -1), 'RIGHT')
                 )
 
         tabla.setStyle(TableStyle(estilo_tabla))
@@ -354,13 +387,16 @@ class PDFAgrupaciones(PDFTemplate):
             # Formatear valor
             if isinstance(valor, (int, float)):
                 if formato == 'moneda':
-                    valor_formateado = f"{valor:,.2f} €"
+                    # Formato moneda: 2 decimales + símbolo €
+                    valor_formateado = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                 elif formato == 'decimal':
-                    valor_formateado = f"{valor:,.2f}"
+                    # Formato decimal: 2 decimales
+                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 elif formato == 'entero':
-                    valor_formateado = f"{int(valor):,}"
+                    valor_formateado = f"{int(valor):,}".replace(',', '.')
                 else:
-                    valor_formateado = f"{valor:,.2f}"
+                    # Por defecto: 2 decimales
+                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
             else:
                 valor_formateado = str(valor)
 
@@ -443,13 +479,16 @@ class PDFAgrupaciones(PDFTemplate):
             # Formatear valor
             if isinstance(valor, (int, float)):
                 if formato == 'moneda':
-                    valor_formateado = f"{valor:,.2f} €"
+                    # Formato moneda: 2 decimales + símbolo €
+                    valor_formateado = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                 elif formato == 'decimal':
-                    valor_formateado = f"{valor:,.2f}"
+                    # Formato decimal: 2 decimales
+                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 elif formato == 'entero':
-                    valor_formateado = f"{int(valor):,}"
+                    valor_formateado = f"{int(valor):,}".replace(',', '.')
                 else:
-                    valor_formateado = f"{valor:,.2f}"
+                    # Por defecto: 2 decimales
+                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
             else:
                 valor_formateado = str(valor)
 

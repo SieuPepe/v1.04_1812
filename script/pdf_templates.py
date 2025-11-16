@@ -14,10 +14,161 @@ from reportlab.lib.units import cm, mm
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph,
-    Spacer, Image, PageBreak, KeepTogether, Frame, PageTemplate
+    Spacer, Image, PageBreak, KeepTogether, Frame, PageTemplate as RLPageTemplate
 )
 from reportlab.pdfgen import canvas
 from PIL import Image as PILImage
+
+
+class NumberedCanvas(canvas.Canvas):
+    """Canvas personalizado con encabezado y pie de página en todas las páginas"""
+
+    def __init__(self, *args, **kwargs):
+        # Extraer parámetros personalizados
+        self.pdf_template = kwargs.pop('pdf_template', None)
+        canvas.Canvas.__init__(self, *args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        """Agregar información de página en todas las páginas guardadas"""
+        num_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_page_decorations(num_pages)
+            canvas.Canvas.showPage(self)
+        canvas.Canvas.save(self)
+
+    def draw_page_decorations(self, page_count):
+        """Dibuja encabezado y pie de página"""
+        if not self.pdf_template:
+            return
+
+        # Obtener número de página actual
+        page_num = len(self._saved_page_states)
+
+        # Dibujar encabezado
+        self.draw_header()
+
+        # Dibujar pie de página con numeración
+        self.draw_footer(page_num, page_count)
+
+    def draw_header(self):
+        """Dibuja el encabezado con logos y título"""
+        if not self.pdf_template:
+            return
+
+        template = self.pdf_template
+        ancho_pagina, alto_pagina = template.pagesize
+
+        # Altura del encabezado (reducida)
+        altura_encabezado = 2.0 * cm
+        y_pos = alto_pagina - template.margen_superior - altura_encabezado
+
+        # Logo izquierdo
+        if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
+            try:
+                img = PILImage.open(template.logo_izquierdo_path)
+                aspect_ratio = img.size[0] / img.size[1]
+                altura_logo = 2.0 * cm
+                ancho_logo = altura_logo * aspect_ratio
+
+                x_logo_izq = template.margen_izquierdo
+                self.drawImage(
+                    template.logo_izquierdo_path,
+                    x_logo_izq,
+                    y_pos,
+                    width=ancho_logo,
+                    height=altura_logo,
+                    preserveAspectRatio=True
+                )
+            except:
+                pass
+
+        # Título centrado
+        self.setFont('Helvetica-Bold', 20)
+        self.setFillColor(colors.HexColor('#003366'))
+        titulo = template.titulo.upper()
+        ancho_texto = self.stringWidth(titulo, 'Helvetica-Bold', 20)
+        x_titulo = (ancho_pagina - ancho_texto) / 2
+        y_titulo = y_pos + altura_encabezado / 2
+        self.drawString(x_titulo, y_titulo, titulo)
+
+        # Logo derecho
+        if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
+            try:
+                img = PILImage.open(template.logo_derecho_path)
+                aspect_ratio = img.size[0] / img.size[1]
+                altura_logo = 2.0 * cm
+                ancho_logo = altura_logo * aspect_ratio
+
+                x_logo_der = ancho_pagina - template.margen_derecho - ancho_logo
+                self.drawImage(
+                    template.logo_derecho_path,
+                    x_logo_der,
+                    y_pos,
+                    width=ancho_logo,
+                    height=altura_logo,
+                    preserveAspectRatio=True
+                )
+            except:
+                pass
+
+        # Línea separadora
+        self.setStrokeColor(colors.HexColor('#CCCCCC'))
+        self.setLineWidth(0.5)
+        y_linea = y_pos - 0.2 * cm
+        self.line(
+            template.margen_izquierdo,
+            y_linea,
+            ancho_pagina - template.margen_derecho,
+            y_linea
+        )
+
+    def draw_footer(self, page_num, page_count):
+        """Dibuja el pie de página con numeración"""
+        if not self.pdf_template:
+            return
+
+        template = self.pdf_template
+        ancho_pagina, _ = template.pagesize
+
+        # Posición del pie de página
+        y_pos = template.margen_inferior - 0.5 * cm
+
+        # Línea separadora
+        self.setStrokeColor(colors.HexColor('#CCCCCC'))
+        self.setLineWidth(0.5)
+        self.line(
+            template.margen_izquierdo,
+            y_pos + 0.5 * cm,
+            ancho_pagina - template.margen_derecho,
+            y_pos + 0.5 * cm
+        )
+
+        # Texto del pie de página
+        self.setFont('Helvetica', 8)
+        self.setFillColor(colors.HexColor('#999999'))
+
+        # Fecha de generación (izquierda)
+        fecha_generacion = datetime.now().strftime('%d/%m/%Y %H:%M')
+        texto_izq = f"Generado: {fecha_generacion}"
+        self.drawString(template.margen_izquierdo, y_pos, texto_izq)
+
+        # Numeración de página (centro)
+        texto_pag = f"Página {page_num} de {page_count}"
+        ancho_texto = self.stringWidth(texto_pag, 'Helvetica', 8)
+        x_centro = (ancho_pagina - ancho_texto) / 2
+        self.drawString(x_centro, y_pos, texto_pag)
+
+        # Nombre de la aplicación (derecha)
+        texto_der = "HydroFlow Manager v1.04"
+        ancho_texto_der = self.stringWidth(texto_der, 'Helvetica', 8)
+        x_der = ancho_pagina - template.margen_derecho - ancho_texto_der
+        self.drawString(x_der, y_pos, texto_der)
 
 
 class PDFTemplate:
@@ -59,9 +210,9 @@ class PDFTemplate:
         else:
             self.pagesize = A4  # 21 x 29.7 cm
 
-        # Márgenes (en cm)
-        self.margen_superior = 1.5 * cm
-        self.margen_inferior = 1.5 * cm
+        # Márgenes (en cm) - ajustados para encabezado y pie de página
+        self.margen_superior = 3.5 * cm  # Espacio para encabezado (2cm logos + 1.5cm margen)
+        self.margen_inferior = 2.0 * cm  # Espacio para pie de página
         self.margen_izquierdo = 1.5 * cm
         self.margen_derecho = 1.5 * cm
 
@@ -221,67 +372,12 @@ class PDFTemplate:
         self.color_total = colors.HexColor('#C5D9F1')  # Azul claro para total
 
     def agregar_encabezado(self):
-        """Agrega el encabezado del documento con logos y título"""
-        # Calcular ancho disponible
-        ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
-
-        # Crear tabla de encabezado con 3 columnas: logo izq | título | logo der
-        header_data = []
-        header_row = []
-
-        # Altura deseada para logos (2 cm)
-        altura_logo = 2.0 * cm
-
-        # Logo izquierdo
-        if self.logo_izquierdo_path and os.path.exists(self.logo_izquierdo_path):
-            try:
-                # Calcular ancho proporcional
-                img = PILImage.open(self.logo_izquierdo_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = altura_logo * aspect_ratio
-                logo_izq = Image(self.logo_izquierdo_path, width=ancho_logo, height=altura_logo)
-                header_row.append(logo_izq)
-            except:
-                header_row.append('')
-        else:
-            header_row.append('')
-
-        # Título en el centro
-        titulo_para = Paragraph(f"<b>{self.titulo.upper()}</b>", self.style_titulo)
-        header_row.append(titulo_para)
-
-        # Logo derecho
-        if self.logo_derecho_path and os.path.exists(self.logo_derecho_path):
-            try:
-                # Calcular ancho proporcional
-                img = PILImage.open(self.logo_derecho_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = altura_logo * aspect_ratio
-                logo_der = Image(self.logo_derecho_path, width=ancho_logo, height=altura_logo)
-                header_row.append(logo_der)
-            except:
-                header_row.append('')
-        else:
-            header_row.append('')
-
-        header_data.append(header_row)
-
-        # Calcular anchos de columnas: 3.5cm | resto | 3.5cm
-        ancho_logos = 3.5 * cm
-        ancho_titulo = ancho_disponible - (2 * ancho_logos)
-
-        header_table = Table(header_data, colWidths=[ancho_logos, ancho_titulo, ancho_logos])
-        header_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ]))
-
-        self.elements.append(header_table)
-        self.elements.append(Spacer(1, 0.3 * cm))
+        """
+        El encabezado ahora se dibuja automáticamente en todas las páginas mediante NumberedCanvas.
+        Este método se mantiene por compatibilidad pero no hace nada.
+        """
+        # Ya no se necesita agregar elementos, el canvas lo dibuja automáticamente
+        pass
 
     def agregar_info_proyecto(self):
         """Agrega información del proyecto"""
@@ -327,13 +423,42 @@ class PDFTemplate:
         ancho_columna = ancho_disponible / num_columnas
         col_widths = [ancho_columna] * num_columnas
 
+        # Estilo para celdas de datos (texto multilínea)
+        estilo_celda = ParagraphStyle(
+            'CeldaDatos',
+            parent=self.styles['Normal'],
+            fontName='Helvetica',
+            fontSize=8,
+            alignment=TA_LEFT,
+            leading=10  # Espaciado entre líneas
+        )
+
+        # Estilo para celdas numéricas (alineadas a la derecha)
+        estilo_celda_derecha = ParagraphStyle(
+            'CeldaDatosDerecha',
+            parent=estilo_celda,
+            alignment=TA_RIGHT
+        )
+
         # Preparar datos de la tabla
         tabla_datos = []
 
-        # Encabezados
-        tabla_datos.append(columnas)
+        # Encabezados (como Paragraph para permitir texto multilínea)
+        encabezados_para = []
+        estilo_encabezado = ParagraphStyle(
+            'EncabezadoTabla',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#003366'),
+            leading=11
+        )
+        for col_name in columnas:
+            encabezados_para.append(Paragraph(f"<b>{col_name}</b>", estilo_encabezado))
+        tabla_datos.append(encabezados_para)
 
-        # Datos
+        # Datos (como Paragraph para permitir texto multilínea y ajuste automático de altura)
         for fila in datos:
             fila_formateada = []
             for col_idx, valor in enumerate(fila):
@@ -341,49 +466,56 @@ class PDFTemplate:
                 formato = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
                 # Formatear según tipo
+                texto_celda = ''
+                usar_estilo_derecha = False
+
                 if valor is None:
-                    fila_formateada.append('')
+                    texto_celda = ''
                 elif isinstance(valor, (int, float)):
+                    usar_estilo_derecha = True
                     if formato == 'moneda':
-                        fila_formateada.append(f"{valor:,.2f} €")
+                        # Formato moneda: 2 decimales + símbolo €
+                        texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'decimal':
-                        fila_formateada.append(f"{valor:,.2f}")
+                        # Formato decimal: 2 decimales
+                        texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'porcentaje':
-                        fila_formateada.append(f"{valor:.1f}%")
+                        texto_celda = f"{valor:.2f}%".replace('.', ',')
                     else:
-                        fila_formateada.append(f"{valor:,.2f}")
+                        # Por defecto: 2 decimales
+                        texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 else:
-                    fila_formateada.append(str(valor))
+                    texto_celda = str(valor)
+
+                # Crear Paragraph con el estilo apropiado
+                estilo_a_usar = estilo_celda_derecha if usar_estilo_derecha else estilo_celda
+                fila_formateada.append(Paragraph(texto_celda, estilo_a_usar))
 
             tabla_datos.append(fila_formateada)
 
-        # Crear tabla
+        # Crear tabla con altura de fila dinámica (None permite que se ajuste al contenido)
         tabla = Table(tabla_datos, colWidths=col_widths, repeatRows=1)
 
         # Estilo de la tabla (estilo Access)
         estilo_tabla = [
             # Encabezado
             ('BACKGROUND', (0, 0), (-1, 0), self.color_header_tabla),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#003366')),
             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
             ('TOPPADDING', (0, 0), (-1, 0), 8),
 
             # Datos
-            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
             ('TOPPADDING', (0, 1), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
 
             # Bordes (estilo Access - bordes sutiles)
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
             ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#666666')),
 
-            # Alineación derecha para columnas numéricas
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            # Alineación vertical
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ]
 
         # Aplicar color alternado a filas (estilo Access)
@@ -393,27 +525,17 @@ class PDFTemplate:
                     ('BACKGROUND', (0, i), (-1, i), self.color_alternado)
                 )
 
-        # Aplicar alineación derecha a columnas numéricas
-        for col_idx, col_name in enumerate(columnas):
-            formato = formatos_columnas.get(col_name, 'ninguno')
-            if formato in ['moneda', 'decimal', 'porcentaje']:
-                estilo_tabla.append(
-                    ('ALIGN', (col_idx, 1), (col_idx, -1), 'RIGHT')
-                )
-
         tabla.setStyle(TableStyle(estilo_tabla))
 
         return tabla
 
     def agregar_pie_pagina(self):
-        """Agrega el pie de página"""
-        self.elements.append(Spacer(1, 1 * cm))
-        fecha_generacion = datetime.now().strftime('%d/%m/%Y a las %H:%M')
-        p_pie = Paragraph(
-            f"Generado el {fecha_generacion} | HydroFlow Manager v1.04",
-            self.style_pie
-        )
-        self.elements.append(p_pie)
+        """
+        El pie de página ahora se dibuja automáticamente en todas las páginas mediante NumberedCanvas.
+        Este método se mantiene por compatibilidad pero no hace nada.
+        """
+        # Ya no se necesita agregar elementos, el canvas lo dibuja automáticamente
+        pass
 
     def generar_pdf(self, filepath: str) -> bool:
         """
@@ -435,7 +557,12 @@ class PDFTemplate:
                 rightMargin=self.margen_derecho
             )
 
-            doc.build(self.elements)
+            # Función para crear canvas personalizado con encabezado y pie de página
+            def crear_canvas(filename, **kwargs):
+                return NumberedCanvas(filename, pdf_template=self, **kwargs)
+
+            # Construir el PDF usando el canvas personalizado
+            doc.build(self.elements, canvasmaker=crear_canvas)
             return True
 
         except Exception as e:
