@@ -98,6 +98,10 @@ HidroFlowManager.exe
 ~$*.docx
 ~$*.doc
 
+# EXCEPCIÓN: Permitir plantillas en /resources/plantillas/
+!resources/plantillas/*.docx
+!resources/plantillas/*.doc
+
 # Imágenes de ejemplo/documentación (mantener solo en resources/)
 /*.jpg
 /*.jpeg

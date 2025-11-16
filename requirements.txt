@@ -21,5 +21,8 @@ xlsxwriter>=3.0.0
 python-docx>=0.8.0
 reportlab>=3.6.0
 
+# Word to PDF conversion (Windows only, but safe to install on all platforms)
+pywin32>=305; sys_platform == 'win32'
+
 # Variables de entorno
 python-dotenv>=1.0.0

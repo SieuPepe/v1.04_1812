@@ -49,8 +49,12 @@ class InformesConfigStorage:
             bool: True si se guardó correctamente, False en caso de error
         """
         try:
+            # Generar nombre de archivo seguro
+            filename = self._generar_nombre_archivo(nombre)
+
             configuracion = {
                 "nombre": nombre,
+                "filename": filename,  # NUEVO: Guardar filename para referencia directa
                 "descripcion": descripcion,
                 "informe_base": informe_nombre,
                 "filtros": filtros,
@@ -61,8 +65,6 @@ class InformesConfigStorage:
                 "version": "1.0"
             }
 
-            # Generar nombre de archivo seguro
-            filename = self._generar_nombre_archivo(nombre)
             filepath = os.path.join(self.storage_dir, filename)
 
             # Guardar como JSON
@@ -76,28 +78,27 @@ class InformesConfigStorage:
             print(f"❌ Error al guardar configuración: {e}")
             return False
 
-    def cargar_configuracion(self, nombre):
+    def cargar_configuracion(self, filename):
         """
-        Carga una configuración guardada
+        Carga una configuración guardada usando el filename directo
 
         Args:
-            nombre: Nombre de la configuración (o nombre de archivo)
+            filename: Nombre del archivo (ej: "config.json")
 
         Returns:
             dict: Configuración cargada o None si hay error
         """
         try:
-            filename = self._generar_nombre_archivo(nombre)
             filepath = os.path.join(self.storage_dir, filename)
 
             if not os.path.exists(filepath):
-                print(f"❌ Configuración no encontrada: {nombre}")
+                print(f"❌ Configuración no encontrada: {filename}")
                 return None
 
             with open(filepath, 'r', encoding='utf-8') as f:
                 configuracion = json.load(f)
 
-            print(f"✅ Configuración cargada: {nombre}")
+            print(f"✅ Configuración cargada: {filename}")
             return configuracion
 
         except Exception as e:
@@ -122,16 +123,19 @@ class InformesConfigStorage:
                         with open(filepath, 'r', encoding='utf-8') as f:
                             config = json.load(f)
 
-                        configuraciones.append({
-                            'nombre': config.get('nombre', filename[:-5]),
-                            'descripcion': config.get('descripcion', ''),
-                            'informe_base': config.get('informe_base', ''),
-                            'fecha_creacion': config.get('fecha_creacion', ''),
-                            'fecha_modificacion': config.get('fecha_modificacion', ''),
-                            'num_filtros': len(config.get('filtros', [])),
-                            'num_ordenaciones': len(config.get('ordenaciones', [])),
-                            'num_campos': len(config.get('campos_seleccionados', []))
-                        })
+                        # Solo listar configuraciones que tengan todos los campos requeridos
+                        if 'nombre' in config and 'filename' in config and 'informe_base' in config:
+                            configuraciones.append({
+                                'nombre': config['nombre'],
+                                'filename': config['filename'],
+                                'descripcion': config.get('descripcion', ''),
+                                'informe_base': config['informe_base'],
+                                'fecha_creacion': config.get('fecha_creacion', ''),
+                                'fecha_modificacion': config.get('fecha_modificacion', ''),
+                                'num_filtros': len(config.get('filtros', [])),
+                                'num_ordenaciones': len(config.get('ordenaciones', [])),
+                                'num_campos': len(config.get('campos_seleccionados', []))
+                            })
                     except:
                         # Ignorar archivos corruptos
                         continue
@@ -141,26 +145,25 @@ class InformesConfigStorage:
 
         return sorted(configuraciones, key=lambda x: x['fecha_modificacion'], reverse=True)
 
-    def eliminar_configuracion(self, nombre):
+    def eliminar_configuracion(self, filename):
         """
-        Elimina una configuración guardada
+        Elimina una configuración guardada usando el filename directo
 
         Args:
-            nombre: Nombre de la configuración
+            filename: Nombre del archivo (ej: "config.json")
 
         Returns:
             bool: True si se eliminó correctamente, False en caso de error
         """
         try:
-            filename = self._generar_nombre_archivo(nombre)
             filepath = os.path.join(self.storage_dir, filename)
 
             if os.path.exists(filepath):
                 os.remove(filepath)
-                print(f"✅ Configuración eliminada: {nombre}")
+                print(f"✅ Configuración eliminada: {filename}")
                 return True
             else:
-                print(f"❌ Configuración no encontrada: {nombre}")
+                print(f"❌ Configuración no encontrada: {filename}")
                 return False
 
         except Exception as e:
@@ -271,9 +274,26 @@ class InformesConfigStorage:
         Returns:
             str: Nombre de archivo seguro
         """
+        # Si ya termina en .json, quitarlo temporalmente
+        if nombre.endswith('.json'):
+            nombre = nombre[:-5]
+
         # Eliminar caracteres no válidos
         nombre_limpio = "".join(c for c in nombre if c.isalnum() or c in (' ', '-', '_')).strip()
+
+        # Reemplazar espacios por guiones bajos
         nombre_limpio = nombre_limpio.replace(' ', '_')
+
+        # Eliminar múltiples guiones bajos consecutivos
+        while '__' in nombre_limpio:
+            nombre_limpio = nombre_limpio.replace('__', '_')
+
+        # Eliminar guiones bajos al inicio y final
+        nombre_limpio = nombre_limpio.strip('_')
+
+        # Si quedó vacío, usar nombre por defecto
+        if not nombre_limpio:
+            nombre_limpio = 'configuracion_sin_nombre'
 
         # Asegurar extensión .json
         if not nombre_limpio.endswith('.json'):
@@ -349,3 +369,49 @@ class InformesConfigStorage:
         except Exception as e:
             print(f"⚠ Error al auto-cargar configuración de '{informe_nombre}': {e}")
             return None
+
+    def debug_configuracion(self, nombre):
+        """
+        Función de debugging para diagnosticar problemas con configuraciones
+
+        Args:
+            nombre: Nombre de la configuración a diagnosticar
+
+        Returns:
+            dict: Información de debugging
+        """
+        filename = self._generar_nombre_archivo(nombre)
+        filepath = os.path.join(self.storage_dir, filename)
+
+        debug_info = {
+            'nombre_original': nombre,
+            'filename_generado': filename,
+            'filepath_completo': filepath,
+            'archivo_existe': os.path.exists(filepath),
+            'archivos_en_directorio': [],
+            'error': None
+        }
+
+        try:
+            # Listar todos los archivos en el directorio
+            if os.path.exists(self.storage_dir):
+                debug_info['archivos_en_directorio'] = [
+                    f for f in os.listdir(self.storage_dir)
+                    if f.endswith('.json')
+                ]
+
+            # Intentar leer el archivo
+            if os.path.exists(filepath):
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    debug_info['nombre_en_json'] = config.get('nombre', 'NO DEFINIDO')
+                    debug_info['json_valido'] = True
+            else:
+                debug_info['json_valido'] = False
+                debug_info['error'] = f"Archivo no encontrado: {filepath}"
+
+        except Exception as e:
+            debug_info['error'] = str(e)
+            debug_info['json_valido'] = False
+
+        return debug_info
