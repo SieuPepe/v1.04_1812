@@ -3421,12 +3421,12 @@ class InformesFrame(customtkinter.CTkFrame):
         list_frame = customtkinter.CTkScrollableFrame(frame, height=300)
         list_frame.pack(fill="both", expand=True, pady=(0, 15))
         
-        selected_config = {"name": None}
-        
-        def seleccionar(nombre):
-            selected_config["name"] = nombre
+        selected_config = {"filename": None}
+
+        def seleccionar(filename):
+            selected_config["filename"] = filename
             cargar()
-        
+
         # Listar configuraciones
         for i, config in enumerate(configuraciones):
             config_frame = customtkinter.CTkFrame(list_frame)
@@ -3455,26 +3455,26 @@ class InformesFrame(customtkinter.CTkFrame):
                 btn_frame,
                 text="Cargar",
                 width=80,
-                command=lambda n=config['nombre']: seleccionar(n)
+                command=lambda f=config.get('filename', config['nombre']): seleccionar(f)
             )
             cargar_btn.pack(side="left", padx=2)
-            
+
             eliminar_btn = customtkinter.CTkButton(
                 btn_frame,
                 text="🗑️",
                 width=40,
                 fg_color="darkred",
                 hover_color="red",
-                command=lambda n=config['nombre']: eliminar_config(n)
+                command=lambda f=config.get('filename', config['nombre']), n=config['nombre']: eliminar_config(f, n)
             )
             eliminar_btn.pack(side="left", padx=2)
         
         def cargar():
-            nombre = selected_config["name"]
-            if not nombre:
+            filename = selected_config["filename"]
+            if not filename:
                 return
-            
-            config = self.storage.cargar_configuracion(nombre)
+
+            config = self.storage.cargar_configuracion(filename)
             if not config:
                 CTkMessagebox(
                     title="Error",
@@ -3482,43 +3482,44 @@ class InformesFrame(customtkinter.CTkFrame):
                     icon="cancel"
                 )
                 return
-            
+
             # Aplicar configuración
             self._aplicar_configuracion(config)
-            
+
+            nombre_mostrar = config.get('nombre', filename)
             CTkMessagebox(
                 title="Éxito",
-                message=f"Configuración '{nombre}' cargada correctamente.",
+                message=f"Configuración '{nombre_mostrar}' cargada correctamente.",
                 icon="check"
             )
             dialog.destroy()
-        
-        def eliminar_config(nombre):
+
+        def eliminar_config(filename, nombre_mostrar):
             # Destruir el diálogo de configuraciones primero para evitar bloqueos
             dialog.destroy()
 
             # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
             respuesta = CTkMessagebox(
                 title="Confirmar Eliminación",
-                message=f"¿Está seguro de eliminar la configuración '{nombre}'?",
+                message=f"¿Está seguro de eliminar la configuración '{nombre_mostrar}'?",
                 icon="question",
                 option_1="Cancelar",
                 option_2="Eliminar"
             )
 
             if respuesta.get() == "Eliminar":
-                if self.storage.eliminar_configuracion(nombre):
+                if self.storage.eliminar_configuracion(filename):
                     # Mostrar mensaje de éxito
                     CTkMessagebox(
                         title="Éxito",
-                        message=f"Configuración '{nombre}' eliminada correctamente.",
+                        message=f"Configuración '{nombre_mostrar}' eliminada correctamente.",
                         icon="check"
                     )
                 else:
                     # Mostrar error
                     CTkMessagebox(
                         title="Error",
-                        message=f"No se pudo eliminar la configuración '{nombre}'.",
+                        message=f"No se pudo eliminar la configuración '{nombre_mostrar}'.",
                         icon="cancel"
                     )
 

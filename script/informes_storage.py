@@ -49,8 +49,12 @@ class InformesConfigStorage:
             bool: True si se guardó correctamente, False en caso de error
         """
         try:
+            # Generar nombre de archivo seguro
+            filename = self._generar_nombre_archivo(nombre)
+
             configuracion = {
                 "nombre": nombre,
+                "filename": filename,  # NUEVO: Guardar filename para referencia directa
                 "descripcion": descripcion,
                 "informe_base": informe_nombre,
                 "filtros": filtros,
@@ -61,8 +65,6 @@ class InformesConfigStorage:
                 "version": "1.0"
             }
 
-            # Generar nombre de archivo seguro
-            filename = self._generar_nombre_archivo(nombre)
             filepath = os.path.join(self.storage_dir, filename)
 
             # Guardar como JSON
@@ -76,28 +78,33 @@ class InformesConfigStorage:
             print(f"❌ Error al guardar configuración: {e}")
             return False
 
-    def cargar_configuracion(self, nombre):
+    def cargar_configuracion(self, nombre_o_filename):
         """
         Carga una configuración guardada
 
         Args:
-            nombre: Nombre de la configuración (o nombre de archivo)
+            nombre_o_filename: Nombre de la configuración o filename directo
 
         Returns:
             dict: Configuración cargada o None si hay error
         """
         try:
-            filename = self._generar_nombre_archivo(nombre)
+            # Intentar primero como filename directo
+            if nombre_o_filename.endswith('.json'):
+                filename = nombre_o_filename
+            else:
+                filename = self._generar_nombre_archivo(nombre_o_filename)
+
             filepath = os.path.join(self.storage_dir, filename)
 
             if not os.path.exists(filepath):
-                print(f"❌ Configuración no encontrada: {nombre}")
+                print(f"❌ Configuración no encontrada: {nombre_o_filename}")
                 return None
 
             with open(filepath, 'r', encoding='utf-8') as f:
                 configuracion = json.load(f)
 
-            print(f"✅ Configuración cargada: {nombre}")
+            print(f"✅ Configuración cargada: {nombre_o_filename}")
             return configuracion
 
         except Exception as e:
@@ -124,6 +131,7 @@ class InformesConfigStorage:
 
                         configuraciones.append({
                             'nombre': config.get('nombre', filename[:-5]),
+                            'filename': config.get('filename', filename),  # NUEVO: Filename real
                             'descripcion': config.get('descripcion', ''),
                             'informe_base': config.get('informe_base', ''),
                             'fecha_creacion': config.get('fecha_creacion', ''),
@@ -141,26 +149,31 @@ class InformesConfigStorage:
 
         return sorted(configuraciones, key=lambda x: x['fecha_modificacion'], reverse=True)
 
-    def eliminar_configuracion(self, nombre):
+    def eliminar_configuracion(self, nombre_o_filename):
         """
         Elimina una configuración guardada
 
         Args:
-            nombre: Nombre de la configuración
+            nombre_o_filename: Nombre de la configuración o filename directo
 
         Returns:
             bool: True si se eliminó correctamente, False en caso de error
         """
         try:
-            filename = self._generar_nombre_archivo(nombre)
+            # Intentar primero como filename directo
+            if nombre_o_filename.endswith('.json'):
+                filename = nombre_o_filename
+            else:
+                filename = self._generar_nombre_archivo(nombre_o_filename)
+
             filepath = os.path.join(self.storage_dir, filename)
 
             if os.path.exists(filepath):
                 os.remove(filepath)
-                print(f"✅ Configuración eliminada: {nombre}")
+                print(f"✅ Configuración eliminada: {nombre_o_filename}")
                 return True
             else:
-                print(f"❌ Configuración no encontrada: {nombre}")
+                print(f"❌ Configuración no encontrada: {nombre_o_filename}")
                 return False
 
         except Exception as e:
