@@ -2181,8 +2181,14 @@ class InformesFrame(customtkinter.CTkFrame):
         formato = campo_info.get('formato', '')
 
         if isinstance(valor, (int, float)):
+            # Verificar si es coordenada geográfica (latitud/longitud) - 4 decimales
+            es_coordenada = campo_nombre and ('latitud' in campo_nombre.lower() or 'longitud' in campo_nombre.lower())
+
             if formato == 'moneda':
                 return f"{valor:,.2f} €"
+            elif es_coordenada:
+                # Coordenadas geográficas: 4 decimales
+                return f"{valor:.4f}"
             elif formato == 'decimal':
                 return f"{valor:,.2f}"
             elif formato == 'entero':
@@ -3278,7 +3284,24 @@ class InformesFrame(customtkinter.CTkFrame):
         filtros_aplicados = self._recopilar_filtros()
         ordenaciones_aplicadas = self._recopilar_ordenaciones()
         campos_seleccionados_list = self._recopilar_campos()
-        
+
+        # Recopilar agrupaciones
+        agrupaciones_list = []
+        for agrup in self.agrupaciones:
+            campo = agrup.get('campo_actual')
+            if campo:
+                agrupaciones_list.append(campo)
+
+        # Recopilar agregaciones
+        agregaciones_list = []
+        for agreg_obj in self.agregaciones:
+            agreg_dict = self._extraer_agregacion_config(agreg_obj)
+            if agreg_dict:
+                agregaciones_list.append(agreg_dict)
+
+        # Recopilar modo de visualización
+        modo = "detalle" if self.modo_selector.get() == "Detalle" else "resumen"
+
         # Crear ventana de diálogo para nombrar la configuración
         dialog = customtkinter.CTkToplevel(self)
         dialog.title("Guardar Configuración")
@@ -3332,7 +3355,10 @@ class InformesFrame(customtkinter.CTkFrame):
                 filtros=filtros_aplicados,
                 ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados_list,
-                descripcion=descripcion
+                descripcion=descripcion,
+                agrupaciones=agrupaciones_list,
+                agregaciones=agregaciones_list,
+                modo=modo
             )
             
             if exito:
@@ -3440,6 +3466,14 @@ class InformesFrame(customtkinter.CTkFrame):
             if config['descripcion']:
                 info_text += f"   Descripción: {config['descripcion']}\n"
             info_text += f"   Filtros: {config['num_filtros']} | Ordenaciones: {config['num_ordenaciones']} | Campos: {config['num_campos']}\n"
+
+            # Mostrar agrupaciones y agregaciones si existen
+            num_agrup = config.get('num_agrupaciones', 0)
+            num_agreg = config.get('num_agregaciones', 0)
+            modo = config.get('modo', 'detalle')
+            if num_agrup > 0 or num_agreg > 0:
+                info_text += f"   Agrupaciones: {num_agrup} | Agregaciones: {num_agreg} | Modo: {modo.capitalize()}\n"
+
             info_text += f"   Guardado: {config['fecha_creacion'][:10]}"
             
             label = customtkinter.CTkLabel(

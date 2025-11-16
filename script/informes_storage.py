@@ -33,7 +33,7 @@ class InformesConfigStorage:
         if not os.path.exists(self.storage_dir):
             os.makedirs(self.storage_dir)
 
-    def guardar_configuracion(self, nombre, informe_nombre, filtros, ordenaciones, campos_seleccionados, descripcion=""):
+    def guardar_configuracion(self, nombre, informe_nombre, filtros, ordenaciones, campos_seleccionados, descripcion="", agrupaciones=None, agregaciones=None, modo="detalle"):
         """
         Guarda una configuración de informe
 
@@ -44,6 +44,9 @@ class InformesConfigStorage:
             ordenaciones: Lista de ordenaciones aplicadas
             campos_seleccionados: Lista de campos seleccionados
             descripcion: Descripción opcional de la configuración
+            agrupaciones: Lista de agrupaciones (opcional)
+            agregaciones: Lista de agregaciones (opcional)
+            modo: Modo de visualización ('detalle' o 'resumen')
 
         Returns:
             bool: True si se guardó correctamente, False en caso de error
@@ -60,9 +63,12 @@ class InformesConfigStorage:
                 "filtros": filtros,
                 "ordenaciones": ordenaciones,
                 "campos_seleccionados": campos_seleccionados,
+                "agrupaciones": agrupaciones or [],
+                "agregaciones": agregaciones or [],
+                "modo": modo,
                 "fecha_creacion": datetime.now().isoformat(),
                 "fecha_modificacion": datetime.now().isoformat(),
-                "version": "1.0"
+                "version": "1.1"
             }
 
             filepath = os.path.join(self.storage_dir, filename)
@@ -134,7 +140,10 @@ class InformesConfigStorage:
                                 'fecha_modificacion': config.get('fecha_modificacion', ''),
                                 'num_filtros': len(config.get('filtros', [])),
                                 'num_ordenaciones': len(config.get('ordenaciones', [])),
-                                'num_campos': len(config.get('campos_seleccionados', []))
+                                'num_campos': len(config.get('campos_seleccionados', [])),
+                                'num_agrupaciones': len(config.get('agrupaciones', [])),
+                                'num_agregaciones': len(config.get('agregaciones', [])),
+                                'modo': config.get('modo', 'detalle')
                             })
                     except:
                         # Ignorar archivos corruptos
@@ -257,7 +266,10 @@ class InformesConfigStorage:
                 config.get('filtros', []),
                 config.get('ordenaciones', []),
                 config.get('campos_seleccionados', []),
-                config.get('descripcion', '')
+                config.get('descripcion', ''),
+                config.get('agrupaciones', []),
+                config.get('agregaciones', []),
+                config.get('modo', 'detalle')
             )
 
         except Exception as e:
