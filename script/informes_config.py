@@ -17,8 +17,7 @@ CATEGORIAS_INFORMES = {
         "Listado de Partidas del Presupuesto",
         "Recursos Presupuestados",
         "Recursos Certificados",
-        "Recursos Pendientes",
-        "Trabajos por Actuación"
+        "Recursos Pendientes"
     ],
 
     "💰 Presupuestos": [
@@ -581,6 +580,7 @@ INFORMES_DEFINICIONES = {
         "campos_fijos": True,  # No permite selección de campos
         "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
         "usar_agregacion_sql": True,  # Usar GROUP BY y SUM en SQL
+        "campos_default": ["codigo", "cantidad", "unidad", "resumen", "coste", "coste_total"],  # Campos que siempre se muestran
 
         "campos": {
             # Campos de tbl_pres_precios (tabla de precios)
@@ -601,7 +601,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
@@ -610,16 +610,17 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -641,9 +642,9 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total",
+                "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "p.cantidad * p.precio_unit",
+                "formula": "p.cantidad * precio.coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -726,11 +727,41 @@ INFORMES_DEFINICIONES = {
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_red"
             },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -802,7 +833,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
@@ -811,16 +842,17 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -842,9 +874,9 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total",
+                "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "p.cantidad_cert * p.precio_unit",
+                "formula": "p.cantidad_cert * precio.coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -927,11 +959,41 @@ INFORMES_DEFINICIONES = {
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_red"
             },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -1002,7 +1064,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "unidad": {
-                "nombre": "Unidad",
+                "nombre": "Ud.",
                 "tipo": "dimension",
                 "tabla_relacion": "precio",
                 "columna_bd": "id_unidades",
@@ -1011,16 +1073,17 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -1035,16 +1098,16 @@ INFORMES_DEFINICIONES = {
             },
             # Campos calculados: cantidad pendiente = presupuestada - certificada
             "cantidad": {
-                "nombre": "Cantidad Pendiente",
+                "nombre": "Cantidad",
                 "tipo": "calculado",
                 "formula": "p.cantidad - COALESCE((SELECT pc.cantidad_cert FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
                 "formato": "decimal",
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total Pendiente",
+                "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "(p.cantidad * p.precio_unit) - COALESCE((SELECT pc.cantidad_cert * pc.precio_unit FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
+                "formula": "(p.cantidad * precio.coste) - COALESCE((SELECT pc.cantidad_cert * precio.coste FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -1127,11 +1190,41 @@ INFORMES_DEFINICIONES = {
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_red"
             },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -1170,134 +1263,6 @@ INFORMES_DEFINICIONES = {
             "resumen",
             "coste",
             "coste_total"
-        ]
-    },
-
-    "Trabajos por Actuación": {
-        "categoria": "📦 Recursos",
-        "descripcion": "Listado de partes en los que está presupuestada una unidad de obra específica.",
-        "tabla_principal": "tbl_partes",
-        "require_selector": True,  # Requiere selector especial de partida
-        "selector_config": {
-            "tipo": "partida_presupuesto",
-            "tabla": "tbl_pres_precios",
-            "campo_mostrar": "codigo",
-            "campo_descripcion": "resumen"
-        },
-
-        "campos": {
-            "mes": {
-                "nombre": "Mes",
-                "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
-                "grupo": "Temporal"
-            },
-            "año": {
-                "nombre": "Año",
-                "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
-                "grupo": "Temporal"
-            },
-            "partida_seleccionada": {
-                "nombre": "Partida",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "codigo_parte": {
-                "nombre": "Código Parte",
-                "tipo": "texto",
-                "columna_bd": "codigo",
-                "grupo": "Información Básica"
-            },
-            "descripcion_parte": {
-                "nombre": "Descripción Parte",
-                "tipo": "texto",
-                "columna_bd": "descripcion",
-                "grupo": "Información Básica"
-            },
-            "estado": {
-                "nombre": "Estado",
-                "tipo": "texto",
-                "columna_bd": "estado",
-                "grupo": "Información Básica"
-            },
-            "cantidad_presupuestada": {
-                "nombre": "Cantidad",
-                "tipo": "calculado",
-                "formula": "(SELECT pp.cantidad FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
-                "formato": "decimal",
-                "grupo": "Presupuesto"
-            },
-            "importe": {
-                "nombre": "Importe",
-                "tipo": "calculado",
-                "formula": "(SELECT pp.cantidad * pp.precio_unit FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id AND pp.precio_id = @partida_id)",
-                "formato": "moneda",
-                "grupo": "Presupuesto"
-            },
-            "fecha_inicio": {
-                "nombre": "Fecha Inicio",
-                "tipo": "fecha",
-                "columna_bd": "fecha_inicio",
-                "grupo": "Fechas"
-            }
-        },
-
-        "filtros": {
-            "estado": {
-                "campo": "estado",
-                "tipo": "select",
-                "operadores": ["Igual a", "Diferente de"],
-                "valores": ["Pendiente", "En curso", "Finalizado"]
-            },
-            "fecha_inicio": {
-                "campo": "fecha_inicio",
-                "tipo": "fecha",
-                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
-            }
-        },
-
-        "ordenaciones": [
-            "mes",
-            "año",
-            "estado",
-            "fecha_inicio",
-            "cantidad_presupuestada"
-        ],
-
-        "agrupaciones": {
-            "campos_permitidos": [
-                "mes",
-                "año",
-                "estado"
-            ],
-            "max_niveles": 1,
-            "modo_default": "detalle"
-        },
-
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            }
-        },
-
-        "campos_default": [
-            "partida_seleccionada",
-            "codigo_parte",
-            "descripcion_parte",
-            "estado",
-            "cantidad_presupuestada",
-            "importe"
         ]
     },
 

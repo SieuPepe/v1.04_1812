@@ -8,6 +8,7 @@ import os
 import subprocess
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional
+from decimal import Decimal
 import xlsxwriter
 from PIL import Image as PILImage
 from docx import Document
@@ -454,11 +455,14 @@ class InformesExportador:
 
             # Si hay agrupaciones, exportar con estructura jerárquica
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Si hay columnas_datos, usarlas en lugar de columnas completas
+                columnas_para_excel = resultado_agrupacion.get('columnas_datos', columnas)
+
                 row = self._exportar_grupos_excel(
                     worksheet,
                     workbook,
                     resultado_agrupacion['grupos'],
-                    columnas,
+                    columnas_para_excel,  # Usar columnas filtradas
                     row,
                     formato_header_nivel0,
                     formato_header_nivel1,
@@ -498,15 +502,21 @@ class InformesExportador:
                     totales = resultado_agrupacion['totales_generales']
                     for key, valor in totales.items():
                         # Extraer el nombre del campo del key
-                        campo_nombre = key.split('(')[1].rstrip(')')
+                        # Puede ser "SUM(presupuesto)" o directamente "Importe" (nuevo formato)
+                        if '(' in key and ')' in key:
+                            # Formato antiguo: "FUNCION(campo)"
+                            campo_nombre = key.split('(')[1].rstrip(')')
+                        else:
+                            # Formato nuevo: nombre directo de columna
+                            campo_nombre = key
 
                         # Determinar el formato según el tipo de agregación
                         formato_agg = formatos_agregaciones.get(key, 'ninguno')
                         formato_a_usar = formato_total if formato_agg == 'moneda' else formato_total_entero
 
-                        # Buscar la columna correspondiente
-                        if campo_nombre in columnas:
-                            col_idx = columnas.index(campo_nombre)
+                        # Buscar la columna correspondiente en columnas filtradas
+                        if campo_nombre in columnas_para_excel:
+                            col_idx = columnas_para_excel.index(campo_nombre)
                             worksheet.write(row, col_idx, valor, formato_a_usar)
                         elif campo_nombre == '*':
                             # COUNT(*) se escribe en la segunda columna, siempre como entero
@@ -571,7 +581,11 @@ class InformesExportador:
                         elif col_name and 'fecha' in col_name.lower() and valor:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
-                        elif isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float, Decimal)):
+                            # Convertir Decimal a float para poder formatear
+                            if isinstance(valor, Decimal):
+                                valor = float(valor)
+
                             if es_coordenada:
                                 # Coordenadas: 4 decimales
                                 worksheet.write(row, col_idx, valor, formato_coordenadas)
@@ -720,7 +734,11 @@ class InformesExportador:
                         elif col_name and 'fecha' in col_name.lower() and valor:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
-                        elif isinstance(valor, (int, float)):
+                        elif isinstance(valor, (int, float, Decimal)):
+                            # Convertir Decimal a float para poder formatear
+                            if isinstance(valor, Decimal):
+                                valor = float(valor)
+
                             if es_coordenada:
                                 # Coordenadas: 4 decimales
                                 worksheet.write(row, col_idx, valor, formato_coordenadas)
@@ -759,9 +777,14 @@ class InformesExportador:
 
                 # Mapear subtotales a las columnas correctas
                 for key, valor in subtotales.items():
-                    # Extraer el nombre del campo del key (ej: "SUM(presupuesto)" -> "presupuesto")
-                    # El formato es "FUNCION(campo)" o "COUNT(*)"
-                    campo_nombre = key.split('(')[1].rstrip(')')
+                    # Extraer el nombre del campo del key
+                    # Puede ser "SUM(presupuesto)" o directamente "Importe" (nuevo formato)
+                    if '(' in key and ')' in key:
+                        # Formato antiguo: "FUNCION(campo)"
+                        campo_nombre = key.split('(')[1].rstrip(')')
+                    else:
+                        # Formato nuevo: nombre directo de columna
+                        campo_nombre = key
 
                     # Determinar el formato según el tipo de agregación
                     formato_agg = formatos_agregaciones.get(key, 'ninguno')
@@ -868,8 +891,16 @@ class InformesExportador:
         if not reemplazado:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
 
-    def _insertar_tabla_en_marcador(self, doc, marcador_texto: str, columnas: List[str],
-                                     datos: List[tuple], resultado_agrupacion: Optional[Dict] = None):
+    def _insertar_tabla_en_marcador(
+        self,
+        doc,
+        marcador_texto: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        orientacion: str = 'horizontal',
+        tipo_informe: str = ''
+    ):
         """
         Inserta una tabla en la posición del marcador de TEXTO literal
 
@@ -879,6 +910,8 @@ class InformesExportador:
             columnas: Lista de nombres de columnas
             datos: Datos a insertar
             resultado_agrupacion: Estructura de agrupaciones (opcional)
+            orientacion: Orientación de la página ('horizontal' o 'vertical')
+            tipo_informe: Tipo de informe para anchos personalizados
         """
         # Buscar el párrafo que contiene el marcador de texto
         target_paragraph = None
@@ -909,7 +942,44 @@ class InformesExportador:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
             return
 
-        # Insertar tabla después del marcador
+        # Si hay grupos, procesar con estructura de agrupaciones
+        if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+            # Remover el párrafo del marcador
+            p_element = target_paragraph._element
+            p_element.getparent().remove(p_element)
+
+            # Exportar grupos directamente en el documento
+            modo = resultado_agrupacion.get('modo', 'detalle')
+            self._exportar_grupos_word(doc, resultado_agrupacion['grupos'], columnas, modo, 0, resultado_agrupacion, orientacion, tipo_informe)
+
+            # Totales generales
+            if resultado_agrupacion.get('totales_generales'):
+                p_total = doc.add_paragraph()
+                run_total = p_total.add_run("═══ TOTAL EJECUCIÓN MATERIAL ═══")
+                run_total.font.bold = True
+                run_total.font.size = Pt(12)
+
+                # Mostrar totales
+                formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {})
+                totales = resultado_agrupacion['totales_generales']
+
+                for key, valor in totales.items():
+                    if '(' in key and ')' in key:
+                        campo_nombre = key.split('(')[1].rstrip(')')
+                    else:
+                        campo_nombre = key
+
+                    formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                    if formato_agg == 'moneda':
+                        valor_texto = f"{valor:,.2f} €"
+                    else:
+                        valor_texto = f"{valor:,.2f}" if isinstance(valor, (int, float)) else str(valor)
+
+                    run_total.add_text(f"  {campo_nombre}={valor_texto}")
+
+            return
+
+        # Insertar tabla después del marcador (sin agrupaciones)
         # Calcular número de filas necesarias
         num_filas = 1 + len(datos)  # Encabezado + datos
 
@@ -919,18 +989,44 @@ class InformesExportador:
         table.autofit = False
         table.allow_autofit = False
 
-        # Ajustar ancho de tabla al ancho de página (26.7cm)
-        # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
-        table.width = Cm(26.7)
-        self._set_table_width(table, 26.7)
+        # Calcular ancho disponible según orientación
+        # A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+        # A4 vertical = 21cm - márgenes 1.5cm×2 = 18cm
+        ancho_disponible = 18.0 if orientacion == 'vertical' else 26.7
 
-        # Distribuir ancho equitativamente entre columnas
-        col_width_cm = 26.7 / len(columnas)
+        # Ajustar ancho de tabla al ancho de página
+        table.width = Cm(ancho_disponible)
+        self._set_table_width(table, ancho_disponible)
+
+        # Anchos personalizados para informes de Recursos
+        anchos_recursos = {
+            'Código': 1.5,
+            'Cantidad': 2.0,
+            'Ud.': 1.0,
+            'Recurso / Material': 9.5,
+            'Precio unitario': 2.0,
+            'Importe': 2.0
+        }
+
+        # Determinar si usar anchos personalizados
+        usa_anchos_personalizados = (
+            'Recursos' in tipo_informe and
+            all(col in anchos_recursos for col in columnas)
+        )
+
+        # Calcular anchos de columnas
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            col_widths = [anchos_recursos[col] for col in columnas]
+        else:
+            # Distribución equitativa
+            col_width_cm = ancho_disponible / len(columnas)
+            col_widths = [col_width_cm] * len(columnas)
 
         # Establecer ancho usando XML directo
         for row in table.rows:
-            for cell in row.cells:
-                self._set_cell_width(cell, col_width_cm)
+            for col_idx, cell in enumerate(row.cells):
+                self._set_cell_width(cell, col_widths[col_idx])
 
         # Encabezados
         header_cells = table.rows[0].cells
@@ -945,15 +1041,46 @@ class InformesExportador:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
         # Datos
+        formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
         for fila_idx, fila_datos in enumerate(datos):
             row_cells = table.rows[fila_idx + 1].cells
             for col_idx, valor in enumerate(fila_datos):
                 cell = row_cells[col_idx]
-                cell.text = str(valor) if valor is not None else ""
+
+                # Obtener el formato del campo según su columna
+                col_name = columnas[col_idx] if col_idx < len(columnas) else None
+                formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
+
+                # Detectar si es una coordenada (latitud/longitud)
+                es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
+                # Aplicar formato según el tipo de campo
+                if isinstance(valor, (int, float, Decimal)):
+                    # Convertir Decimal a float para poder formatear
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+
+                    if es_coordenada:
+                        # Coordenadas geográficas: 4 decimales
+                        cell.text = f"{valor:.4f}"
+                    elif formato_campo == 'moneda':
+                        cell.text = f"{valor:,.2f} €"
+                    elif formato_campo == 'decimal':
+                        cell.text = f"{valor:,.2f}"
+                    else:
+                        # Por defecto, números con 2 decimales
+                        cell.text = f"{valor:,.2f}"
+                else:
+                    cell.text = str(valor) if valor is not None else ""
+
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.font.name = 'Tahoma'
                         run.font.size = Pt(8)
+
+                    # Alinear a la derecha los campos numéricos
+                    if col_name and col_name in ['Cantidad', 'Precio unitario', 'Importe']:
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         # MOVER la tabla a la posición del marcador
         tbl_element = table._element
@@ -995,8 +1122,34 @@ class InformesExportador:
             True si la exportación fue exitosa
         """
         try:
-            # Importar configuración de plantillas
+            # Importar configuración de plantillas y PDF
             from script.plantillas_config import obtener_ruta_plantilla
+            from script.pdf_config import obtener_configuracion_pdf
+            from script.informes_config import INFORMES_DEFINICIONES
+
+            # Obtener configuración del informe
+            config_pdf = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+            definicion = INFORMES_DEFINICIONES.get(tipo_informe or informe_nombre, {})
+            campos_fijos = definicion.get('campos_fijos', False)
+
+            # Si hay columnas_datos en resultado_agrupacion, usarlas (sin columna de agrupación)
+            columnas_para_word = columnas
+            datos_para_word = datos
+            if resultado_agrupacion and resultado_agrupacion.get('columnas_datos'):
+                columnas_para_word = resultado_agrupacion['columnas_datos']
+
+                # Filtrar datos para que coincidan con columnas_datos
+                # Crear mapeo de índices: columnas_datos -> columnas originales
+                indices_columnas = []
+                for col in columnas_para_word:
+                    if col in columnas:
+                        indices_columnas.append(columnas.index(col))
+
+                # Filtrar cada fila de datos usando los índices
+                datos_para_word = [
+                    tuple(fila[idx] for idx in indices_columnas)
+                    for fila in datos
+                ]
 
             # Obtener plantilla apropiada según el tipo de informe
             # Si no se especifica tipo, usar el nombre del informe
@@ -1020,6 +1173,29 @@ class InformesExportador:
                 # Ahora abrir la copia para modificarla
                 doc = Document(filepath)
 
+            # Configurar orientación de página según config
+            orientacion = config_pdf.get('orientacion', 'horizontal')
+            from docx.shared import Inches
+            from docx.enum.section import WD_ORIENT
+
+            for section in doc.sections:
+                if orientacion == 'vertical':
+                    section.orientation = WD_ORIENT.PORTRAIT
+                    section.page_width = Inches(8.27)   # 21 cm
+                    section.page_height = Inches(11.69)  # 29.7 cm
+                    # Ajustar ancho de tablas en encabezado para vertical
+                    ancho_disponible = 18.0  # 21cm - 3cm márgenes
+                else:
+                    section.orientation = WD_ORIENT.LANDSCAPE
+                    section.page_width = Inches(11.69)
+                    section.page_height = Inches(8.27)
+                    # Ajustar ancho de tablas en encabezado para horizontal
+                    ancho_disponible = 26.7  # 29.7cm - 3cm márgenes
+
+                # Ajustar ancho de las tablas del encabezado
+                for table in section.header.tables:
+                    self._set_table_width(table, ancho_disponible)
+
             # Reemplazar marcadores en la plantilla
             # Usar fecha proporcionada por el usuario o generar automáticamente
             fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
@@ -1028,8 +1204,16 @@ class InformesExportador:
             self._reemplazar_marcador(doc, "[TITULO_DEL_INFORME]", informe_nombre.upper())
             self._reemplazar_marcador(doc, "[FECHA]", fecha_actual)
 
-            # Insertar tabla en el marcador
-            self._insertar_tabla_en_marcador(doc, "[TABLA_DE_DATOS]", columnas, datos, resultado_agrupacion)
+            # Insertar tabla en el marcador (con o sin agrupaciones)
+            self._insertar_tabla_en_marcador(
+                doc,
+                "[TABLA_DE_DATOS]",
+                columnas_para_word,  # Usar columnas filtradas
+                datos_para_word,     # Usar datos filtrados
+                resultado_agrupacion,
+                orientacion,  # Pasar orientación
+                tipo_informe or informe_nombre  # Pasar tipo para anchos personalizados
+            )
 
             # Guardar el documento
             doc.save(filepath)
@@ -1048,7 +1232,9 @@ class InformesExportador:
         columnas: List[str],
         modo: str = 'detalle',
         nivel: int = 0,
-        resultado_agrupacion: Optional[Dict] = None
+        resultado_agrupacion: Optional[Dict] = None,
+        orientacion: str = 'horizontal',
+        tipo_informe: str = ''
     ):
         """Exporta grupos jerárquicos a Word (recursivo)"""
         for grupo in grupos:
@@ -1081,7 +1267,7 @@ class InformesExportador:
 
             # Si hay subgrupos, procesarlos recursivamente
             if subgrupos:
-                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion)
+                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion, orientacion, tipo_informe)
             elif modo == 'detalle' and datos:
                 # Crear tabla para los datos
                 table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
@@ -1089,14 +1275,40 @@ class InformesExportador:
                 table.autofit = False
                 table.allow_autofit = False
 
-                # Ajustar ancho de tabla al ancho de página (26.7cm)
-                # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
-                table.width = Cm(26.7)
-                # Forzar ancho de tabla usando XML directo
-                self._set_table_width(table, 26.7)
+                # Calcular ancho disponible según orientación
+                # A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+                # A4 vertical = 21cm - márgenes 1.5cm×2 = 18cm
+                ancho_disponible = 18.0 if orientacion == 'vertical' else 26.7
 
-                # Distribuir ancho equitativamente entre columnas
-                col_width_cm = 26.7 / len(columnas)
+                # Ajustar ancho de tabla al ancho de página
+                table.width = Cm(ancho_disponible)
+                # Forzar ancho de tabla usando XML directo
+                self._set_table_width(table, ancho_disponible)
+
+                # Anchos personalizados para informes de Recursos
+                anchos_recursos = {
+                    'Código': 1.5,
+                    'Cantidad': 2.0,
+                    'Ud.': 1.0,
+                    'Recurso / Material': 9.5,
+                    'Precio unitario': 2.0,
+                    'Importe': 2.0
+                }
+
+                # Determinar si usar anchos personalizados
+                usa_anchos_personalizados = (
+                    'Recursos' in tipo_informe and
+                    all(col in anchos_recursos for col in columnas)
+                )
+
+                # Calcular anchos de columnas
+                if usa_anchos_personalizados:
+                    # Usar anchos personalizados para informes de Recursos
+                    col_widths = [anchos_recursos[col] for col in columnas]
+                else:
+                    # Distribución equitativa
+                    col_width_cm = ancho_disponible / len(columnas)
+                    col_widths = [col_width_cm] * len(columnas)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -1108,9 +1320,10 @@ class InformesExportador:
                             run.font.bold = True
                             run.font.name = 'Tahoma'
                             run.font.size = Pt(9)
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
                     # Establecer ancho de celda directamente en XML
-                    self._set_cell_width(cell, col_width_cm)
+                    self._set_cell_width(cell, col_widths[idx])
 
                 # Datos
                 formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
@@ -1123,9 +1336,15 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Aplicar formato según el tipo de campo
                         if isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas geográficas: 4 decimales
+                                cell.text = f"{valor:.4f}"
+                            elif formato_campo == 'moneda':
                                 cell.text = f"{valor:,.2f} €"
                             else:
                                 # Por defecto, números con 2 decimales
@@ -1138,8 +1357,12 @@ class InformesExportador:
                                 run.font.name = 'Tahoma'
                                 run.font.size = Pt(8)
 
+                            # Alinear a la derecha los campos numéricos
+                            if col_name and col_name in ['Cantidad', 'Precio unitario', 'Importe']:
+                                paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
                         # Establecer ancho de celda directamente en XML
-                        self._set_cell_width(cell, col_width_cm)
+                        self._set_cell_width(cell, col_widths[col_idx])
 
             # Subtotales
             if subtotales:
@@ -1275,11 +1498,18 @@ class InformesExportador:
         try:
             from script.pdf_agrupaciones import PDFAgrupaciones
             from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
+            from script.informes_config import INFORMES_DEFINICIONES
 
             print(f"Generando PDF con ReportLab: {filepath}")
 
             # Obtener configuración específica del tipo de informe
             config = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+
+            # Obtener definición del informe para verificar campos_fijos
+            definicion = INFORMES_DEFINICIONES.get(tipo_informe or informe_nombre, {})
+            campos_fijos = definicion.get('campos_fijos', False)
+            usar_agregacion_sql = definicion.get('usar_agregacion_sql', False)
+            campos_def = definicion.get('campos', {})
 
             # Crear plantilla PDF con la configuración
             pdf = PDFAgrupaciones(
@@ -1300,28 +1530,86 @@ class InformesExportador:
 
             # Agregar información del proyecto (si está configurado)
             if config.get('mostrar_proyecto', True):
-                pdf.agregar_info_proyecto()
+                pdf.agregar_info_proyecto(mostrar_fecha=config.get('mostrar_fecha', True))
+
+            # Si el informe tiene campos_fijos, necesitamos filtrar las columnas
+            # para NO mostrar campos de agrupación que se añaden solo para GROUP BY
+            columnas_filtradas = list(columnas)
+            datos_filtrados = datos
+            formatos_filtrados = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+
+            # Si hay grupos, usar columnas_datos que ya viene calculado desde informes.py
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Usar columnas_datos si existe (grupos con SQL agregation)
+                if 'columnas_datos' in resultado_agrupacion:
+                    columnas_filtradas = resultado_agrupacion['columnas_datos']
+                    # Los datos dentro de grupos ya están filtrados
+                    # No necesitamos filtrar datos_filtrados porque se usan los datos de cada grupo
+                    formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
+                    print(f"DEBUG: Usando columnas_datos de resultado_agrupacion: {columnas_filtradas}")
+                # Fallback al método anterior si no existe columnas_datos
+                elif campos_fijos and resultado_agrupacion.get('agrupaciones'):
+                    # Identificar columnas de agrupación por su nombre
+                    columnas_a_eliminar = []
+                    for agrup in resultado_agrupacion.get('agrupaciones', []):
+                        # Buscar el nombre de la columna de agrupación
+                        campo_def = campos_def.get(agrup, {})
+                        nombre_columna = campo_def.get('nombre', agrup)
+                        if nombre_columna in columnas_filtradas:
+                            columnas_a_eliminar.append(nombre_columna)
+
+                    # Filtrar columnas y datos
+                    if columnas_a_eliminar:
+                        indices_a_mantener = [i for i, col in enumerate(columnas) if col not in columnas_a_eliminar]
+                        columnas_filtradas = [columnas[i] for i in indices_a_mantener]
+                        datos_filtrados = [tuple(fila[i] for i in indices_a_mantener) for fila in datos]
+                        formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
+
+                        print(f"DEBUG: Filtradas {len(columnas_a_eliminar)} columnas de agrupación: {columnas_a_eliminar}")
+                        print(f"DEBUG: Columnas finales para PDF: {columnas_filtradas}")
 
             # Agregar tabla de datos
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
                 # Tabla con agrupaciones
                 modo = resultado_agrupacion.get('modo', 'detalle')
                 elementos_tabla = pdf.crear_tabla_agrupada(
-                    columnas=columnas,
-                    datos=datos,
+                    columnas=columnas_filtradas,
+                    datos=datos_filtrados,
                     resultado_agrupacion=resultado_agrupacion,
                     modo=modo
                 )
                 pdf.elements.extend(elementos_tabla)
             else:
                 # Tabla simple sin agrupaciones
-                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
                 tabla = pdf.crear_tabla_simple(
-                    columnas=columnas,
-                    datos=datos,
-                    formatos_columnas=formatos_columnas
+                    columnas=columnas_filtradas,
+                    datos=datos_filtrados,
+                    formatos_columnas=formatos_filtrados
                 )
                 pdf.elements.append(tabla)
+
+                # Para informes de Recursos, añadir totales finales con GG y BI
+                if usar_agregacion_sql and 'Importe' in columnas_filtradas:
+                    # Calcular total de ejecución material (columna Importe)
+                    idx_importe = columnas_filtradas.index('Importe')
+                    total_ejecucion_material = 0.0
+                    for fila in datos_filtrados:
+                        valor = fila[idx_importe]
+                        if valor is not None:
+                            from decimal import Decimal
+                            total_ejecucion_material += float(valor) if isinstance(valor, Decimal) else valor
+
+                    # Añadir espacio antes de totales
+                    from reportlab.platypus import Spacer
+                    from reportlab.lib.units import cm
+                    pdf.elements.append(Spacer(1, 0.5 * cm))
+
+                    # Crear y añadir tabla de totales finales
+                    tabla_totales = pdf.crear_tabla_totales_finales(
+                        total_ejecucion_material=total_ejecucion_material,
+                        columnas=columnas_filtradas
+                    )
+                    pdf.elements.append(tabla_totales)
 
             # Agregar pie de página
             pdf.agregar_pie_pagina()

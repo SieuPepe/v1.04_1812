@@ -18,7 +18,6 @@ PLANTILLAS_POR_INFORME = {
     # Categoría: RECURSOS
     "Listado de Partidas del Presupuesto": "Plantilla_Recursos.docx",
     "Consumo de Recursos": "Plantilla_Recursos.docx",
-    "Trabajos por Actuación": "Plantilla_Recursos.docx",
 
     # Categoría: PRESUPUESTO
     "Contrato": "Plantilla_Presupuesto.docx",

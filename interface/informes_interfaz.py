@@ -2097,7 +2097,7 @@ class InformesFrame(customtkinter.CTkFrame):
                 # Convertir resultado_agrupacion a totales para compatibilidad
                 totales = resultado_agrupacion.get('totales_generales', {})
             else:
-                columnas, datos, totales = ejecutar_informe(
+                columnas, datos, resultado_agrupacion = ejecutar_informe(
                     self.user,
                     self.password,
                     self.schema,
@@ -2106,7 +2106,7 @@ class InformesFrame(customtkinter.CTkFrame):
                     ordenaciones=ordenaciones_aplicadas,
                     campos_seleccionados=campos_seleccionados
                 )
-                resultado_agrupacion = None
+                totales = resultado_agrupacion.get('totales_generales', {}) if resultado_agrupacion else {}
 
             # Mostrar resultados
             if datos:

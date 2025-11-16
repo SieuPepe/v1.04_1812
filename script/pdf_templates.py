@@ -7,6 +7,7 @@ Generación de informes PDF con control total del diseño, similar a Access
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
+from decimal import Decimal
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -48,7 +49,7 @@ class NumberedCanvas(canvas.Canvas):
             return
 
         # Obtener número de página actual
-        page_num = len(self._saved_page_states)
+        page_num = self._pageNumber
 
         # Dibujar encabezado
         self.draw_header()
@@ -87,14 +88,42 @@ class NumberedCanvas(canvas.Canvas):
             except:
                 pass
 
-        # Título centrado
-        self.setFont('Helvetica-Bold', 16)
-        self.setFillColor(colors.HexColor('#003366'))
+        # Título centrado (multilínea para evitar superposición con logos)
+        from reportlab.lib.enums import TA_CENTER
+        from reportlab.platypus import Paragraph
+        from reportlab.lib.styles import ParagraphStyle
+
+        # Estilo para el título (más pequeño y con soporte multilínea)
+        estilo_titulo_header = ParagraphStyle(
+            'TituloHeader',
+            fontName='Helvetica-Bold',
+            fontSize=12,  # Reducido de 16 a 12
+            textColor=colors.HexColor('#003366'),
+            alignment=TA_CENTER,
+            leading=14  # Espaciado entre líneas
+        )
+
         titulo = template.titulo.upper()
-        ancho_texto = self.stringWidth(titulo, 'Helvetica-Bold', 16)
-        x_titulo = (ancho_pagina - ancho_texto) / 2
-        y_titulo = y_pos + template.altura_encabezado / 2
-        self.drawString(x_titulo, y_titulo, titulo)
+
+        # Posicionamiento exacto del título según medidas del usuario:
+        # 0-1.5cm: margen izquierdo
+        # 1.5-4cm: logo Redes Urbide (2.5cm)
+        # 4-14cm: título del informe (10cm)
+        # 14-19.5cm: logo Urbide (5.5cm)
+        # 19.5-21cm: margen derecho
+        x_inicio_titulo = 4 * cm  # Comienza a los 4cm
+        ancho_max_titulo = 10 * cm  # 10cm de ancho para el título
+
+        # Crear Paragraph para el título
+        p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
+
+        # Dibujar el Paragraph en el canvas
+        # Para centrar verticalmente en el área del encabezado
+        y_titulo = y_pos + template.altura_encabezado * 0.3  # Posición vertical ajustada
+
+        # Usar wrapOn y drawOn para dibujar el Paragraph
+        w, h = p_titulo.wrap(ancho_max_titulo, template.altura_encabezado)
+        p_titulo.drawOn(self, x_inicio_titulo, y_titulo)
 
         # Logo derecho
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
@@ -152,9 +181,8 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont('Helvetica', 8)
         self.setFillColor(colors.HexColor('#999999'))
 
-        # Fecha de generación (izquierda)
-        fecha_generacion = datetime.now().strftime('%d/%m/%Y %H:%M')
-        texto_izq = f"Generado: {fecha_generacion}"
+        # Fecha del informe (izquierda) - usa la fecha introducida al generar, no la de generación
+        texto_izq = f"Fecha: {template.fecha}"
         self.drawString(template.margen_izquierdo, y_pos, texto_izq)
 
         # Numeración de página (centro)
@@ -389,8 +417,12 @@ class PDFTemplate:
         # Ya no se necesita agregar elementos, el canvas lo dibuja automáticamente
         pass
 
-    def agregar_info_proyecto(self):
-        """Agrega información del proyecto"""
+    def agregar_info_proyecto(self, mostrar_fecha=True):
+        """Agrega información del proyecto
+
+        Args:
+            mostrar_fecha: Si False, no muestra la fecha (útil para informes que no la necesitan)
+        """
         if self.proyecto_nombre:
             p_proyecto = Paragraph(f"<b>Proyecto:</b> {self.proyecto_nombre}", self.style_proyecto)
             self.elements.append(p_proyecto)
@@ -399,9 +431,10 @@ class PDFTemplate:
             p_codigo = Paragraph(f"<b>Código:</b> {self.proyecto_codigo}", self.style_subtitulo)
             self.elements.append(p_codigo)
 
-        # Fecha
-        p_fecha = Paragraph(f"<b>Fecha:</b> {self.fecha}", self.style_fecha)
-        self.elements.append(p_fecha)
+        # Fecha (opcional)
+        if mostrar_fecha:
+            p_fecha = Paragraph(f"<b>Fecha:</b> {self.fecha}", self.style_fecha)
+            self.elements.append(p_fecha)
 
         self.elements.append(Spacer(1, 0.4 * cm))
 
@@ -428,10 +461,37 @@ class PDFTemplate:
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
-        # Calcular anchos de columnas (distribución equitativa)
-        num_columnas = len(columnas)
-        ancho_columna = ancho_disponible / num_columnas
-        col_widths = [ancho_columna] * num_columnas
+        # Anchos personalizados para informes de Recursos (en cm convertido a puntos: 1cm = 28.35 puntos)
+        # A4 vertical: 21cm - 3cm márgenes = 18cm disponible
+        # Total: 1.5 + 2.0 + 1.0 + 9.5 + 2.0 + 2.0 = 18.0 cm
+        anchos_recursos = {
+            'Código': 1.5 * 28.35,            # 1.5 cm
+            'codigo': 1.5 * 28.35,
+            'Cantidad': 2.0 * 28.35,          # 2.0 cm
+            'cantidad': 2.0 * 28.35,
+            'Ud.': 1.0 * 28.35,               # 1.0 cm
+            'unidad': 1.0 * 28.35,
+            'Recurso / Material': 9.5 * 28.35,  # 9.5 cm
+            'resumen': 9.5 * 28.35,
+            'Precio unitario': 2.0 * 28.35,  # 2.0 cm
+            'coste': 2.0 * 28.35,
+            'Importe': 2.0 * 28.35,           # 2.0 cm
+            'coste_total': 2.0 * 28.35
+        }
+
+        # Calcular anchos de columnas
+        col_widths = []
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            for col in columnas:
+                col_widths.append(anchos_recursos[col])
+        else:
+            # Distribución equitativa para otros informes
+            num_columnas = len(columnas)
+            ancho_columna = ancho_disponible / num_columnas
+            col_widths = [ancho_columna] * num_columnas
 
         # Estilo para celdas de datos (texto multilínea)
         estilo_celda = ParagraphStyle(
@@ -475,30 +535,52 @@ class PDFTemplate:
                 col_name = columnas[col_idx] if col_idx < len(columnas) else None
                 formato = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                # DEBUG: Imprimir nombres de columnas para verificar
+                if col_idx == 0 and datos.index(fila) == 0:
+                    print(f"DEBUG PDF - Columnas disponibles: {columnas}")
+                    print(f"DEBUG PDF - Formatos: {formatos_columnas}")
+
+                # DEBUG: Imprimir valor y tipo para la primera fila
+                if datos.index(fila) == 0:
+                    print(f"DEBUG PDF - Col '{col_name}': valor={valor}, tipo={type(valor).__name__}, formato={formato}")
+
                 # Formatear según tipo
                 texto_celda = ''
                 usar_estilo_derecha = False
 
                 if valor is None:
                     texto_celda = ''
-                elif isinstance(valor, (int, float)):
+                elif isinstance(valor, (int, float, Decimal)):
+                    # Convertir Decimal a float para poder formatear
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+
                     # Verificar si es coordenada geográfica (latitud/longitud)
-                    es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+                    # Hacer la búsqueda más robusta - case insensitive
+                    es_coordenada = False
+                    if col_name:
+                        col_lower = col_name.lower()
+                        es_coordenada = 'latitud' in col_lower or 'longitud' in col_lower or 'latitude' in col_lower or 'longitude' in col_lower
+
+                    # DEBUG para ver si detecta coordenadas
+                    if es_coordenada and datos.index(fila) == 0:
+                        print(f"DEBUG PDF - Coordenada detectada: {col_name} = {valor}")
 
                     usar_estilo_derecha = True
                     if formato == 'moneda':
-                        # Formato moneda: 2 decimales + símbolo €
+                        # Formato moneda: 2 decimales + símbolo €, formato español (1.234,56 €)
                         texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif es_coordenada:
-                        # Coordenadas geográficas: 4 decimales
+                        # Coordenadas geográficas: 4 decimales, formato español (1,2345)
                         texto_celda = f"{valor:.4f}".replace('.', ',')
                     elif formato == 'decimal':
-                        # Formato decimal: 2 decimales
+                        # Formato decimal: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'porcentaje':
+                        # Formato porcentaje: 2 decimales, formato español (12,34%)
                         texto_celda = f"{valor:.2f}%".replace('.', ',')
                     else:
-                        # Por defecto: 2 decimales
+                        # Por defecto: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 else:
                     texto_celda = str(valor)
@@ -540,6 +622,123 @@ class PDFTemplate:
                 estilo_tabla.append(
                     ('BACKGROUND', (0, i), (-1, i), self.color_alternado)
                 )
+
+        tabla.setStyle(TableStyle(estilo_tabla))
+
+        return tabla
+
+    def crear_tabla_totales_finales(
+        self,
+        total_ejecucion_material: float,
+        columnas: List[str],
+        porcentaje_gg: float = 8.0,
+        porcentaje_bi: float = 3.0
+    ) -> Table:
+        """
+        Crea tabla con totales finales incluyendo Gastos Generales y Beneficio Industrial
+
+        Args:
+            total_ejecucion_material: Total de ejecución material
+            columnas: Lista de nombres de columnas (para calcular anchos)
+            porcentaje_gg: Porcentaje de Gastos Generales (por defecto 8%)
+            porcentaje_bi: Porcentaje de Beneficio Industrial (por defecto 3%)
+
+        Returns:
+            Tabla con totales finales
+        """
+        from reportlab.lib.units import cm
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_RIGHT, TA_LEFT
+
+        # Calcular ancho disponible
+        ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
+
+        # Anchos personalizados para informes de Recursos
+        anchos_recursos = {
+            'Código': 1.5 * cm,
+            'Cantidad': 2.0 * cm,
+            'Ud.': 1.0 * cm,
+            'Recurso / Material': 9.5 * cm,
+            'Precio unitario': 2.0 * cm,
+            'Importe': 2.0 * cm
+        }
+
+        # Usar anchos personalizados si coinciden con columnas de Recursos
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Para que entre "TOTAL EJECUCIÓN MATERIAL" sin problemas
+            # Usar casi todo el ancho para texto, dejando espacio suficiente para importes
+            ancho_texto = 14 * cm  # Ancho generoso para textos largos
+            ancho_valor = 4 * cm   # Suficiente para importes con formato español
+        else:
+            ancho_texto = ancho_disponible * 0.75
+            ancho_valor = ancho_disponible * 0.25
+
+        # Calcular valores
+        gastos_generales = total_ejecucion_material * (porcentaje_gg / 100.0)
+        beneficio_industrial = total_ejecucion_material * (porcentaje_bi / 100.0)
+        total_final = total_ejecucion_material + gastos_generales + beneficio_industrial
+
+        # Formato moneda español
+        def formato_moneda(valor):
+            return f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        # Estilo para texto
+        estilo_texto = ParagraphStyle(
+            'TotalesTexto',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
+
+        # Estilo para valores
+        estilo_valor = ParagraphStyle(
+            'TotalesValor',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
+
+        # Estilo para total final (más destacado)
+        estilo_total_final = ParagraphStyle(
+            'TotalFinal',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=11,
+            alignment=TA_RIGHT,
+            leading=13
+        )
+
+        # Crear filas de datos
+        tabla_datos = [
+            [Paragraph("TOTAL EJECUCIÓN MATERIAL", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
+            [Paragraph(f"Gastos generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
+            [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
+            [Paragraph("TOTAL", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
+        ]
+
+        # Crear tabla
+        tabla = Table(tabla_datos, colWidths=[ancho_texto, ancho_valor])
+
+        # Estilo de la tabla
+        estilo_tabla = [
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            # Línea encima de TOTAL
+            ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
+
+            # Fondo para la fila final
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F0F0F0')),
+        ]
 
         tabla.setStyle(TableStyle(estilo_tabla))
 

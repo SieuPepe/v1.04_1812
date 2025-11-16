@@ -536,6 +536,10 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
         tabla_rel = campo.get('tabla_relacion', 'principal')
         alias_tabla = tabla_aliases.get(tabla_rel, 'p')
 
+        # Usar el nombre bonito del campo para el alias SQL
+        # Esto hace que las columnas en el resultado tengan los nombres correctos
+        nombre_alias = campo.get('nombre', campo_key)
+
         if campo['tipo'] == 'calculado':
             # Campo calculado
             formula = campo['formula']
@@ -554,9 +558,9 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
             # Si usamos GROUP BY y el campo es numérico/moneda, aplicar SUM
             if usar_group_by and campo.get('formato') in ['moneda', 'decimal', 'numerico']:
-                select_parts.append(f"SUM({formula_procesada}) AS {campo_key}")
+                select_parts.append(f"SUM({formula_procesada}) AS `{nombre_alias}`")
             else:
-                select_parts.append(f"({formula_procesada}) AS {campo_key}")
+                select_parts.append(f"({formula_procesada}) AS `{nombre_alias}`")
 
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión
@@ -573,7 +577,7 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             else:
                 campo_nombre = campo.get('campo_nombre', 'descripcion')
 
-            select_parts.append(f"{alias_dim}.{campo_nombre} AS {campo_key}")
+            select_parts.append(f"{alias_dim}.{campo_nombre} AS `{nombre_alias}`")
 
             # Añadir al GROUP BY si es necesario
             if usar_group_by:
@@ -583,16 +587,24 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             # Campo numérico directo
             columna = campo['columna_bd']
 
-            # Si usamos GROUP BY, aplicar SUM
+            # Si usamos GROUP BY, solo aplicar SUM si es de la tabla principal
+            # Los campos numéricos de tablas relacionadas (ej: precio.coste) NO se suman
             if usar_group_by:
-                select_parts.append(f"SUM({alias_tabla}.{columna}) AS {campo_key}")
+                if tabla_rel == 'principal':
+                    # Campos de tabla principal (ej: cantidad) → SUM
+                    select_parts.append(f"SUM({alias_tabla}.{columna}) AS `{nombre_alias}`")
+                else:
+                    # Campos de tablas relacionadas (ej: precio.coste) → NO SUM, incluir en GROUP BY
+                    select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
+                    if f"{alias_tabla}.{columna}" not in group_by_parts:
+                        group_by_parts.append(f"{alias_tabla}.{columna}")
             else:
-                select_parts.append(f"{alias_tabla}.{columna} AS {campo_key}")
+                select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
 
         else:
             # Campo directo (texto, etc.)
             columna = campo['columna_bd']
-            select_parts.append(f"{alias_tabla}.{columna} AS {campo_key}")
+            select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
 
             # Añadir al GROUP BY si no es numérico
             if usar_group_by and campo.get('formato') not in ['moneda', 'decimal', 'numerico']:
@@ -632,6 +644,13 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             if campo and campo['tipo'] == 'dimension':
                 dimensiones_necesarias.add(campo_key)
 
+    # Agregar agrupaciones a dimensiones necesarias (para que se hagan los JOINs)
+    if agrupaciones:
+        for campo_key in agrupaciones:
+            campo = campos_def.get(campo_key)
+            if campo and campo['tipo'] == 'dimension':
+                dimensiones_necesarias.add(campo_key)
+
     # JOINs con dimensiones
     for campo_key in dimensiones_necesarias:
         campo = campos_def.get(campo_key)
@@ -657,7 +676,11 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
     # Filtros automáticos de la definición
     if definicion.get('filtro_cantidad_cero'):
-        where_conditions.append(("p.cantidad > 0", {'logica': 'Y'}))
+        # Usar campo correcto según la tabla principal
+        if tabla_principal == 'tbl_part_certificacion':
+            where_conditions.append(("p.cantidad_cert > 0", {'logica': 'Y'}))
+        else:
+            where_conditions.append(("p.cantidad > 0", {'logica': 'Y'}))
 
     if definicion.get('filtro_certificada'):
         where_conditions.append(("p.certificada = 1", {'logica': 'Y'}))
@@ -676,20 +699,79 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
         where_clause = "WHERE " + " ".join(where_parts)
 
     # ========== CONSTRUIR GROUP BY ==========
+    # Agregar agrupaciones explícitas al GROUP BY aunque no estén en SELECT
+    if agrupaciones and usar_group_by:
+        for campo_key in agrupaciones:
+            if campo_key not in campos_seleccionados:  # Solo si no está ya en SELECT
+                campo = campos_def.get(campo_key)
+                if campo:
+                    if campo['tipo'] == 'dimension':
+                        # Campo de dimensión
+                        alias_dim = f"{campo_key}_dim"
+                        if alias_dim in [part.split('.')[0] for part in group_by_parts if '.' in part]:
+                            continue  # Ya está en group_by_parts
+
+                        tabla_dim = campo.get('tabla_dimension')
+                        if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                            campo_nombre = dimension_columns_cache[tabla_dim]
+                        else:
+                            campo_nombre = campo.get('campo_nombre', 'descripcion')
+
+                        group_by_parts.append(f"{alias_dim}.{campo_nombre}")
+                    else:
+                        # Campo normal (texto, etc.)
+                        tabla_rel = campo.get('tabla_relacion', 'principal')
+                        alias_tabla = tabla_aliases.get(tabla_rel, 'p')
+                        columna = campo.get('columna_bd', campo_key)
+
+                        campo_completo = f"{alias_tabla}.{columna}"
+                        if campo_completo not in group_by_parts:
+                            group_by_parts.append(campo_completo)
+
     group_by_clause = ""
     if usar_group_by and group_by_parts:
         group_by_clause = "GROUP BY " + ", ".join(group_by_parts)
 
     # ========== CONSTRUIR ORDER BY ==========
     order_by_clause = ""
+    order_parts = []
 
+    # Si hay agrupaciones, SIEMPRE ordenar primero por los campos de agrupación
+    if agrupaciones:
+        for agrup_key in agrupaciones:
+            campo = campos_def.get(agrup_key)
+            if campo:
+                if campo['tipo'] == 'dimension':
+                    alias_dim = f"{agrup_key}_dim"
+                    tabla_dim = campo.get('tabla_dimension')
+
+                    if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                        campo_nombre = dimension_columns_cache[tabla_dim]
+                    else:
+                        campo_nombre = campo.get('campo_nombre', 'descripcion')
+
+                    order_parts.append(f"{alias_dim}.{campo_nombre} ASC")
+                elif campo['tipo'] == 'calculado' or campo['tipo'] == 'numerico':
+                    # Usar el nombre bonito del campo (alias en SELECT)
+                    nombre_alias = campo.get('nombre', agrup_key)
+                    order_parts.append(f"`{nombre_alias}` ASC")
+                else:
+                    tabla_rel = campo.get('tabla_relacion', 'principal')
+                    alias_tabla = tabla_aliases.get(tabla_rel, 'p')
+                    columna = campo.get('columna_bd', agrup_key)
+                    order_parts.append(f"{alias_tabla}.{columna} ASC")
+
+    # Agregar ordenaciones adicionales especificadas por el usuario
     if ordenaciones:
-        order_parts = []
         for clasif in ordenaciones:
             campo_key = clasif['campo']
             orden = clasif.get('orden', 'Ascendente')
 
             if campo_key not in campos_seleccionados:
+                continue
+
+            # No duplicar si ya está en order_parts por agrupación
+            if agrupaciones and campo_key in agrupaciones:
                 continue
 
             campo = campos_def.get(campo_key)
@@ -706,15 +788,16 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
                     order_parts.append(f"{alias_dim}.{campo_nombre} {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 elif campo['tipo'] == 'calculado' or campo['tipo'] == 'numerico':
                     # Para campos calculados/numéricos, usar el alias del SELECT
-                    order_parts.append(f"{campo_key} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                    nombre_alias = campo.get('nombre', campo_key)
+                    order_parts.append(f"`{nombre_alias}` {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 else:
                     tabla_rel = campo.get('tabla_relacion', 'principal')
                     alias_tabla = tabla_aliases.get(tabla_rel, 'p')
                     columna = campo.get('columna_bd', campo_key)
                     order_parts.append(f"{alias_tabla}.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
 
-        if order_parts:
-            order_by_clause = "ORDER BY " + ", ".join(order_parts)
+    if order_parts:
+        order_by_clause = "ORDER BY " + ", ".join(order_parts)
 
     # ========== QUERY FINAL ==========
     query = f"{select_clause}\n{from_clause}"
@@ -977,18 +1060,28 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
         - totales: Dict con totales por columna totalizable {nombre_col: total}
     """
     try:
-        # Construir query (pasando user y password para detectar columnas de dimensiones)
-        query = build_query(informe_nombre, filtros, ordenaciones, campos_seleccionados, schema, user, password)
+        # Obtener definición del informe para determinar el método de ejecución
+        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
+        usar_agregacion_sql = definicion.get('usar_agregacion_sql', False) if definicion else False
+        campos_def = definicion.get('campos', {}) if definicion else {}
+
+        # Decidir qué query builder usar
+        if usar_agregacion_sql:
+            # NUEVO: Usar query con GROUP BY y SUM en SQL (sin agrupaciones visuales)
+            query = build_query_with_sql_aggregation(
+                informe_nombre, filtros, ordenaciones, campos_seleccionados,
+                agrupaciones=None,  # Sin agrupaciones visuales en este caso
+                schema=schema, user=user, password=password
+            )
+        else:
+            # ORIGINAL: Query simple sin GROUP BY
+            query = build_query(informe_nombre, filtros, ordenaciones, campos_seleccionados, schema, user, password)
 
         print(f"\n{'='*60}")
         print(f"QUERY GENERADO PARA INFORME: {informe_nombre}")
         print(f"{'='*60}")
         print(query)
         print(f"{'='*60}\n")
-
-        # Obtener definición del informe para identificar campos totalizables
-        definicion = INFORMES_DEFINICIONES.get(informe_nombre)
-        campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Ejecutar query
         with get_project_connection(user, password, schema) as conn:
@@ -1003,13 +1096,27 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
 
             # Calcular totales para campos totalizables (numéricos, moneda)
             totales = {}
+            formatos_columnas = {}
+
+            # Las columnas ahora tienen nombres bonitos, necesitamos mapear de nombre a key
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+
+            print(f"DEBUG ejecutar_informe - Columnas: {columnas}")
+            print(f"DEBUG ejecutar_informe - nombre_a_key: {nombre_a_key}")
+            print(f"DEBUG ejecutar_informe - campos_seleccionados: {campos_seleccionados}")
+
             if datos and campos_seleccionados:
                 for i, col_name in enumerate(columnas):
-                    # Buscar la definición del campo
-                    campo_def = campos_def.get(col_name)
+                    # Buscar el campo por nombre bonito
+                    campo_key = nombre_a_key.get(col_name, col_name)
+                    campo_def = campos_def.get(campo_key)
+                    print(f"DEBUG ejecutar_informe - Col '{col_name}' -> key '{campo_key}' -> def {campo_def is not None}")
                     if campo_def:
                         formato = campo_def.get('formato', '')
                         tipo = campo_def.get('tipo', '')
+
+                        # Guardar formato de la columna
+                        formatos_columnas[col_name] = formato if formato else 'ninguno'
 
                         # Solo totalizar campos numéricos o de moneda
                         if formato in ['moneda', 'numerico'] or tipo in ['numerico', 'calculado']:
@@ -1021,7 +1128,17 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
                                 # Si no se puede convertir a número, omitir
                                 pass
 
-            return columnas, datos, totales
+            # Crear un resultado_agrupacion compatible con el que devuelve ejecutar_informe_con_agrupacion
+            resultado_agrupacion = {
+                "grupos": [],
+                "datos_planos": datos,
+                "totales_generales": totales,
+                "modo": "detalle",
+                "formatos_columnas": formatos_columnas,
+                "formatos_agregaciones": {}
+            }
+
+            return columnas, datos, resultado_agrupacion
 
     except Exception as e:
         print(f"Error al ejecutar informe: {e}")
@@ -1060,14 +1177,20 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         usar_agregacion_sql = definicion.get('usar_agregacion_sql', False) if definicion else False
 
         # IMPORTANTE: Incluir automáticamente los campos de agrupación en campos_seleccionados
-        # para que estén disponibles en el SELECT incluso si el usuario no los seleccionó explícitamente
+        # Esto es NECESARIO para SQL - los campos en GROUP BY deben estar en SELECT
+        # Luego se filtrarán antes de generar el PDF en informes_exportacion.py
         campos_a_incluir = list(campos_seleccionados) if campos_seleccionados else []
+        campos_fijos = definicion.get('campos_fijos', False) if definicion else False
 
         if agrupaciones:
+            # SIEMPRE agregar campos de agrupación al SELECT (requerido por SQL)
             for campo_agrupacion in agrupaciones:
                 if campo_agrupacion not in campos_a_incluir:
                     campos_a_incluir.append(campo_agrupacion)
-                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT")
+                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT (requerido por SQL GROUP BY)")
+
+            if campos_fijos:
+                print(f"DEBUG: Informe con campos_fijos=True - campos de agrupación {agrupaciones} se filtrarán en PDF")
 
         # Decidir qué método usar para obtener los datos
         if usar_agregacion_sql:
@@ -1119,24 +1242,119 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Procesar agrupación según el método usado
-        if usar_agregacion_sql:
+        if usar_agregacion_sql and agrupaciones:
             # Los datos YA vienen agrupados y sumados desde SQL
-            # Simplemente devolvemos los datos en un formato compatible
-            # (sin estructura jerárquica de grupos ya que no es necesaria)
+            # Necesitamos reorganizarlos en la estructura jerárquica que espera pdf_agrupaciones.py
+
+            # Crear mapa de formatos de columnas
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+            formatos_columnas = {}
+            for col in columnas:
+                campo_key = nombre_a_key.get(col, col)
+                campo_def = campos_def.get(campo_key, {})
+                formato = campo_def.get('formato', 'ninguno')
+                formatos_columnas[col] = formato
+
+            # Identificar columnas de agrupación y columnas de datos
+            columnas_agrupacion = []
+            for agrup_key in agrupaciones:
+                campo_agrup = campos_def.get(agrup_key, {})
+                nombre_col_agrup = campo_agrup.get('nombre', agrup_key)
+                if nombre_col_agrup in columnas:
+                    columnas_agrupacion.append(nombre_col_agrup)
+
+            # Columnas de datos (sin agrupaciones)
+            columnas_datos = [col for col in columnas if col not in columnas_agrupacion]
+
+            # Construir estructura de grupos
+            grupos = []
+            totales_generales = {}
+
+            # Agrupar datos por el primer campo de agrupación
+            if columnas_agrupacion:
+                col_agrup = columnas_agrupacion[0]  # Por ahora solo primer nivel
+                idx_agrup = columnas.index(col_agrup)
+
+                # Indices de columnas de datos
+                indices_datos = [columnas.index(col) for col in columnas_datos]
+
+                # Agrupar filas por valor de agrupación
+                from collections import defaultdict
+                grupos_dict = defaultdict(list)
+
+                for fila in datos:
+                    clave_grupo = fila[idx_agrup]
+                    # Extraer solo datos (sin columna de agrupación)
+                    fila_datos = tuple(fila[i] for i in indices_datos)
+                    grupos_dict[clave_grupo].append(fila_datos)
+
+                # Crear estructura de grupos
+                # Ordenar grupos manejando valores None (los ponemos al final)
+                def ordenar_clave(item):
+                    clave = item[0]
+                    if clave is None:
+                        return (1, '')  # None va al final
+                    return (0, str(clave))  # Los demás se ordenan alfabéticamente
+
+                for clave, filas_grupo in sorted(grupos_dict.items(), key=ordenar_clave):
+                    # Calcular subtotales del grupo
+                    subtotales = {}
+                    for i, col_nombre in enumerate(columnas_datos):
+                        formato = formatos_columnas.get(col_nombre, 'ninguno')
+                        # Solo calcular subtotales de campos tipo moneda que sean importes/costes totales
+                        # NO calcular subtotales de Cantidad ni Precio unitario
+                        es_campo_subtotalizable = (
+                            formato == 'moneda' and
+                            ('importe' in col_nombre.lower() or 'coste_total' in col_nombre.lower() or 'total' in col_nombre.lower())
+                        )
+
+                        if es_campo_subtotalizable:
+                            try:
+                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in filas_grupo)
+                                subtotales[col_nombre] = total
+                                # Acumular en totales generales
+                                totales_generales[col_nombre] = totales_generales.get(col_nombre, 0) + total
+                            except (ValueError, TypeError):
+                                pass
+
+                    # Agregar grupo
+                    grupos.append({
+                        'campo': col_agrup,
+                        'clave': str(clave) if clave is not None else 'Sin especificar',
+                        'datos': filas_grupo,
+                        'subtotales': subtotales,
+                        'subgrupos': None
+                    })
+
+            resultado_agrupacion = {
+                "grupos": grupos,
+                "datos_planos": datos,
+                "totales_generales": totales_generales,
+                "modo": modo,
+                "formatos_columnas": formatos_columnas,
+                "formatos_agregaciones": formatos_columnas,  # Usar los mismos formatos
+                "agrupaciones": agrupaciones,
+                "columnas_datos": columnas_datos  # Columnas sin agrupación para el PDF
+            }
+
+        elif usar_agregacion_sql:
+            # Sin agrupaciones, solo devolver datos planos
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+            formatos_columnas = {}
+            for col in columnas:
+                campo_key = nombre_a_key.get(col, col)
+                campo_def = campos_def.get(campo_key, {})
+                formato = campo_def.get('formato', 'ninguno')
+                formatos_columnas[col] = formato
+
             resultado_agrupacion = {
                 "grupos": [],
                 "datos_planos": datos,
                 "totales_generales": {},
                 "modo": modo,
-                "formatos_columnas": {},
+                "formatos_columnas": formatos_columnas,
                 "formatos_agregaciones": {}
             }
-
-            # Crear mapa de formatos de columnas
-            for col in columnas:
-                campo_def = campos_def.get(col, {})
-                formato = campo_def.get('formato', 'ninguno')
-                resultado_agrupacion['formatos_columnas'][col] = formato
 
         else:
             # ORIGINAL: Procesar agrupación en Python (post-procesamiento)
