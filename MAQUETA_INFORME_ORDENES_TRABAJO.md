@@ -445,14 +445,13 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "bordes_tabla": True,
     "filas_alternadas": True,
 
-    # Configuración del PIE DE PÁGINA (igual que "Recursos Presupuestados")
+    # Configuración del PIE DE PÁGINA
     "pie_pagina_personalizado": {
-        "texto_izquierda": "Servicios para el mantenimiento y gestión de las redes de abastecimiento y saneamiento de URBIDE - EXP 24_130",
-        "mostrar_fecha": True,  # Fecha en el centro del pie de página
+        "mostrar_fecha": True,  # Fecha a la izquierda
         "mostrar_paginacion": True,  # "Página X de Y" a la derecha
         "formato_paginacion": "Página {pagina} de {total}",
         "fuente": "Helvetica",
-        "tamaño_fuente": 8,
+        "tamaño_fuente": 9,
         "color_texto": "#666666"
     },
 
@@ -545,10 +544,7 @@ CATEGORIAS_INFORMES = {
 ================================================================================
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Servicios para el mantenimiento y gestión de las redes de abastecimiento   │
-│ y saneamiento de URBIDE - EXP 24_130                                       │
-│                                                                             │
-│                    16/11/2025                          Página 1 de 3        │
+│ 16/11/2025                                                 Página 1 de 3    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -664,9 +660,8 @@ def generar_pdf_ordenes_trabajo(datos, config_pdf):
 2. **Formato PDF:**
    - Portrait (vertical) para mantener consistencia con otros informes
    - Encabezado simplificado: Logos a ambos lados + Título (sin Proyecto ni Fecha)
-   - Pie de página personalizado con 3 elementos:
-     * Texto descriptivo del contrato a la izquierda
-     * Fecha en el centro
+   - Pie de página con:
+     * Fecha a la izquierda
      * "Página X de Y" a la derecha
    - Salto de página entre órdenes si es necesario
    - Mantener orden + sub-tabla en misma página si es posible
