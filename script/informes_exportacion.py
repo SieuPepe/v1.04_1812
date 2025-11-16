@@ -880,8 +880,16 @@ class InformesExportador:
         if not reemplazado:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
 
-    def _insertar_tabla_en_marcador(self, doc, marcador_texto: str, columnas: List[str],
-                                     datos: List[tuple], resultado_agrupacion: Optional[Dict] = None):
+    def _insertar_tabla_en_marcador(
+        self,
+        doc,
+        marcador_texto: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        orientacion: str = 'horizontal',
+        tipo_informe: str = ''
+    ):
         """
         Inserta una tabla en la posición del marcador de TEXTO literal
 
@@ -891,6 +899,8 @@ class InformesExportador:
             columnas: Lista de nombres de columnas
             datos: Datos a insertar
             resultado_agrupacion: Estructura de agrupaciones (opcional)
+            orientacion: Orientación de la página ('horizontal' o 'vertical')
+            tipo_informe: Tipo de informe para anchos personalizados
         """
         # Buscar el párrafo que contiene el marcador de texto
         target_paragraph = None
@@ -931,18 +941,44 @@ class InformesExportador:
         table.autofit = False
         table.allow_autofit = False
 
-        # Ajustar ancho de tabla al ancho de página (26.7cm)
-        # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
-        table.width = Cm(26.7)
-        self._set_table_width(table, 26.7)
+        # Calcular ancho disponible según orientación
+        # A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+        # A4 vertical = 21cm - márgenes 1.5cm×2 = 18cm
+        ancho_disponible = 18.0 if orientacion == 'vertical' else 26.7
 
-        # Distribuir ancho equitativamente entre columnas
-        col_width_cm = 26.7 / len(columnas)
+        # Ajustar ancho de tabla al ancho de página
+        table.width = Cm(ancho_disponible)
+        self._set_table_width(table, ancho_disponible)
+
+        # Anchos personalizados para informes de Recursos
+        anchos_recursos = {
+            'Código': 1.5,
+            'Cantidad': 2.0,
+            'Ud.': 1.0,
+            'Recurso / Material': 9.5,
+            'Precio unitario': 2.0,
+            'Importe': 2.0
+        }
+
+        # Determinar si usar anchos personalizados
+        usa_anchos_personalizados = (
+            'Recursos' in tipo_informe and
+            all(col in anchos_recursos for col in columnas)
+        )
+
+        # Calcular anchos de columnas
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            col_widths = [anchos_recursos[col] for col in columnas]
+        else:
+            # Distribución equitativa
+            col_width_cm = ancho_disponible / len(columnas)
+            col_widths = [col_width_cm] * len(columnas)
 
         # Establecer ancho usando XML directo
         for row in table.rows:
-            for cell in row.cells:
-                self._set_cell_width(cell, col_width_cm)
+            for col_idx, cell in enumerate(row.cells):
+                self._set_cell_width(cell, col_widths[col_idx])
 
         # Encabezados
         header_cells = table.rows[0].cells
@@ -1034,8 +1070,20 @@ class InformesExportador:
             True si la exportación fue exitosa
         """
         try:
-            # Importar configuración de plantillas
+            # Importar configuración de plantillas y PDF
             from script.plantillas_config import obtener_ruta_plantilla
+            from script.pdf_config import obtener_configuracion_pdf
+            from script.informes_config import INFORMES_DEFINICIONES
+
+            # Obtener configuración del informe
+            config_pdf = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+            definicion = INFORMES_DEFINICIONES.get(tipo_informe or informe_nombre, {})
+            campos_fijos = definicion.get('campos_fijos', False)
+
+            # Si hay columnas_datos en resultado_agrupacion, usarlas (sin columna de agrupación)
+            columnas_para_word = columnas
+            if resultado_agrupacion and resultado_agrupacion.get('columnas_datos'):
+                columnas_para_word = resultado_agrupacion['columnas_datos']
 
             # Obtener plantilla apropiada según el tipo de informe
             # Si no se especifica tipo, usar el nombre del informe
@@ -1059,6 +1107,21 @@ class InformesExportador:
                 # Ahora abrir la copia para modificarla
                 doc = Document(filepath)
 
+            # Configurar orientación de página según config
+            orientacion = config_pdf.get('orientacion', 'horizontal')
+            from docx.shared import Inches
+            from docx.enum.section import WD_ORIENT
+
+            for section in doc.sections:
+                if orientacion == 'vertical':
+                    section.orientation = WD_ORIENT.PORTRAIT
+                    section.page_width = Inches(8.27)   # 21 cm
+                    section.page_height = Inches(11.69)  # 29.7 cm
+                else:
+                    section.orientation = WD_ORIENT.LANDSCAPE
+                    section.page_width = Inches(11.69)
+                    section.page_height = Inches(8.27)
+
             # Reemplazar marcadores en la plantilla
             # Usar fecha proporcionada por el usuario o generar automáticamente
             fecha_actual = fecha_informe if fecha_informe else datetime.now().strftime("%d/%m/%Y")
@@ -1067,8 +1130,16 @@ class InformesExportador:
             self._reemplazar_marcador(doc, "[TITULO_DEL_INFORME]", informe_nombre.upper())
             self._reemplazar_marcador(doc, "[FECHA]", fecha_actual)
 
-            # Insertar tabla en el marcador
-            self._insertar_tabla_en_marcador(doc, "[TABLA_DE_DATOS]", columnas, datos, resultado_agrupacion)
+            # Insertar tabla en el marcador (con o sin agrupaciones)
+            self._insertar_tabla_en_marcador(
+                doc,
+                "[TABLA_DE_DATOS]",
+                columnas_para_word,  # Usar columnas filtradas
+                datos,
+                resultado_agrupacion,
+                orientacion,  # Pasar orientación
+                tipo_informe or informe_nombre  # Pasar tipo para anchos personalizados
+            )
 
             # Guardar el documento
             doc.save(filepath)
