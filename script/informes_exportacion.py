@@ -954,9 +954,6 @@ class InformesExportador:
 
             # Totales generales
             if resultado_agrupacion.get('totales_generales'):
-                from docx.shared import Pt
-                from docx.oxml.shared import OxmlElement
-
                 p_total = doc.add_paragraph()
                 run_total = p_total.add_run("═══ TOTAL EJECUCIÓN MATERIAL ═══")
                 run_total.font.bold = True
@@ -1186,10 +1183,18 @@ class InformesExportador:
                     section.orientation = WD_ORIENT.PORTRAIT
                     section.page_width = Inches(8.27)   # 21 cm
                     section.page_height = Inches(11.69)  # 29.7 cm
+                    # Ajustar ancho de tablas en encabezado para vertical
+                    ancho_disponible = 18.0  # 21cm - 3cm márgenes
                 else:
                     section.orientation = WD_ORIENT.LANDSCAPE
                     section.page_width = Inches(11.69)
                     section.page_height = Inches(8.27)
+                    # Ajustar ancho de tablas en encabezado para horizontal
+                    ancho_disponible = 26.7  # 29.7cm - 3cm márgenes
+
+                # Ajustar ancho de las tablas del encabezado
+                for table in section.header.tables:
+                    self._set_table_width(table, ancho_disponible)
 
             # Reemplazar marcadores en la plantilla
             # Usar fecha proporcionada por el usuario o generar automáticamente
