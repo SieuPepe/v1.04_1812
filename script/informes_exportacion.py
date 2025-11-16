@@ -455,11 +455,14 @@ class InformesExportador:
 
             # Si hay agrupaciones, exportar con estructura jerárquica
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Si hay columnas_datos, usarlas en lugar de columnas completas
+                columnas_para_excel = resultado_agrupacion.get('columnas_datos', columnas)
+
                 row = self._exportar_grupos_excel(
                     worksheet,
                     workbook,
                     resultado_agrupacion['grupos'],
-                    columnas,
+                    columnas_para_excel,  # Usar columnas filtradas
                     row,
                     formato_header_nivel0,
                     formato_header_nivel1,
@@ -505,9 +508,9 @@ class InformesExportador:
                         formato_agg = formatos_agregaciones.get(key, 'ninguno')
                         formato_a_usar = formato_total if formato_agg == 'moneda' else formato_total_entero
 
-                        # Buscar la columna correspondiente
-                        if campo_nombre in columnas:
-                            col_idx = columnas.index(campo_nombre)
+                        # Buscar la columna correspondiente en columnas filtradas
+                        if campo_nombre in columnas_para_excel:
+                            col_idx = columnas_para_excel.index(campo_nombre)
                             worksheet.write(row, col_idx, valor, formato_a_usar)
                         elif campo_nombre == '*':
                             # COUNT(*) se escribe en la segunda columna, siempre como entero

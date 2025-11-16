@@ -843,16 +843,17 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -874,9 +875,9 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total",
+                "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "p.cantidad_cert * p.precio_unit",
+                "formula": "p.cantidad_cert * precio.coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -1073,16 +1074,17 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
-                "columna_bd": "precio_unit",
+                "tabla_relacion": "precio",
+                "columna_bd": "coste",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
@@ -1097,16 +1099,16 @@ INFORMES_DEFINICIONES = {
             },
             # Campos calculados: cantidad pendiente = presupuestada - certificada
             "cantidad": {
-                "nombre": "Cantidad Pendiente",
+                "nombre": "Cantidad",
                 "tipo": "calculado",
                 "formula": "p.cantidad - COALESCE((SELECT pc.cantidad_cert FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
                 "formato": "decimal",
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total Pendiente",
+                "nombre": "Importe",
                 "tipo": "calculado",
-                "formula": "(p.cantidad * p.precio_unit) - COALESCE((SELECT pc.cantidad_cert * pc.precio_unit FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
+                "formula": "(p.cantidad * precio.coste) - COALESCE((SELECT pc.cantidad_cert * precio.coste FROM tbl_part_certificacion pc WHERE pc.parte_id = parte.id AND pc.precio_id = precio.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
             },
