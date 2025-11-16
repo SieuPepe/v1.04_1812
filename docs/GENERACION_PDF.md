@@ -11,7 +11,6 @@ Este enfoque permite:
 - ✅ Sin código complejo de layout
 - ✅ Múltiples plantillas para diferentes tipos de informes
 - ✅ Calidad profesional garantizada
-- ✅ **El mismo archivo .docx se usa tanto para Word como para PDF**
 
 ---
 
@@ -19,349 +18,278 @@ Este enfoque permite:
 
 ### 1. **Dependencias Python (Obligatorias)**
 
-Instaladas automáticamente con `requirements.txt`:
+Instaladas automáticamente con `pip install -r requirements.txt`:
 
-```bash
-pip install -r requirements.txt
+```
+python-docx >= 0.8.0      # Manipulación de documentos Word
+pillow >= 10.0.0          # Procesamiento de imágenes (logos)
+reportlab >= 3.6.0        # Generación directa de PDF (método alternativo)
 ```
 
-Incluye:
-- `python-docx>=0.8.0` - Generación de documentos Word
-- `reportlab>=3.6.0` - Generación alternativa de PDFs
-- `pywin32>=305` - Conversión Word→PDF en Windows (solo Windows)
+### 2. **Dependencias Windows (Obligatorias en Windows)**
 
-### 2. **Software de Conversión PDF (Requerido para generar PDFs)**
+Para conversión Word → PDF en Windows:
 
-Elige **UNA** de estas opciones:
+```
+pywin32 >= 305            # Acceso a Microsoft Word COM
+```
 
-#### Opción A: Microsoft Office (Recomendado para Windows)
-- **Ventaja:** Mejor calidad, conversión perfecta
-- **Desventaja:** Software de pago
-- **Instalación:** Incluido en Microsoft Office
-- **Compatibilidad:** Solo Windows
+**Instalación:**
+```bash
+pip install pywin32
+```
 
-#### Opción B: LibreOffice (Alternativa Gratuita)
-- **Ventaja:** Gratis, multiplataforma
-- **Desventaja:** Conversión ligeramente menos precisa
-- **Instalación:** https://www.libreoffice.org/download/download/
-- **Compatibilidad:** Windows, Linux, macOS
-
-**IMPORTANTE:** Sin al menos uno de estos, solo se podrán generar archivos `.docx` (Word), NO `.pdf`.
+**Nota**: Esta dependencia solo se instala en Windows (`sys_platform == 'win32'`)
 
 ---
 
-## Sistema de Plantillas Word
+## Software del Sistema (Para conversión Word → PDF)
 
-HydroFlow Manager utiliza **plantillas Word (.docx)** como base para generar los PDFs. Esto permite:
-- Diseño visual fácil en Microsoft Word (WYSIWYG)
-- Sin necesidad de programar layouts complejos
-- Personalización por tipo de informe
+La conversión Word → PDF requiere **uno** de los siguientes programas instalados:
+
+### **Opción 1: Microsoft Word (Recomendado para Windows)**
+
+- ✅ **Ventajas**: Conversión perfecta, respeta todos los estilos
+- ✅ **Calidad**: Excelente
+- ❌ **Desventaja**: Requiere licencia de Microsoft Office
+
+**Detección automática**: El sistema usa `win32com.client` para comunicarse con Word
+
+### **Opción 2: LibreOffice (Alternativa gratuita)**
+
+- ✅ **Ventajas**: Gratuito, multiplataforma, buen resultado
+- ✅ **Calidad**: Muy buena
+- ⚠️ **Limitación**: Algunos estilos pueden variar ligeramente
+
+**Instalación**:
+- Windows: Descargar desde https://www.libreoffice.org/download/
+- Linux: `sudo apt install libreoffice`
+- macOS: Descargar desde https://www.libreoffice.org/download/
+
+**Ubicaciones buscadas automáticamente**:
+```
+Windows:
+  - C:\Program Files\LibreOffice\program\soffice.exe
+  - C:\Program Files (x86)\LibreOffice\program\soffice.exe
+
+Linux/Mac:
+  - /usr/bin/libreoffice
+  - /usr/local/bin/libreoffice
+```
+
+---
+
+## Prioridad de Conversión
+
+El sistema intenta los métodos en este orden:
+
+1. **Microsoft Word COM** (solo Windows, si Word está instalado)
+2. **LibreOffice** (multiplataforma, si está instalado)
+3. **Error** (si ninguno está disponible)
+
+Si falla la conversión, el sistema:
+- ✅ Genera el archivo Word correctamente
+- ⚠️ Muestra mensaje con instrucciones de instalación
+- 💡 Permite conversión manual posterior
+
+---
+
+## Sistema de Plantillas
 
 ### Ubicación de Plantillas
 
 ```
-resources/plantillas/
-├── Plantilla_Partes.docx           # Para: Listado de Partes
-├── Plantilla_Recursos.docx         # Para: Listado de Partidas, Consumo, Trabajos por Actuación
-├── Plantilla_Presupuesto.docx      # Para: Contrato, Presupuesto Detallado/Resumen
-├── Plantilla_Certificacion.docx    # Para: Certificación Detallado/Resumen
-├── Plantilla_Planificacion.docx    # Para: Informe de Avance
-├── Plantilla_Generica.docx         # Plantilla por defecto (fallback)
-└── Plantilla Listado Partes.docx   # Plantilla legacy (compatibilidad)
+plantillas/
+├── Plantilla Listado Partes.docx    # Plantilla actual (listado de partes)
+├── Plantilla_Presupuesto.docx       # [FUTURO] Para presupuestos
+├── Plantilla_Certificacion.docx     # [FUTURO] Para certificaciones
+└── Plantilla_Generica.docx          # [FUTURO] Plantilla por defecto
 ```
 
-### Mapeo Automático de Plantillas
+### Marcadores de Texto
 
-El sistema selecciona automáticamente la plantilla apropiada según el tipo de informe:
-
-| Tipo de Informe | Plantilla Usada |
-|-----------------|-----------------|
-| Listado de Partes | `Plantilla_Partes.docx` |
-| Listado de Partidas del Presupuesto | `Plantilla_Recursos.docx` |
-| Consumo de Recursos | `Plantilla_Recursos.docx` |
-| Trabajos por Actuación | `Plantilla_Recursos.docx` |
-| Contrato | `Plantilla_Presupuesto.docx` |
-| Presupuesto Detallado | `Plantilla_Presupuesto.docx` |
-| Presupuesto Resumen | `Plantilla_Presupuesto.docx` |
-| Certificación Detallado | `Plantilla_Certificacion.docx` |
-| Certificación Resumen | `Plantilla_Certificacion.docx` |
-| Informe de Avance | `Plantilla_Planificacion.docx` |
-| *(Sin mapeo)* | `Plantilla_Generica.docx` |
-
-**Configurado en:** `script/plantillas_config.py`
-
----
-
-## Marcadores en Plantillas
-
-Las plantillas usan **marcadores** (placeholders) que se reemplazan automáticamente con datos reales:
+Las plantillas Word usan **marcadores de texto** que se reemplazan automáticamente:
 
 | Marcador | Descripción | Ejemplo |
 |----------|-------------|---------|
 | `[TITULO_DEL_INFORME]` | Nombre del informe | "LISTADO DE PARTES" |
-| `[FECHA]` | Fecha de generación | "16/11/2024" |
-| `[PROYECTO_NOMBRE]` | Nombre del proyecto | "Urbanización El Pinar" |
-| `[PROYECTO_CODIGO]` | Código del proyecto | "URB-2024-001" |
-| `[TABLA_DE_DATOS]` | **Tabla completa con datos** | *(Tabla generada)* |
-| `[TOTAL_REGISTROS]` | Número de registros | "125" |
-| `[FILTROS_APLICADOS]` | Filtros aplicados | "Fecha: 01/01/2024 - 31/12/2024" |
-| `[EMPRESA]` | Nombre de la empresa | "HydroFlow S.L." |
-| `[USUARIO]` | Usuario que genera | "admin" |
+| `[FECHA]` | Fecha de generación | "16/11/2025" |
+| `[PROYECTO_NOMBRE]` | Nombre del proyecto | "Proyecto Redes Municipales" |
+| `[TABLA_DE_DATOS]` | Tabla con datos del informe | *(tabla completa)* |
 
-### Cómo usar marcadores:
+### Crear Nueva Plantilla
 
-1. Abre la plantilla en Word: `resources/plantillas/Plantilla_XXX.docx`
-2. Coloca el marcador donde quieras que aparezca el dato
-3. Guarda y listo
+1. **Abrir Microsoft Word**
+2. **Diseñar el documento** con logos, estilos, encabezados, pies de página
+3. **Insertar marcadores** donde se deben reemplazar datos:
+   ```
+   Título: [TITULO_DEL_INFORME]
+   Fecha: [FECHA]
 
-**Ejemplo:**
-```
-INFORME: [TITULO_DEL_INFORME]
-Fecha: [FECHA]
-Proyecto: [PROYECTO_NOMBRE]
+   [TABLA_DE_DATOS]
+   ```
+4. **Guardar** en `plantillas/NombrePlantilla.docx`
+5. **Modificar código** (si es necesario) para usar la nueva plantilla
 
-[TABLA_DE_DATOS]
-
-Total de registros: [TOTAL_REGISTROS]
-```
+**Ventajas**:
+- ✅ Diseño WYSIWYG (lo que ves es lo que obtienes)
+- ✅ Sin programación de layouts
+- ✅ Reutilización de estilos corporativos
 
 ---
 
-## Personalizar Plantillas
+## Configuración del Instalador (PyInstaller)
 
-### Paso 1: Seleccionar Plantilla
+El archivo `HidroFlowManager.spec` incluye:
 
-Identifica qué plantilla usar según el tipo de informe (ver tabla arriba).
-
-### Paso 2: Editar en Word
-
-1. Abre la plantilla en **Microsoft Word**
-2. Diseña visualmente:
-   - Cambia colores, fuentes, logos
-   - Añade encabezados y pies de página
-   - Personaliza márgenes y orientación
-   - Agrega imágenes corporativas
-3. Mantén los marcadores `[MARCADOR]` donde quieras datos dinámicos
-
-### Paso 3: Guardar
-
-Guarda el archivo `.docx` con el **mismo nombre**. La próxima vez que generes ese tipo de informe, usará tu diseño personalizado.
-
-**IMPORTANTE:**
-- ✅ **Sí:** Usa estilos de Word, colores, fuentes estándar
-- ❌ **No:** Macros VBA, campos calculados complejos, fuentes raras
-
----
-
-## Flujo Técnico: Word → PDF
-
-```
-┌─────────────────────────────────────────────────────┐
-│ 1. Usuario genera informe PDF                      │
-└───────────────────┬─────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────┐
-│ 2. Sistema selecciona plantilla según tipo informe │
-│    → script/plantillas_config.py                    │
-└───────────────────┬─────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────┐
-│ 3. Genera archivo Word temporal (.docx)            │
-│    → script/informes_exportacion.py:exportar_a_word│
-│    → Copia plantilla y reemplaza marcadores        │
-│    → Inserta tabla de datos                        │
-└───────────────────┬─────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────┐
-│ 4. Convierte Word → PDF                            │
-│    → script/informes_exportacion.py:exportar_a_pdf │
-│                                                     │
-│    Métodos de conversión (en orden de prioridad):  │
-│    a) Microsoft Word COM (Windows)                 │
-│    b) LibreOffice (multiplataforma)                │
-│    c) Reportlab (fallback básico)                  │
-└───────────────────┬─────────────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────────────┐
-│ 5. PDF final guardado                              │
-│    → Archivo temporal .docx eliminado              │
-└─────────────────────────────────────────────────────┘
-```
-
-**IMPORTANTE:** El mismo archivo `.docx` se usa tanto para exportación Word como para PDF. No hay dos procesos separados.
-
----
-
-## Configuración de PyInstaller
-
-Para empaquetar correctamente el ejecutable con las plantillas incluidas:
-
-### HidroFlowManager.spec
-
+### Datos empaquetados:
 ```python
 datas=[
-    ('resources/plantillas/*.docx', 'resources/plantillas')  # Incluir plantillas
-],
+    ...
+    ('plantillas/*.docx', 'plantillas')  # Incluir todas las plantillas
+]
+```
+
+### Imports ocultos:
+```python
 hiddenimports=[
-    'docx',
-    'reportlab',
+    'docx',                    # python-docx
+    'reportlab',               # ReportLab
     'reportlab.platypus',
     'reportlab.lib',
-    'win32com',
+    'reportlab.lib.pagesizes',
+    'reportlab.lib.styles',
+    'reportlab.lib.colors',
+    'win32com',                # Para Word COM
     'win32com.client',
     'pythoncom',
-    'subprocess',
-    'script.plantillas_config',
-    'script.informes_exportacion'
+    'subprocess',              # Para LibreOffice
+    ...
 ]
 ```
 
 ---
 
-## Verificación de Dependencias
+## Verificación de Instalación
 
-Ejecuta el script de verificación para asegurarte de que todo esté configurado:
-
+### Paso 1: Instalar dependencias Python
 ```bash
-python verificar_dependencias_pdf.py
+pip install -r requirements.txt
 ```
 
-**Salida esperada:**
-
+### Paso 2: Verificar instalación (Windows)
+```bash
+python -c "import win32com.client; print('✓ pywin32 instalado correctamente')"
 ```
-======================================================================
-  Verificación de Dependencias para Generación de PDFs
-======================================================================
 
-[Dependencias Python]
-  ✓ python-docx: Instalado (versión 0.8.11)
-  ✓ reportlab: Instalado (versión 3.6.12)
-  ✓ pywin32: Instalado (versión 305)
+### Paso 3: Verificar software de conversión
 
-[Software de Conversión PDF]
-  ✓ Microsoft Word: Detectado (versión 16.0)
-  ✓ LibreOffice: Detectado (/usr/bin/soffice)
+**Windows - Microsoft Word:**
+```bash
+python -c "import win32com.client; w = win32com.client.Dispatch('Word.Application'); print('✓ Microsoft Word disponible'); w.Quit()"
+```
 
-[Plantillas]
-  ✓ Plantilla_Partes.docx: Encontrada
-  ✓ Plantilla_Recursos.docx: Encontrada
-  ✓ Plantilla_Presupuesto.docx: Encontrada
-  ✓ Plantilla_Certificacion.docx: Encontrada
-  ✓ Plantilla_Planificacion.docx: Encontrada
-  ✓ Plantilla_Generica.docx: Encontrada
-  ✓ Plantilla Listado Partes.docx: Encontrada (legacy)
+**Cualquier SO - LibreOffice:**
+```bash
+# Windows
+"C:\Program Files\LibreOffice\program\soffice.exe" --version
 
-======================================================================
-  RESUMEN
-======================================================================
-  ✓ Todas las dependencias están instaladas correctamente
-  ✓ Sistema listo para generar PDFs
-======================================================================
+# Linux/Mac
+libreoffice --version
 ```
 
 ---
 
 ## Solución de Problemas
 
-### Problema: "No se pudo generar el PDF"
+### ❌ Error: "No se pudo convertir el documento Word a PDF"
 
-**Verificar:**
-1. ¿Tienes Microsoft Word o LibreOffice instalado?
-2. ¿Las dependencias Python están instaladas?
+**Causa**: No hay software de conversión instalado
 
-**Solución:**
+**Solución**:
+1. Instalar Microsoft Office (Windows) o LibreOffice (multiplataforma)
+2. Verificar que el ejecutable esté en las rutas esperadas
+3. Como alternativa temporal: abrir el archivo .docx manualmente y "Guardar como PDF"
+
+### ❌ Error: "No module named 'win32com'"
+
+**Causa**: pywin32 no está instalado
+
+**Solución**:
 ```bash
-# Verificar dependencias
-python verificar_dependencias_pdf.py
+pip install pywin32
+```
 
-# Instalar LibreOffice (alternativa gratuita)
-# https://www.libreoffice.org/download/download/
+### ❌ Error: "No se encontró la plantilla"
 
-# Reinstalar dependencias Python
-pip install --upgrade -r requirements.txt
+**Causa**: Archivo de plantilla faltante
+
+**Solución**:
+1. Verificar que existe `plantillas/Plantilla Listado Partes.docx`
+2. Crear plantilla si no existe (ver sección "Crear Nueva Plantilla")
+
+### ❌ Los logos no aparecen en el PDF
+
+**Causa**: Archivos de logo faltantes
+
+**Solución**:
+1. Verificar que existen:
+   - `resources/images/Logo Redes Urbide.jpg`
+   - `resources/images/Logo Urbide.jpg`
+2. Las imágenes deben estar en formato JPG o PNG
+
+---
+
+## Método Alternativo: ReportLab Directo
+
+El código incluye `exportar_a_pdf_old()` que genera PDFs directamente con ReportLab.
+
+**NO se recomienda** porque:
+- ❌ Requiere programar layouts manualmente
+- ❌ Difícil ajustar diseños
+- ❌ Mucho tiempo de desarrollo
+
+**Usar solo si**:
+- No se puede instalar Microsoft Word ni LibreOffice
+- Se requiere generación de PDFs en servidor sin GUI
+
+---
+
+## Resumen de Comandos
+
+### Instalación completa (Windows):
+```bash
+# 1. Instalar dependencias Python
+pip install -r requirements.txt
+
+# 2. Instalar Microsoft Office o LibreOffice
+# (descargar manualmente desde sitio oficial)
+
+# 3. Verificar
+python -c "import docx; import win32com.client; print('✓ Todo OK')"
+```
+
+### Instalación completa (Linux):
+```bash
+# 1. Instalar dependencias Python
+pip install -r requirements.txt
+
+# 2. Instalar LibreOffice
+sudo apt install libreoffice
+
+# 3. Verificar
+python -c "import docx; print('✓ Todo OK')"
 ```
 
 ---
 
-### Problema: "Plantilla no encontrada"
+## Contacto y Soporte
 
-**Verificar:**
-1. ¿Las plantillas existen en `resources/plantillas/`?
-2. ¿El nombre del archivo es exacto? (ej: `Plantilla_Partes.docx`)
+Para problemas con la generación de PDFs:
+1. Verificar que todas las dependencias estén instaladas
+2. Revisar los logs en consola para mensajes de error específicos
+3. Consultar este documento para soluciones comunes
 
-**Solución:**
-```bash
-# Verificar que existan las plantillas
-ls resources/plantillas/*.docx
-
-# Si faltan, copiar de la plantilla base
-cp "resources/plantillas/Plantilla Listado Partes.docx" resources/plantillas/Plantilla_Generica.docx
-```
-
----
-
-### Problema: "Los marcadores no se reemplazan"
-
-**Verificar:**
-1. ¿Los marcadores están escritos exactamente como se indica? (case-sensitive)
-2. ¿No hay espacios extra dentro de los corchetes?
-
-**Correcto:**   `[TITULO_DEL_INFORME]`
-**Incorrecto:** `[ TITULO_DEL_INFORME ]` ← espacios extra
-
----
-
-### Problema: "El PDF se ve diferente al Word"
-
-**Causa:** Diferencias en el motor de renderizado de Word vs LibreOffice.
-
-**Solución:**
-1. Usa Microsoft Word en lugar de LibreOffice (conversión más precisa)
-2. Usa fuentes estándar (Arial, Calibri, Times New Roman)
-3. Evita diseños muy complejos
-
----
-
-### Problema: "Error: win32com no disponible"
-
-**Causa:** pywin32 no está instalado (solo Windows).
-
-**Solución:**
-```bash
-pip install pywin32==305
-
-# Después de instalar, ejecutar:
-python Scripts/pywin32_postinstall.py -install
-```
-
----
-
-## Archivos Relacionados
-
-| Archivo | Descripción |
-|---------|-------------|
-| `script/plantillas_config.py` | Configuración de plantillas y mapeo de informes |
-| `script/informes_exportacion.py` | Lógica de exportación Word y PDF |
-| `resources/plantillas/*.docx` | Plantillas Word para cada tipo de informe |
-| `resources/plantillas/README.md` | Guía detallada para personalizar plantillas |
-| `verificar_dependencias_pdf.py` | Script de verificación de dependencias |
-| `HidroFlowManager.spec` | Configuración de empaquetado PyInstaller |
-| `requirements.txt` | Dependencias Python del proyecto |
-
----
-
-## Próximos Pasos
-
-1. **Personalizar plantillas**: Abre cada plantilla en Word y personalízala con tu branding corporativo
-2. **Instalar software de conversión**: Asegúrate de tener Microsoft Word o LibreOffice
-3. **Verificar dependencias**: Ejecuta `python verificar_dependencias_pdf.py`
-4. **Generar informe de prueba**: Usa la aplicación para generar un PDF de prueba
-
----
-
-**HydroFlow Manager v1.04**
-Sistema de Gestión de Proyectos Hidráulicos
+**Autor**: HydroFlow Manager Development Team
+**Versión**: 1.04
+**Fecha**: Noviembre 2025

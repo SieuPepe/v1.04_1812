@@ -14,7 +14,7 @@ a = Analysis(
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
         ('informes_guardados', 'informes_guardados'),  # Directorio para configs de informes
-        ('resources/plantillas/*.docx', 'resources/plantillas')  # Plantillas Word para generación de PDFs
+        ('plantillas/*.docx', 'plantillas')  # Plantillas Word para generación de PDFs
     ],
     hiddenimports=[
         'mysql.connector',
@@ -40,7 +40,6 @@ a = Analysis(
         'script.informes',
         'script.informes_config',
         'script.informes_exportacion',
-        'script.plantillas_config',
         'interface.informes_interfaz'
     ],
     hookspath=[],
