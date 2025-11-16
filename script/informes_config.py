@@ -16,6 +16,9 @@ CATEGORIAS_INFORMES = {
     "📦 Recursos": [
         "Listado de Partidas del Presupuesto",
         "Consumo de Recursos",
+        "Recursos Presupuestados",
+        "Recursos Certificados",
+        "Recursos Pendientes",
         "Trabajos por Actuación"
     ],
 
@@ -615,28 +618,28 @@ INFORMES_DEFINICIONES = {
             "cantidad_presupuesto": {
                 "nombre": "Cant. Presupuesto",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
                 "formato": "decimal",
                 "grupo": "Presupuesto"
             },
             "importe_presupuesto": {
                 "nombre": "Imp. Presupuesto",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = pr.id), 0)",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
                 "formato": "moneda",
                 "grupo": "Presupuesto"
             },
             "cantidad_certificado": {
                 "nombre": "Cant. Certificado",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = pr.id AND pc.certificada = 1), 0)",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
                 "formato": "decimal",
                 "grupo": "Certificación"
             },
             "importe_certificado": {
                 "nombre": "Imp. Certificado",
                 "tipo": "calculado",
-                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = pr.id AND pc.certificada = 1), 0)",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
                 "formato": "moneda",
                 "grupo": "Certificación"
             }
@@ -696,6 +699,321 @@ INFORMES_DEFINICIONES = {
             "importe_presupuesto",
             "cantidad_certificado",
             "importe_certificado"
+        ]
+    },
+
+    "Recursos Presupuestados": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Listado de recursos/partidas presupuestadas con cantidad y coste total",
+        "tabla_principal": "tbl_pres_precios",
+        "formato_pdf": "vertical",  # Formato vertical para PDF
+        "campos_fijos": True,  # No permite selección de campos
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Ordenación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
+                "formato": "decimal",
+                "grupo": "Datos"
+            },
+            "unidad": {
+                "nombre": "Unidad",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Resumen",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "coste": {
+                "nombre": "Coste",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "coste_total": {
+                "nombre": "Coste Total",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            },
+            "codigo": {
+                "campo": "codigo",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            },
+            "resumen": {
+                "campo": "resumen",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            }
+        },
+
+        "ordenaciones": [
+            "capitulo",
+            "codigo",
+            "cantidad",
+            "coste_total"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {},  # No permitir agregaciones
+
+        "campos_default": [
+            "codigo",
+            "cantidad",
+            "unidad",
+            "resumen",
+            "coste",
+            "coste_total"
+        ]
+    },
+
+    "Recursos Certificados": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Listado de recursos/partidas certificadas con cantidad y coste total",
+        "tabla_principal": "tbl_pres_precios",
+        "formato_pdf": "vertical",  # Formato vertical para PDF
+        "campos_fijos": True,  # No permite selección de campos
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Ordenación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "decimal",
+                "grupo": "Datos"
+            },
+            "unidad": {
+                "nombre": "Unidad",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Resumen",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "coste": {
+                "nombre": "Coste",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "coste_total": {
+                "nombre": "Coste Total",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "moneda",
+                "grupo": "Económico"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            },
+            "codigo": {
+                "campo": "codigo",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            },
+            "resumen": {
+                "campo": "resumen",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            }
+        },
+
+        "ordenaciones": [
+            "capitulo",
+            "codigo",
+            "cantidad",
+            "coste_total"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {},  # No permitir agregaciones
+
+        "campos_default": [
+            "codigo",
+            "cantidad",
+            "unidad",
+            "resumen",
+            "coste",
+            "coste_total"
+        ]
+    },
+
+    "Recursos Pendientes": {
+        "categoria": "📦 Recursos",
+        "descripcion": "Listado de recursos/partidas pendientes de certificar (diferencia entre presupuesto y certificado)",
+        "tabla_principal": "tbl_pres_precios",
+        "formato_pdf": "vertical",  # Formato vertical para PDF
+        "campos_fijos": True,  # No permite selección de campos
+
+        "campos": {
+            "capitulo": {
+                "nombre": "Capítulo",
+                "tipo": "dimension",
+                "columna_bd": "id_capitulo",
+                "tabla_dimension": "tbl_pres_capitulos",
+                "campo_nombre": "descripcion",
+                "grupo": "Ordenación"
+            },
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "cantidad": {
+                "nombre": "Cantidad",
+                "tipo": "calculado",
+                "formula": "COALESCE((SELECT SUM(pp.cantidad) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0)",
+                "formato": "decimal",
+                "grupo": "Datos"
+            },
+            "unidad": {
+                "nombre": "Unidad",
+                "tipo": "dimension",
+                "columna_bd": "id_unidades",
+                "tabla_dimension": "tbl_pres_unidades",
+                "campo_nombre": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "resumen": {
+                "nombre": "Resumen",
+                "tipo": "texto",
+                "columna_bd": "resumen",
+                "grupo": "Información Básica"
+            },
+            "coste": {
+                "nombre": "Coste",
+                "tipo": "numerico",
+                "columna_bd": "coste",
+                "formato": "moneda",
+                "grupo": "Económico"
+            },
+            "coste_total": {
+                "nombre": "Coste Total",
+                "tipo": "calculado",
+                "formula": "(COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.precio_id = p.id), 0) - COALESCE((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.precio_id = p.id AND pc.certificada = 1), 0))",
+                "formato": "moneda",
+                "grupo": "Económico"
+            }
+        },
+
+        "filtros": {
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
+            },
+            "codigo": {
+                "campo": "codigo",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            },
+            "resumen": {
+                "campo": "resumen",
+                "tipo": "texto",
+                "operadores": ["Contiene", "Empieza con"]
+            }
+        },
+
+        "ordenaciones": [
+            "capitulo",
+            "codigo",
+            "cantidad",
+            "coste_total"
+        ],
+
+        "agrupaciones": {
+            "campos_permitidos": [
+                "capitulo"
+            ],
+            "max_niveles": 1,
+            "modo_default": "detalle"
+        },
+
+        "agregaciones": {},  # No permitir agregaciones
+
+        "campos_default": [
+            "codigo",
+            "cantidad",
+            "unidad",
+            "resumen",
+            "coste",
+            "coste_total"
         ]
     },
 

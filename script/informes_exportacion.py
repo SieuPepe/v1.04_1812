@@ -283,6 +283,16 @@ class InformesExportador:
                 'valign': 'vcenter'
             })
 
+            # Formato específico para coordenadas (latitud/longitud) con 4 decimales
+            formato_coordenadas = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': '#,##0.0000',
+                'border': 1,
+                'align': 'right',
+                'valign': 'vcenter'
+            })
+
             formato_subtotal = workbook.add_format({
                 'bold': True,
                 'font_size': 9,
@@ -457,6 +467,7 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_decimal,
+                    formato_coordenadas,
                     formato_subtotal,
                     formato_subtotal_texto,
                     formato_fecha_celda,
@@ -503,6 +514,38 @@ class InformesExportador:
 
             else:
                 # Exportar sin agrupaciones (tabla simple)
+                # Función helper para detectar y convertir fechas
+                def detectar_y_convertir_fecha(valor):
+                    """Detecta formatos comunes de fecha y los convierte a datetime"""
+                    import re
+                    from datetime import datetime as dt, date
+
+                    # Si ya es un objeto datetime o date, retornarlo
+                    if isinstance(valor, (dt, date)):
+                        if isinstance(valor, date) and not isinstance(valor, dt):
+                            # Convertir date a datetime
+                            return dt.combine(valor, dt.min.time())
+                        return valor
+
+                    # Si es string, detectar formato
+                    if not isinstance(valor, str):
+                        return None
+
+                    # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+                    patrones_fecha = [
+                        (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                        (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                        (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+                    ]
+
+                    for patron, formato in patrones_fecha:
+                        if re.match(patron, valor.strip()):
+                            try:
+                                return dt.strptime(valor.strip(), formato)
+                            except ValueError:
+                                continue
+                    return None
+
                 # Encabezados de columnas
                 for col_idx, col_name in enumerate(columnas):
                     worksheet.write(row, col_idx, col_name, formato_header_columnas)
@@ -517,6 +560,9 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Detectar y manejar fechas
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
@@ -526,7 +572,10 @@ class InformesExportador:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas: 4 decimales
+                                worksheet.write(row, col_idx, valor, formato_coordenadas)
+                            elif formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
                                 worksheet.write(row, col_idx, valor, formato_decimal)
@@ -564,6 +613,7 @@ class InformesExportador:
         formato_datos,
         formato_moneda,
         formato_decimal,
+        formato_coordenadas,
         formato_subtotal,
         formato_subtotal_texto,
         formato_fecha_celda,
@@ -639,6 +689,7 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_decimal,
+                    formato_coordenadas,
                     formato_subtotal,
                     formato_subtotal_texto,
                     formato_fecha_celda,
@@ -658,6 +709,9 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Detectar y manejar fechas
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
@@ -667,7 +721,10 @@ class InformesExportador:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas: 4 decimales
+                                worksheet.write(row, col_idx, valor, formato_coordenadas)
+                            elif formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
                                 worksheet.write(row, col_idx, valor, formato_decimal)
