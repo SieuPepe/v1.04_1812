@@ -580,6 +580,7 @@ INFORMES_DEFINICIONES = {
         "formato_pdf": "vertical",  # Formato vertical para PDF
         "campos_fijos": True,  # No permite selección de campos
         "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
+        "usar_agregacion_sql": True,  # Usar GROUP BY y SUM en SQL
 
         "campos": {
             # Campos de tbl_pres_precios (tabla de precios)
@@ -780,6 +781,7 @@ INFORMES_DEFINICIONES = {
         "campos_fijos": True,  # No permite selección de campos
         "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
         "filtro_certificada": True,  # Solo registros certificados
+        "usar_agregacion_sql": True,  # Usar GROUP BY y SUM en SQL
 
         "campos": {
             # Campos de tbl_pres_precios (tabla de precios)
@@ -979,6 +981,7 @@ INFORMES_DEFINICIONES = {
         "formato_pdf": "vertical",  # Formato vertical para PDF
         "campos_fijos": True,  # No permite selección de campos
         "filtro_cantidad_cero": True,  # Excluir registros con cantidad = 0
+        "usar_agregacion_sql": True,  # Usar GROUP BY y SUM en SQL
 
         "campos": {
             # Campos de tbl_pres_precios (tabla de precios)
