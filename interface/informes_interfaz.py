@@ -2042,13 +2042,26 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para mostrar en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                # Para ordenes_con_recursos, los campos se manejan internamente
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    # Si aún no hay campos, es un informe especial que no requiere selección
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                # Solo validar para informes normales
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para mostrar en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -2626,13 +2639,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -2878,13 +2901,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -3129,13 +3162,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
