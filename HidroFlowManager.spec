@@ -40,6 +40,7 @@ a = Analysis(
         'script.informes',
         'script.informes_config',
         'script.informes_exportacion',
+        'script.plantillas_config',
         'interface.informes_interfaz'
     ],
     hookspath=[],

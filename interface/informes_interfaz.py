@@ -2703,7 +2703,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
                 proyecto_codigo="",
-                fecha_informe=fecha_generacion
+                fecha_informe=fecha_generacion,
+                tipo_informe=self.informe_seleccionado  # Tipo de informe para seleccionar plantilla
             )
 
             if exito:
@@ -3205,7 +3206,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
                 proyecto_codigo="",
-                fecha_informe=fecha_generacion
+                fecha_informe=fecha_generacion,
+                tipo_informe=self.informe_seleccionado  # Tipo de informe para seleccionar plantilla
             )
 
             if exito:
