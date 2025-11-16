@@ -494,7 +494,7 @@ class PDFAgrupaciones(PDFTemplate):
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
             ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#999999')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
+            # Sin GRID para no mostrar líneas verticales entre celdas
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]
 
@@ -614,8 +614,10 @@ class PDFAgrupaciones(PDFTemplate):
 
         # Calcular anchos para la tabla de totales
         if usa_anchos_personalizados:
-            ancho_texto = sum(anchos_recursos[col] for col in columnas if col != 'Importe')
-            ancho_valor = anchos_recursos['Importe']
+            # Para que entre "TOTAL EJECUCIÓN MATERIAL" sin problemas
+            # Usar casi todo el ancho para texto, dejando espacio suficiente para importes
+            ancho_texto = 14 * cm  # Ancho generoso para textos largos
+            ancho_valor = 4 * cm   # Suficiente para importes con formato español
         else:
             ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
             ancho_texto = ancho_disponible * 0.75

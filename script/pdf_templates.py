@@ -667,8 +667,10 @@ class PDFTemplate:
         usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
 
         if usa_anchos_personalizados:
-            ancho_texto = sum(anchos_recursos[col] for col in columnas if col != 'Importe')
-            ancho_valor = anchos_recursos['Importe']
+            # Para que entre "TOTAL EJECUCIÓN MATERIAL" sin problemas
+            # Usar casi todo el ancho para texto, dejando espacio suficiente para importes
+            ancho_texto = 14 * cm  # Ancho generoso para textos largos
+            ancho_valor = 4 * cm   # Suficiente para importes con formato español
         else:
             ancho_texto = ancho_disponible * 0.75
             ancho_valor = ancho_disponible * 0.25
