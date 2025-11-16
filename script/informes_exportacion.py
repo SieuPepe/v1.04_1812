@@ -1348,7 +1348,7 @@ class InformesExportador:
 
             # Agregar información del proyecto (si está configurado)
             if config.get('mostrar_proyecto', True):
-                pdf.agregar_info_proyecto()
+                pdf.agregar_info_proyecto(mostrar_fecha=config.get('mostrar_fecha', True))
 
             # Si el informe tiene campos_fijos, necesitamos filtrar las columnas
             # para NO mostrar campos de agrupación que se añaden solo para GROUP BY

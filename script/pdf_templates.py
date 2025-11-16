@@ -88,14 +88,38 @@ class NumberedCanvas(canvas.Canvas):
             except:
                 pass
 
-        # Título centrado
-        self.setFont('Helvetica-Bold', 16)
-        self.setFillColor(colors.HexColor('#003366'))
+        # Título centrado (multilínea para evitar superposición con logos)
+        from reportlab.lib.enums import TA_CENTER
+        from reportlab.platypus import Paragraph
+        from reportlab.lib.styles import ParagraphStyle
+
+        # Estilo para el título (más pequeño y con soporte multilínea)
+        estilo_titulo_header = ParagraphStyle(
+            'TituloHeader',
+            fontName='Helvetica-Bold',
+            fontSize=12,  # Reducido de 16 a 12
+            textColor=colors.HexColor('#003366'),
+            alignment=TA_CENTER,
+            leading=14  # Espaciado entre líneas
+        )
+
         titulo = template.titulo.upper()
-        ancho_texto = self.stringWidth(titulo, 'Helvetica-Bold', 16)
-        x_titulo = (ancho_pagina - ancho_texto) / 2
-        y_titulo = y_pos + template.altura_encabezado / 2
-        self.drawString(x_titulo, y_titulo, titulo)
+
+        # Calcular ancho disponible entre logos (dejando margen de seguridad)
+        # Asumiendo que cada logo ocupa aprox 4-5cm, dejamos espacio central de ~10cm en vertical
+        ancho_max_titulo = ancho_pagina * 0.5  # 50% del ancho de página para el título
+        x_inicio_titulo = (ancho_pagina - ancho_max_titulo) / 2
+
+        # Crear Paragraph para el título
+        p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
+
+        # Dibujar el Paragraph en el canvas
+        # Para centrar verticalmente en el área del encabezado
+        y_titulo = y_pos + template.altura_encabezado * 0.3  # Posición vertical ajustada
+
+        # Usar wrapOn y drawOn para dibujar el Paragraph
+        w, h = p_titulo.wrap(ancho_max_titulo, template.altura_encabezado)
+        p_titulo.drawOn(self, x_inicio_titulo, y_titulo)
 
         # Logo derecho
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
@@ -153,9 +177,8 @@ class NumberedCanvas(canvas.Canvas):
         self.setFont('Helvetica', 8)
         self.setFillColor(colors.HexColor('#999999'))
 
-        # Fecha de generación (izquierda)
-        fecha_generacion = datetime.now().strftime('%d/%m/%Y %H:%M')
-        texto_izq = f"Generado: {fecha_generacion}"
+        # Fecha del informe (izquierda) - usa la fecha introducida al generar, no la de generación
+        texto_izq = f"Fecha: {template.fecha}"
         self.drawString(template.margen_izquierdo, y_pos, texto_izq)
 
         # Numeración de página (centro)
@@ -390,8 +413,12 @@ class PDFTemplate:
         # Ya no se necesita agregar elementos, el canvas lo dibuja automáticamente
         pass
 
-    def agregar_info_proyecto(self):
-        """Agrega información del proyecto"""
+    def agregar_info_proyecto(self, mostrar_fecha=True):
+        """Agrega información del proyecto
+
+        Args:
+            mostrar_fecha: Si False, no muestra la fecha (útil para informes que no la necesitan)
+        """
         if self.proyecto_nombre:
             p_proyecto = Paragraph(f"<b>Proyecto:</b> {self.proyecto_nombre}", self.style_proyecto)
             self.elements.append(p_proyecto)
@@ -400,9 +427,10 @@ class PDFTemplate:
             p_codigo = Paragraph(f"<b>Código:</b> {self.proyecto_codigo}", self.style_subtitulo)
             self.elements.append(p_codigo)
 
-        # Fecha
-        p_fecha = Paragraph(f"<b>Fecha:</b> {self.fecha}", self.style_fecha)
-        self.elements.append(p_fecha)
+        # Fecha (opcional)
+        if mostrar_fecha:
+            p_fecha = Paragraph(f"<b>Fecha:</b> {self.fecha}", self.style_fecha)
+            self.elements.append(p_fecha)
 
         self.elements.append(Spacer(1, 0.4 * cm))
 

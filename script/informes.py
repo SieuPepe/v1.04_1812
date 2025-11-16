@@ -1134,19 +1134,20 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         usar_agregacion_sql = definicion.get('usar_agregacion_sql', False) if definicion else False
 
         # IMPORTANTE: Incluir automáticamente los campos de agrupación en campos_seleccionados
-        # SOLO si el informe NO tiene campos_fijos
-        # Si tiene campos_fijos, las agrupaciones solo se usan en GROUP BY, no en SELECT
+        # Esto es NECESARIO para SQL - los campos en GROUP BY deben estar en SELECT
+        # Luego se filtrarán antes de generar el PDF en informes_exportacion.py
         campos_a_incluir = list(campos_seleccionados) if campos_seleccionados else []
         campos_fijos = definicion.get('campos_fijos', False) if definicion else False
 
-        if agrupaciones and not campos_fijos:
-            # Solo agregar campos de agrupación al SELECT si NO es campos_fijos
+        if agrupaciones:
+            # SIEMPRE agregar campos de agrupación al SELECT (requerido por SQL)
             for campo_agrupacion in agrupaciones:
                 if campo_agrupacion not in campos_a_incluir:
                     campos_a_incluir.append(campo_agrupacion)
-                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT")
-        elif agrupaciones and campos_fijos:
-            print(f"DEBUG: Informe con campos_fijos=True, las agrupaciones {agrupaciones} se usarán solo en GROUP BY")
+                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT (requerido por SQL GROUP BY)")
+
+            if campos_fijos:
+                print(f"DEBUG: Informe con campos_fijos=True - campos de agrupación {agrupaciones} se filtrarán en PDF")
 
         # Decidir qué método usar para obtener los datos
         if usar_agregacion_sql:
