@@ -1277,7 +1277,14 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
                     grupos_dict[clave_grupo].append(fila_datos)
 
                 # Crear estructura de grupos
-                for clave, filas_grupo in sorted(grupos_dict.items()):
+                # Ordenar grupos manejando valores None (los ponemos al final)
+                def ordenar_clave(item):
+                    clave = item[0]
+                    if clave is None:
+                        return (1, '')  # None va al final
+                    return (0, str(clave))  # Los demás se ordenan alfabéticamente
+
+                for clave, filas_grupo in sorted(grupos_dict.items(), key=ordenar_clave):
                     # Calcular subtotales del grupo
                     subtotales = {}
                     for i, col_nombre in enumerate(columnas_datos):
