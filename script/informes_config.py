@@ -610,14 +610,14 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Precio"
             },
             "resumen": {
-                "nombre": "Resumen",
+                "nombre": "Recurso / Material",
                 "tipo": "texto",
                 "tabla_relacion": "precio",
                 "columna_bd": "resumen",
                 "grupo": "Precio"
             },
             "coste": {
-                "nombre": "Coste Unitario",
+                "nombre": "Precio unitario",
                 "tipo": "numerico",
                 "columna_bd": "precio_unit",
                 "formato": "moneda",
@@ -641,7 +641,7 @@ INFORMES_DEFINICIONES = {
                 "grupo": "Medición"
             },
             "coste_total": {
-                "nombre": "Coste Total",
+                "nombre": "Importe",
                 "tipo": "calculado",
                 "formula": "p.cantidad * p.precio_unit",
                 "formato": "moneda",
@@ -720,12 +720,6 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
-            "red": {
-                "campo": "red",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_red"
-            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
@@ -738,7 +732,6 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
-            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -746,7 +739,6 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
-                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",
@@ -921,12 +913,6 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
-            "red": {
-                "campo": "red",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_red"
-            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
@@ -939,7 +925,6 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
-            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -947,7 +932,6 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
-                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",
@@ -1121,12 +1105,6 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
-            "red": {
-                "campo": "red",
-                "tipo": "select_bd",
-                "operadores": ["Igual a", "Diferente de"],
-                "tabla": "dim_red"
-            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
@@ -1139,7 +1117,6 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
-            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -1147,7 +1124,6 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
-                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",

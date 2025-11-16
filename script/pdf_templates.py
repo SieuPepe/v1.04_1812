@@ -475,6 +475,11 @@ class PDFTemplate:
                 col_name = columnas[col_idx] if col_idx < len(columnas) else None
                 formato = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                # DEBUG: Imprimir nombres de columnas para verificar
+                if col_idx == 0 and datos.index(fila) == 0:
+                    print(f"DEBUG PDF - Columnas disponibles: {columnas}")
+                    print(f"DEBUG PDF - Formatos: {formatos_columnas}")
+
                 # Formatear según tipo
                 texto_celda = ''
                 usar_estilo_derecha = False
@@ -483,22 +488,31 @@ class PDFTemplate:
                     texto_celda = ''
                 elif isinstance(valor, (int, float)):
                     # Verificar si es coordenada geográfica (latitud/longitud)
-                    es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+                    # Hacer la búsqueda más robusta - case insensitive
+                    es_coordenada = False
+                    if col_name:
+                        col_lower = col_name.lower()
+                        es_coordenada = 'latitud' in col_lower or 'longitud' in col_lower or 'latitude' in col_lower or 'longitude' in col_lower
+
+                    # DEBUG para ver si detecta coordenadas
+                    if es_coordenada and datos.index(fila) == 0:
+                        print(f"DEBUG PDF - Coordenada detectada: {col_name} = {valor}")
 
                     usar_estilo_derecha = True
                     if formato == 'moneda':
-                        # Formato moneda: 2 decimales + símbolo €
+                        # Formato moneda: 2 decimales + símbolo €, formato español (1.234,56 €)
                         texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif es_coordenada:
-                        # Coordenadas geográficas: 4 decimales
+                        # Coordenadas geográficas: 4 decimales, formato español (1,2345)
                         texto_celda = f"{valor:.4f}".replace('.', ',')
                     elif formato == 'decimal':
-                        # Formato decimal: 2 decimales
+                        # Formato decimal: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'porcentaje':
+                        # Formato porcentaje: 2 decimales, formato español (12,34%)
                         texto_celda = f"{valor:.2f}%".replace('.', ',')
                     else:
-                        # Por defecto: 2 decimales
+                        # Por defecto: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 else:
                     texto_celda = str(valor)

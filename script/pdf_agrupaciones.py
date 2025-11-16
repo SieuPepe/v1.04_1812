@@ -283,23 +283,27 @@ class PDFAgrupaciones(PDFTemplate):
                 if valor is None:
                     texto_celda = ''
                 elif isinstance(valor, (int, float)):
-                    # Verificar si es coordenada geográfica (latitud/longitud)
-                    es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+                    # Verificar si es coordenada geográfica (latitud/longitud) - case insensitive
+                    es_coordenada = False
+                    if col_name:
+                        col_lower = col_name.lower()
+                        es_coordenada = 'latitud' in col_lower or 'longitud' in col_lower or 'latitude' in col_lower or 'longitude' in col_lower
 
                     usar_estilo_derecha = True
                     if formato == 'moneda':
-                        # Formato moneda: 2 decimales + símbolo €
+                        # Formato moneda: 2 decimales + símbolo €, formato español (1.234,56 €)
                         texto_celda = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif es_coordenada:
-                        # Coordenadas geográficas: 4 decimales
+                        # Coordenadas geográficas: 4 decimales, formato español (1,2345)
                         texto_celda = f"{valor:.4f}".replace('.', ',')
                     elif formato == 'decimal':
-                        # Formato decimal: 2 decimales
+                        # Formato decimal: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                     elif formato == 'porcentaje':
+                        # Formato porcentaje: 2 decimales, formato español (12,34%)
                         texto_celda = f"{valor:.2f}%".replace('.', ',')
                     else:
-                        # Por defecto: 2 decimales
+                        # Por defecto: 2 decimales, formato español (1.234,56)
                         texto_celda = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 else:
                     texto_celda = str(valor)
