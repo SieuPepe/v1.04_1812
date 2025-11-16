@@ -720,11 +720,47 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -732,6 +768,7 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
+            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -739,6 +776,7 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",
@@ -913,11 +951,47 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -925,6 +999,7 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
+            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -932,6 +1007,7 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",
@@ -1105,11 +1181,47 @@ INFORMES_DEFINICIONES = {
                 "tipo": "texto",
                 "operadores": ["Contiene", "Empieza con"]
             },
+            "red": {
+                "campo": "red",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_red"
+            },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "cod": {
+                "campo": "cod",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_cod"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
             "municipio": {
                 "campo": "municipio",
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "naturaleza": {
+                "campo": "naturaleza",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_naturaleza"
+            },
+            "capitulo": {
+                "campo": "capitulo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "tbl_pres_capitulos"
             }
         },
 
@@ -1117,6 +1229,7 @@ INFORMES_DEFINICIONES = {
             "codigo",
             "cantidad",
             "coste_total",
+            "red",
             "tipo_trabajo",
             "municipio",
             "mes"
@@ -1124,6 +1237,7 @@ INFORMES_DEFINICIONES = {
 
         "agrupaciones": {
             "campos_permitidos": [
+                "red",
                 "tipo_trabajo",
                 "cod",
                 "comarca",
