@@ -1356,25 +1356,35 @@ class InformesExportador:
             datos_filtrados = datos
             formatos_filtrados = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
 
-            if campos_fijos and resultado_agrupacion and resultado_agrupacion.get('agrupaciones'):
-                # Identificar columnas de agrupación por su nombre
-                columnas_a_eliminar = []
-                for agrup in resultado_agrupacion.get('agrupaciones', []):
-                    # Buscar el nombre de la columna de agrupación
-                    campo_def = campos_def.get(agrup, {})
-                    nombre_columna = campo_def.get('nombre', agrup)
-                    if nombre_columna in columnas_filtradas:
-                        columnas_a_eliminar.append(nombre_columna)
-
-                # Filtrar columnas y datos
-                if columnas_a_eliminar:
-                    indices_a_mantener = [i for i, col in enumerate(columnas) if col not in columnas_a_eliminar]
-                    columnas_filtradas = [columnas[i] for i in indices_a_mantener]
-                    datos_filtrados = [tuple(fila[i] for i in indices_a_mantener) for fila in datos]
+            # Si hay grupos, usar columnas_datos que ya viene calculado desde informes.py
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Usar columnas_datos si existe (grupos con SQL agregation)
+                if 'columnas_datos' in resultado_agrupacion:
+                    columnas_filtradas = resultado_agrupacion['columnas_datos']
+                    # Los datos dentro de grupos ya están filtrados
+                    # No necesitamos filtrar datos_filtrados porque se usan los datos de cada grupo
                     formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
+                    print(f"DEBUG: Usando columnas_datos de resultado_agrupacion: {columnas_filtradas}")
+                # Fallback al método anterior si no existe columnas_datos
+                elif campos_fijos and resultado_agrupacion.get('agrupaciones'):
+                    # Identificar columnas de agrupación por su nombre
+                    columnas_a_eliminar = []
+                    for agrup in resultado_agrupacion.get('agrupaciones', []):
+                        # Buscar el nombre de la columna de agrupación
+                        campo_def = campos_def.get(agrup, {})
+                        nombre_columna = campo_def.get('nombre', agrup)
+                        if nombre_columna in columnas_filtradas:
+                            columnas_a_eliminar.append(nombre_columna)
 
-                    print(f"DEBUG: Filtradas {len(columnas_a_eliminar)} columnas de agrupación: {columnas_a_eliminar}")
-                    print(f"DEBUG: Columnas finales para PDF: {columnas_filtradas}")
+                    # Filtrar columnas y datos
+                    if columnas_a_eliminar:
+                        indices_a_mantener = [i for i, col in enumerate(columnas) if col not in columnas_a_eliminar]
+                        columnas_filtradas = [columnas[i] for i in indices_a_mantener]
+                        datos_filtrados = [tuple(fila[i] for i in indices_a_mantener) for fila in datos]
+                        formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
+
+                        print(f"DEBUG: Filtradas {len(columnas_a_eliminar)} columnas de agrupación: {columnas_a_eliminar}")
+                        print(f"DEBUG: Columnas finales para PDF: {columnas_filtradas}")
 
             # Agregar tabla de datos
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):

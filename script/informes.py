@@ -1230,30 +1230,105 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
         campos_def = definicion.get('campos', {}) if definicion else {}
 
         # Procesar agrupación según el método usado
-        if usar_agregacion_sql:
+        if usar_agregacion_sql and agrupaciones:
             # Los datos YA vienen agrupados y sumados desde SQL
-            # Simplemente devolvemos los datos en un formato compatible
-            # (sin estructura jerárquica de grupos ya que no es necesaria)
+            # Necesitamos reorganizarlos en la estructura jerárquica que espera pdf_agrupaciones.py
+
+            # Crear mapa de formatos de columnas
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+            formatos_columnas = {}
+            for col in columnas:
+                campo_key = nombre_a_key.get(col, col)
+                campo_def = campos_def.get(campo_key, {})
+                formato = campo_def.get('formato', 'ninguno')
+                formatos_columnas[col] = formato
+
+            # Identificar columnas de agrupación y columnas de datos
+            columnas_agrupacion = []
+            for agrup_key in agrupaciones:
+                campo_agrup = campos_def.get(agrup_key, {})
+                nombre_col_agrup = campo_agrup.get('nombre', agrup_key)
+                if nombre_col_agrup in columnas:
+                    columnas_agrupacion.append(nombre_col_agrup)
+
+            # Columnas de datos (sin agrupaciones)
+            columnas_datos = [col for col in columnas if col not in columnas_agrupacion]
+
+            # Construir estructura de grupos
+            grupos = []
+            totales_generales = {}
+
+            # Agrupar datos por el primer campo de agrupación
+            if columnas_agrupacion:
+                col_agrup = columnas_agrupacion[0]  # Por ahora solo primer nivel
+                idx_agrup = columnas.index(col_agrup)
+
+                # Indices de columnas de datos
+                indices_datos = [columnas.index(col) for col in columnas_datos]
+
+                # Agrupar filas por valor de agrupación
+                from collections import defaultdict
+                grupos_dict = defaultdict(list)
+
+                for fila in datos:
+                    clave_grupo = fila[idx_agrup]
+                    # Extraer solo datos (sin columna de agrupación)
+                    fila_datos = tuple(fila[i] for i in indices_datos)
+                    grupos_dict[clave_grupo].append(fila_datos)
+
+                # Crear estructura de grupos
+                for clave, filas_grupo in sorted(grupos_dict.items()):
+                    # Calcular subtotales del grupo
+                    subtotales = {}
+                    for i, col_nombre in enumerate(columnas_datos):
+                        formato = formatos_columnas.get(col_nombre, 'ninguno')
+                        if formato in ['moneda', 'decimal', 'numerico']:
+                            try:
+                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in filas_grupo)
+                                subtotales[col_nombre] = total
+                                # Acumular en totales generales
+                                totales_generales[col_nombre] = totales_generales.get(col_nombre, 0) + total
+                            except (ValueError, TypeError):
+                                pass
+
+                    # Agregar grupo
+                    grupos.append({
+                        'campo': col_agrup,
+                        'clave': str(clave) if clave is not None else 'Sin especificar',
+                        'datos': filas_grupo,
+                        'subtotales': subtotales,
+                        'subgrupos': None
+                    })
+
+            resultado_agrupacion = {
+                "grupos": grupos,
+                "datos_planos": datos,
+                "totales_generales": totales_generales,
+                "modo": modo,
+                "formatos_columnas": formatos_columnas,
+                "formatos_agregaciones": formatos_columnas,  # Usar los mismos formatos
+                "agrupaciones": agrupaciones,
+                "columnas_datos": columnas_datos  # Columnas sin agrupación para el PDF
+            }
+
+        elif usar_agregacion_sql:
+            # Sin agrupaciones, solo devolver datos planos
+            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
+            formatos_columnas = {}
+            for col in columnas:
+                campo_key = nombre_a_key.get(col, col)
+                campo_def = campos_def.get(campo_key, {})
+                formato = campo_def.get('formato', 'ninguno')
+                formatos_columnas[col] = formato
+
             resultado_agrupacion = {
                 "grupos": [],
                 "datos_planos": datos,
                 "totales_generales": {},
                 "modo": modo,
-                "formatos_columnas": {},
-                "formatos_agregaciones": {},
-                "agrupaciones": agrupaciones or []  # Guardar agrupaciones para filtrado posterior
+                "formatos_columnas": formatos_columnas,
+                "formatos_agregaciones": {}
             }
-
-            # Crear mapa de formatos de columnas
-            # Las columnas ahora tienen nombres bonitos, necesitamos mapear de nombre a key
-            nombre_a_key = {campo.get('nombre', key): key for key, campo in campos_def.items()}
-
-            for col in columnas:
-                # Buscar el campo por nombre bonito
-                campo_key = nombre_a_key.get(col, col)
-                campo_def = campos_def.get(campo_key, {})
-                formato = campo_def.get('formato', 'ninguno')
-                resultado_agrupacion['formatos_columnas'][col] = formato
 
         else:
             # ORIGINAL: Procesar agrupación en Python (post-procesamiento)
