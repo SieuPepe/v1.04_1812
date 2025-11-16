@@ -722,14 +722,44 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
     # ========== CONSTRUIR ORDER BY ==========
     order_by_clause = ""
+    order_parts = []
 
+    # Si hay agrupaciones, SIEMPRE ordenar primero por los campos de agrupación
+    if agrupaciones:
+        for agrup_key in agrupaciones:
+            campo = campos_def.get(agrup_key)
+            if campo:
+                if campo['tipo'] == 'dimension':
+                    alias_dim = f"{agrup_key}_dim"
+                    tabla_dim = campo.get('tabla_dimension')
+
+                    if tabla_dim in dimension_columns_cache and dimension_columns_cache[tabla_dim]:
+                        campo_nombre = dimension_columns_cache[tabla_dim]
+                    else:
+                        campo_nombre = campo.get('campo_nombre', 'descripcion')
+
+                    order_parts.append(f"{alias_dim}.{campo_nombre} ASC")
+                elif campo['tipo'] == 'calculado' or campo['tipo'] == 'numerico':
+                    # Usar el nombre bonito del campo (alias en SELECT)
+                    nombre_alias = campo.get('nombre', agrup_key)
+                    order_parts.append(f"`{nombre_alias}` ASC")
+                else:
+                    tabla_rel = campo.get('tabla_relacion', 'principal')
+                    alias_tabla = tabla_aliases.get(tabla_rel, 'p')
+                    columna = campo.get('columna_bd', agrup_key)
+                    order_parts.append(f"{alias_tabla}.{columna} ASC")
+
+    # Agregar ordenaciones adicionales especificadas por el usuario
     if ordenaciones:
-        order_parts = []
         for clasif in ordenaciones:
             campo_key = clasif['campo']
             orden = clasif.get('orden', 'Ascendente')
 
             if campo_key not in campos_seleccionados:
+                continue
+
+            # No duplicar si ya está en order_parts por agrupación
+            if agrupaciones and campo_key in agrupaciones:
                 continue
 
             campo = campos_def.get(campo_key)
@@ -746,15 +776,16 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
                     order_parts.append(f"{alias_dim}.{campo_nombre} {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 elif campo['tipo'] == 'calculado' or campo['tipo'] == 'numerico':
                     # Para campos calculados/numéricos, usar el alias del SELECT
-                    order_parts.append(f"{campo_key} {'ASC' if orden == 'Ascendente' else 'DESC'}")
+                    nombre_alias = campo.get('nombre', campo_key)
+                    order_parts.append(f"`{nombre_alias}` {'ASC' if orden == 'Ascendente' else 'DESC'}")
                 else:
                     tabla_rel = campo.get('tabla_relacion', 'principal')
                     alias_tabla = tabla_aliases.get(tabla_rel, 'p')
                     columna = campo.get('columna_bd', campo_key)
                     order_parts.append(f"{alias_tabla}.{columna} {'ASC' if orden == 'Ascendente' else 'DESC'}")
 
-        if order_parts:
-            order_by_clause = "ORDER BY " + ", ".join(order_parts)
+    if order_parts:
+        order_by_clause = "ORDER BY " + ", ".join(order_parts)
 
     # ========== QUERY FINAL ==========
     query = f"{select_clause}\n{from_clause}"

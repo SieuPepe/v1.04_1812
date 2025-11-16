@@ -105,10 +105,14 @@ class NumberedCanvas(canvas.Canvas):
 
         titulo = template.titulo.upper()
 
-        # Calcular ancho disponible entre logos (dejando margen de seguridad)
-        # Asumiendo que cada logo ocupa aprox 4-5cm, dejamos espacio central de ~10cm en vertical
-        ancho_max_titulo = ancho_pagina * 0.5  # 50% del ancho de página para el título
-        x_inicio_titulo = (ancho_pagina - ancho_max_titulo) / 2
+        # Posicionamiento exacto del título según medidas del usuario:
+        # 0-1.5cm: margen izquierdo
+        # 1.5-4cm: logo Redes Urbide (2.5cm)
+        # 4-14cm: título del informe (10cm)
+        # 14-19.5cm: logo Urbide (5.5cm)
+        # 19.5-21cm: margen derecho
+        x_inicio_titulo = 4 * cm  # Comienza a los 4cm
+        ancho_max_titulo = 10 * cm  # 10cm de ancho para el título
 
         # Crear Paragraph para el título
         p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
