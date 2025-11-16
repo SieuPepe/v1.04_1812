@@ -34,38 +34,6 @@ CONFIGURACIONES_PDF = {
         "pie_pagina_personalizado": None
     },
 
-    "Listado de Órdenes de Trabajo": {
-        "orientacion": "vertical",  # Portrait
-        "esquema_colores": "azul",
-        "mostrar_logos": True,
-        "mostrar_fecha": False,  # NO mostrar fecha en encabezado (va en pie de página)
-        "mostrar_proyecto": False,  # NO mostrar proyecto en encabezado
-        "fuente_titulo": "Helvetica-Bold",
-        "tamaño_titulo": 20,
-        "color_titulo": "#003366",  # Azul oscuro
-        "color_header_tabla": "#D9E2F3",  # Azul claro
-        "color_grupo_nivel0": "#003366",  # Agrupación nivel 1
-        "color_grupo_nivel1": "#4472C4",  # Agrupación nivel 2
-        "color_grupo_nivel2": "#8FAADC",  # Agrupación nivel 3
-        "color_orden": "#5B9BD5",  # Color para la cabecera de cada orden
-        "color_subtabla_header": "#B4C7E7",  # Color para encabezado de tabla de recursos
-        "bordes_tabla": True,
-        "filas_alternadas": True,
-        # Configuración del PIE DE PÁGINA
-        "pie_pagina_personalizado": {
-            "mostrar_fecha": True,  # Fecha a la izquierda
-            "mostrar_paginacion": True,  # "Página X de Y" a la derecha
-            "formato_paginacion": "Página {pagina} de {total}",
-            "fuente": "Helvetica",
-            "tamaño_fuente": 9,
-            "color_texto": "#666666"
-        },
-        # Configuración específica para este informe
-        "espaciado_entre_ordenes": 10,  # Espacio vertical entre órdenes (pt)
-        "mostrar_totales_por_orden": True,  # Mostrar total de importe por orden
-        "mostrar_gran_total": True  # Mostrar gran total al final del informe
-    },
-
     # ============================================================
     # RECURSOS
     # ============================================================
@@ -183,21 +151,35 @@ CONFIGURACIONES_PDF = {
     },
 
     "Presupuesto Detallado": {
-        "orientacion": "horizontal",
+        "orientacion": "vertical",  # Portrait
         "esquema_colores": "naranja",
         "mostrar_logos": True,
-        "mostrar_fecha": True,
-        "mostrar_proyecto": True,
+        "mostrar_fecha": False,  # NO mostrar fecha en encabezado (va en pie de página)
+        "mostrar_proyecto": False,  # NO mostrar proyecto en encabezado
         "fuente_titulo": "Helvetica-Bold",
         "tamaño_titulo": 18,
-        "color_titulo": "#E65100",
-        "color_header_tabla": "#FFF3E0",
-        "color_grupo_nivel0": "#E65100",
-        "color_grupo_nivel1": "#FF9800",
-        "color_grupo_nivel2": "#FFB74D",
+        "color_titulo": "#E65100",  # Naranja oscuro
+        "color_header_tabla": "#FFF3E0",  # Naranja muy claro
+        "color_grupo_nivel0": "#E65100",  # Agrupación nivel 1
+        "color_grupo_nivel1": "#FF9800",  # Agrupación nivel 2
+        "color_grupo_nivel2": "#FFB74D",  # Agrupación nivel 3
+        "color_orden": "#FF9800",  # Color para la cabecera de cada orden
+        "color_subtabla_header": "#FFCCBC",  # Color para encabezado de tabla de recursos
         "bordes_tabla": True,
         "filas_alternadas": True,
-        "pie_pagina_personalizado": None
+        # Configuración del PIE DE PÁGINA
+        "pie_pagina_personalizado": {
+            "mostrar_fecha": True,  # Fecha a la izquierda
+            "mostrar_paginacion": True,  # "Página X de Y" a la derecha
+            "formato_paginacion": "Página {pagina} de {total}",
+            "fuente": "Helvetica",
+            "tamaño_fuente": 9,
+            "color_texto": "#666666"
+        },
+        # Configuración específica para este informe
+        "espaciado_entre_ordenes": 10,  # Espacio vertical entre órdenes (pt)
+        "mostrar_totales_por_orden": True,  # Mostrar total de importe por orden
+        "mostrar_gran_total": True  # Mostrar gran total al final del informe
     },
 
     "Presupuesto Resumen": {

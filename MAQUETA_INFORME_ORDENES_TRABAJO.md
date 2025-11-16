@@ -2,9 +2,9 @@
 
 ## 📋 DESCRIPCIÓN GENERAL
 
-**Nombre del Informe:** "Listado de Órdenes de Trabajo"
+**Nombre del Informe:** "Presupuesto Detallado"
 
-**Categoría:** 📊 Partes
+**Categoría:** 💰 Presupuestos
 
 **Descripción:** Listado de órdenes de trabajo clasificadas, filtradas y agrupadas según los criterios de la interfaz. Cada orden muestra sus detalles principales (Título, Fecha Fin, Municipio, Localización, Latitud, Longitud) seguido de una tabla con los recursos presupuestados de esa orden específica.
 
@@ -56,9 +56,9 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 ### 1. Configuración en `informes_config.py`
 
 ```python
-"Listado de Órdenes de Trabajo": {
-    "categoria": "📊 Partes",
-    "descripcion": "Listado de órdenes de trabajo con tabla de recursos presupuestados por cada orden. Usa los mismos criterios de filtrado y agrupación que Listado de Partes.",
+"Presupuesto Detallado": {
+    "categoria": "💰 Presupuestos",
+    "descripcion": "Relación de partes con sus mediciones presupuestadas. Subtotal por parte y total general.",
     "tabla_principal": "tbl_partes",
     "require_joins": ["tbl_part_presupuesto", "tbl_pres_precios", "tbl_pres_unidades"],
     "formato_pdf": "vertical",  # Portrait
@@ -427,21 +427,21 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 ### 2. Configuración en `pdf_config.py`
 
 ```python
-"Listado de Órdenes de Trabajo": {
+"Presupuesto Detallado": {
     "orientacion": "vertical",  # Portrait
-    "esquema_colores": "azul",  # Mismo esquema que Listado de Partes
+    "esquema_colores": "naranja",  # Esquema naranja para Presupuestos
     "mostrar_logos": True,
     "mostrar_fecha": False,  # NO mostrar fecha en encabezado (va en pie de página)
     "mostrar_proyecto": False,  # NO mostrar proyecto en encabezado
     "fuente_titulo": "Helvetica-Bold",
     "tamaño_titulo": 20,
-    "color_titulo": "#003366",  # Azul oscuro
-    "color_header_tabla": "#D9E2F3",  # Azul claro
-    "color_grupo_nivel0": "#003366",  # Agrupación nivel 1 (ej: por Red, Tipo de Trabajo, Municipio)
-    "color_grupo_nivel1": "#4472C4",  # Agrupación nivel 2
-    "color_grupo_nivel2": "#8FAADC",  # Agrupación nivel 3
-    "color_orden": "#5B9BD5",  # Color para la cabecera de cada orden
-    "color_subtabla_header": "#B4C7E7",  # Color para encabezado de tabla de recursos
+    "color_titulo": "#E65100",  # Naranja oscuro
+    "color_header_tabla": "#FFF3E0",  # Naranja muy claro
+    "color_grupo_nivel0": "#E65100",  # Agrupación nivel 1 (ej: por Red, Tipo de Trabajo, Municipio)
+    "color_grupo_nivel1": "#FF9800",  # Agrupación nivel 2
+    "color_grupo_nivel2": "#FFB74D",  # Agrupación nivel 3
+    "color_orden": "#FF9800",  # Color para la cabecera de cada orden
+    "color_subtabla_header": "#FFCCBC",  # Color para encabezado de tabla de recursos
     "bordes_tabla": True,
     "filas_alternadas": True,
 
@@ -464,13 +464,16 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 
 ---
 
-### 3. Agregar a Categorías en `informes_config.py`
+### 3. Categoría en `informes_config.py`
+
+El informe "Presupuesto Detallado" ya existe en la categoría "💰 Presupuestos":
 
 ```python
 CATEGORIAS_INFORMES = {
-    "📊 Partes": [
-        "Listado de Partes",
-        "Listado de Órdenes de Trabajo"  # <-- NUEVO
+    "💰 Presupuestos": [
+        "Contrato",
+        "Presupuesto Detallado",  # <-- MODIFICADO con nueva funcionalidad
+        "Presupuesto Resumen"
     ],
     # ... resto de categorías ...
 }
@@ -484,7 +487,7 @@ CATEGORIAS_INFORMES = {
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  [Logo Redes Urbide]    LISTADO DE ÓRDENES DE TRABAJO    [Logo Urbide]     │
+│  [Logo Redes Urbide]      PRESUPUESTO DETALLADO      [Logo Urbide]         │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 [SI HAY AGRUPACIÓN - Ejemplo: Agrupado por Tipo de Trabajo]
