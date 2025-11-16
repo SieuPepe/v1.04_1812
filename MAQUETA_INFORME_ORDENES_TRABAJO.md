@@ -27,12 +27,11 @@
 Cada Orden de Trabajo se muestra con:
 
 **A) Cabecera de la Orden:**
-- **Orden de Trabajo** (código/número de orden)
-- **Título** (titulo) - Mostrado como encabezado, sin etiqueta "Título:"
-- **Fecha Fin** (fecha_fin)
-- **Municipio** (municipio)
-- **Localización** (localizacion)
-- **Latitud / Longitud** (latitud, longitud) - En la misma fila
+- **Primera línea:** Código de Orden de Trabajo a la izquierda + Título a la derecha (en la misma línea horizontal)
+  - Ejemplo: `OT-0252          Reparación de tubería en Llodio`
+- **Fecha:** Etiqueta "FECHA:" seguida del valor
+- **Localización:** Etiqueta "LOCALIZACIÓN:" seguida del municipio/localización
+- **Coordenadas:** Etiqueta "LATITUD:" con valor, seguido de "LONGITUD:" con valor (ambos en la misma fila)
 
 **B) Tabla de Recursos Presupuestados:**
 Tabla con 6 columnas (igual que "Recursos Presupuestados"):
@@ -68,42 +67,46 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "subtabla_recursos": True,  # Indica que incluye sub-tabla de recursos
 
     # Campos de la ORDEN DE TRABAJO (cabecera)
+    # Formato: Código y Título en la misma línea horizontal
     "campos_orden": {
         "codigo": {
-            "nombre": "Orden de Trabajo",
+            "nombre": "",  # Sin etiqueta, se muestra a la izquierda
             "tipo": "texto",
             "columna_bd": "codigo",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "posicion": "izquierda_primera_fila"  # A la izquierda en la primera fila
         },
         "titulo": {
-            "nombre": "Título",
+            "nombre": "",  # Sin etiqueta, se muestra a la derecha del código
             "tipo": "texto",
             "columna_bd": "titulo",
             "grupo": "Orden",
-            "mostrar_como_encabezado": True,  # Se muestra sin etiqueta "Título:"
+            "posicion": "derecha_primera_fila"  # A la derecha en la primera fila
         },
         "fecha_fin": {
-            "nombre": "Fecha Fin",
+            "nombre": "FECHA:",
             "tipo": "fecha",
             "columna_bd": "fecha_fin",
             "grupo": "Orden"
         },
         "municipio": {
-            "nombre": "Municipio",
+            "nombre": "LOCALIZACIÓN:",  # Combina municipio y localización
             "tipo": "dimension",
             "columna_bd": "municipio_id",
             "tabla_dimension": "dim_municipios",
             "campo_nombre": "descripcion",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "combinar_con": "localizacion"  # Se combina con localización
         },
         "localizacion": {
-            "nombre": "Localización",
+            "nombre": "",  # Se muestra junto con municipio
             "tipo": "texto",
             "columna_bd": "localizacion",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "parte_de": "municipio"  # Es parte del campo municipio
         },
         "latitud": {
-            "nombre": "Latitud",
+            "nombre": "LATITUD:",
             "tipo": "numerico",
             "columna_bd": "latitud",
             "formato": "decimal",
@@ -111,11 +114,12 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
             "misma_fila_que": "longitud"  # Se muestra en la misma fila que longitud
         },
         "longitud": {
-            "nombre": "Longitud",
+            "nombre": "LONGITUD:",
             "tipo": "numerico",
             "columna_bd": "longitud",
             "formato": "decimal",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "misma_fila_que": "latitud"  # Se muestra en la misma fila que latitud
         }
     },
 
@@ -481,13 +485,11 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
 ────────────────────────────────────────────────────────────────────────────────
 
     ┌─────────────────────────────────────────────────────────────────────┐
-    │ ORDEN DE TRABAJO: OT-2025-001                                       │
-    │ Reparación urgente calle Mayor                                      │
+    │ OT-2025-001        Reparación urgente calle Mayor                   │
     ├─────────────────────────────────────────────────────────────────────┤
-    │ Fecha Fin:         15/11/2025                                       │
-    │ Municipio:         Valencia                                         │
-    │ Localización:      Calle Mayor, 45                                  │
-    │ Latitud/Longitud:  39.4699, -0.3763                                 │
+    │ FECHA:             15/11/2025                                       │
+    │ LOCALIZACIÓN:      Valencia - Calle Mayor, 45                       │
+    │ LATITUD:  39.4699                LONGITUD: -0.3763                  │
     └─────────────────────────────────────────────────────────────────────┘
 
     RECURSOS PRESUPUESTADOS:
@@ -502,13 +504,11 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
     └────────────────────────────────────────────────────────────┴──────────┘
 
     ┌─────────────────────────────────────────────────────────────────────┐
-    │ ORDEN DE TRABAJO: OT-2025-002                                       │
-    │ Reparación de válvula defectuosa                                    │
+    │ OT-2025-002        Reparación de válvula defectuosa                 │
     ├─────────────────────────────────────────────────────────────────────┤
-    │ Fecha Fin:         20/11/2025                                       │
-    │ Municipio:         Valencia                                         │
-    │ Localización:      Polígono industrial Norte                        │
-    │ Latitud/Longitud:  39.5125, -0.3854                                 │
+    │ FECHA:             20/11/2025                                       │
+    │ LOCALIZACIÓN:      Valencia - Polígono industrial Norte             │
+    │ LATITUD:  39.5125                LONGITUD: -0.3854                  │
     └─────────────────────────────────────────────────────────────────────┘
 
     RECURSOS PRESUPUESTADOS:
