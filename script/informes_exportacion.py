@@ -1199,7 +1199,107 @@ class InformesExportador:
         tipo_informe: Optional[str] = None
     ) -> bool:
         """
-        Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
+        Exporta el informe a PDF usando ReportLab con control total del diseño
+
+        Args:
+            filepath: Ruta del archivo PDF a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            from script.pdf_agrupaciones import PDFAgrupaciones
+            from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
+
+            print(f"Generando PDF con ReportLab: {filepath}")
+
+            # Obtener configuración específica del tipo de informe
+            config = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+
+            # Crear plantilla PDF con la configuración
+            pdf = PDFAgrupaciones(
+                schema=self.schema,
+                orientacion=config.get('orientacion', 'horizontal'),
+                titulo=informe_nombre,
+                proyecto_nombre=proyecto_nombre,
+                proyecto_codigo=proyecto_codigo,
+                fecha=fecha_informe
+            )
+
+            # Aplicar configuración de colores y estilos
+            pdf = aplicar_configuracion_a_plantilla(pdf, config)
+
+            # Agregar encabezado con logos (si está configurado)
+            if config.get('mostrar_logos', True):
+                pdf.agregar_encabezado()
+
+            # Agregar información del proyecto (si está configurado)
+            if config.get('mostrar_proyecto', True):
+                pdf.agregar_info_proyecto()
+
+            # Agregar tabla de datos
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Tabla con agrupaciones
+                modo = resultado_agrupacion.get('modo', 'detalle')
+                elementos_tabla = pdf.crear_tabla_agrupada(
+                    columnas=columnas,
+                    datos=datos,
+                    resultado_agrupacion=resultado_agrupacion,
+                    modo=modo
+                )
+                pdf.elements.extend(elementos_tabla)
+            else:
+                # Tabla simple sin agrupaciones
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                tabla = pdf.crear_tabla_simple(
+                    columnas=columnas,
+                    datos=datos,
+                    formatos_columnas=formatos_columnas
+                )
+                pdf.elements.append(tabla)
+
+            # Agregar pie de página
+            pdf.agregar_pie_pagina()
+
+            # Generar PDF
+            exito = pdf.generar_pdf(filepath)
+
+            if exito:
+                print(f"✓ PDF generado correctamente: {filepath}")
+                return True
+            else:
+                print("✗ Error al generar PDF")
+                return False
+
+        except Exception as e:
+            print(f"Error al exportar a PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def exportar_a_pdf_word(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = "",
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
+    ) -> bool:
+        """
+        [LEGACY] Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
+        Esta función se mantiene por compatibilidad pero ya no se usa por defecto
 
         Args:
             filepath: Ruta del archivo PDF a crear
