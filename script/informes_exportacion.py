@@ -502,7 +502,13 @@ class InformesExportador:
                     totales = resultado_agrupacion['totales_generales']
                     for key, valor in totales.items():
                         # Extraer el nombre del campo del key
-                        campo_nombre = key.split('(')[1].rstrip(')')
+                        # Puede ser "SUM(presupuesto)" o directamente "Importe" (nuevo formato)
+                        if '(' in key and ')' in key:
+                            # Formato antiguo: "FUNCION(campo)"
+                            campo_nombre = key.split('(')[1].rstrip(')')
+                        else:
+                            # Formato nuevo: nombre directo de columna
+                            campo_nombre = key
 
                         # Determinar el formato según el tipo de agregación
                         formato_agg = formatos_agregaciones.get(key, 'ninguno')
@@ -936,7 +942,47 @@ class InformesExportador:
             print(f"Advertencia: No se encontró el marcador '{marcador_texto}'")
             return
 
-        # Insertar tabla después del marcador
+        # Si hay grupos, procesar con estructura de agrupaciones
+        if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+            # Remover el párrafo del marcador
+            p_element = target_paragraph._element
+            p_element.getparent().remove(p_element)
+
+            # Exportar grupos directamente en el documento
+            modo = resultado_agrupacion.get('modo', 'detalle')
+            self._exportar_grupos_word(doc, resultado_agrupacion['grupos'], columnas, modo, 0, resultado_agrupacion, orientacion, tipo_informe)
+
+            # Totales generales
+            if resultado_agrupacion.get('totales_generales'):
+                from docx.shared import Pt
+                from docx.oxml.shared import OxmlElement
+
+                p_total = doc.add_paragraph()
+                run_total = p_total.add_run("═══ TOTAL EJECUCIÓN MATERIAL ═══")
+                run_total.font.bold = True
+                run_total.font.size = Pt(12)
+
+                # Mostrar totales
+                formatos_agregaciones = resultado_agrupacion.get('formatos_agregaciones', {})
+                totales = resultado_agrupacion['totales_generales']
+
+                for key, valor in totales.items():
+                    if '(' in key and ')' in key:
+                        campo_nombre = key.split('(')[1].rstrip(')')
+                    else:
+                        campo_nombre = key
+
+                    formato_agg = formatos_agregaciones.get(key, 'ninguno')
+                    if formato_agg == 'moneda':
+                        valor_texto = f"{valor:,.2f} €"
+                    else:
+                        valor_texto = f"{valor:,.2f}" if isinstance(valor, (int, float)) else str(valor)
+
+                    run_total.add_text(f"  {campo_nombre}={valor_texto}")
+
+            return
+
+        # Insertar tabla después del marcador (sin agrupaciones)
         # Calcular número de filas necesarias
         num_filas = 1 + len(datos)  # Encabezado + datos
 
@@ -1034,6 +1080,10 @@ class InformesExportador:
                     for run in paragraph.runs:
                         run.font.name = 'Tahoma'
                         run.font.size = Pt(8)
+
+                    # Alinear a la derecha los campos numéricos
+                    if col_name and col_name in ['Cantidad', 'Precio unitario', 'Importe']:
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         # MOVER la tabla a la posición del marcador
         tbl_element = table._element
@@ -1177,7 +1227,9 @@ class InformesExportador:
         columnas: List[str],
         modo: str = 'detalle',
         nivel: int = 0,
-        resultado_agrupacion: Optional[Dict] = None
+        resultado_agrupacion: Optional[Dict] = None,
+        orientacion: str = 'horizontal',
+        tipo_informe: str = ''
     ):
         """Exporta grupos jerárquicos a Word (recursivo)"""
         for grupo in grupos:
@@ -1210,7 +1262,7 @@ class InformesExportador:
 
             # Si hay subgrupos, procesarlos recursivamente
             if subgrupos:
-                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion)
+                self._exportar_grupos_word(doc, subgrupos, columnas, modo, nivel_grupo, resultado_agrupacion, orientacion, tipo_informe)
             elif modo == 'detalle' and datos:
                 # Crear tabla para los datos
                 table = doc.add_table(rows=1 + len(datos), cols=len(columnas))
@@ -1218,14 +1270,40 @@ class InformesExportador:
                 table.autofit = False
                 table.allow_autofit = False
 
-                # Ajustar ancho de tabla al ancho de página (26.7cm)
-                # Página A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
-                table.width = Cm(26.7)
-                # Forzar ancho de tabla usando XML directo
-                self._set_table_width(table, 26.7)
+                # Calcular ancho disponible según orientación
+                # A4 horizontal = 29.7cm - márgenes 1.5cm×2 = 26.7cm
+                # A4 vertical = 21cm - márgenes 1.5cm×2 = 18cm
+                ancho_disponible = 18.0 if orientacion == 'vertical' else 26.7
 
-                # Distribuir ancho equitativamente entre columnas
-                col_width_cm = 26.7 / len(columnas)
+                # Ajustar ancho de tabla al ancho de página
+                table.width = Cm(ancho_disponible)
+                # Forzar ancho de tabla usando XML directo
+                self._set_table_width(table, ancho_disponible)
+
+                # Anchos personalizados para informes de Recursos
+                anchos_recursos = {
+                    'Código': 1.5,
+                    'Cantidad': 2.0,
+                    'Ud.': 1.0,
+                    'Recurso / Material': 9.5,
+                    'Precio unitario': 2.0,
+                    'Importe': 2.0
+                }
+
+                # Determinar si usar anchos personalizados
+                usa_anchos_personalizados = (
+                    'Recursos' in tipo_informe and
+                    all(col in anchos_recursos for col in columnas)
+                )
+
+                # Calcular anchos de columnas
+                if usa_anchos_personalizados:
+                    # Usar anchos personalizados para informes de Recursos
+                    col_widths = [anchos_recursos[col] for col in columnas]
+                else:
+                    # Distribución equitativa
+                    col_width_cm = ancho_disponible / len(columnas)
+                    col_widths = [col_width_cm] * len(columnas)
 
                 # Encabezados
                 header_cells = table.rows[0].cells
@@ -1237,9 +1315,10 @@ class InformesExportador:
                             run.font.bold = True
                             run.font.name = 'Tahoma'
                             run.font.size = Pt(9)
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
                     # Establecer ancho de celda directamente en XML
-                    self._set_cell_width(cell, col_width_cm)
+                    self._set_cell_width(cell, col_widths[idx])
 
                 # Datos
                 formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
@@ -1273,8 +1352,12 @@ class InformesExportador:
                                 run.font.name = 'Tahoma'
                                 run.font.size = Pt(8)
 
+                            # Alinear a la derecha los campos numéricos
+                            if col_name and col_name in ['Cantidad', 'Precio unitario', 'Importe']:
+                                paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
                         # Establecer ancho de celda directamente en XML
-                        self._set_cell_width(cell, col_width_cm)
+                        self._set_cell_width(cell, col_widths[col_idx])
 
             # Subtotales
             if subtotales:

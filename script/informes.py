@@ -676,7 +676,11 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
 
     # Filtros automáticos de la definición
     if definicion.get('filtro_cantidad_cero'):
-        where_conditions.append(("p.cantidad > 0", {'logica': 'Y'}))
+        # Usar campo correcto según la tabla principal
+        if tabla_principal == 'tbl_part_certificacion':
+            where_conditions.append(("p.cantidad_cert > 0", {'logica': 'Y'}))
+        else:
+            where_conditions.append(("p.cantidad > 0", {'logica': 'Y'}))
 
     if definicion.get('filtro_certificada'):
         where_conditions.append(("p.certificada = 1", {'logica': 'Y'}))
