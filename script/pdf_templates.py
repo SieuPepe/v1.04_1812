@@ -431,6 +431,7 @@ class PDFTemplate:
 
         # Anchos personalizados para informes de Recursos (en cm convertido a puntos: 1cm = 28.35 puntos)
         # A4 vertical: 21cm - 3cm márgenes = 18cm disponible
+        # Total: 1.5 + 2.0 + 1.0 + 9.5 + 2.0 + 2.0 = 18.0 cm
         anchos_recursos = {
             'Código': 1.5 * 28.35,            # 1.5 cm
             'codigo': 1.5 * 28.35,
@@ -438,8 +439,8 @@ class PDFTemplate:
             'cantidad': 2.0 * 28.35,
             'Ud.': 1.0 * 28.35,               # 1.0 cm
             'unidad': 1.0 * 28.35,
-            'Recurso / Material': 11.5 * 28.35,  # 11.5 cm
-            'resumen': 11.5 * 28.35,
+            'Recurso / Material': 9.5 * 28.35,  # 9.5 cm
+            'resumen': 9.5 * 28.35,
             'Precio unitario': 2.0 * 28.35,  # 2.0 cm
             'coste': 2.0 * 28.35,
             'Importe': 2.0 * 28.35,           # 2.0 cm
