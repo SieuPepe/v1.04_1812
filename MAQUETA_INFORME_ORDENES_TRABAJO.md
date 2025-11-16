@@ -21,18 +21,18 @@
 ### 1. Criterios de Filtrado y Agrupación
 - **Usa los mismos criterios que "Listado de Partes"**
 - Filtros por: Red, Tipo de Trabajo, Municipio, Comarca, Provincia, Estado, Mes, Año, etc.
-- Agrupación por: Red, Tipo de Trabajo, Municipio, Comarca, Mes, Año (hasta 3 niveles)
+- Agrupación flexible: Se puede agrupar por cualquier campo disponible (Red, Tipo de Trabajo, Municipio, Comarca, Mes, Año, etc.) hasta 3 niveles jerárquicos
 
 ### 2. Estructura del Informe
 Cada Orden de Trabajo se muestra con:
 
 **A) Cabecera de la Orden:**
-- **Título** (titulo)
+- **Orden de Trabajo** (código/número de orden)
+- **Título** (titulo) - Mostrado como encabezado, sin etiqueta "Título:"
 - **Fecha Fin** (fecha_fin)
 - **Municipio** (municipio)
 - **Localización** (localizacion)
-- **Latitud** (latitud)
-- **Longitud** (longitud)
+- **Latitud / Longitud** (latitud, longitud) - En la misma fila
 
 **B) Tabla de Recursos Presupuestados:**
 Tabla con 6 columnas (igual que "Recursos Presupuestados"):
@@ -46,7 +46,7 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 **Diferencia clave:** La tabla muestra **solo las líneas de medición de ESA orden específica**, sin agrupar cantidades de múltiples órdenes.
 
 ### 3. Formato de Salida
-- **PDF:** Horizontal (landscape) para acomodar todos los campos
+- **PDF:** Vertical (portrait)
 - **Excel:** Con formato y estructura jerárquica
 - **Word:** Con estructura de tabla y formato profesional
 
@@ -62,18 +62,25 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "descripcion": "Listado de órdenes de trabajo con tabla de recursos presupuestados por cada orden. Usa los mismos criterios de filtrado y agrupación que Listado de Partes.",
     "tabla_principal": "tbl_partes",
     "require_joins": ["tbl_part_presupuesto", "tbl_pres_precios", "tbl_pres_unidades"],
-    "formato_pdf": "horizontal",  # Landscape para acomodar todos los campos
+    "formato_pdf": "vertical",  # Portrait
     "tipo_especial": "ordenes_con_recursos",  # Tipo especial de informe híbrido
     "campos_fijos": True,  # Campos fijos para la cabecera de orden
     "subtabla_recursos": True,  # Indica que incluye sub-tabla de recursos
 
     # Campos de la ORDEN DE TRABAJO (cabecera)
     "campos_orden": {
+        "codigo": {
+            "nombre": "Orden de Trabajo",
+            "tipo": "texto",
+            "columna_bd": "codigo",
+            "grupo": "Orden"
+        },
         "titulo": {
             "nombre": "Título",
             "tipo": "texto",
             "columna_bd": "titulo",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "mostrar_como_encabezado": True,  # Se muestra sin etiqueta "Título:"
         },
         "fecha_fin": {
             "nombre": "Fecha Fin",
@@ -100,7 +107,8 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
             "tipo": "numerico",
             "columna_bd": "latitud",
             "formato": "decimal",
-            "grupo": "Orden"
+            "grupo": "Orden",
+            "misma_fila_que": "longitud"  # Se muestra en la misma fila que longitud
         },
         "longitud": {
             "nombre": "Longitud",
@@ -389,6 +397,7 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 
     # Campos que siempre se muestran en la cabecera de cada orden
     "campos_orden_default": [
+        "codigo",
         "titulo",
         "fecha_fin",
         "municipio",
@@ -415,7 +424,7 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
 
 ```python
 "Listado de Órdenes de Trabajo": {
-    "orientacion": "horizontal",  # Landscape para acomodar todos los campos
+    "orientacion": "vertical",  # Portrait
     "esquema_colores": "azul",  # Mismo esquema que Listado de Partes
     "mostrar_logos": True,
     "mostrar_fecha": True,
@@ -424,9 +433,9 @@ Tabla con 6 columnas (igual que "Recursos Presupuestados"):
     "tamaño_titulo": 20,
     "color_titulo": "#003366",  # Azul oscuro
     "color_header_tabla": "#D9E2F3",  # Azul claro
-    "color_grupo_nivel0": "#003366",  # Agrupación nivel 1 (ej: por Red)
-    "color_grupo_nivel1": "#4472C4",  # Agrupación nivel 2 (ej: por Municipio)
-    "color_grupo_nivel2": "#8FAADC",  # Agrupación nivel 3 (ej: por Mes)
+    "color_grupo_nivel0": "#003366",  # Agrupación nivel 1 (ej: por Red, Tipo de Trabajo, Municipio)
+    "color_grupo_nivel1": "#4472C4",  # Agrupación nivel 2
+    "color_grupo_nivel2": "#8FAADC",  # Agrupación nivel 3
     "color_orden": "#5B9BD5",  # Color para la cabecera de cada orden
     "color_subtabla_header": "#B4C7E7",  # Color para encabezado de tabla de recursos
     "bordes_tabla": True,
@@ -466,20 +475,19 @@ CATEGORIAS_INFORMES = {
 ================================================================================
 Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
 
-[SI HAY AGRUPACIÓN - Ejemplo: Agrupado por Red]
+[SI HAY AGRUPACIÓN - Ejemplo: Agrupado por Tipo de Trabajo]
 ────────────────────────────────────────────────────────────────────────────────
-█ RED: Red de Distribución
+█ TIPO DE TRABAJO: Reparación
 ────────────────────────────────────────────────────────────────────────────────
 
     ┌─────────────────────────────────────────────────────────────────────┐
-    │ ORDEN DE TRABAJO 1                                                  │
+    │ ORDEN DE TRABAJO: OT-2025-001                                       │
+    │ Reparación urgente calle Mayor                                      │
     ├─────────────────────────────────────────────────────────────────────┤
-    │ Título:       Reparación urgente calle Mayor                        │
-    │ Fecha Fin:    15/11/2025                                           │
-    │ Municipio:    Valencia                                             │
-    │ Localización: Calle Mayor, 45                                      │
-    │ Latitud:      39.4699                                              │
-    │ Longitud:     -0.3763                                              │
+    │ Fecha Fin:         15/11/2025                                       │
+    │ Municipio:         Valencia                                         │
+    │ Localización:      Calle Mayor, 45                                  │
+    │ Latitud/Longitud:  39.4699, -0.3763                                 │
     └─────────────────────────────────────────────────────────────────────┘
 
     RECURSOS PRESUPUESTADOS:
@@ -494,14 +502,13 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
     └────────────────────────────────────────────────────────────┴──────────┘
 
     ┌─────────────────────────────────────────────────────────────────────┐
-    │ ORDEN DE TRABAJO 2                                                  │
+    │ ORDEN DE TRABAJO: OT-2025-002                                       │
+    │ Reparación de válvula defectuosa                                    │
     ├─────────────────────────────────────────────────────────────────────┤
-    │ Título:       Mantenimiento preventivo zona norte                   │
-    │ Fecha Fin:    20/11/2025                                           │
-    │ Municipio:    Valencia                                             │
-    │ Localización: Polígono industrial Norte                            │
-    │ Latitud:      39.5125                                              │
-    │ Longitud:     -0.3854                                              │
+    │ Fecha Fin:         20/11/2025                                       │
+    │ Municipio:         Valencia                                         │
+    │ Localización:      Polígono industrial Norte                        │
+    │ Latitud/Longitud:  39.5125, -0.3854                                 │
     └─────────────────────────────────────────────────────────────────────┘
 
     RECURSOS PRESUPUESTADOS:
@@ -517,11 +524,11 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
     └────────────────────────────────────────────────────────────┴──────────┘
 
     ────────────────────────────────────────────────────────────────────────
-    SUBTOTAL RED: Red de Distribución                          2,069.25 €
+    SUBTOTAL TIPO DE TRABAJO: Reparación                       2,069.25 €
     ────────────────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────────────────────────
-█ RED: Red de Saneamiento
+█ TIPO DE TRABAJO: Mantenimiento
 ────────────────────────────────────────────────────────────────────────────────
 
     [... más órdenes ...]
@@ -541,6 +548,7 @@ Proyecto: [Nombre del Proyecto]                          Fecha: 16/11/2025
 -- 1. Obtener lista de órdenes de trabajo según filtros y agrupaciones
 SELECT
     p.id,
+    p.codigo,
     p.titulo,
     p.fecha_fin,
     municipio_dim.descripcion AS municipio,
@@ -665,11 +673,12 @@ def generar_pdf_ordenes_trabajo(datos, config_pdf):
 ### Casos de Prueba
 
 1. **Sin agrupación:** Lista simple de órdenes con sus recursos
-2. **Con agrupación por Red:** Órdenes agrupadas por red, con subtotales
-3. **Con agrupación múltiple (Red > Municipio):** Jerarquía de 2 niveles
-4. **Con filtros:** Solo órdenes de un municipio específico
-5. **Orden sin recursos:** Debe mostrar tabla vacía o mensaje
-6. **Orden con muchos recursos:** Validar paginación/salto de página
+2. **Con agrupación por Tipo de Trabajo:** Órdenes agrupadas por tipo de trabajo, con subtotales
+3. **Con agrupación por Municipio:** Órdenes agrupadas por municipio, con subtotales
+4. **Con agrupación múltiple (Red > Municipio > Mes):** Jerarquía de 3 niveles
+5. **Con filtros:** Solo órdenes de un municipio específico o tipo de trabajo
+6. **Orden sin recursos:** Debe mostrar tabla vacía o mensaje
+7. **Orden con muchos recursos:** Validar paginación/salto de página
 
 ---
 
@@ -683,7 +692,8 @@ def generar_pdf_ordenes_trabajo(datos, config_pdf):
 | Agregación de recursos | N/A | Sí (GROUP BY) | No (individual) |
 | Estructura | Tabla única | Tabla única | Orden + Sub-tabla |
 | Filtros | Por orden | Por orden y recurso | Por orden |
-| Formato PDF | Horizontal | Vertical | Horizontal |
+| Formato PDF | Horizontal | Vertical | Vertical |
+| Agrupación | Flexible (Red, Tipo, etc.) | Flexible | Flexible (Red, Tipo, Municipio, etc.) |
 
 ---
 
