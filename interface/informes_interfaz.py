@@ -2181,8 +2181,14 @@ class InformesFrame(customtkinter.CTkFrame):
         formato = campo_info.get('formato', '')
 
         if isinstance(valor, (int, float)):
+            # Verificar si es coordenada geográfica (latitud/longitud) - 4 decimales
+            es_coordenada = campo_nombre and ('latitud' in campo_nombre.lower() or 'longitud' in campo_nombre.lower())
+
             if formato == 'moneda':
                 return f"{valor:,.2f} €"
+            elif es_coordenada:
+                # Coordenadas geográficas: 4 decimales
+                return f"{valor:.4f}"
             elif formato == 'decimal':
                 return f"{valor:,.2f}"
             elif formato == 'entero':
@@ -2703,7 +2709,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
                 proyecto_codigo="",
-                fecha_informe=fecha_generacion
+                fecha_informe=fecha_generacion,
+                tipo_informe=self.informe_seleccionado  # Tipo de informe para seleccionar plantilla
             )
 
             if exito:
@@ -3205,7 +3212,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
                 proyecto_codigo="",
-                fecha_informe=fecha_generacion
+                fecha_informe=fecha_generacion,
+                tipo_informe=self.informe_seleccionado  # Tipo de informe para seleccionar plantilla
             )
 
             if exito:
@@ -3276,7 +3284,24 @@ class InformesFrame(customtkinter.CTkFrame):
         filtros_aplicados = self._recopilar_filtros()
         ordenaciones_aplicadas = self._recopilar_ordenaciones()
         campos_seleccionados_list = self._recopilar_campos()
-        
+
+        # Recopilar agrupaciones
+        agrupaciones_list = []
+        for agrup in self.agrupaciones:
+            campo = agrup.get('campo_actual')
+            if campo:
+                agrupaciones_list.append(campo)
+
+        # Recopilar agregaciones
+        agregaciones_list = []
+        for agreg_obj in self.agregaciones:
+            agreg_dict = self._extraer_agregacion_config(agreg_obj)
+            if agreg_dict:
+                agregaciones_list.append(agreg_dict)
+
+        # Recopilar modo de visualización
+        modo = "detalle" if self.modo_selector.get() == "Detalle" else "resumen"
+
         # Crear ventana de diálogo para nombrar la configuración
         dialog = customtkinter.CTkToplevel(self)
         dialog.title("Guardar Configuración")
@@ -3330,7 +3355,10 @@ class InformesFrame(customtkinter.CTkFrame):
                 filtros=filtros_aplicados,
                 ordenaciones=ordenaciones_aplicadas,
                 campos_seleccionados=campos_seleccionados_list,
-                descripcion=descripcion
+                descripcion=descripcion,
+                agrupaciones=agrupaciones_list,
+                agregaciones=agregaciones_list,
+                modo=modo
             )
             
             if exito:
@@ -3421,12 +3449,12 @@ class InformesFrame(customtkinter.CTkFrame):
         list_frame = customtkinter.CTkScrollableFrame(frame, height=300)
         list_frame.pack(fill="both", expand=True, pady=(0, 15))
         
-        selected_config = {"name": None}
-        
-        def seleccionar(nombre):
-            selected_config["name"] = nombre
+        selected_config = {"filename": None}
+
+        def seleccionar(filename):
+            selected_config["filename"] = filename
             cargar()
-        
+
         # Listar configuraciones
         for i, config in enumerate(configuraciones):
             config_frame = customtkinter.CTkFrame(list_frame)
@@ -3438,6 +3466,14 @@ class InformesFrame(customtkinter.CTkFrame):
             if config['descripcion']:
                 info_text += f"   Descripción: {config['descripcion']}\n"
             info_text += f"   Filtros: {config['num_filtros']} | Ordenaciones: {config['num_ordenaciones']} | Campos: {config['num_campos']}\n"
+
+            # Mostrar agrupaciones y agregaciones si existen
+            num_agrup = config.get('num_agrupaciones', 0)
+            num_agreg = config.get('num_agregaciones', 0)
+            modo = config.get('modo', 'detalle')
+            if num_agrup > 0 or num_agreg > 0:
+                info_text += f"   Agrupaciones: {num_agrup} | Agregaciones: {num_agreg} | Modo: {modo.capitalize()}\n"
+
             info_text += f"   Guardado: {config['fecha_creacion'][:10]}"
             
             label = customtkinter.CTkLabel(
@@ -3455,26 +3491,26 @@ class InformesFrame(customtkinter.CTkFrame):
                 btn_frame,
                 text="Cargar",
                 width=80,
-                command=lambda n=config['nombre']: seleccionar(n)
+                command=lambda f=config['filename']: seleccionar(f)
             )
             cargar_btn.pack(side="left", padx=2)
-            
+
             eliminar_btn = customtkinter.CTkButton(
                 btn_frame,
                 text="🗑️",
                 width=40,
                 fg_color="darkred",
                 hover_color="red",
-                command=lambda n=config['nombre']: eliminar_config(n)
+                command=lambda f=config['filename'], n=config['nombre']: eliminar_config(f, n)
             )
             eliminar_btn.pack(side="left", padx=2)
         
         def cargar():
-            nombre = selected_config["name"]
-            if not nombre:
+            filename = selected_config["filename"]
+            if not filename:
                 return
-            
-            config = self.storage.cargar_configuracion(nombre)
+
+            config = self.storage.cargar_configuracion(filename)
             if not config:
                 CTkMessagebox(
                     title="Error",
@@ -3482,43 +3518,44 @@ class InformesFrame(customtkinter.CTkFrame):
                     icon="cancel"
                 )
                 return
-            
+
             # Aplicar configuración
             self._aplicar_configuracion(config)
-            
+
+            nombre_mostrar = config.get('nombre', filename)
             CTkMessagebox(
                 title="Éxito",
-                message=f"Configuración '{nombre}' cargada correctamente.",
+                message=f"Configuración '{nombre_mostrar}' cargada correctamente.",
                 icon="check"
             )
             dialog.destroy()
-        
-        def eliminar_config(nombre):
+
+        def eliminar_config(filename, nombre_mostrar):
             # Destruir el diálogo de configuraciones primero para evitar bloqueos
             dialog.destroy()
 
             # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
             respuesta = CTkMessagebox(
                 title="Confirmar Eliminación",
-                message=f"¿Está seguro de eliminar la configuración '{nombre}'?",
+                message=f"¿Está seguro de eliminar la configuración '{nombre_mostrar}'?",
                 icon="question",
                 option_1="Cancelar",
                 option_2="Eliminar"
             )
 
             if respuesta.get() == "Eliminar":
-                if self.storage.eliminar_configuracion(nombre):
+                if self.storage.eliminar_configuracion(filename):
                     # Mostrar mensaje de éxito
                     CTkMessagebox(
                         title="Éxito",
-                        message=f"Configuración '{nombre}' eliminada correctamente.",
+                        message=f"Configuración '{nombre_mostrar}' eliminada correctamente.",
                         icon="check"
                     )
                 else:
                     # Mostrar error
                     CTkMessagebox(
                         title="Error",
-                        message=f"No se pudo eliminar la configuración '{nombre}'.",
+                        message=f"No se pudo eliminar la configuración '{nombre_mostrar}'.",
                         icon="cancel"
                     )
 
@@ -3639,6 +3676,8 @@ class InformesFrame(customtkinter.CTkFrame):
         # Limpiar estado actual
         self._clear_all_filtros()
         self._clear_all_ordenaciones()
+        self._clear_all_agrupaciones()
+        self._clear_all_agregaciones()
 
         # Seleccionar informe base
         informe_base = config.get('informe_base')
@@ -3692,6 +3731,26 @@ class InformesFrame(customtkinter.CTkFrame):
             self._add_ordenacion()
             if i < len(self.ordenaciones):
                 self._configurar_ordenacion(self.ordenaciones[i], clasif_data)
+
+        # Aplicar agrupaciones
+        agrupaciones_config = config.get('agrupaciones', [])
+        for i, campo_key in enumerate(agrupaciones_config):
+            self._add_agrupacion()
+            if i < len(self.agrupaciones):
+                self._configurar_agrupacion(self.agrupaciones[i], campo_key)
+
+        # Aplicar agregaciones
+        agregaciones_config = config.get('agregaciones', [])
+        for i, agreg_data in enumerate(agregaciones_config):
+            self._add_agregacion()
+            if i < len(self.agregaciones):
+                self._configurar_agregacion(self.agregaciones[i], agreg_data)
+
+        # Aplicar modo de visualización
+        modo_config = config.get('modo', 'detalle')
+        if hasattr(self, 'modo_combo'):
+            self.modo_combo.set(modo_config.capitalize())
+            self.modo_visualizacion = modo_config
 
     def _configurar_filtro(self, filtro_obj, filtro_data):
         """Configura un filtro con los datos guardados"""
@@ -3789,6 +3848,20 @@ class InformesFrame(customtkinter.CTkFrame):
         orden = clasif_data.get('orden', 'Ascendente')
         if clasif_obj['orden_combo']:
             clasif_obj['orden_combo'].set(orden)
+
+    def _configurar_agrupacion(self, agrup_obj, campo_key):
+        """Configura una agrupación con los datos guardados"""
+        if not self.definicion_actual:
+            return
+
+        campos_def = self.definicion_actual.get('campos', {})
+
+        # Configurar campo de agrupación
+        if campo_key and campo_key in campos_def:
+            campo_nombre = campos_def[campo_key]['nombre']
+            if agrup_obj['combo']:
+                agrup_obj['combo'].set(campo_nombre)
+                self._on_agrupacion_campo_change(agrup_obj, campo_nombre)
 
     def _guardar_config_en_cache(self):
         """Guarda la configuración actual en la caché de memoria (temporal para esta sesión)"""

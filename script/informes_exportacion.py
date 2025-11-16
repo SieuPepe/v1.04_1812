@@ -5,6 +5,7 @@ Genera documentos profesionales con agrupaciones, subtotales y formato corporati
 """
 
 import os
+import subprocess
 from datetime import datetime, date
 from typing import List, Dict, Any, Optional
 import xlsxwriter
@@ -282,6 +283,16 @@ class InformesExportador:
                 'valign': 'vcenter'
             })
 
+            # Formato específico para coordenadas (latitud/longitud) con 4 decimales
+            formato_coordenadas = workbook.add_format({
+                'font_size': 8,
+                'font_name': 'Tahoma',
+                'num_format': '#,##0.0000',
+                'border': 1,
+                'align': 'right',
+                'valign': 'vcenter'
+            })
+
             formato_subtotal = workbook.add_format({
                 'bold': True,
                 'font_size': 9,
@@ -456,6 +467,7 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_decimal,
+                    formato_coordenadas,
                     formato_subtotal,
                     formato_subtotal_texto,
                     formato_fecha_celda,
@@ -502,6 +514,38 @@ class InformesExportador:
 
             else:
                 # Exportar sin agrupaciones (tabla simple)
+                # Función helper para detectar y convertir fechas
+                def detectar_y_convertir_fecha(valor):
+                    """Detecta formatos comunes de fecha y los convierte a datetime"""
+                    import re
+                    from datetime import datetime as dt, date
+
+                    # Si ya es un objeto datetime o date, retornarlo
+                    if isinstance(valor, (dt, date)):
+                        if isinstance(valor, date) and not isinstance(valor, dt):
+                            # Convertir date a datetime
+                            return dt.combine(valor, dt.min.time())
+                        return valor
+
+                    # Si es string, detectar formato
+                    if not isinstance(valor, str):
+                        return None
+
+                    # Detectar formatos comunes: DD/MM/YYYY, YYYY-MM-DD, DD-MM-YYYY
+                    patrones_fecha = [
+                        (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),  # DD/MM/YYYY
+                        (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),  # YYYY-MM-DD
+                        (r'^\d{2}-\d{2}-\d{4}$', '%d-%m-%Y'),  # DD-MM-YYYY
+                    ]
+
+                    for patron, formato in patrones_fecha:
+                        if re.match(patron, valor.strip()):
+                            try:
+                                return dt.strptime(valor.strip(), formato)
+                            except ValueError:
+                                continue
+                    return None
+
                 # Encabezados de columnas
                 for col_idx, col_name in enumerate(columnas):
                     worksheet.write(row, col_idx, col_name, formato_header_columnas)
@@ -516,6 +560,9 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = formatos_columnas.get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Detectar y manejar fechas
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
@@ -525,7 +572,10 @@ class InformesExportador:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas: 4 decimales
+                                worksheet.write(row, col_idx, valor, formato_coordenadas)
+                            elif formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
                                 worksheet.write(row, col_idx, valor, formato_decimal)
@@ -563,6 +613,7 @@ class InformesExportador:
         formato_datos,
         formato_moneda,
         formato_decimal,
+        formato_coordenadas,
         formato_subtotal,
         formato_subtotal_texto,
         formato_fecha_celda,
@@ -638,6 +689,7 @@ class InformesExportador:
                     formato_datos,
                     formato_moneda,
                     formato_decimal,
+                    formato_coordenadas,
                     formato_subtotal,
                     formato_subtotal_texto,
                     formato_fecha_celda,
@@ -657,6 +709,9 @@ class InformesExportador:
                         col_name = columnas[col_idx] if col_idx < len(columnas) else None
                         formato_campo = resultado_agrupacion.get('formatos_columnas', {}).get(col_name, 'ninguno') if col_name else 'ninguno'
 
+                        # Detectar si es una coordenada (latitud/longitud)
+                        es_coordenada = col_name and ('latitud' in col_name.lower() or 'longitud' in col_name.lower())
+
                         # Detectar y manejar fechas
                         fecha_dt = detectar_y_convertir_fecha(valor)
                         if fecha_dt:
@@ -666,7 +721,10 @@ class InformesExportador:
                             print(f"DEBUG Fecha no detectada en columna '{col_name}': {valor} (tipo: {type(valor).__name__})")
                         # Aplicar formato según el tipo de campo
                         elif isinstance(valor, (int, float)):
-                            if formato_campo == 'moneda':
+                            if es_coordenada:
+                                # Coordenadas: 4 decimales
+                                worksheet.write(row, col_idx, valor, formato_coordenadas)
+                            elif formato_campo == 'moneda':
                                 worksheet.write(row, col_idx, valor, formato_moneda)
                             elif formato_campo == 'decimal':
                                 worksheet.write(row, col_idx, valor, formato_decimal)
@@ -916,7 +974,8 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
     ) -> bool:
         """
         Exporta el informe a Word usando plantilla profesional
@@ -929,14 +988,19 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
 
         Returns:
             True si la exportación fue exitosa
         """
         try:
-            # Buscar la plantilla
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            plantilla_path = os.path.join(base_dir, "plantillas", "Plantilla Listado Partes.docx")
+            # Importar configuración de plantillas
+            from script.plantillas_config import obtener_ruta_plantilla
+
+            # Obtener plantilla apropiada según el tipo de informe
+            # Si no se especifica tipo, usar el nombre del informe
+            plantilla_path = obtener_ruta_plantilla(tipo_informe or informe_nombre)
 
             # Verificar si existe la plantilla
             if not os.path.exists(plantilla_path):
@@ -1188,10 +1252,11 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
     ) -> bool:
         """
-        Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
+        Exporta el informe a PDF usando ReportLab con control total del diseño
 
         Args:
             filepath: Ruta del archivo PDF a crear
@@ -1201,6 +1266,108 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            from script.pdf_agrupaciones import PDFAgrupaciones
+            from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
+
+            print(f"Generando PDF con ReportLab: {filepath}")
+
+            # Obtener configuración específica del tipo de informe
+            config = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+
+            # Crear plantilla PDF con la configuración
+            pdf = PDFAgrupaciones(
+                schema=self.schema,
+                orientacion=config.get('orientacion', 'horizontal'),
+                titulo=informe_nombre,
+                proyecto_nombre=proyecto_nombre,
+                proyecto_codigo=proyecto_codigo,
+                fecha=fecha_informe
+            )
+
+            # Aplicar configuración de colores y estilos
+            pdf = aplicar_configuracion_a_plantilla(pdf, config)
+
+            # Agregar encabezado con logos (si está configurado)
+            if config.get('mostrar_logos', True):
+                pdf.agregar_encabezado()
+
+            # Agregar información del proyecto (si está configurado)
+            if config.get('mostrar_proyecto', True):
+                pdf.agregar_info_proyecto()
+
+            # Agregar tabla de datos
+            if resultado_agrupacion and resultado_agrupacion.get('grupos'):
+                # Tabla con agrupaciones
+                modo = resultado_agrupacion.get('modo', 'detalle')
+                elementos_tabla = pdf.crear_tabla_agrupada(
+                    columnas=columnas,
+                    datos=datos,
+                    resultado_agrupacion=resultado_agrupacion,
+                    modo=modo
+                )
+                pdf.elements.extend(elementos_tabla)
+            else:
+                # Tabla simple sin agrupaciones
+                formatos_columnas = resultado_agrupacion.get('formatos_columnas', {}) if resultado_agrupacion else {}
+                tabla = pdf.crear_tabla_simple(
+                    columnas=columnas,
+                    datos=datos,
+                    formatos_columnas=formatos_columnas
+                )
+                pdf.elements.append(tabla)
+
+            # Agregar pie de página
+            pdf.agregar_pie_pagina()
+
+            # Generar PDF
+            exito = pdf.generar_pdf(filepath)
+
+            if exito:
+                print(f"✓ PDF generado correctamente: {filepath}")
+                return True
+            else:
+                print("✗ Error al generar PDF")
+                return False
+
+        except Exception as e:
+            print(f"Error al exportar a PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def exportar_a_pdf_word(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        resultado_agrupacion: Optional[Dict] = None,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = "",
+        fecha_informe: str = "",
+        tipo_informe: Optional[str] = None
+    ) -> bool:
+        """
+        [LEGACY] Exporta el informe a PDF generando primero un Word y convirtiéndolo a PDF
+        Esta función se mantiene por compatibilidad pero ya no se usa por defecto
+
+        Args:
+            filepath: Ruta del archivo PDF a crear
+            informe_nombre: Nombre del informe
+            columnas: Lista de nombres de columnas
+            datos: Datos del informe
+            resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe para seleccionar plantilla específica
 
         Returns:
             True si la exportación fue exitosa
@@ -1214,7 +1381,7 @@ class InformesExportador:
             temp_word_path = temp_word.name
             temp_word.close()
 
-            # Usar la misma función de exportar_a_word
+            # Usar la misma función de exportar_a_word (MISMO .docx para Word y PDF)
             exito_word = self.exportar_a_word(
                 filepath=temp_word_path,
                 informe_nombre=informe_nombre,
@@ -1223,7 +1390,8 @@ class InformesExportador:
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre=proyecto_nombre,
                 proyecto_codigo=proyecto_codigo,
-                fecha_informe=fecha_informe
+                fecha_informe=fecha_informe,
+                tipo_informe=tipo_informe
             )
 
             if not exito_word:
