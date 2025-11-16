@@ -587,9 +587,17 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
             # Campo numérico directo
             columna = campo['columna_bd']
 
-            # Si usamos GROUP BY, aplicar SUM
+            # Si usamos GROUP BY, solo aplicar SUM si es de la tabla principal
+            # Los campos numéricos de tablas relacionadas (ej: precio.coste) NO se suman
             if usar_group_by:
-                select_parts.append(f"SUM({alias_tabla}.{columna}) AS `{nombre_alias}`")
+                if tabla_rel == 'principal':
+                    # Campos de tabla principal (ej: cantidad) → SUM
+                    select_parts.append(f"SUM({alias_tabla}.{columna}) AS `{nombre_alias}`")
+                else:
+                    # Campos de tablas relacionadas (ej: precio.coste) → NO SUM, incluir en GROUP BY
+                    select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
+                    if f"{alias_tabla}.{columna}" not in group_by_parts:
+                        group_by_parts.append(f"{alias_tabla}.{columna}")
             else:
                 select_parts.append(f"{alias_tabla}.{columna} AS `{nombre_alias}`")
 
@@ -1289,7 +1297,14 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
                     subtotales = {}
                     for i, col_nombre in enumerate(columnas_datos):
                         formato = formatos_columnas.get(col_nombre, 'ninguno')
-                        if formato in ['moneda', 'decimal', 'numerico']:
+                        # Solo calcular subtotales de campos tipo moneda que sean importes/costes totales
+                        # NO calcular subtotales de Cantidad ni Precio unitario
+                        es_campo_subtotalizable = (
+                            formato == 'moneda' and
+                            ('importe' in col_nombre.lower() or 'coste_total' in col_nombre.lower() or 'total' in col_nombre.lower())
+                        )
+
+                        if es_campo_subtotalizable:
                             try:
                                 total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in filas_grupo)
                                 subtotales[col_nombre] = total

@@ -228,10 +228,35 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
+        anchos_recursos = {
+            'Código': 1.5 * cm,
+            'codigo': 1.5 * cm,
+            'Cantidad': 2.0 * cm,
+            'cantidad': 2.0 * cm,
+            'Ud.': 1.0 * cm,
+            'unidad': 1.0 * cm,
+            'Recurso / Material': 9.5 * cm,
+            'resumen': 9.5 * cm,
+            'Precio unitario': 2.0 * cm,
+            'coste': 2.0 * cm,
+            'Importe': 2.0 * cm,
+            'coste_total': 2.0 * cm
+        }
+
         # Calcular anchos de columnas
-        num_columnas = len(columnas)
-        ancho_columna = ancho_disponible / num_columnas
-        col_widths = [ancho_columna] * num_columnas
+        col_widths = []
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            for col in columnas:
+                col_widths.append(anchos_recursos[col])
+        else:
+            # Distribución equitativa para otros informes
+            num_columnas = len(columnas)
+            ancho_columna = ancho_disponible / num_columnas
+            col_widths = [ancho_columna] * num_columnas
 
         # Estilo para celdas de datos (texto multilínea)
         estilo_celda = ParagraphStyle(
@@ -376,13 +401,38 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
+        anchos_recursos = {
+            'Código': 1.5 * cm,
+            'codigo': 1.5 * cm,
+            'Cantidad': 2.0 * cm,
+            'cantidad': 2.0 * cm,
+            'Ud.': 1.0 * cm,
+            'unidad': 1.0 * cm,
+            'Recurso / Material': 9.5 * cm,
+            'resumen': 9.5 * cm,
+            'Precio unitario': 2.0 * cm,
+            'coste': 2.0 * cm,
+            'Importe': 2.0 * cm,
+            'coste_total': 2.0 * cm
+        }
+
         # Calcular anchos de columnas
-        num_columnas = len(columnas)
-        ancho_columna = ancho_disponible / num_columnas
-        col_widths = [ancho_columna] * num_columnas
+        col_widths = []
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            for col in columnas:
+                col_widths.append(anchos_recursos[col])
+        else:
+            # Distribución equitativa para otros informes
+            num_columnas = len(columnas)
+            ancho_columna = ancho_disponible / num_columnas
+            col_widths = [ancho_columna] * num_columnas
 
         # Crear fila de subtotales
-        fila_subtotal = [''] * num_columnas
+        fila_subtotal = [''] * len(columnas)
 
         # Texto en primera columna
         indent = "  " * (nivel + 1)
@@ -475,13 +525,38 @@ class PDFAgrupaciones(PDFTemplate):
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
+        # Anchos personalizados para informes de Recursos (igual que en pdf_templates.py)
+        anchos_recursos = {
+            'Código': 1.5 * cm,
+            'codigo': 1.5 * cm,
+            'Cantidad': 2.0 * cm,
+            'cantidad': 2.0 * cm,
+            'Ud.': 1.0 * cm,
+            'unidad': 1.0 * cm,
+            'Recurso / Material': 9.5 * cm,
+            'resumen': 9.5 * cm,
+            'Precio unitario': 2.0 * cm,
+            'coste': 2.0 * cm,
+            'Importe': 2.0 * cm,
+            'coste_total': 2.0 * cm
+        }
+
         # Calcular anchos de columnas
-        num_columnas = len(columnas)
-        ancho_columna = ancho_disponible / num_columnas
-        col_widths = [ancho_columna] * num_columnas
+        col_widths = []
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            # Usar anchos personalizados para informes de Recursos
+            for col in columnas:
+                col_widths.append(anchos_recursos[col])
+        else:
+            # Distribución equitativa para otros informes
+            num_columnas = len(columnas)
+            ancho_columna = ancho_disponible / num_columnas
+            col_widths = [ancho_columna] * num_columnas
 
         # Crear fila de totales
-        fila_total = [''] * num_columnas
+        fila_total = [''] * len(columnas)
         fila_total[0] = "═══ TOTAL GENERAL ═══"
 
         # Mapear totales a columnas
