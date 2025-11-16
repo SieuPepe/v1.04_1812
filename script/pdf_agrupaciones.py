@@ -561,71 +561,92 @@ class PDFAgrupaciones(PDFTemplate):
             ancho_columna = ancho_disponible / num_columnas
             col_widths = [ancho_columna] * num_columnas
 
-        # Crear fila de totales
-        fila_total = [''] * len(columnas)
-        fila_total[0] = "═══ TOTAL GENERAL ═══"
-
-        # Mapear totales a columnas
+        # Extraer el total de ejecución material (buscar columna "Importe")
+        total_ejecucion_material = 0.0
         for key, valor in totales.items():
-            # Extraer nombre del campo
-            if '(' in key and ')' in key:
-                campo_nombre = key.split('(')[1].rstrip(')')
-            else:
-                campo_nombre = key
+            # Buscar el total de la columna "Importe" o similar
+            if 'Importe' in key or 'importe' in key or 'total' in key.lower():
+                if isinstance(valor, (int, float, Decimal)):
+                    total_ejecucion_material = float(valor) if isinstance(valor, Decimal) else valor
+                    break
 
-            # Determinar formato
-            formato = formatos_agregaciones.get(key, 'ninguno')
+        # Calcular valores finales
+        porcentaje_gg = 8.0
+        porcentaje_bi = 3.0
+        gastos_generales = total_ejecucion_material * (porcentaje_gg / 100.0)
+        beneficio_industrial = total_ejecucion_material * (porcentaje_bi / 100.0)
+        total_final = total_ejecucion_material + gastos_generales + beneficio_industrial
 
-            # Formatear valor
-            if isinstance(valor, (int, float, Decimal)):
-                # Convertir Decimal a float para poder formatear
-                if isinstance(valor, Decimal):
-                    valor = float(valor)
+        # Formato moneda español
+        def formato_moneda(valor):
+            return f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
 
-                if formato == 'moneda':
-                    # Formato moneda: 2 decimales + símbolo €
-                    valor_formateado = f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
-                elif formato == 'decimal':
-                    # Formato decimal: 2 decimales
-                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-                elif formato == 'entero':
-                    valor_formateado = f"{int(valor):,}".replace(',', '.')
-                else:
-                    # Por defecto: 2 decimales
-                    valor_formateado = f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-            else:
-                valor_formateado = str(valor)
+        # Estilo para texto
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_RIGHT
 
-            # Buscar columna
-            if campo_nombre in columnas:
-                col_idx = columnas.index(campo_nombre)
-                fila_total[col_idx] = valor_formateado
-            elif campo_nombre == '*':
-                fila_total[1] = valor_formateado
+        estilo_texto = ParagraphStyle(
+            'TotalesTexto',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
 
-        # Crear tabla
-        tabla_total = Table([fila_total], colWidths=col_widths)
+        estilo_valor = ParagraphStyle(
+            'TotalesValor',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
 
-        # Estilo (más destacado que subtotales)
-        estilo = [
-            ('BACKGROUND', (0, 0), (-1, -1), self.color_total),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#003366')),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#003366')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CCCCCC')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        estilo_total_final = ParagraphStyle(
+            'TotalFinal',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=11,
+            alignment=TA_RIGHT,
+            leading=13
+        )
+
+        # Calcular anchos para la tabla de totales
+        if usa_anchos_personalizados:
+            ancho_texto = sum(anchos_recursos[col] for col in columnas if col != 'Importe')
+            ancho_valor = anchos_recursos['Importe']
+        else:
+            ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
+            ancho_texto = ancho_disponible * 0.75
+            ancho_valor = ancho_disponible * 0.25
+
+        # Crear filas de datos
+        from reportlab.platypus import Paragraph
+        tabla_datos = [
+            [Paragraph("TOTAL EJECUCIÓN MATERIAL", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
+            [Paragraph(f"Gastos generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
+            [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
+            [Paragraph("TOTAL", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
         ]
 
-        # Alineación derecha para columnas numéricas
-        for col_idx in range(1, num_columnas):
-            if fila_total[col_idx]:
-                estilo.append(
-                    ('ALIGN', (col_idx, 0), (col_idx, 0), 'RIGHT')
-                )
+        # Crear tabla
+        tabla_total = Table(tabla_datos, colWidths=[ancho_texto, ancho_valor])
+
+        # Estilo de la tabla
+        estilo = [
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            # Línea encima de TOTAL
+            ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
+
+            # Fondo para la fila final
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F0F0F0')),
+        ]
 
         tabla_total.setStyle(TableStyle(estilo))
 

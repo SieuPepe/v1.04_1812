@@ -1327,6 +1327,7 @@ class InformesExportador:
             # Obtener definición del informe para verificar campos_fijos
             definicion = INFORMES_DEFINICIONES.get(tipo_informe or informe_nombre, {})
             campos_fijos = definicion.get('campos_fijos', False)
+            usar_agregacion_sql = definicion.get('usar_agregacion_sql', False)
             campos_def = definicion.get('campos', {})
 
             # Crear plantilla PDF con la configuración
@@ -1405,6 +1406,29 @@ class InformesExportador:
                     formatos_columnas=formatos_filtrados
                 )
                 pdf.elements.append(tabla)
+
+                # Para informes de Recursos, añadir totales finales con GG y BI
+                if usar_agregacion_sql and 'Importe' in columnas_filtradas:
+                    # Calcular total de ejecución material (columna Importe)
+                    idx_importe = columnas_filtradas.index('Importe')
+                    total_ejecucion_material = 0.0
+                    for fila in datos_filtrados:
+                        valor = fila[idx_importe]
+                        if valor is not None:
+                            from decimal import Decimal
+                            total_ejecucion_material += float(valor) if isinstance(valor, Decimal) else valor
+
+                    # Añadir espacio antes de totales
+                    from reportlab.platypus import Spacer
+                    from reportlab.lib.units import cm
+                    pdf.elements.append(Spacer(1, 0.5 * cm))
+
+                    # Crear y añadir tabla de totales finales
+                    tabla_totales = pdf.crear_tabla_totales_finales(
+                        total_ejecucion_material=total_ejecucion_material,
+                        columnas=columnas_filtradas
+                    )
+                    pdf.elements.append(tabla_totales)
 
             # Agregar pie de página
             pdf.agregar_pie_pagina()

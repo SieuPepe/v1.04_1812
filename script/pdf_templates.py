@@ -627,6 +627,121 @@ class PDFTemplate:
 
         return tabla
 
+    def crear_tabla_totales_finales(
+        self,
+        total_ejecucion_material: float,
+        columnas: List[str],
+        porcentaje_gg: float = 8.0,
+        porcentaje_bi: float = 3.0
+    ) -> Table:
+        """
+        Crea tabla con totales finales incluyendo Gastos Generales y Beneficio Industrial
+
+        Args:
+            total_ejecucion_material: Total de ejecución material
+            columnas: Lista de nombres de columnas (para calcular anchos)
+            porcentaje_gg: Porcentaje de Gastos Generales (por defecto 8%)
+            porcentaje_bi: Porcentaje de Beneficio Industrial (por defecto 3%)
+
+        Returns:
+            Tabla con totales finales
+        """
+        from reportlab.lib.units import cm
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.enums import TA_RIGHT, TA_LEFT
+
+        # Calcular ancho disponible
+        ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
+
+        # Anchos personalizados para informes de Recursos
+        anchos_recursos = {
+            'Código': 1.5 * cm,
+            'Cantidad': 2.0 * cm,
+            'Ud.': 1.0 * cm,
+            'Recurso / Material': 9.5 * cm,
+            'Precio unitario': 2.0 * cm,
+            'Importe': 2.0 * cm
+        }
+
+        # Usar anchos personalizados si coinciden con columnas de Recursos
+        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+
+        if usa_anchos_personalizados:
+            ancho_texto = sum(anchos_recursos[col] for col in columnas if col != 'Importe')
+            ancho_valor = anchos_recursos['Importe']
+        else:
+            ancho_texto = ancho_disponible * 0.75
+            ancho_valor = ancho_disponible * 0.25
+
+        # Calcular valores
+        gastos_generales = total_ejecucion_material * (porcentaje_gg / 100.0)
+        beneficio_industrial = total_ejecucion_material * (porcentaje_bi / 100.0)
+        total_final = total_ejecucion_material + gastos_generales + beneficio_industrial
+
+        # Formato moneda español
+        def formato_moneda(valor):
+            return f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+        # Estilo para texto
+        estilo_texto = ParagraphStyle(
+            'TotalesTexto',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
+
+        # Estilo para valores
+        estilo_valor = ParagraphStyle(
+            'TotalesValor',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=10,
+            alignment=TA_RIGHT,
+            leading=12
+        )
+
+        # Estilo para total final (más destacado)
+        estilo_total_final = ParagraphStyle(
+            'TotalFinal',
+            parent=self.styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=11,
+            alignment=TA_RIGHT,
+            leading=13
+        )
+
+        # Crear filas de datos
+        tabla_datos = [
+            [Paragraph("TOTAL EJECUCIÓN MATERIAL", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
+            [Paragraph(f"Gastos generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
+            [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
+            [Paragraph("TOTAL", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
+        ]
+
+        # Crear tabla
+        tabla = Table(tabla_datos, colWidths=[ancho_texto, ancho_valor])
+
+        # Estilo de la tabla
+        estilo_tabla = [
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+
+            # Línea encima de TOTAL
+            ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
+
+            # Fondo para la fila final
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F0F0F0')),
+        ]
+
+        tabla.setStyle(TableStyle(estilo_tabla))
+
+        return tabla
+
     def agregar_pie_pagina(self):
         """
         El pie de página ahora se dibuja automáticamente en todas las páginas mediante NumberedCanvas.
