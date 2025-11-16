@@ -2677,8 +2677,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar Word")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para Word
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -2939,8 +2968,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar Excel")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para Excel
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -3200,8 +3258,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar PDF")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para el PDF
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
