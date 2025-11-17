@@ -1196,10 +1196,6 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
             for campo_agrupacion in agrupaciones:
                 if campo_agrupacion not in campos_a_incluir:
                     campos_a_incluir.append(campo_agrupacion)
-                    print(f"DEBUG: Añadiendo campo de agrupación '{campo_agrupacion}' al SELECT (requerido por SQL GROUP BY)")
-
-            if campos_fijos:
-                print(f"DEBUG: Informe con campos_fijos=True - campos de agrupación {agrupaciones} se filtrarán en PDF")
 
         # Decidir qué método usar para obtener los datos
         if usar_agregacion_sql:

@@ -1559,7 +1559,6 @@ class InformesExportador:
                     # Los datos dentro de grupos ya están filtrados
                     # No necesitamos filtrar datos_filtrados porque se usan los datos de cada grupo
                     formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
-                    print(f"DEBUG: Usando columnas_datos de resultado_agrupacion: {columnas_filtradas}")
                 # Fallback al método anterior si no existe columnas_datos
                 elif campos_fijos and resultado_agrupacion.get('agrupaciones'):
                     # Identificar columnas de agrupación por su nombre
@@ -1577,9 +1576,6 @@ class InformesExportador:
                         columnas_filtradas = [columnas[i] for i in indices_a_mantener]
                         datos_filtrados = [tuple(fila[i] for i in indices_a_mantener) for fila in datos]
                         formatos_filtrados = {col: formatos_filtrados.get(col, 'ninguno') for col in columnas_filtradas}
-
-                        print(f"DEBUG: Filtradas {len(columnas_a_eliminar)} columnas de agrupación: {columnas_a_eliminar}")
-                        print(f"DEBUG: Columnas finales para PDF: {columnas_filtradas}")
 
             # Agregar tabla de datos
             if resultado_agrupacion and resultado_agrupacion.get('grupos'):

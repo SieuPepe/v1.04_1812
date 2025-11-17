@@ -1748,7 +1748,7 @@ INFORMES_DEFINICIONES = {
         "tabla_principal": "tbl_partes",
         "formato_pdf": "vertical",
         "campos_fijos": True,
-        "usar_agregacion_sql": False,  # NO usar agregación SQL (no hay GROUP BY real)
+        "usar_agregacion_sql": True,  # Usar agregación SQL para calcular subtotales automáticamente
         "calcular_resumen_economico": True,  # Flag para activar cálculos PEM, GG, BI
         "porcentaje_gastos_generales": 8,    # 8%
         "porcentaje_beneficio": 3,            # 3%
