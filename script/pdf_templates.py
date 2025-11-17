@@ -69,21 +69,23 @@ class NumberedCanvas(canvas.Canvas):
         # El encabezado se dibuja desde el borde superior hacia abajo
         y_pos = alto_pagina - template.margen_superior_encabezado - template.altura_encabezado
 
-        # Logo izquierdo
+        # Logo izquierdo (Redes Urbide)
+        # De 1.5cm a 4.0cm: 2cm alto x 2.2cm largo
         if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
             try:
-                img = PILImage.open(template.logo_izquierdo_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = template.altura_encabezado * aspect_ratio
+                x_logo_izq = 1.5 * cm
+                ancho_logo_izq = 2.2 * cm
+                alto_logo_izq = 2.0 * cm
 
-                x_logo_izq = template.margen_izquierdo
+                # Centrar verticalmente el logo en el área del encabezado
+                y_offset_izq = (template.altura_encabezado - alto_logo_izq) / 2
                 self.drawImage(
                     template.logo_izquierdo_path,
                     x_logo_izq,
-                    y_pos,
-                    width=ancho_logo,
-                    height=template.altura_encabezado,
-                    preserveAspectRatio=True
+                    y_pos + y_offset_izq,
+                    width=ancho_logo_izq,
+                    height=alto_logo_izq,
+                    preserveAspectRatio=False  # No preservar para forzar dimensiones exactas
                 )
             except:
                 pass
@@ -97,7 +99,7 @@ class NumberedCanvas(canvas.Canvas):
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=12,  # Reducido de 16 a 12
+            fontSize=12,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
             leading=14  # Espaciado entre líneas
@@ -106,13 +108,9 @@ class NumberedCanvas(canvas.Canvas):
         titulo = template.titulo.upper()
 
         # Posicionamiento exacto del título según medidas del usuario:
-        # 0-1.5cm: margen izquierdo
-        # 1.5-4cm: logo Redes Urbide (2.5cm)
-        # 4-14cm: título del informe (10cm)
-        # 14-19.5cm: logo Urbide (5.5cm)
-        # 19.5-21cm: margen derecho
-        x_inicio_titulo = 4 * cm  # Comienza a los 4cm
-        ancho_max_titulo = 10 * cm  # 10cm de ancho para el título
+        # De 4.0cm a 15.5cm: título multilínea centrado (11.5cm de ancho)
+        x_inicio_titulo = 4.0 * cm
+        ancho_max_titulo = 11.5 * cm
 
         # Crear Paragraph para el título
         p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
@@ -125,23 +123,23 @@ class NumberedCanvas(canvas.Canvas):
         w, h = p_titulo.wrap(ancho_max_titulo, template.altura_encabezado)
         p_titulo.drawOn(self, x_inicio_titulo, y_titulo)
 
-        # Logo derecho
+        # Logo derecho (Urbide)
+        # De 15.5cm a 19.5cm: 1.5cm alto x 3.9cm largo
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
             try:
-                img = PILImage.open(template.logo_derecho_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = template.altura_logo_derecho * aspect_ratio
+                x_logo_der = 15.5 * cm
+                ancho_logo_der = 3.9 * cm
+                alto_logo_der = 1.5 * cm
 
-                x_logo_der = ancho_pagina - template.margen_derecho - ancho_logo
-                # Ajustar posición vertical para centrar el logo derecho (más pequeño) en el espacio del encabezado
-                y_offset = (template.altura_encabezado - template.altura_logo_derecho) / 2
+                # Centrar verticalmente el logo en el área del encabezado
+                y_offset_der = (template.altura_encabezado - alto_logo_der) / 2
                 self.drawImage(
                     template.logo_derecho_path,
                     x_logo_der,
-                    y_pos + y_offset,
-                    width=ancho_logo,
-                    height=template.altura_logo_derecho,
-                    preserveAspectRatio=True
+                    y_pos + y_offset_der,
+                    width=ancho_logo_der,
+                    height=alto_logo_der,
+                    preserveAspectRatio=False  # No preservar para forzar dimensiones exactas
                 )
             except:
                 pass
