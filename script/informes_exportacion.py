@@ -1518,7 +1518,8 @@ class InformesExportador:
                 titulo=informe_nombre,
                 proyecto_nombre=proyecto_nombre,
                 proyecto_codigo=proyecto_codigo,
-                fecha=fecha_informe
+                fecha=fecha_informe,
+                anchos_columnas=config.get('anchos_columnas', None)
             )
 
             # Aplicar configuración de colores y estilos

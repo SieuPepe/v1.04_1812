@@ -1032,11 +1032,17 @@ def procesar_agrupacion(datos, columnas, agrupaciones, agregaciones_config, camp
                 campo_def = campos_def.get(campo, {})
                 formatos_agregaciones[key] = campo_def.get('formato', 'ninguno')
 
+    # Identificar columnas de agrupación para filtrarlas en el PDF
+    columnas_agrupacion = list(agrupaciones)  # Las columnas de agrupación
+    columnas_datos = [col for col in columnas if col not in columnas_agrupacion]
+
     return {
         "grupos": grupos,
         "totales_generales": totales_generales,
         "formatos_columnas": formatos_columnas,
-        "formatos_agregaciones": formatos_agregaciones
+        "formatos_agregaciones": formatos_agregaciones,
+        "columnas_datos": columnas_datos,  # Columnas sin agrupación para el PDF
+        "agrupaciones": agrupaciones  # Lista de campos de agrupación
     }
 
 

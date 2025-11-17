@@ -211,7 +211,8 @@ class PDFTemplate:
         subtitulo: str = "",
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha: str = ""
+        fecha: str = "",
+        anchos_columnas: Optional[Dict[str, float]] = None
     ):
         """
         Inicializa la plantilla PDF
@@ -224,6 +225,7 @@ class PDFTemplate:
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
             fecha: Fecha del informe (si no se proporciona, usa fecha actual)
+            anchos_columnas: Diccionario con anchos personalizados de columnas en cm (ej: {"Código": 2.0})
         """
         self.schema = schema
         self.orientacion = orientacion
@@ -232,6 +234,7 @@ class PDFTemplate:
         self.proyecto_nombre = proyecto_nombre
         self.proyecto_codigo = proyecto_codigo
         self.fecha = fecha if fecha else datetime.now().strftime("%d/%m/%Y")
+        self.anchos_columnas = anchos_columnas or {}
 
         # Configurar tamaño de página
         if orientacion == "horizontal":
@@ -484,12 +487,18 @@ class PDFTemplate:
 
         # Calcular anchos de columnas
         col_widths = []
-        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
 
-        if usa_anchos_personalizados:
+        # Prioridad 1: anchos_columnas desde configuración (self.anchos_columnas)
+        if self.anchos_columnas and all(col in self.anchos_columnas for col in columnas):
+            # Usar anchos configurados (convertir de cm a puntos)
+            for col in columnas:
+                col_widths.append(self.anchos_columnas[col] * cm)
+        # Prioridad 2: anchos hardcodeados para Recursos
+        elif all(col in anchos_recursos for col in columnas):
             # Usar anchos personalizados para informes de Recursos
             for col in columnas:
                 col_widths.append(anchos_recursos[col])
+        # Prioridad 3: distribución equitativa
         else:
             # Distribución equitativa para otros informes
             num_columnas = len(columnas)

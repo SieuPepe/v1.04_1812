@@ -183,7 +183,7 @@ CONFIGURACIONES_PDF = {
     },
 
     "Presupuesto Resumen": {
-        "orientacion": "horizontal",
+        "orientacion": "vertical",  # A4 vertical
         "esquema_colores": "naranja",
         "mostrar_logos": True,
         "mostrar_fecha": True,
@@ -197,7 +197,23 @@ CONFIGURACIONES_PDF = {
         "color_grupo_nivel2": "#FFB74D",
         "bordes_tabla": True,
         "filas_alternadas": True,
-        "pie_pagina_personalizado": None
+        "pie_pagina_personalizado": None,
+        # Anchos de columna específicos (en cm)
+        # Total: 1.5 + 2.0 + 5.0 + 2.0 + 3.0 + 3.0 + 3.0 + 1.5 = 21cm (A4)
+        "anchos_columnas": {
+            "Código": 2.0,
+            "codigo": 2.0,
+            "Título": 5.0,
+            "titulo": 5.0,
+            "Fecha": 2.0,
+            "fecha": 2.0,
+            "Municipio": 3.0,
+            "municipio": 3.0,
+            "Localización": 3.0,
+            "localizacion": 3.0,
+            "Importe": 3.0,
+            "importe": 3.0
+        }
     },
 
     # ============================================================
