@@ -561,6 +561,10 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
                 select_parts.append(f"SUM({formula_procesada}) AS `{nombre_alias}`")
             else:
                 select_parts.append(f"({formula_procesada}) AS `{nombre_alias}`")
+                # Si usamos GROUP BY, añadir el campo calculado al GROUP BY
+                # (solo si NO es una agregación, es decir, si no tiene formato moneda/decimal/numerico)
+                if usar_group_by:
+                    group_by_parts.append(f"({formula_procesada})")
 
         elif campo['tipo'] == 'dimension':
             # Campo de dimensión
