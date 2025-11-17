@@ -58,7 +58,7 @@ class NumberedCanvas(canvas.Canvas):
         self.draw_footer(page_num, page_count)
 
     def draw_header(self):
-        """Dibuja el encabezado con logos y título"""
+        """Dibuja el encabezado con logos y título usando tabla sin bordes"""
         if not self.pdf_template:
             return
 
@@ -66,83 +66,85 @@ class NumberedCanvas(canvas.Canvas):
         ancho_pagina, alto_pagina = template.pagesize
 
         # Posición del encabezado (cerca del borde superior)
-        # El encabezado se dibuja desde el borde superior hacia abajo
         y_pos = alto_pagina - template.margen_superior_encabezado - template.altura_encabezado
 
-        # Logo izquierdo
-        if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
-            try:
-                img = PILImage.open(template.logo_izquierdo_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = template.altura_encabezado * aspect_ratio
-
-                x_logo_izq = template.margen_izquierdo
-                self.drawImage(
-                    template.logo_izquierdo_path,
-                    x_logo_izq,
-                    y_pos,
-                    width=ancho_logo,
-                    height=template.altura_encabezado,
-                    preserveAspectRatio=True
-                )
-            except:
-                pass
-
-        # Título centrado (multilínea para evitar superposición con logos)
+        # Importar clases necesarias
         from reportlab.lib.enums import TA_CENTER
-        from reportlab.platypus import Paragraph
+        from reportlab.platypus import Paragraph, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import ParagraphStyle
 
-        # Estilo para el título (más pequeño y con soporte multilínea)
+        # Estilo para el título del encabezado (10pt según especificación)
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=12,  # Reducido de 16 a 12
+            fontSize=10,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            leading=14  # Espaciado entre líneas
+            leading=11,  # Espaciado entre líneas
+            wordWrap='CJK'  # Permitir word wrap mejorado
         )
 
         titulo = template.titulo.upper()
 
-        # Posicionamiento exacto del título según medidas del usuario:
-        # 0-1.5cm: margen izquierdo
-        # 1.5-4cm: logo Redes Urbide (2.5cm)
-        # 4-14cm: título del informe (10cm)
-        # 14-19.5cm: logo Urbide (5.5cm)
-        # 19.5-21cm: margen derecho
-        x_inicio_titulo = 4 * cm  # Comienza a los 4cm
-        ancho_max_titulo = 10 * cm  # 10cm de ancho para el título
+        # Preparar contenido de las 3 celdas del encabezado
+        tabla_data = [[]]
 
-        # Crear Paragraph para el título
+        # Celda 1: Logo izquierdo (Redes Urbide)
+        logo_izq_celda = ""
+        if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
+            try:
+                # Crear objeto Image de ReportLab
+                logo_izq_img = RLImage(template.logo_izquierdo_path,
+                                       width=2.2*cm, height=2.0*cm)
+                logo_izq_celda = logo_izq_img
+            except:
+                logo_izq_celda = ""
+        tabla_data[0].append(logo_izq_celda)
+
+        # Celda 2: Título (Paragraph con ajuste automático)
         p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
+        tabla_data[0].append(p_titulo)
 
-        # Dibujar el Paragraph en el canvas
-        # Para centrar verticalmente en el área del encabezado
-        y_titulo = y_pos + template.altura_encabezado * 0.3  # Posición vertical ajustada
-
-        # Usar wrapOn y drawOn para dibujar el Paragraph
-        w, h = p_titulo.wrap(ancho_max_titulo, template.altura_encabezado)
-        p_titulo.drawOn(self, x_inicio_titulo, y_titulo)
-
-        # Logo derecho
+        # Celda 3: Logo derecho (Urbide) - reducido para que no sea demasiado grande
+        logo_der_celda = ""
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
             try:
-                img = PILImage.open(template.logo_derecho_path)
-                aspect_ratio = img.size[0] / img.size[1]
-                ancho_logo = template.altura_encabezado * aspect_ratio
-
-                x_logo_der = ancho_pagina - template.margen_derecho - ancho_logo
-                self.drawImage(
-                    template.logo_derecho_path,
-                    x_logo_der,
-                    y_pos,
-                    width=ancho_logo,
-                    height=template.altura_encabezado,
-                    preserveAspectRatio=True
-                )
+                # Crear objeto Image de ReportLab - reducido de 3.9x1.5 a 3.5x1.2
+                logo_der_img = RLImage(template.logo_derecho_path,
+                                       width=3.5*cm, height=1.2*cm)
+                logo_der_celda = logo_der_img
             except:
-                pass
+                logo_der_celda = ""
+        tabla_data[0].append(logo_der_celda)
+
+        # Anchos de columnas según especificación original: Logo izq (2.5cm) + Título (11.5cm) + Logo der (4.0cm) = 18.0cm
+        # Posiciones: 0-1.5cm margen | 1.5-4.0cm logo izq | 4.0-15.5cm título | 15.5-19.5cm logo der | 19.5-21cm margen
+        col_widths = [2.5*cm, 11.5*cm, 4.0*cm]
+
+        # Crear tabla
+        tabla_header = Table(tabla_data, colWidths=col_widths, rowHeights=[template.altura_encabezado])
+
+        # Estilo de tabla sin bordes visibles
+        estilo_tabla_header = TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),    # Logo izquierdo centrado
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),    # Título centrado
+            ('ALIGN', (2, 0), (2, 0), 'CENTER'),    # Logo derecho centrado
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),  # Alineación vertical al centro
+            ('LEFTPADDING', (0, 0), (-1, 0), 0),
+            ('RIGHTPADDING', (0, 0), (-1, 0), 0),
+            ('TOPPADDING', (0, 0), (-1, 0), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 0),
+            # Sin bordes
+            ('BOX', (0, 0), (-1, -1), 0, colors.white),
+            ('GRID', (0, 0), (-1, -1), 0, colors.white),
+        ])
+
+        tabla_header.setStyle(estilo_tabla_header)
+
+        # Dibujar la tabla en el canvas
+        w, h = tabla_header.wrap(0, 0)
+        x_tabla = template.margen_izquierdo
+        tabla_header.drawOn(self, x_tabla, y_pos)
 
         # Línea separadora
         self.setStrokeColor(colors.HexColor('#CCCCCC'))
@@ -209,7 +211,8 @@ class PDFTemplate:
         subtitulo: str = "",
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha: str = ""
+        fecha: str = "",
+        anchos_columnas: Optional[Dict[str, float]] = None
     ):
         """
         Inicializa la plantilla PDF
@@ -222,6 +225,7 @@ class PDFTemplate:
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
             fecha: Fecha del informe (si no se proporciona, usa fecha actual)
+            anchos_columnas: Diccionario con anchos personalizados de columnas en cm (ej: {"Código": 2.0})
         """
         self.schema = schema
         self.orientacion = orientacion
@@ -230,6 +234,7 @@ class PDFTemplate:
         self.proyecto_nombre = proyecto_nombre
         self.proyecto_codigo = proyecto_codigo
         self.fecha = fecha if fecha else datetime.now().strftime("%d/%m/%Y")
+        self.anchos_columnas = anchos_columnas or {}
 
         # Configurar tamaño de página
         if orientacion == "horizontal":
@@ -245,6 +250,7 @@ class PDFTemplate:
         # El encabezado se dibuja en el espacio del margen superior
         self.margen_superior_encabezado = 0.8 * cm  # Espacio desde el borde hasta el encabezado
         self.altura_encabezado = 2.0 * cm  # Altura del encabezado (logos)
+        self.altura_logo_derecho = 1.0 * cm  # Altura específica para el logo derecho
         self.espacio_tras_encabezado = 0.7 * cm  # Espacio entre encabezado y contenido
         self.margen_superior = self.margen_superior_encabezado + self.altura_encabezado + self.espacio_tras_encabezado  # Total: ~3.5cm
 
@@ -308,7 +314,7 @@ class PDFTemplate:
             'TituloPrincipal',
             parent=self.styles['Heading1'],
             fontName='Helvetica-Bold',
-            fontSize=20,
+            fontSize=16,
             textColor=colors.HexColor('#003366'),  # Azul oscuro (Access)
             alignment=TA_CENTER,
             spaceAfter=6,
@@ -353,7 +359,7 @@ class PDFTemplate:
             'GrupoNivel0',
             parent=self.styles['Heading2'],
             fontName='Helvetica-Bold',
-            fontSize=11,
+            fontSize=12,
             textColor=colors.white,
             alignment=TA_LEFT,
             leftIndent=6,
@@ -481,12 +487,18 @@ class PDFTemplate:
 
         # Calcular anchos de columnas
         col_widths = []
-        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
 
-        if usa_anchos_personalizados:
+        # Prioridad 1: anchos_columnas desde configuración (self.anchos_columnas)
+        if self.anchos_columnas and all(col in self.anchos_columnas for col in columnas):
+            # Usar anchos configurados (convertir de cm a puntos)
+            for col in columnas:
+                col_widths.append(self.anchos_columnas[col] * cm)
+        # Prioridad 2: anchos hardcodeados para Recursos
+        elif all(col in anchos_recursos for col in columnas):
             # Usar anchos personalizados para informes de Recursos
             for col in columnas:
                 col_widths.append(anchos_recursos[col])
+        # Prioridad 3: distribución equitativa
         else:
             # Distribución equitativa para otros informes
             num_columnas = len(columnas)
@@ -498,9 +510,9 @@ class PDFTemplate:
             'CeldaDatos',
             parent=self.styles['Normal'],
             fontName='Helvetica',
-            fontSize=8,
+            fontSize=9,
             alignment=TA_LEFT,
-            leading=10  # Espaciado entre líneas
+            leading=11  # Espaciado entre líneas
         )
 
         # Estilo para celdas numéricas (alineadas a la derecha)
@@ -519,10 +531,10 @@ class PDFTemplate:
             'EncabezadoTabla',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=10,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#003366'),
-            leading=11
+            leading=12
         )
         for col_name in columnas:
             encabezados_para.append(Paragraph(f"<b>{col_name}</b>", estilo_encabezado))

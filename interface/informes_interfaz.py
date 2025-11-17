@@ -32,7 +32,7 @@ from script.informes_config import (
     LOGICA_FILTROS,
     CONFIG_CABECERA_DEFAULT
 )
-from script.informes import get_dimension_values, ejecutar_informe, ejecutar_informe_con_agrupacion
+from script.informes import get_dimension_values, ejecutar_informe, ejecutar_informe_con_agrupacion, ejecutar_informe_ordenes_recursos
 from script.informes_storage import InformesConfigStorage
 
 
@@ -82,6 +82,25 @@ class InformesFrame(customtkinter.CTkFrame):
         # Seleccionar informe inicial si se proporcionó
         if self.informe_inicial:
             self.after(100, lambda: self._select_initial_report(self.informe_inicial))
+
+    def _show_message_safe(self, title, message, icon="info"):
+        """Muestra un mensaje de forma segura, manejando errores de Tkinter"""
+        try:
+            # Verificar que la ventana principal existe
+            if not self.winfo_exists():
+                print(f"[{icon.upper()}] {title}: {message}")
+                return
+
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title=title,
+                message=message,
+                icon=icon
+            )
+        except Exception as e:
+            # Si falla el mensaje gráfico, imprimir en consola
+            print(f"[{icon.upper()}] {title}: {message}")
+            print(f"Error al mostrar mensaje: {e}")
 
     def _create_compact_header(self):
         """Crea el header compacto en una sola línea con título y botón configuración"""
@@ -892,8 +911,7 @@ class InformesFrame(customtkinter.CTkFrame):
     def _add_agrupacion(self):
         """Añade un nuevo nivel de agrupación"""
         if not self.definicion_actual:
-            from CTkMessagebox import CTkMessagebox
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Aviso",
                 message="Selecciona primero un informe para poder configurar agrupaciones",
                 icon="warning"
@@ -905,8 +923,7 @@ class InformesFrame(customtkinter.CTkFrame):
         max_niveles = agrupaciones_config.get('max_niveles', 3)
 
         if len(self.agrupaciones) >= max_niveles:
-            from CTkMessagebox import CTkMessagebox
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Límite alcanzado",
                 message=f"Máximo {max_niveles} niveles de agrupación permitidos",
                 icon="warning"
@@ -2042,13 +2059,26 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para mostrar en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                # Para ordenes_con_recursos, los campos se manejan internamente
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    # Si aún no hay campos, es un informe especial que no requiere selección
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                # Solo validar para informes normales
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para mostrar en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -2080,8 +2110,40 @@ class InformesFrame(customtkinter.CTkFrame):
         print(f"{'='*70}\n")
 
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos'")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Para este tipo de informe, la visualización en pantalla se simplifica
+                # mostrando solo un resumen, ya que la estructura completa se ve mejor en PDF
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+
+                # Crear resultado_agrupacion compatible para la exportación
+                resultado_agrupacion = resultado_ordenes
+                totales = {'Total Orden': resultado_ordenes.get('gran_total', 0)}
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -2594,13 +2656,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -2622,8 +2694,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar Word")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para Word
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -2846,13 +2947,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -2874,8 +2985,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar Excel")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para Excel
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -3097,13 +3237,23 @@ class InformesFrame(customtkinter.CTkFrame):
         # Recopilar campos seleccionados (respetando orden personalizado)
         campos_seleccionados = self._recopilar_campos()
 
+        # Para informes especiales o con campos_fijos, usar campos por defecto si no hay selección
+        tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+        campos_fijos = self.definicion_actual.get('campos_fijos', False) if self.definicion_actual else False
+
         if not campos_seleccionados:
-            CTkMessagebox(
-                title="Aviso",
-                message="Seleccione al menos un campo para incluir en el informe.",
-                icon="warning"
-            )
-            return
+            # Si es informe especial o tiene campos fijos, usar campos por defecto
+            if tipo_especial == 'ordenes_con_recursos' or campos_fijos:
+                campos_seleccionados = self.definicion_actual.get('campos_default', [])
+                if not campos_seleccionados:
+                    campos_seleccionados = ['_especial_']  # Placeholder
+            else:
+                CTkMessagebox(
+                    title="Aviso",
+                    message="Seleccione al menos un campo para incluir en el informe.",
+                    icon="warning"
+                )
+                return
 
         # Recopilar agrupaciones aplicadas
         agrupaciones_aplicadas = []
@@ -3125,8 +3275,37 @@ class InformesFrame(customtkinter.CTkFrame):
 
         # Ejecutar informe para obtener datos
         try:
+            # Detectar si es un informe especial de tipo "ordenes_con_recursos"
+            tipo_especial = self.definicion_actual.get('tipo_especial') if self.definicion_actual else None
+
+            if tipo_especial == 'ordenes_con_recursos':
+                # Informe especial: Órdenes de Trabajo con Recursos
+                print("DEBUG: Ejecutando informe especial 'ordenes_con_recursos' para exportar PDF")
+                resultado_ordenes = ejecutar_informe_ordenes_recursos(
+                    self.user,
+                    self.password,
+                    self.schema,
+                    self.informe_seleccionado,
+                    filtros=filtros_aplicados,
+                    ordenaciones=ordenaciones_aplicadas,
+                    agrupaciones=agrupaciones_aplicadas
+                )
+                # Crear columnas y datos para compatibilidad con el exportador
+                columnas = ['ID', 'Código', 'Título', 'Total Orden']
+                datos = []
+                for orden in resultado_ordenes.get('ordenes', []):
+                    datos_orden = orden['datos_orden']
+                    datos.append((
+                        orden['id'],
+                        datos_orden.get('codigo', ''),
+                        datos_orden.get('titulo', ''),
+                        orden['total_orden']
+                    ))
+                # El resultado_agrupacion contiene la estructura completa para el PDF
+                resultado_agrupacion = resultado_ordenes
+
             # Si hay agrupaciones o agregaciones, usar la versión extendida
-            if agrupaciones_aplicadas or agregaciones_aplicadas:
+            elif agrupaciones_aplicadas or agregaciones_aplicadas:
                 columnas, datos, resultado_agrupacion = ejecutar_informe_con_agrupacion(
                     self.user,
                     self.password,
@@ -3217,21 +3396,21 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if exito:
-                CTkMessagebox(
+                self._show_message_safe(
                     title="Exportación Exitosa",
                     message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
                             f"Registros exportados: {len(datos)}",
                     icon="check"
                 )
             else:
-                CTkMessagebox(
+                self._show_message_safe(
                     title="Error",
                     message="Error al exportar el informe. Revise la consola para más detalles.",
                     icon="cancel"
                 )
 
         except ImportError as e:
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Error",
                 message=f"Falta instalar una librería requerida:\n\n{str(e)}\n\n"
                         "Por favor, instala las dependencias con:\n"
@@ -3241,7 +3420,7 @@ class InformesFrame(customtkinter.CTkFrame):
         except Exception as e:
             import traceback
             print(f"Error al exportar a PDF:\n{traceback.format_exc()}")
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Error",
                 message=f"Error al exportar a PDF:\n\n{str(e)}",
                 icon="cancel"

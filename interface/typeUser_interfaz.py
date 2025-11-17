@@ -58,7 +58,12 @@ class AppTypeUser(customtkinter.CTk):
         self.admin_label.grid(row=1, column=1, padx=30, pady=(15, 5))
         self.admin_button = customtkinter.CTkButton(self.select_frame, text="Administrador de proyecto", command=lambda:self.manager_event(access), width=200)
         self.admin_button.grid(row=2, column=1, padx=30, pady=(15, 15))
-        # --- NUEVO: botón Generador de partes ---
+
+        parts_path = parent_path +"/resources/images/Generador_partes.png"
+        self.parts_image = customtkinter.CTkImage(Image.open(parts_path),
+                                               size=(100, 100))
+        self.parts_label = customtkinter.CTkLabel(self.select_frame,  text='',image=self.parts_image)
+        self.parts_label.grid(row=1, column=2, padx=30, pady=(15, 5))
         self.parts_button = customtkinter.CTkButton(
             self.select_frame,
             text="Generador de partes",

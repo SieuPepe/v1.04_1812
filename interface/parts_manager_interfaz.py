@@ -120,7 +120,7 @@ class AppPartsManager(customtkinter.CTk):
         informes_path = os.path.join(parent_path, "resources/images/informes.png")
         self.informes_image = customtkinter.CTkImage(Image.open(informes_path), size=(30, 30))
 
-        ayuda_path = os.path.join(parent_path, "resources/images/info.png")
+        ayuda_path = os.path.join(parent_path, "resources/images/ayuda.png")
         self.ayuda_image = customtkinter.CTkImage(Image.open(ayuda_path), size=(30, 30))
 
     def _create_sidebar(self):

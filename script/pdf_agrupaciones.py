@@ -65,7 +65,8 @@ class PDFAgrupaciones(PDFTemplate):
                 tabla_totales = self._crear_tabla_totales_generales(
                     totales_generales,
                     columnas,
-                    formatos_agregaciones
+                    formatos_agregaciones,
+                    resultado_agrupacion
                 )
                 elementos.append(tabla_totales)
 
@@ -249,12 +250,18 @@ class PDFAgrupaciones(PDFTemplate):
 
         # Calcular anchos de columnas
         col_widths = []
-        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
 
-        if usa_anchos_personalizados:
+        # Prioridad 1: anchos_columnas desde configuración (self.anchos_columnas)
+        if self.anchos_columnas and all(col in self.anchos_columnas for col in columnas):
+            # Usar anchos configurados (ya en cm)
+            for col in columnas:
+                col_widths.append(self.anchos_columnas[col] * cm)
+        # Prioridad 2: anchos hardcodeados para Recursos
+        elif all(col in anchos_recursos for col in columnas):
             # Usar anchos personalizados para informes de Recursos
             for col in columnas:
                 col_widths.append(anchos_recursos[col])
+        # Prioridad 3: distribución equitativa
         else:
             # Distribución equitativa para otros informes
             ancho_columna = ancho_disponible / num_columnas
@@ -265,9 +272,9 @@ class PDFAgrupaciones(PDFTemplate):
             'CeldaDatosGrupo',
             parent=self.styles['Normal'],
             fontName='Helvetica',
-            fontSize=8,
+            fontSize=9,
             alignment=TA_LEFT,
-            leading=10
+            leading=11
         )
 
         # Estilo para celdas numéricas (alineadas a la derecha)
@@ -282,10 +289,10 @@ class PDFAgrupaciones(PDFTemplate):
             'EncabezadoGrupo',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=10,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#003366'),
-            leading=11
+            leading=12
         )
 
         # Preparar datos
@@ -424,12 +431,18 @@ class PDFAgrupaciones(PDFTemplate):
 
         # Calcular anchos de columnas
         col_widths = []
-        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
 
-        if usa_anchos_personalizados:
+        # Prioridad 1: anchos_columnas desde configuración (self.anchos_columnas)
+        if self.anchos_columnas and all(col in self.anchos_columnas for col in columnas):
+            # Usar anchos configurados (ya en cm)
+            for col in columnas:
+                col_widths.append(self.anchos_columnas[col] * cm)
+        # Prioridad 2: anchos hardcodeados para Recursos
+        elif all(col in anchos_recursos for col in columnas):
             # Usar anchos personalizados para informes de Recursos
             for col in columnas:
                 col_widths.append(anchos_recursos[col])
+        # Prioridad 3: distribución equitativa
         else:
             # Distribución equitativa para otros informes
             ancho_columna = ancho_disponible / num_columnas
@@ -489,7 +502,7 @@ class PDFAgrupaciones(PDFTemplate):
             ('BACKGROUND', (0, 0), (-1, -1), self.color_subtotal),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
@@ -513,7 +526,8 @@ class PDFAgrupaciones(PDFTemplate):
         self,
         totales: Dict[str, Any],
         columnas: List[str],
-        formatos_agregaciones: Dict[str, str]
+        formatos_agregaciones: Dict[str, str],
+        resultado_agrupacion: Dict[str, Any] = None
     ) -> Table:
         """
         Crea tabla con totales generales
@@ -522,10 +536,20 @@ class PDFAgrupaciones(PDFTemplate):
             totales: Diccionario con totales
             columnas: Nombres de columnas
             formatos_agregaciones: Formatos por agregación
+            resultado_agrupacion: Diccionario con metadatos del informe (opcional)
 
         Returns:
             Tabla con totales
         """
+        # Obtener configuración del informe
+        calcular_resumen_economico = False
+        porcentaje_gg = 8.0
+        porcentaje_bi = 3.0
+
+        if resultado_agrupacion:
+            calcular_resumen_economico = resultado_agrupacion.get('calcular_resumen_economico', False)
+            porcentaje_gg = resultado_agrupacion.get('porcentaje_gastos_generales', 8.0)
+            porcentaje_bi = resultado_agrupacion.get('porcentaje_beneficio', 3.0)
         # Calcular ancho disponible
         ancho_disponible = self.pagesize[0] - self.margen_izquierdo - self.margen_derecho
 
@@ -550,32 +574,26 @@ class PDFAgrupaciones(PDFTemplate):
 
         # Calcular anchos de columnas
         col_widths = []
-        usa_anchos_personalizados = all(col in anchos_recursos for col in columnas)
+        usa_anchos_personalizados = False
 
-        if usa_anchos_personalizados:
+        # Prioridad 1: anchos_columnas desde configuración (self.anchos_columnas)
+        if self.anchos_columnas and all(col in self.anchos_columnas for col in columnas):
+            # Usar anchos configurados (ya en cm)
+            for col in columnas:
+                col_widths.append(self.anchos_columnas[col] * cm)
+            usa_anchos_personalizados = True
+        # Prioridad 2: anchos hardcodeados para Recursos
+        elif all(col in anchos_recursos for col in columnas):
             # Usar anchos personalizados para informes de Recursos
             for col in columnas:
                 col_widths.append(anchos_recursos[col])
+            usa_anchos_personalizados = True
+        # Prioridad 3: distribución equitativa
         else:
             # Distribución equitativa para otros informes
             ancho_columna = ancho_disponible / num_columnas
             col_widths = [ancho_columna] * num_columnas
-
-        # Extraer el total de ejecución material (buscar columna "Importe")
-        total_ejecucion_material = 0.0
-        for key, valor in totales.items():
-            # Buscar el total de la columna "Importe" o similar
-            if 'Importe' in key or 'importe' in key or 'total' in key.lower():
-                if isinstance(valor, (int, float, Decimal)):
-                    total_ejecucion_material = float(valor) if isinstance(valor, Decimal) else valor
-                    break
-
-        # Calcular valores finales
-        porcentaje_gg = 8.0
-        porcentaje_bi = 3.0
-        gastos_generales = total_ejecucion_material * (porcentaje_gg / 100.0)
-        beneficio_industrial = total_ejecucion_material * (porcentaje_bi / 100.0)
-        total_final = total_ejecucion_material + gastos_generales + beneficio_industrial
+            usa_anchos_personalizados = False
 
         # Formato moneda español
         def formato_moneda(valor):
@@ -584,32 +602,34 @@ class PDFAgrupaciones(PDFTemplate):
         # Estilo para texto
         from reportlab.lib.styles import ParagraphStyle
         from reportlab.lib.enums import TA_RIGHT
+        from reportlab.platypus import Paragraph
 
         estilo_texto = ParagraphStyle(
             'TotalesTexto',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=10,
+            fontSize=11,
             alignment=TA_RIGHT,
-            leading=12
+            leading=13
         )
 
         estilo_valor = ParagraphStyle(
             'TotalesValor',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=10,
+            fontSize=11,
             alignment=TA_RIGHT,
-            leading=12
+            leading=13
         )
 
         estilo_total_final = ParagraphStyle(
             'TotalFinal',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=11,
+            fontSize=12,
+            textColor=colors.white,
             alignment=TA_RIGHT,
-            leading=13
+            leading=14
         )
 
         # Calcular anchos para la tabla de totales
@@ -623,33 +643,69 @@ class PDFAgrupaciones(PDFTemplate):
             ancho_texto = ancho_disponible * 0.75
             ancho_valor = ancho_disponible * 0.25
 
-        # Crear filas de datos
-        from reportlab.platypus import Paragraph
-        tabla_datos = [
-            [Paragraph("TOTAL EJECUCIÓN MATERIAL", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
-            [Paragraph(f"Gastos generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
-            [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
-            [Paragraph("TOTAL", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
-        ]
-
-        # Crear tabla
-        tabla_total = Table(tabla_datos, colWidths=[ancho_texto, ancho_valor])
-
-        # Estilo de la tabla
+        # Crear filas de datos según configuración
+        tabla_datos = []
         estilo = [
             ('LEFTPADDING', (0, 0), (-1, -1), 8),
             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-
-            # Línea encima de TOTAL
-            ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
-
-            # Fondo para la fila final
-            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F0F0F0')),
         ]
 
+        if calcular_resumen_economico:
+            # Extraer el total de ejecución material (buscar columna "Importe")
+            total_ejecucion_material = 0.0
+            for key, valor in totales.items():
+                # Buscar el total de la columna "Importe" o similar
+                if 'Importe' in key or 'importe' in key or 'total' in key.lower():
+                    if isinstance(valor, (int, float, Decimal)):
+                        total_ejecucion_material = float(valor) if isinstance(valor, Decimal) else valor
+                        break
+
+            # Calcular valores finales
+            gastos_generales = total_ejecucion_material * (porcentaje_gg / 100.0)
+            beneficio_industrial = total_ejecucion_material * (porcentaje_bi / 100.0)
+            total_final = total_ejecucion_material + gastos_generales + beneficio_industrial
+
+            # Crear tabla con resumen económico
+            tabla_datos = [
+                [Paragraph("Presupuesto de Ejecución Material", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
+                [Paragraph(f"Gastos Generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
+                [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
+                [Paragraph("Presupuesto Total", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
+            ]
+
+            # Estilo específico para resumen económico
+            estilo.extend([
+                # Línea encima de Presupuesto Total
+                ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
+                # Fondo oscuro para la fila final con texto blanco
+                ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#404040')),
+                ('TEXTCOLOR', (0, 3), (-1, 3), colors.white),
+            ])
+        else:
+            # Tabla simple de totales (solo mostrar los totales sin cálculos adicionales)
+            for key, valor in totales.items():
+                if isinstance(valor, (int, float, Decimal)):
+                    valor_formateado = formato_moneda(float(valor) if isinstance(valor, Decimal) else valor)
+                else:
+                    valor_formateado = str(valor)
+
+                tabla_datos.append([
+                    Paragraph(f"Total {key}", estilo_texto),
+                    Paragraph(valor_formateado, estilo_valor)
+                ])
+
+            # Si hay filas, agregar estilo a la última
+            if tabla_datos:
+                ultima_fila = len(tabla_datos) - 1
+                estilo.extend([
+                    ('LINEABOVE', (0, ultima_fila), (-1, ultima_fila), 2, colors.black),
+                ])
+
+        # Crear tabla
+        tabla_total = Table(tabla_datos, colWidths=[ancho_texto, ancho_valor])
         tabla_total.setStyle(TableStyle(estilo))
 
         return tabla_total

@@ -20,7 +20,7 @@ HEADER_CONFIG_DEFAULT = {
     "mostrar_titulo": True,
     "fuente_titulo": {
         "nombre": "Arial",
-        "tamano": 16,
+        "tamano": 10,  # Reducido de 16 a 10pt según especificación
         "negrita": True,
         "color": "#1f6aa5"
     },
