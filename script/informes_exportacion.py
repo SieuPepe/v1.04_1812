@@ -2078,9 +2078,6 @@ class InformesExportador:
                     wordWrap='CJK'  # Permitir word wrap mejorado
                 )
 
-                # DEBUG: Verificar que este código se ejecuta
-                print(f"[DEBUG] encabezado_pagina() ejecutándose - fontSize del título: 12pt")
-
                 titulo = informe_nombre.upper()
 
                 # Preparar contenido de las 3 celdas del encabezado

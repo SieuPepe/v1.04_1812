@@ -84,9 +84,6 @@ class NumberedCanvas(canvas.Canvas):
             wordWrap='CJK'  # Permitir word wrap mejorado
         )
 
-        # DEBUG: Verificar que este código se ejecuta
-        print(f"[DEBUG] draw_header() ejecutándose - fontSize del título: 10pt")
-
         titulo = template.titulo.upper()
 
         # Preparar contenido de las 3 celdas del encabezado
