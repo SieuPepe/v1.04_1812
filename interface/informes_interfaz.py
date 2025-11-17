@@ -83,6 +83,25 @@ class InformesFrame(customtkinter.CTkFrame):
         if self.informe_inicial:
             self.after(100, lambda: self._select_initial_report(self.informe_inicial))
 
+    def _show_message_safe(self, title, message, icon="info"):
+        """Muestra un mensaje de forma segura, manejando errores de Tkinter"""
+        try:
+            # Verificar que la ventana principal existe
+            if not self.winfo_exists():
+                print(f"[{icon.upper()}] {title}: {message}")
+                return
+
+            from CTkMessagebox import CTkMessagebox
+            CTkMessagebox(
+                title=title,
+                message=message,
+                icon=icon
+            )
+        except Exception as e:
+            # Si falla el mensaje gráfico, imprimir en consola
+            print(f"[{icon.upper()}] {title}: {message}")
+            print(f"Error al mostrar mensaje: {e}")
+
     def _create_compact_header(self):
         """Crea el header compacto en una sola línea con título y botón configuración"""
         # Frame del header (altura fija ~40px)
@@ -892,8 +911,7 @@ class InformesFrame(customtkinter.CTkFrame):
     def _add_agrupacion(self):
         """Añade un nuevo nivel de agrupación"""
         if not self.definicion_actual:
-            from CTkMessagebox import CTkMessagebox
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Aviso",
                 message="Selecciona primero un informe para poder configurar agrupaciones",
                 icon="warning"
@@ -905,8 +923,7 @@ class InformesFrame(customtkinter.CTkFrame):
         max_niveles = agrupaciones_config.get('max_niveles', 3)
 
         if len(self.agrupaciones) >= max_niveles:
-            from CTkMessagebox import CTkMessagebox
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Límite alcanzado",
                 message=f"Máximo {max_niveles} niveles de agrupación permitidos",
                 icon="warning"
@@ -3379,21 +3396,21 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if exito:
-                CTkMessagebox(
+                self._show_message_safe(
                     title="Exportación Exitosa",
                     message=f"El informe se ha exportado correctamente a:\n\n{archivo}\n\n"
                             f"Registros exportados: {len(datos)}",
                     icon="check"
                 )
             else:
-                CTkMessagebox(
+                self._show_message_safe(
                     title="Error",
                     message="Error al exportar el informe. Revise la consola para más detalles.",
                     icon="cancel"
                 )
 
         except ImportError as e:
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Error",
                 message=f"Falta instalar una librería requerida:\n\n{str(e)}\n\n"
                         "Por favor, instala las dependencias con:\n"
@@ -3403,7 +3420,7 @@ class InformesFrame(customtkinter.CTkFrame):
         except Exception as e:
             import traceback
             print(f"Error al exportar a PDF:\n{traceback.format_exc()}")
-            CTkMessagebox(
+            self._show_message_safe(
                 title="Error",
                 message=f"Error al exportar a PDF:\n\n{str(e)}",
                 icon="cancel"
