@@ -1689,12 +1689,13 @@ class InformesExportador:
             print(f"Generando PDF de Órdenes con Recursos: {filepath}")
 
             # Crear documento
+            # topMargin: 0.5cm desde borde + 2cm encabezado = 2.5cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=A4,  # Vertical (Portrait)
                 rightMargin=1.5*cm,
                 leftMargin=1.5*cm,
-                topMargin=1.5*cm,
+                topMargin=2.5*cm,
                 bottomMargin=2*cm
             )
 
@@ -1737,41 +1738,6 @@ class InformesExportador:
             # Elementos del PDF
             elements = []
 
-            # ENCABEZADO: Logos + Título
-            header_table_data = []
-            logo_izq = None
-            logo_der = None
-
-            # Logo izquierdo
-            if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                from reportlab.platypus import Image
-                logo_izq = Image(self.logo_redes_path, width=3*cm, height=2*cm)
-
-            # Logo derecho (mantener aspect ratio, solo especificar ancho)
-            if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                from reportlab.platypus import Image
-                # Usar solo width para mantener aspect ratio automáticamente
-                # No especificar height para evitar deformación vertical
-                logo_der = Image(self.logo_urbide_path, width=3*cm)
-
-            # Título centrado
-            titulo_para = Paragraph(informe_nombre.upper(), style_titulo)
-
-            if logo_izq and logo_der:
-                header_table_data.append([logo_izq, titulo_para, logo_der])
-                header_table = Table(header_table_data, colWidths=[3.5*cm, None, 3.5*cm])
-                header_table.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),
-                    ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ]))
-                elements.append(header_table)
-            else:
-                elements.append(titulo_para)
-
-            elements.append(Spacer(1, 0.5*cm))
-
             # Obtener datos
             ordenes = resultado_ordenes.get('ordenes', [])
             grupos = resultado_ordenes.get('grupos', [])
@@ -1788,27 +1754,21 @@ class InformesExportador:
                 total_orden = orden_data['total_orden']
 
                 # CABECERA DE LA ORDEN
-                # Primera fila: Código + Localización (ambos en la misma fila, como dos columnas)
+                # Primera fila: Código + Localización (NO en tabla, como párrafo)
                 codigo = datos_orden.get('codigo', '')
                 titulo = datos_orden.get('titulo', '')
 
-                cabecera_fila1 = Table(
-                    [[Paragraph(f"<b>{codigo}</b>", style_normal),
-                      Paragraph(f"<b>{titulo}</b>", style_normal)]],
-                    colWidths=[3.5*cm, 14.5*cm]
+                # Crear párrafo para código y localización
+                style_codigo = ParagraphStyle(
+                    'CodigoStyle',
+                    parent=style_normal,
+                    fontSize=10,
+                    fontName='Helvetica-Bold',
+                    spaceAfter=6
                 )
-                cabecera_fila1.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#D0D0D0')),
-                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#808080')),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                    ('TOPPADDING', (0, 0), (-1, -1), 4),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                ]))
-                elementos_orden.append(cabecera_fila1)
+                codigo_titulo_text = f"<b>{codigo}</b>   {titulo}"
+                elementos_orden.append(Paragraph(codigo_titulo_text, style_codigo))
+                elementos_orden.append(Spacer(1, 0.3*cm))
 
                 # Resto de campos de la orden (FECHA, LOCALIZACIÓN, LATITUD/LONGITUD)
                 fecha_fin = datos_orden.get('fecha_fin', '')
@@ -1840,38 +1800,60 @@ class InformesExportador:
                     loc_completa += f" - {localizacion}"
 
                 # Tabla con el resto de datos
-                # Fila 2: Fecha
-                # Fila 3: Localización
-                # Fila 4: Latitud y Longitud en la misma fila
+                # Fila 2: Fecha (3.5cm + 14.5cm)
+                # Fila 3: Localización (3.5cm + 14.5cm)
+                # Fila 4: Latitud y Longitud (3.5cm + 5.5cm + 3.5cm + 5.5cm = 18cm)
                 datos_cabecera = [
-                    [Paragraph("<b>Fecha:</b>", style_normal), Paragraph(str(fecha_fin), style_normal), '', ''],
-                    [Paragraph("<b>Localización:</b>", style_normal), Paragraph(loc_completa, style_normal), '', ''],
+                    [Paragraph("<b>Fecha:</b>", style_normal), Paragraph(str(fecha_fin), style_normal)],
+                    [Paragraph("<b>Localización:</b>", style_normal), Paragraph(loc_completa, style_normal)],
                 ]
 
-                # Fila con latitud y longitud (4 celdas en la fila)
-                if latitud and longitud:
-                    datos_cabecera.append([
-                        Paragraph("<b>Latitud:</b>", style_normal),
-                        Paragraph(str(latitud), style_normal),
-                        Paragraph("<b>Longitud:</b>", style_normal),
-                        Paragraph(str(longitud), style_normal)
-                    ])
+                # Anchos para filas 2 y 3 (2 columnas)
+                col_widths_2cols = [3.5*cm, 14.5*cm]
 
-                cabecera_datos = Table(datos_cabecera, colWidths=[3.5*cm, 4.5*cm, 3.5*cm, 3.5*cm])
-                cabecera_datos.setStyle(TableStyle([
+                # Crear tabla para Fecha y Localización
+                tabla_fecha_loc = Table(datos_cabecera, colWidths=col_widths_2cols)
+                tabla_fecha_loc.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                     ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#E8E8E8')),
                     ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#808080')),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.5, reportlab_colors.HexColor('#808080')),
                     ('LEFTPADDING', (0, 0), (-1, -1), 6),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 4),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-                    # No dibujar líneas internas para las celdas vacías
-                    ('INNERGRID', (0, 0), (-1, -1), 0, reportlab_colors.white),
                 ]))
-                elementos_orden.append(cabecera_datos)
+                elementos_orden.append(tabla_fecha_loc)
                 elementos_orden.append(Spacer(1, 0.3*cm))
+
+                # Fila 4: Latitud y Longitud (4 columnas: 3.5cm + 5.5cm + 3.5cm + 5.5cm)
+                if latitud and longitud:
+                    datos_coordenadas = [[
+                        Paragraph("<b>Latitud:</b>", style_normal),
+                        Paragraph(str(latitud), style_normal),
+                        Paragraph("<b>Longitud:</b>", style_normal),
+                        Paragraph(str(longitud), style_normal)
+                    ]]
+                    col_widths_4cols = [3.5*cm, 5.5*cm, 3.5*cm, 5.5*cm]
+
+                    tabla_coordenadas = Table(datos_coordenadas, colWidths=col_widths_4cols)
+                    tabla_coordenadas.setStyle(TableStyle([
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#E8E8E8')),
+                        ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#808080')),
+                        ('INNERGRID', (0, 0), (-1, -1), 0.5, reportlab_colors.HexColor('#808080')),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ]))
+                    elementos_orden.append(tabla_coordenadas)
+                    elementos_orden.append(Spacer(1, 0.3*cm))
+
+                # Más espacio antes de la tabla de recursos
+                elementos_orden.append(Spacer(1, 0.4*cm))
 
                 # TABLA DE RECURSOS
                 if recursos:
@@ -1943,7 +1925,8 @@ class InformesExportador:
                     # No hay recursos
                     elementos_orden.append(Paragraph("<i>Sin recursos presupuestados</i>", style_normal))
 
-                elementos_orden.append(Spacer(1, config.get('espaciado_entre_ordenes', 10)))
+                # Más espacio entre las partes (órdenes)
+                elementos_orden.append(Spacer(1, 1*cm))
                 return elementos_orden
 
             # Función auxiliar para renderizar grupos recursivamente
@@ -2037,6 +2020,65 @@ class InformesExportador:
                 elements.append(Spacer(1, 0.5*cm))
                 elements.append(tabla_gran_total)
 
+            # ENCABEZADO (en todas las páginas)
+            def encabezado_pagina(canvas, doc):
+                """Función para agregar encabezado con logos y título en cada página"""
+                canvas.saveState()
+
+                # Altura del encabezado: 2cm
+                # Margen desde el borde: 0.5cm
+                y_encabezado = A4[1] - 0.5*cm  # Posición Y desde el borde superior
+
+                # Dibujar logos con altura de 2cm (mantener aspect ratio)
+                logo_height = 2*cm
+                logo_y = y_encabezado - logo_height
+
+                # Logo izquierdo
+                if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                    try:
+                        # Obtener dimensiones originales de la imagen
+                        img = PILImage.open(self.logo_redes_path)
+                        img_width, img_height = img.size
+                        aspect_ratio = img_width / img_height
+
+                        # Calcular ancho manteniendo aspect ratio
+                        logo_width = logo_height * aspect_ratio
+
+                        # Dibujar logo izquierdo
+                        canvas.drawImage(self.logo_redes_path,
+                                       1.5*cm, logo_y,
+                                       width=logo_width, height=logo_height,
+                                       preserveAspectRatio=True, mask='auto')
+                    except Exception as e:
+                        print(f"Error al cargar logo izquierdo: {e}")
+
+                # Logo derecho
+                if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                    try:
+                        # Obtener dimensiones originales de la imagen
+                        img = PILImage.open(self.logo_urbide_path)
+                        img_width, img_height = img.size
+                        aspect_ratio = img_width / img_height
+
+                        # Calcular ancho manteniendo aspect ratio
+                        logo_width = logo_height * aspect_ratio
+
+                        # Dibujar logo derecho (alineado a la derecha)
+                        canvas.drawImage(self.logo_urbide_path,
+                                       A4[0] - 1.5*cm - logo_width, logo_y,
+                                       width=logo_width, height=logo_height,
+                                       preserveAspectRatio=True, mask='auto')
+                    except Exception as e:
+                        print(f"Error al cargar logo derecho: {e}")
+
+                # Título centrado
+                canvas.setFont('Helvetica-Bold', 18)
+                canvas.setFillColor(reportlab_colors.HexColor('#404040'))
+                titulo_y = y_encabezado - logo_height / 2
+                canvas.drawCentredString(A4[0] / 2, titulo_y, informe_nombre.upper())
+
+                canvas.restoreState()
+
             # PIE DE PÁGINA (con fecha y paginación)
             def pie_pagina(canvas, doc):
                 """Función para agregar pie de página en cada página"""
@@ -2053,7 +2095,8 @@ class InformesExportador:
                 canvas.restoreState()
 
             # Construir PDF
-            doc.build(elements, onFirstPage=pie_pagina, onLaterPages=pie_pagina)
+            doc.build(elements, onFirstPage=lambda c, d: (encabezado_pagina(c, d), pie_pagina(c, d)),
+                     onLaterPages=lambda c, d: (encabezado_pagina(c, d), pie_pagina(c, d)))
 
             print(f"✓ PDF de Órdenes con Recursos generado: {filepath}")
             return True
