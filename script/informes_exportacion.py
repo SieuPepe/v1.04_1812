@@ -1752,7 +1752,7 @@ class InformesExportador:
                 from reportlab.platypus import Image
                 # Usar solo width para mantener aspect ratio automáticamente
                 # No especificar height para evitar deformación vertical
-                logo_der = Image(self.logo_urbide_path, width=3*cm, height=None, kind='proportional')
+                logo_der = Image(self.logo_urbide_path, width=3*cm)
 
             # Título centrado
             titulo_para = Paragraph(informe_nombre.upper(), style_titulo)
