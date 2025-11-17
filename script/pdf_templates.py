@@ -309,7 +309,7 @@ class PDFTemplate:
             'TituloPrincipal',
             parent=self.styles['Heading1'],
             fontName='Helvetica-Bold',
-            fontSize=20,
+            fontSize=16,
             textColor=colors.HexColor('#003366'),  # Azul oscuro (Access)
             alignment=TA_CENTER,
             spaceAfter=6,
@@ -354,7 +354,7 @@ class PDFTemplate:
             'GrupoNivel0',
             parent=self.styles['Heading2'],
             fontName='Helvetica-Bold',
-            fontSize=11,
+            fontSize=12,
             textColor=colors.white,
             alignment=TA_LEFT,
             leftIndent=6,

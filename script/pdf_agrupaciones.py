@@ -589,7 +589,7 @@ class PDFAgrupaciones(PDFTemplate):
             'TotalesTexto',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=10,
+            fontSize=9,
             alignment=TA_RIGHT,
             leading=12
         )
@@ -598,7 +598,7 @@ class PDFAgrupaciones(PDFTemplate):
             'TotalesValor',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=10,
+            fontSize=9,
             alignment=TA_RIGHT,
             leading=12
         )
@@ -607,9 +607,10 @@ class PDFAgrupaciones(PDFTemplate):
             'TotalFinal',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=11,
+            fontSize=12,
+            textColor=colors.white,
             alignment=TA_RIGHT,
-            leading=13
+            leading=14
         )
 
         # Calcular anchos para la tabla de totales
@@ -626,10 +627,10 @@ class PDFAgrupaciones(PDFTemplate):
         # Crear filas de datos
         from reportlab.platypus import Paragraph
         tabla_datos = [
-            [Paragraph("TOTAL EJECUCIÓN MATERIAL", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
-            [Paragraph(f"Gastos generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
+            [Paragraph("Presupuesto de Ejecución Material", estilo_texto), Paragraph(formato_moneda(total_ejecucion_material), estilo_valor)],
+            [Paragraph(f"Gastos Generales ({porcentaje_gg:.0f}%)", estilo_texto), Paragraph(formato_moneda(gastos_generales), estilo_valor)],
             [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", estilo_texto), Paragraph(formato_moneda(beneficio_industrial), estilo_valor)],
-            [Paragraph("TOTAL", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
+            [Paragraph("Presupuesto Total", estilo_total_final), Paragraph(formato_moneda(total_final), estilo_total_final)]
         ]
 
         # Crear tabla
@@ -643,11 +644,12 @@ class PDFAgrupaciones(PDFTemplate):
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
 
-            # Línea encima de TOTAL
+            # Línea encima de Presupuesto Total
             ('LINEABOVE', (0, 3), (-1, 3), 2, colors.black),
 
-            # Fondo para la fila final
-            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#F0F0F0')),
+            # Fondo oscuro para la fila final con texto blanco
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#404040')),
+            ('TEXTCOLOR', (0, 3), (-1, 3), colors.white),
         ]
 
         tabla_total.setStyle(TableStyle(estilo))

@@ -1997,25 +1997,60 @@ class InformesExportador:
                 for orden in ordenes:
                     elements.extend(renderizar_orden(orden))
 
-            # GRAN TOTAL
+            # GRAN TOTAL (con PEM, GG, BI y Total)
             if config.get('mostrar_gran_total', True):
-                tabla_gran_total = Table(
-                    [[Paragraph("<b>TOTAL GENERAL:</b>", style_titulo),
-                      Paragraph(f"<b>{gran_total:.2f} €</b>", style_titulo)]],
-                    colWidths=[None, 4*cm]
+                # Calcular valores
+                pem = gran_total
+                porcentaje_gg = 8.0  # Porcentaje de gastos generales
+                porcentaje_bi = 3.0  # Porcentaje de beneficio industrial
+                gastos_generales = pem * (porcentaje_gg / 100.0)
+                beneficio_industrial = pem * (porcentaje_bi / 100.0)
+                total_final = pem + gastos_generales + beneficio_industrial
+
+                # Formato moneda español
+                def formato_moneda(valor):
+                    return f"{valor:,.2f} €".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+                # Estilo para filas normales
+                style_totales = ParagraphStyle(
+                    'TotalesTexto',
+                    parent=getSampleStyleSheet()['Normal'],
+                    fontName='Helvetica-Bold',
+                    fontSize=9,
+                    alignment=TA_RIGHT
                 )
+
+                # Estilo para fila final (con texto blanco)
+                style_total_final = ParagraphStyle(
+                    'TotalFinal',
+                    parent=getSampleStyleSheet()['Normal'],
+                    fontName='Helvetica-Bold',
+                    fontSize=12,
+                    textColor=reportlab_colors.white,
+                    alignment=TA_RIGHT
+                )
+
+                # Crear tabla de totales
+                tabla_totales_data = [
+                    [Paragraph("Presupuesto de Ejecución Material", style_totales), Paragraph(formato_moneda(pem), style_totales)],
+                    [Paragraph(f"Gastos Generales ({porcentaje_gg:.0f}%)", style_totales), Paragraph(formato_moneda(gastos_generales), style_totales)],
+                    [Paragraph(f"Beneficio Industrial ({porcentaje_bi:.0f}%)", style_totales), Paragraph(formato_moneda(beneficio_industrial), style_totales)],
+                    [Paragraph("Presupuesto Total", style_total_final), Paragraph(formato_moneda(total_final), style_total_final)]
+                ]
+
+                tabla_gran_total = Table(tabla_totales_data, colWidths=[14*cm, 4*cm])
                 tabla_gran_total.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#505050')),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), reportlab_colors.white),
-                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 12),
-                    ('BOX', (0, 0), (-1, -1), 2, reportlab_colors.black),
                     ('LEFTPADDING', (0, 0), (-1, -1), 10),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                    ('TOPPADDING', (0, 0), (-1, -1), 8),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+                    # Línea encima de Presupuesto Total
+                    ('LINEABOVE', (0, 3), (-1, 3), 2, reportlab_colors.black),
+                    # Fondo oscuro para la fila final con texto blanco
+                    ('BACKGROUND', (0, 3), (-1, 3), reportlab_colors.HexColor('#404040')),
+                    ('TEXTCOLOR', (0, 3), (-1, 3), reportlab_colors.white),
                 ]))
                 elements.append(Spacer(1, 0.5*cm))
                 elements.append(tabla_gran_total)
