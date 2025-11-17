@@ -2057,58 +2057,94 @@ class InformesExportador:
 
             # ENCABEZADO (en todas las páginas)
             def encabezado_pagina(canvas, doc):
-                """Función para agregar encabezado con logos y título en cada página"""
+                """Función para agregar encabezado con logos y título usando tabla sin bordes"""
                 canvas.saveState()
+
+                # Importar clases para tabla
+                from reportlab.platypus import Table, TableStyle, Image as RLImage
 
                 # Altura del encabezado: 2cm
                 # Margen desde el borde: 0.5cm
-                y_encabezado = A4[1] - 0.5*cm  # Posición Y desde el borde superior
+                y_encabezado = A4[1] - 0.5*cm - 2*cm  # Posición Y del encabezado
 
-                # Dibujar logos con altura de 2cm (mantener aspect ratio)
-                logo_height = 2*cm
-                logo_y = y_encabezado - logo_height
-
-                # Logo izquierdo (Redes Urbide) - dimensiones según especificación
-                if self.logo_redes_path and os.path.exists(self.logo_redes_path):
-                    try:
-                        # Dimensiones fijas según especificación
-                        logo_izq_width = 2.2*cm
-                        logo_izq_height = 2.0*cm
-
-                        # Dibujar logo izquierdo
-                        canvas.drawImage(self.logo_redes_path,
-                                       1.5*cm, logo_y,
-                                       width=logo_izq_width, height=logo_izq_height,
-                                       preserveAspectRatio=False, mask='auto')
-                    except Exception as e:
-                        print(f"Error al cargar logo izquierdo: {e}")
-
-                # Logo derecho (Urbide) - más pequeño que el izquierdo (1.2cm alto)
-                if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
-                    try:
-                        # Logo derecho más pequeño según especificación
-                        logo_der_height = 1.2*cm  # Reducido de 2cm a 1.2cm
-                        logo_der_width = 3.5*cm   # Ancho fijo
-
-                        # Calcular posición Y centrada verticalmente
-                        logo_der_y = logo_y + (logo_height - logo_der_height) / 2
-
-                        # Dibujar logo derecho (alineado a la derecha)
-                        canvas.drawImage(self.logo_urbide_path,
-                                       A4[0] - 1.5*cm - logo_der_width, logo_der_y,
-                                       width=logo_der_width, height=logo_der_height,
-                                       preserveAspectRatio=False, mask='auto')
-                    except Exception as e:
-                        print(f"Error al cargar logo derecho: {e}")
-
-                # Título centrado (reducido de 18pt a 10pt según especificación)
-                canvas.setFont('Helvetica-Bold', 10)
-                canvas.setFillColor(reportlab_colors.HexColor('#003366'))
-                titulo_y = y_encabezado - logo_height / 2
-                canvas.drawCentredString(A4[0] / 2, titulo_y, informe_nombre.upper())
+                # Estilo para el título del encabezado (12pt según especificación del usuario)
+                estilo_titulo_header = ParagraphStyle(
+                    'TituloHeader',
+                    fontName='Helvetica-Bold',
+                    fontSize=12,
+                    textColor=reportlab_colors.HexColor('#003366'),
+                    alignment=TA_CENTER,
+                    leading=13,  # Espaciado entre líneas
+                    wordWrap='CJK'  # Permitir word wrap mejorado
+                )
 
                 # DEBUG: Verificar que este código se ejecuta
-                print(f"[DEBUG] encabezado_pagina() ejecutándose - fontSize del título: 10pt")
+                print(f"[DEBUG] encabezado_pagina() ejecutándose - fontSize del título: 12pt")
+
+                titulo = informe_nombre.upper()
+
+                # Preparar contenido de las 3 celdas del encabezado
+                tabla_data = [[]]
+
+                # Celda 1: Logo izquierdo (Redes Urbide)
+                logo_izq_celda = ""
+                if self.logo_redes_path and os.path.exists(self.logo_redes_path):
+                    try:
+                        logo_izq_img = RLImage(self.logo_redes_path,
+                                               width=2.2*cm, height=2.0*cm)
+                        logo_izq_celda = logo_izq_img
+                    except:
+                        logo_izq_celda = ""
+                tabla_data[0].append(logo_izq_celda)
+
+                # Celda 2: Título (Paragraph con ajuste automático)
+                p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
+                tabla_data[0].append(p_titulo)
+
+                # Celda 3: Logo derecho (Urbide) - reducido para que no sea demasiado grande
+                logo_der_celda = ""
+                if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
+                    try:
+                        logo_der_img = RLImage(self.logo_urbide_path,
+                                               width=3.5*cm, height=1.2*cm)
+                        logo_der_celda = logo_der_img
+                    except:
+                        logo_der_celda = ""
+                tabla_data[0].append(logo_der_celda)
+
+                # Anchos de columnas según especificación: Logo izq (2.5cm) + Título (11.5cm) + Logo der (4.0cm) = 18.0cm
+                col_widths = [2.5*cm, 11.5*cm, 4.0*cm]
+
+                # Crear tabla
+                tabla_header = Table(tabla_data, colWidths=col_widths, rowHeights=[2.0*cm])
+
+                # Estilo de tabla sin bordes visibles
+                estilo_tabla_header = TableStyle([
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),    # Logo izquierdo centrado
+                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),    # Título centrado
+                    ('ALIGN', (2, 0), (2, 0), 'CENTER'),    # Logo derecho centrado
+                    ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),  # Alineación vertical al centro
+                    ('LEFTPADDING', (0, 0), (-1, 0), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, 0), 0),
+                    ('TOPPADDING', (0, 0), (-1, 0), 0),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 0),
+                    # Sin bordes
+                    ('BOX', (0, 0), (-1, -1), 0, reportlab_colors.white),
+                    ('GRID', (0, 0), (-1, -1), 0, reportlab_colors.white),
+                ])
+
+                tabla_header.setStyle(estilo_tabla_header)
+
+                # Dibujar la tabla en el canvas
+                w, h = tabla_header.wrap(0, 0)
+                x_tabla = 1.5*cm
+                tabla_header.drawOn(canvas, x_tabla, y_encabezado)
+
+                # Línea separadora
+                canvas.setStrokeColor(reportlab_colors.HexColor('#CCCCCC'))
+                canvas.setLineWidth(0.5)
+                y_linea = y_encabezado - 0.2*cm
+                canvas.line(1.5*cm, y_linea, A4[0] - 1.5*cm, y_linea)
 
                 canvas.restoreState()
 
