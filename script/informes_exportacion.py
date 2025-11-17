@@ -1689,13 +1689,13 @@ class InformesExportador:
             print(f"Generando PDF de Órdenes con Recursos: {filepath}")
 
             # Crear documento
-            # topMargin: 0.5cm desde borde + 2cm encabezado = 2.5cm
+            # topMargin: 0.5cm desde borde + 2cm encabezado + 0.5cm separación = 3.0cm
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=A4,  # Vertical (Portrait)
                 rightMargin=1.5*cm,
                 leftMargin=1.5*cm,
-                topMargin=2.5*cm,
+                topMargin=3.0*cm,
                 bottomMargin=2*cm
             )
 
@@ -1704,7 +1704,7 @@ class InformesExportador:
             style_titulo = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=18,
+                fontSize=16,
                 textColor=reportlab_colors.HexColor('#404040'),  # Gris oscuro
                 spaceAfter=12,
                 alignment=TA_CENTER
@@ -1712,7 +1712,7 @@ class InformesExportador:
             style_orden_header = ParagraphStyle(
                 'OrdenHeader',
                 parent=styles['Normal'],
-                fontSize=10,
+                fontSize=8,
                 textColor=reportlab_colors.HexColor('#606060'),  # Gris medio
                 spaceBefore=10,
                 spaceAfter=6,
@@ -1721,13 +1721,13 @@ class InformesExportador:
             style_normal = ParagraphStyle(
                 'CustomNormal',
                 parent=styles['Normal'],
-                fontSize=9,
+                fontSize=7,
                 spaceAfter=4
             )
             style_grupo = ParagraphStyle(
                 'GrupoHeader',
                 parent=styles['Heading2'],
-                fontSize=12,
+                fontSize=10,
                 textColor=reportlab_colors.white,
                 backColor=reportlab_colors.HexColor('#606060'),  # Gris medio
                 spaceBefore=12,
@@ -1762,7 +1762,7 @@ class InformesExportador:
                 style_codigo = ParagraphStyle(
                     'CodigoStyle',
                     parent=style_normal,
-                    fontSize=10,
+                    fontSize=8,
                     fontName='Helvetica-Bold',
                     spaceAfter=6
                 )
@@ -1877,7 +1877,7 @@ class InformesExportador:
 
                     # Fila de total - "Total Parte" con span
                     tabla_datos.append([
-                        Paragraph("<b>Total Parte</b>", style_normal), '', '', '', '',
+                        Paragraph(f"<b>Total Parte {codigo}</b>", style_normal), '', '', '', '',
                         Paragraph(f"<b>{total_orden:.2f} €</b>", style_normal)
                     ])
 
@@ -1891,14 +1891,14 @@ class InformesExportador:
                         ('TEXTCOLOR', (0, 0), (-1, 0), reportlab_colors.white),
                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTSIZE', (0, 0), (-1, 0), 9),
+                        ('FONTSIZE', (0, 0), (-1, 0), 7),
                         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
 
                         # Datos
                         ('ALIGN', (0, 1), (2, -2), 'CENTER'),
                         ('ALIGN', (3, 1), (3, -2), 'LEFT'),
                         ('ALIGN', (4, 1), (5, -2), 'RIGHT'),
-                        ('FONTSIZE', (0, 1), (-1, -2), 8),
+                        ('FONTSIZE', (0, 1), (-1, -2), 6),
                         ('ROWBACKGROUNDS', (0, 1), (-1, -2), [reportlab_colors.white, reportlab_colors.HexColor('#F5F5F5')]),
                         ('VALIGN', (0, 1), (-1, -2), 'TOP'),
 
@@ -2010,7 +2010,7 @@ class InformesExportador:
                     ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                     ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 14),
+                    ('FONTSIZE', (0, 0), (-1, -1), 12),
                     ('BOX', (0, 0), (-1, -1), 2, reportlab_colors.black),
                     ('LEFTPADDING', (0, 0), (-1, -1), 10),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 10),
