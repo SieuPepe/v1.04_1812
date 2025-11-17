@@ -2068,49 +2068,47 @@ class InformesExportador:
                 logo_height = 2*cm
                 logo_y = y_encabezado - logo_height
 
-                # Logo izquierdo
+                # Logo izquierdo (Redes Urbide) - dimensiones según especificación
                 if self.logo_redes_path and os.path.exists(self.logo_redes_path):
                     try:
-                        # Obtener dimensiones originales de la imagen
-                        img = PILImage.open(self.logo_redes_path)
-                        img_width, img_height = img.size
-                        aspect_ratio = img_width / img_height
-
-                        # Calcular ancho manteniendo aspect ratio
-                        logo_width = logo_height * aspect_ratio
+                        # Dimensiones fijas según especificación
+                        logo_izq_width = 2.2*cm
+                        logo_izq_height = 2.0*cm
 
                         # Dibujar logo izquierdo
                         canvas.drawImage(self.logo_redes_path,
                                        1.5*cm, logo_y,
-                                       width=logo_width, height=logo_height,
-                                       preserveAspectRatio=True, mask='auto')
+                                       width=logo_izq_width, height=logo_izq_height,
+                                       preserveAspectRatio=False, mask='auto')
                     except Exception as e:
                         print(f"Error al cargar logo izquierdo: {e}")
 
-                # Logo derecho
+                # Logo derecho (Urbide) - más pequeño que el izquierdo (1.2cm alto)
                 if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                     try:
-                        # Obtener dimensiones originales de la imagen
-                        img = PILImage.open(self.logo_urbide_path)
-                        img_width, img_height = img.size
-                        aspect_ratio = img_width / img_height
+                        # Logo derecho más pequeño según especificación
+                        logo_der_height = 1.2*cm  # Reducido de 2cm a 1.2cm
+                        logo_der_width = 3.5*cm   # Ancho fijo
 
-                        # Calcular ancho manteniendo aspect ratio
-                        logo_width = logo_height * aspect_ratio
+                        # Calcular posición Y centrada verticalmente
+                        logo_der_y = logo_y + (logo_height - logo_der_height) / 2
 
                         # Dibujar logo derecho (alineado a la derecha)
                         canvas.drawImage(self.logo_urbide_path,
-                                       A4[0] - 1.5*cm - logo_width, logo_y,
-                                       width=logo_width, height=logo_height,
-                                       preserveAspectRatio=True, mask='auto')
+                                       A4[0] - 1.5*cm - logo_der_width, logo_der_y,
+                                       width=logo_der_width, height=logo_der_height,
+                                       preserveAspectRatio=False, mask='auto')
                     except Exception as e:
                         print(f"Error al cargar logo derecho: {e}")
 
-                # Título centrado
-                canvas.setFont('Helvetica-Bold', 18)
-                canvas.setFillColor(reportlab_colors.HexColor('#404040'))
+                # Título centrado (reducido de 18pt a 10pt según especificación)
+                canvas.setFont('Helvetica-Bold', 10)
+                canvas.setFillColor(reportlab_colors.HexColor('#003366'))
                 titulo_y = y_encabezado - logo_height / 2
                 canvas.drawCentredString(A4[0] / 2, titulo_y, informe_nombre.upper())
+
+                # DEBUG: Verificar que este código se ejecuta
+                print(f"[DEBUG] encabezado_pagina() ejecutándose - fontSize del título: 10pt")
 
                 canvas.restoreState()
 
