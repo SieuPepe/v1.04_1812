@@ -247,7 +247,7 @@ class PDFTemplate:
         # El encabezado se dibuja en el espacio del margen superior
         self.margen_superior_encabezado = 0.8 * cm  # Espacio desde el borde hasta el encabezado
         self.altura_encabezado = 2.0 * cm  # Altura del encabezado (logos)
-        self.altura_logo_derecho = 1.5 * cm  # Altura específica para el logo derecho
+        self.altura_logo_derecho = 1.0 * cm  # Altura específica para el logo derecho
         self.espacio_tras_encabezado = 0.7 * cm  # Espacio entre encabezado y contenido
         self.margen_superior = self.margen_superior_encabezado + self.altura_encabezado + self.espacio_tras_encabezado  # Total: ~3.5cm
 
