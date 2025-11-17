@@ -73,16 +73,19 @@ class NumberedCanvas(canvas.Canvas):
         from reportlab.platypus import Paragraph, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import ParagraphStyle
 
-        # Estilo para el título (reducido a 7pt para evitar rebase con textos largos)
+        # Estilo para el título del encabezado (10pt según especificación)
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=7,
+            fontSize=10,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            leading=8,  # Espaciado entre líneas reducido
+            leading=11,  # Espaciado entre líneas
             wordWrap='CJK'  # Permitir word wrap mejorado
         )
+
+        # DEBUG: Verificar que este código se ejecuta
+        print(f"[DEBUG] draw_header() ejecutándose - fontSize del título: 10pt")
 
         titulo = template.titulo.upper()
 
