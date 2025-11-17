@@ -265,9 +265,9 @@ class PDFAgrupaciones(PDFTemplate):
             'CeldaDatosGrupo',
             parent=self.styles['Normal'],
             fontName='Helvetica',
-            fontSize=8,
+            fontSize=9,
             alignment=TA_LEFT,
-            leading=10
+            leading=11
         )
 
         # Estilo para celdas numéricas (alineadas a la derecha)
@@ -282,10 +282,10 @@ class PDFAgrupaciones(PDFTemplate):
             'EncabezadoGrupo',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=10,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#003366'),
-            leading=11
+            leading=12
         )
 
         # Preparar datos
@@ -489,7 +489,7 @@ class PDFAgrupaciones(PDFTemplate):
             ('BACKGROUND', (0, 0), (-1, -1), self.color_subtotal),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
             ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
@@ -589,18 +589,18 @@ class PDFAgrupaciones(PDFTemplate):
             'TotalesTexto',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=11,
             alignment=TA_RIGHT,
-            leading=12
+            leading=13
         )
 
         estilo_valor = ParagraphStyle(
             'TotalesValor',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=11,
             alignment=TA_RIGHT,
-            leading=12
+            leading=13
         )
 
         estilo_total_final = ParagraphStyle(

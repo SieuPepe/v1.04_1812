@@ -296,7 +296,7 @@ class InformesExportador:
 
             formato_subtotal = workbook.add_format({
                 'bold': True,
-                'font_size': 9,
+                'font_size': 11,
                 'font_name': 'Tahoma',
                 'bg_color': '#E7E6E6',
                 'num_format': '#,##0.00 €',
@@ -307,7 +307,7 @@ class InformesExportador:
 
             formato_subtotal_texto = workbook.add_format({
                 'bold': True,
-                'font_size': 9,
+                'font_size': 11,
                 'font_name': 'Tahoma',
                 'bg_color': '#E7E6E6',
                 'border': 1,
@@ -317,7 +317,7 @@ class InformesExportador:
 
             formato_total = workbook.add_format({
                 'bold': True,
-                'font_size': 10,
+                'font_size': 12,
                 'font_name': 'Tahoma',
                 'bg_color': '#C5D9F1',
                 'num_format': '#,##0.00 €',
@@ -328,7 +328,7 @@ class InformesExportador:
 
             formato_total_texto = workbook.add_format({
                 'bold': True,
-                'font_size': 10,
+                'font_size': 12,
                 'font_name': 'Tahoma',
                 'bg_color': '#C5D9F1',
                 'border': 2,
@@ -766,7 +766,7 @@ class InformesExportador:
                 # Crear formato para subtotal sin moneda (para COUNT, etc.)
                 formato_subtotal_entero = workbook.add_format({
                     'bold': True,
-                    'font_size': 9,
+                    'font_size': 11,
                     'font_name': 'Tahoma',
                     'bg_color': '#E7E6E6',
                     'num_format': '#,##0',

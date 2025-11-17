@@ -73,14 +73,15 @@ class NumberedCanvas(canvas.Canvas):
         from reportlab.platypus import Paragraph, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import ParagraphStyle
 
-        # Estilo para el título (reducido a 10pt para asegurar que quepa)
+        # Estilo para el título (reducido a 8pt para evitar rebase con textos largos)
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=10,
+            fontSize=8,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            leading=11  # Espaciado entre líneas reducido
+            leading=9,  # Espaciado entre líneas reducido
+            wordWrap='CJK'  # Permitir word wrap mejorado
         )
 
         titulo = template.titulo.upper()
@@ -116,8 +117,9 @@ class NumberedCanvas(canvas.Canvas):
                 logo_der_celda = ""
         tabla_data[0].append(logo_der_celda)
 
-        # Anchos de columnas: Logo izq (2.5cm) + Título (11.5cm) + Logo der (4.0cm) = 18cm
-        col_widths = [2.5*cm, 11.5*cm, 4.0*cm]
+        # Anchos de columnas: Logo izq (2.2cm) + Título (12.6cm) + Logo der (3.9cm) = 18.7cm
+        # Dar más espacio al título para evitar rebase con textos largos
+        col_widths = [2.2*cm, 12.6*cm, 3.9*cm]
 
         # Crear tabla
         tabla_header = Table(tabla_data, colWidths=col_widths, rowHeights=[template.altura_encabezado])
@@ -499,9 +501,9 @@ class PDFTemplate:
             'CeldaDatos',
             parent=self.styles['Normal'],
             fontName='Helvetica',
-            fontSize=8,
+            fontSize=9,
             alignment=TA_LEFT,
-            leading=10  # Espaciado entre líneas
+            leading=11  # Espaciado entre líneas
         )
 
         # Estilo para celdas numéricas (alineadas a la derecha)
@@ -520,10 +522,10 @@ class PDFTemplate:
             'EncabezadoTabla',
             parent=self.styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9,
+            fontSize=10,
             alignment=TA_CENTER,
             textColor=colors.HexColor('#003366'),
-            leading=11
+            leading=12
         )
         for col_name in columnas:
             encabezados_para.append(Paragraph(f"<b>{col_name}</b>", estilo_encabezado))
