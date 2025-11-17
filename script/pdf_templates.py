@@ -58,7 +58,7 @@ class NumberedCanvas(canvas.Canvas):
         self.draw_footer(page_num, page_count)
 
     def draw_header(self):
-        """Dibuja el encabezado con logos y título"""
+        """Dibuja el encabezado con logos y título usando tabla sin bordes"""
         if not self.pdf_template:
             return
 
@@ -66,83 +66,83 @@ class NumberedCanvas(canvas.Canvas):
         ancho_pagina, alto_pagina = template.pagesize
 
         # Posición del encabezado (cerca del borde superior)
-        # El encabezado se dibuja desde el borde superior hacia abajo
         y_pos = alto_pagina - template.margen_superior_encabezado - template.altura_encabezado
 
-        # Logo izquierdo (Redes Urbide)
-        # De 1.5cm a 4.0cm: 2cm alto x 2.2cm largo
-        if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
-            try:
-                x_logo_izq = 1.5 * cm
-                ancho_logo_izq = 2.2 * cm
-                alto_logo_izq = 2.0 * cm
-
-                # Centrar verticalmente el logo en el área del encabezado
-                y_offset_izq = (template.altura_encabezado - alto_logo_izq) / 2
-                self.drawImage(
-                    template.logo_izquierdo_path,
-                    x_logo_izq,
-                    y_pos + y_offset_izq,
-                    width=ancho_logo_izq,
-                    height=alto_logo_izq,
-                    preserveAspectRatio=False  # No preservar para forzar dimensiones exactas
-                )
-            except:
-                pass
-
-        # Título centrado (multilínea para evitar superposición con logos)
+        # Importar clases necesarias
         from reportlab.lib.enums import TA_CENTER
-        from reportlab.platypus import Paragraph
+        from reportlab.platypus import Paragraph, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import ParagraphStyle
 
-        # Estilo para el título (más pequeño y con soporte multilínea)
+        # Estilo para el título (reducido a 10pt para asegurar que quepa)
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=12,
+            fontSize=10,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            leading=14  # Espaciado entre líneas
+            leading=11  # Espaciado entre líneas reducido
         )
 
         titulo = template.titulo.upper()
 
-        # Posicionamiento exacto del título según medidas del usuario:
-        # De 4.0cm a 15.5cm: título multilínea centrado (11.5cm de ancho)
-        x_inicio_titulo = 4.0 * cm
-        ancho_max_titulo = 11.5 * cm
+        # Preparar contenido de las 3 celdas del encabezado
+        tabla_data = [[]]
 
-        # Crear Paragraph para el título
+        # Celda 1: Logo izquierdo (Redes Urbide)
+        logo_izq_celda = ""
+        if template.logo_izquierdo_path and os.path.exists(template.logo_izquierdo_path):
+            try:
+                # Crear objeto Image de ReportLab
+                logo_izq_img = RLImage(template.logo_izquierdo_path,
+                                       width=2.2*cm, height=2.0*cm)
+                logo_izq_celda = logo_izq_img
+            except:
+                logo_izq_celda = ""
+        tabla_data[0].append(logo_izq_celda)
+
+        # Celda 2: Título (Paragraph con ajuste automático)
         p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
+        tabla_data[0].append(p_titulo)
 
-        # Dibujar el Paragraph en el canvas
-        # Para centrar verticalmente en el área del encabezado
-        y_titulo = y_pos + template.altura_encabezado * 0.3  # Posición vertical ajustada
-
-        # Usar wrapOn y drawOn para dibujar el Paragraph
-        w, h = p_titulo.wrap(ancho_max_titulo, template.altura_encabezado)
-        p_titulo.drawOn(self, x_inicio_titulo, y_titulo)
-
-        # Logo derecho (Urbide)
-        # De 15.5cm a 19.5cm: 1.5cm alto x 3.9cm largo
+        # Celda 3: Logo derecho (Urbide)
+        logo_der_celda = ""
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
             try:
-                x_logo_der = 15.5 * cm
-                ancho_logo_der = 3.9 * cm
-                alto_logo_der = 1.5 * cm
-
-                # Centrar verticalmente el logo en el área del encabezado
-                y_offset_der = (template.altura_encabezado - alto_logo_der) / 2
-                self.drawImage(
-                    template.logo_derecho_path,
-                    x_logo_der,
-                    y_pos + y_offset_der,
-                    width=ancho_logo_der,
-                    height=alto_logo_der,
-                    preserveAspectRatio=False  # No preservar para forzar dimensiones exactas
-                )
+                # Crear objeto Image de ReportLab
+                logo_der_img = RLImage(template.logo_derecho_path,
+                                       width=3.9*cm, height=1.5*cm)
+                logo_der_celda = logo_der_img
             except:
-                pass
+                logo_der_celda = ""
+        tabla_data[0].append(logo_der_celda)
+
+        # Anchos de columnas: Logo izq (2.5cm) + Título (11.5cm) + Logo der (4.0cm) = 18cm
+        col_widths = [2.5*cm, 11.5*cm, 4.0*cm]
+
+        # Crear tabla
+        tabla_header = Table(tabla_data, colWidths=col_widths, rowHeights=[template.altura_encabezado])
+
+        # Estilo de tabla sin bordes visibles
+        estilo_tabla_header = TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'CENTER'),    # Logo izquierdo centrado
+            ('ALIGN', (1, 0), (1, 0), 'CENTER'),    # Título centrado
+            ('ALIGN', (2, 0), (2, 0), 'CENTER'),    # Logo derecho centrado
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),  # Alineación vertical al centro
+            ('LEFTPADDING', (0, 0), (-1, 0), 0),
+            ('RIGHTPADDING', (0, 0), (-1, 0), 0),
+            ('TOPPADDING', (0, 0), (-1, 0), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 0),
+            # Sin bordes
+            ('BOX', (0, 0), (-1, -1), 0, colors.white),
+            ('GRID', (0, 0), (-1, -1), 0, colors.white),
+        ])
+
+        tabla_header.setStyle(estilo_tabla_header)
+
+        # Dibujar la tabla en el canvas
+        w, h = tabla_header.wrap(0, 0)
+        x_tabla = template.margen_izquierdo
+        tabla_header.drawOn(self, x_tabla, y_pos)
 
         # Línea separadora
         self.setStrokeColor(colors.HexColor('#CCCCCC'))
