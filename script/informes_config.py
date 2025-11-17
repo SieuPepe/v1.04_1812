@@ -1744,8 +1744,13 @@ INFORMES_DEFINICIONES = {
 
     "Presupuesto Resumen": {
         "categoria": "💰 Presupuestos",
-        "descripcion": "Resumen de presupuesto mostrando únicamente los partes con sus totales.",
+        "descripcion": "Resumen de presupuesto por partes con cálculo de PEM, Gastos Generales y Beneficio Industrial.",
         "tabla_principal": "tbl_partes",
+        "formato_pdf": "vertical",
+        "campos_fijos": True,
+        "calcular_resumen_economico": True,  # Flag para activar cálculos PEM, GG, BI
+        "porcentaje_gastos_generales": 8,    # 8%
+        "porcentaje_beneficio": 3,            # 3%
 
         "campos": {
             "mes": {
@@ -1766,10 +1771,16 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "codigo",
                 "grupo": "Información Básica"
             },
-            "descripcion": {
-                "nombre": "Descripción",
+            "fecha": {
+                "nombre": "Fecha",
+                "tipo": "fecha",
+                "columna_bd": "fecha_fin",
+                "grupo": "Información Básica"
+            },
+            "titulo": {
+                "nombre": "Título",
                 "tipo": "texto",
-                "columna_bd": "descripcion",
+                "columna_bd": "titulo",
                 "grupo": "Información Básica"
             },
             "estado": {
@@ -1784,18 +1795,106 @@ INFORMES_DEFINICIONES = {
                 "columna_bd": "red_id",
                 "tabla_dimension": "dim_red",
                 "campo_nombre": "descripcion",
-                "grupo": "Dimensiones"
+                "grupo": "Dimensiones Técnicas"
             },
-            "total_presupuesto": {
-                "nombre": "Total Presupuesto",
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "codigo_trabajo": {
+                "nombre": "Código de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "cod_trabajo_id",
+                "tabla_dimension": "dim_codigo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "provincia": {
+                "nombre": "Provincia",
+                "tipo": "dimension",
+                "columna_bd": "provincia_id",
+                "tabla_dimension": "dim_provincias",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "localizacion": {
+                "nombre": "Localización",
+                "tipo": "texto",
+                "columna_bd": "localizacion",
+                "grupo": "Ubicación Geográfica"
+            },
+            "trabajadores": {
+                "nombre": "Trabajadores",
+                "tipo": "texto",
+                "columna_bd": "trabajadores",
+                "grupo": "Recursos Humanos"
+            },
+            "tipo_rep": {
+                "nombre": "Tipo de Reparación",
+                "tipo": "dimension",
+                "columna_bd": "tipo_rep_id",
+                "tabla_dimension": "dim_tipos_rep",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            },
+            "fecha_fin": {
+                "nombre": "Fecha Fin",
+                "tipo": "fecha",
+                "columna_bd": "fecha_fin",
+                "grupo": "Fechas"
+            },
+            "importe": {
+                "nombre": "Importe",
                 "tipo": "calculado",
                 "formula": "COALESCE((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id), 0)",
                 "formato": "moneda",
                 "grupo": "Económico"
+            },
+            "finalizada": {
+                "nombre": "Finalizada",
+                "tipo": "booleano",
+                "columna_bd": "finalizada",
+                "grupo": "Información Básica"
             }
         },
 
         "filtros": {
+            "mes": {
+                "campo": "mes",
+                "tipo": "mes_anio",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "año": {
+                "campo": "año",
+                "tipo": "anio",
+                "operadores": ["Igual a", "Mayor a", "Menor a", "Entre"]
+            },
             "estado": {
                 "campo": "estado",
                 "tipo": "select",
@@ -1807,6 +1906,62 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_red"
+            },
+            "tipo_trabajo": {
+                "campo": "tipo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipo_trabajo"
+            },
+            "codigo_trabajo": {
+                "campo": "codigo_trabajo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_codigo_trabajo"
+            },
+            "provincia": {
+                "campo": "provincia",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_provincias"
+            },
+            "comarca": {
+                "campo": "comarca",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_comarcas"
+            },
+            "municipio": {
+                "campo": "municipio",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_municipios"
+            },
+            "trabajadores": {
+                "campo": "trabajadores",
+                "tipo": "texto",
+                "operadores": ["Igual a", "Diferente de", "Contiene", "No contiene"]
+            },
+            "tipo_rep": {
+                "campo": "tipo_rep",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_tipos_rep"
+            },
+            "fecha_inicio": {
+                "campo": "fecha_inicio",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "fecha_fin": {
+                "campo": "fecha_fin",
+                "tipo": "fecha",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            },
+            "finalizada": {
+                "campo": "finalizada",
+                "tipo": "booleano",
+                "operadores": ["Sí", "No"]
             }
         },
 
@@ -1815,7 +1970,13 @@ INFORMES_DEFINICIONES = {
             "año",
             "estado",
             "red",
-            "total_presupuesto"
+            "tipo_trabajo",
+            "provincia",
+            "comarca",
+            "municipio",
+            "fecha_inicio",
+            "fecha_fin",
+            "tipo_rep"
         ],
 
         "agrupaciones": {
@@ -1823,39 +1984,27 @@ INFORMES_DEFINICIONES = {
                 "mes",
                 "año",
                 "estado",
-                "red"
+                "red",
+                "tipo_trabajo",
+                "codigo_trabajo",
+                "tipo_rep",
+                "provincia",
+                "comarca",
+                "municipio",
+                "trabajadores"
             ],
             "max_niveles": 3,
-            "modo_default": "resumen"
+            "modo_default": "detalle"
         },
 
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            },
-            "AVG": {
-                "nombre": "Promedio",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "decimal"
-            }
-        },
+        "agregaciones": {},  # No permitir agregaciones
 
         "campos_default": [
             "codigo",
-            "descripcion",
-            "estado",
-            "red",
-            "total_presupuesto"
+            "fecha",
+            "municipio",
+            "localizacion",
+            "importe"
         ]
     },
 

@@ -1135,7 +1135,10 @@ def ejecutar_informe(user, password, schema, informe_nombre, filtros=None, orden
                 "totales_generales": totales,
                 "modo": "detalle",
                 "formatos_columnas": formatos_columnas,
-                "formatos_agregaciones": {}
+                "formatos_agregaciones": {},
+                "calcular_resumen_economico": definicion.get('calcular_resumen_economico', False),
+                "porcentaje_gastos_generales": definicion.get('porcentaje_gastos_generales', 8),
+                "porcentaje_beneficio": definicion.get('porcentaje_beneficio', 3)
             }
 
             return columnas, datos, resultado_agrupacion
@@ -1334,7 +1337,10 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
                 "formatos_columnas": formatos_columnas,
                 "formatos_agregaciones": formatos_columnas,  # Usar los mismos formatos
                 "agrupaciones": agrupaciones,
-                "columnas_datos": columnas_datos  # Columnas sin agrupación para el PDF
+                "columnas_datos": columnas_datos,  # Columnas sin agrupación para el PDF
+                "calcular_resumen_economico": definicion.get('calcular_resumen_economico', False),
+                "porcentaje_gastos_generales": definicion.get('porcentaje_gastos_generales', 8),
+                "porcentaje_beneficio": definicion.get('porcentaje_beneficio', 3)
             }
 
         elif usar_agregacion_sql:
@@ -1353,7 +1359,10 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
                 "totales_generales": {},
                 "modo": modo,
                 "formatos_columnas": formatos_columnas,
-                "formatos_agregaciones": {}
+                "formatos_agregaciones": {},
+                "calcular_resumen_economico": definicion.get('calcular_resumen_economico', False) if definicion else False,
+                "porcentaje_gastos_generales": definicion.get('porcentaje_gastos_generales', 8) if definicion else 8,
+                "porcentaje_beneficio": definicion.get('porcentaje_beneficio', 3) if definicion else 3
             }
 
         else:
