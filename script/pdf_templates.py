@@ -73,14 +73,14 @@ class NumberedCanvas(canvas.Canvas):
         from reportlab.platypus import Paragraph, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import ParagraphStyle
 
-        # Estilo para el título (reducido a 8pt para evitar rebase con textos largos)
+        # Estilo para el título (reducido a 7pt para evitar rebase con textos largos)
         estilo_titulo_header = ParagraphStyle(
             'TituloHeader',
             fontName='Helvetica-Bold',
-            fontSize=8,
+            fontSize=7,
             textColor=colors.HexColor('#003366'),
             alignment=TA_CENTER,
-            leading=9,  # Espaciado entre líneas reducido
+            leading=8,  # Espaciado entre líneas reducido
             wordWrap='CJK'  # Permitir word wrap mejorado
         )
 
@@ -105,21 +105,21 @@ class NumberedCanvas(canvas.Canvas):
         p_titulo = Paragraph(f"<b>{titulo}</b>", estilo_titulo_header)
         tabla_data[0].append(p_titulo)
 
-        # Celda 3: Logo derecho (Urbide)
+        # Celda 3: Logo derecho (Urbide) - reducido para que no sea demasiado grande
         logo_der_celda = ""
         if template.logo_derecho_path and os.path.exists(template.logo_derecho_path):
             try:
-                # Crear objeto Image de ReportLab
+                # Crear objeto Image de ReportLab - reducido de 3.9x1.5 a 3.5x1.2
                 logo_der_img = RLImage(template.logo_derecho_path,
-                                       width=3.9*cm, height=1.5*cm)
+                                       width=3.5*cm, height=1.2*cm)
                 logo_der_celda = logo_der_img
             except:
                 logo_der_celda = ""
         tabla_data[0].append(logo_der_celda)
 
-        # Anchos de columnas: Logo izq (2.2cm) + Título (12.6cm) + Logo der (3.9cm) = 18.7cm
-        # Dar más espacio al título para evitar rebase con textos largos
-        col_widths = [2.2*cm, 12.6*cm, 3.9*cm]
+        # Anchos de columnas según especificación original: Logo izq (2.5cm) + Título (11.5cm) + Logo der (4.0cm) = 18.0cm
+        # Posiciones: 0-1.5cm margen | 1.5-4.0cm logo izq | 4.0-15.5cm título | 15.5-19.5cm logo der | 19.5-21cm margen
+        col_widths = [2.5*cm, 11.5*cm, 4.0*cm]
 
         # Crear tabla
         tabla_header = Table(tabla_data, colWidths=col_widths, rowHeights=[template.altura_encabezado])
