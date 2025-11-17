@@ -1692,19 +1692,19 @@ class InformesExportador:
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=A4,  # Vertical (Portrait)
-                rightMargin=2*cm,
-                leftMargin=2*cm,
-                topMargin=2*cm,
+                rightMargin=1.5*cm,
+                leftMargin=1.5*cm,
+                topMargin=1.5*cm,
                 bottomMargin=2*cm
             )
 
-            # Estilos
+            # Estilos (tonos de grises)
             styles = getSampleStyleSheet()
             style_titulo = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
                 fontSize=18,
-                textColor=reportlab_colors.HexColor(config.get('color_titulo', '#E65100')),
+                textColor=reportlab_colors.HexColor('#404040'),  # Gris oscuro
                 spaceAfter=12,
                 alignment=TA_CENTER
             )
@@ -1712,7 +1712,7 @@ class InformesExportador:
                 'OrdenHeader',
                 parent=styles['Normal'],
                 fontSize=10,
-                textColor=reportlab_colors.HexColor('#FF9800'),
+                textColor=reportlab_colors.HexColor('#606060'),  # Gris medio
                 spaceBefore=10,
                 spaceAfter=6,
                 fontName='Helvetica-Bold'
@@ -1728,7 +1728,7 @@ class InformesExportador:
                 parent=styles['Heading2'],
                 fontSize=12,
                 textColor=reportlab_colors.white,
-                backColor=reportlab_colors.HexColor(config.get('color_grupo_nivel0', '#E65100')),
+                backColor=reportlab_colors.HexColor('#606060'),  # Gris medio
                 spaceBefore=12,
                 spaceAfter=8,
                 fontName='Helvetica-Bold'
@@ -1747,10 +1747,12 @@ class InformesExportador:
                 from reportlab.platypus import Image
                 logo_izq = Image(self.logo_redes_path, width=3*cm, height=2*cm)
 
-            # Logo derecho
+            # Logo derecho (mantener aspect ratio, solo especificar ancho)
             if self.logo_urbide_path and os.path.exists(self.logo_urbide_path):
                 from reportlab.platypus import Image
-                logo_der = Image(self.logo_urbide_path, width=3*cm, height=2*cm)
+                # Usar solo width para mantener aspect ratio automáticamente
+                # No especificar height para evitar deformación vertical
+                logo_der = Image(self.logo_urbide_path, width=3*cm, height=None, kind='proportional')
 
             # Título centrado
             titulo_para = Paragraph(informe_nombre.upper(), style_titulo)
@@ -1786,21 +1788,21 @@ class InformesExportador:
                 total_orden = orden_data['total_orden']
 
                 # CABECERA DE LA ORDEN
-                # Primera fila: Código + Título (ambos en la misma fila, como dos columnas)
+                # Primera fila: Código + Localización (ambos en la misma fila, como dos columnas)
                 codigo = datos_orden.get('codigo', '')
                 titulo = datos_orden.get('titulo', '')
 
                 cabecera_fila1 = Table(
                     [[Paragraph(f"<b>{codigo}</b>", style_normal),
                       Paragraph(f"<b>{titulo}</b>", style_normal)]],
-                    colWidths=[4*cm, None]
+                    colWidths=[3.5*cm, 14.5*cm]
                 )
                 cabecera_fila1.setStyle(TableStyle([
                     ('ALIGN', (0, 0), (0, 0), 'LEFT'),
                     ('ALIGN', (1, 0), (1, 0), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFCCBC')),
-                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#FF9800')),
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#D0D0D0')),
+                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#808080')),
                     ('LEFTPADDING', (0, 0), (-1, -1), 6),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 4),
@@ -1820,41 +1822,53 @@ class InformesExportador:
                 latitud = datos_orden.get('latitud', '')
                 longitud = datos_orden.get('longitud', '')
 
+                # Formatear latitud y longitud a 4 decimales
+                if latitud:
+                    try:
+                        latitud = f"{float(latitud):.4f}"
+                    except (ValueError, TypeError):
+                        latitud = str(latitud)
+                if longitud:
+                    try:
+                        longitud = f"{float(longitud):.4f}"
+                    except (ValueError, TypeError):
+                        longitud = str(longitud)
+
                 # Combinar municipio + localización
                 loc_completa = f"{municipio}"
                 if localizacion:
                     loc_completa += f" - {localizacion}"
 
                 # Tabla con el resto de datos
+                # Fila 2: Fecha
+                # Fila 3: Localización
+                # Fila 4: Latitud y Longitud en la misma fila
                 datos_cabecera = [
-                    [Paragraph("<b>FECHA:</b>", style_normal), Paragraph(str(fecha_fin), style_normal)],
-                    [Paragraph("<b>LOCALIZACIÓN:</b>", style_normal), Paragraph(loc_completa, style_normal)],
+                    [Paragraph("<b>Fecha:</b>", style_normal), Paragraph(str(fecha_fin), style_normal), '', ''],
+                    [Paragraph("<b>Localización:</b>", style_normal), Paragraph(loc_completa, style_normal), '', ''],
                 ]
 
-                # Fila con latitud y longitud (2 columnas en cada celda)
+                # Fila con latitud y longitud (4 celdas en la fila)
                 if latitud and longitud:
-                    lat_lon_table = Table(
-                        [[Paragraph(f"<b>LATITUD:</b> {latitud}", style_normal),
-                          Paragraph(f"<b>LONGITUD:</b> {longitud}", style_normal)]],
-                        colWidths=[None, None]
-                    )
-                    lat_lon_table.setStyle(TableStyle([
-                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ]))
-                    datos_cabecera.append([lat_lon_table, ''])
+                    datos_cabecera.append([
+                        Paragraph("<b>Latitud:</b>", style_normal),
+                        Paragraph(str(latitud), style_normal),
+                        Paragraph("<b>Longitud:</b>", style_normal),
+                        Paragraph(str(longitud), style_normal)
+                    ])
 
-                cabecera_datos = Table(datos_cabecera, colWidths=[4*cm, None])
+                cabecera_datos = Table(datos_cabecera, colWidths=[3.5*cm, 4.5*cm, 3.5*cm, 3.5*cm])
                 cabecera_datos.setStyle(TableStyle([
-                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                     ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFF3E0')),
-                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#FF9800')),
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#E8E8E8')),
+                    ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.HexColor('#808080')),
                     ('LEFTPADDING', (0, 0), (-1, -1), 6),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 4),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    # No dibujar líneas internas para las celdas vacías
+                    ('INNERGRID', (0, 0), (-1, -1), 0, reportlab_colors.white),
                 ]))
                 elementos_orden.append(cabecera_datos)
                 elementos_orden.append(Spacer(1, 0.3*cm))
@@ -1867,30 +1881,32 @@ class InformesExportador:
 
                     # Filas de recursos
                     for recurso in recursos:
+                        # Usar Paragraph para Recurso/Material para permitir multilínea
+                        recurso_text = Paragraph(recurso.get('resumen', ''), style_normal)
                         fila = [
                             recurso.get('codigo', ''),
                             f"{recurso.get('cantidad', 0):.2f}",
                             recurso.get('unidad', ''),
-                            recurso.get('resumen', ''),
+                            recurso_text,
                             f"{recurso.get('coste', 0):.2f} €",
                             f"{recurso.get('coste_total', 0):.2f} €"
                         ]
                         tabla_datos.append(fila)
 
-                    # Fila de total
+                    # Fila de total - "Total Parte" con span
                     tabla_datos.append([
-                        '', '', '', '', Paragraph("<b>TOTAL ORDEN:</b>", style_normal),
+                        Paragraph("<b>Total Parte</b>", style_normal), '', '', '', '',
                         Paragraph(f"<b>{total_orden:.2f} €</b>", style_normal)
                     ])
 
-                    # Anchos de columnas
-                    col_widths = [2*cm, 2*cm, 1.5*cm, 7*cm, 2.5*cm, 2.5*cm]
+                    # Anchos de columnas (total 18cm)
+                    col_widths = [1.5*cm, 2*cm, 1*cm, 9.5*cm, 2*cm, 2*cm]
 
                     tabla_recursos = Table(tabla_datos, colWidths=col_widths)
                     tabla_recursos.setStyle(TableStyle([
                         # Encabezado
-                        ('BACKGROUND', (0, 0), (-1, 0), reportlab_colors.HexColor('#FFCCBC')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), reportlab_colors.black),
+                        ('BACKGROUND', (0, 0), (-1, 0), reportlab_colors.HexColor('#A0A0A0')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), reportlab_colors.white),
                         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                         ('FONTSIZE', (0, 0), (-1, 0), 9),
@@ -1901,16 +1917,19 @@ class InformesExportador:
                         ('ALIGN', (3, 1), (3, -2), 'LEFT'),
                         ('ALIGN', (4, 1), (5, -2), 'RIGHT'),
                         ('FONTSIZE', (0, 1), (-1, -2), 8),
-                        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [reportlab_colors.white, reportlab_colors.HexColor('#FFF9F5')]),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [reportlab_colors.white, reportlab_colors.HexColor('#F5F5F5')]),
+                        ('VALIGN', (0, 1), (-1, -2), 'TOP'),
 
-                        # Fila de total
-                        ('BACKGROUND', (0, -1), (-1, -1), reportlab_colors.HexColor('#FFE0B2')),
-                        ('ALIGN', (4, -1), (-1, -1), 'RIGHT'),
-                        ('FONTNAME', (4, -1), (-1, -1), 'Helvetica-Bold'),
+                        # Fila de total - span desde columna 0 hasta 4
+                        ('SPAN', (0, -1), (4, -1)),
+                        ('BACKGROUND', (0, -1), (-1, -1), reportlab_colors.HexColor('#D0D0D0')),
+                        ('ALIGN', (0, -1), (0, -1), 'LEFT'),
+                        ('ALIGN', (5, -1), (5, -1), 'RIGHT'),
+                        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
 
                         # Bordes
                         ('BOX', (0, 0), (-1, -1), 1, reportlab_colors.black),
-                        ('INNERGRID', (0, 0), (-1, -1), 0.5, reportlab_colors.grey),
+                        ('INNERGRID', (0, 0), (-1, -2), 0.5, reportlab_colors.grey),
 
                         # Padding
                         ('LEFTPADDING', (0, 0), (-1, -1), 4),
@@ -1939,13 +1958,13 @@ class InformesExportador:
                     ordenes_grupo = grupo.get('ordenes', [])
                     subgrupos = grupo.get('subgrupos', [])
 
-                    # Color según nivel
+                    # Color según nivel (tonos de grises)
                     if nivel == 0:
-                        color_fondo = config.get('color_grupo_nivel0', '#E65100')
+                        color_fondo = config.get('color_grupo_nivel0', '#505050')
                     elif nivel == 1:
-                        color_fondo = config.get('color_grupo_nivel1', '#FF9800')
+                        color_fondo = config.get('color_grupo_nivel1', '#707070')
                     else:
-                        color_fondo = config.get('color_grupo_nivel2', '#FFB74D')
+                        color_fondo = config.get('color_grupo_nivel2', '#909090')
 
                     # Header del grupo
                     style_grupo_nivel = ParagraphStyle(
@@ -1971,7 +1990,7 @@ class InformesExportador:
                         colWidths=[None, 3*cm]
                     )
                     tabla_subtotal.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#FFE0B2')),
+                        ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#D0D0D0')),
                         ('ALIGN', (0, 0), (0, 0), 'LEFT'),
                         ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
                         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
@@ -2003,7 +2022,7 @@ class InformesExportador:
                     colWidths=[None, 4*cm]
                 )
                 tabla_gran_total.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#E65100')),
+                    ('BACKGROUND', (0, 0), (-1, -1), reportlab_colors.HexColor('#505050')),
                     ('TEXTCOLOR', (0, 0), (-1, -1), reportlab_colors.white),
                     ('ALIGN', (0, 0), (0, 0), 'CENTER'),
                     ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
