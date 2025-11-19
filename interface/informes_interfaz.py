@@ -24,7 +24,6 @@ from script.informes_config import (
     CAMPOS_RECURSOS,
     CAMPOS_PRESUPUESTOS,
     CAMPOS_CERTIFICACIONES,
-    CAMPOS_PLANIFICACION,
     OPERADORES,
     TIPOS_CAMPO,
     FORMATOS_SALIDA,
@@ -1688,8 +1687,6 @@ class InformesFrame(customtkinter.CTkFrame):
                 campos_dict = CAMPOS_PRESUPUESTOS
             elif "Certificaciones" in str(self.categoria_seleccionada):
                 campos_dict = CAMPOS_CERTIFICACIONES
-            elif "Planificación" in str(self.categoria_seleccionada):
-                campos_dict = CAMPOS_PLANIFICACION
 
             if campos_dict:
                 row = 0
