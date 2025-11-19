@@ -29,10 +29,6 @@ CATEGORIAS_INFORMES = {
     "✅ Certificaciones": [
         "Certificación Detallado",
         "Certificación Resumen"
-    ],
-
-    "📅 Planificación": [
-        "Informe de Avance"
     ]
 }
 
@@ -2648,102 +2644,6 @@ INFORMES_DEFINICIONES = {
             "localizacion",
             "importe"
         ]
-    },
-
-    # ============================================================
-    # CATEGORÍA: PLANIFICACIÓN
-    # ============================================================
-
-    "Informe de Avance": {
-        "categoria": "📅 Planificación",
-        "descripcion": "Importes presupuestados por cada mes, mostrando la evolución temporal del proyecto.",
-        "tabla_principal": "tbl_partes",
-
-        "campos": {
-            "mes": {
-                "nombre": "Mes",
-                "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
-                "grupo": "Temporal"
-            },
-            "num_partes": {
-                "nombre": "Nº Partes",
-                "tipo": "calculado",
-                "formula": "COUNT(p.id)",
-                "formato": "entero",
-                "grupo": "Indicadores"
-            },
-            "importe_presupuestado": {
-                "nombre": "Importe Presupuestado",
-                "tipo": "calculado",
-                "formula": "COALESCE(SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id)), 0)",
-                "formato": "moneda",
-                "grupo": "Económico"
-            },
-            "importe_certificado": {
-                "nombre": "Importe Certificado",
-                "tipo": "calculado",
-                "formula": "COALESCE(SUM((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1)), 0)",
-                "formato": "moneda",
-                "grupo": "Económico"
-            },
-            "porcentaje_avance": {
-                "nombre": "% Avance",
-                "tipo": "calculado",
-                "formula": "CASE WHEN SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id)) > 0 THEN (COALESCE(SUM((SELECT SUM(pc.cantidad_cert * pc.precio_unit) FROM tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1)), 0) / SUM((SELECT SUM(pp.cantidad * pp.precio_unit) FROM tbl_part_presupuesto pp WHERE pp.parte_id = p.id))) * 100 ELSE 0 END",
-                "formato": "porcentaje",
-                "grupo": "Indicadores"
-            }
-        },
-
-        "filtros": {
-            "mes": {
-                "campo": "mes",
-                "tipo": "fecha",
-                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
-            }
-        },
-
-        "ordenaciones": [
-            "mes"
-        ],
-
-        "agrupaciones": {
-            "campos_permitidos": [
-                "mes"
-            ],
-            "max_niveles": 1,
-            "modo_default": "resumen"
-        },
-
-        "agregaciones": {
-            "COUNT": {
-                "nombre": "Contar registros",
-                "aplicable_a": ["*"],
-                "tipo_resultado": "numerico",
-                "formato": "entero"
-            },
-            "SUM": {
-                "nombre": "Suma",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "original"
-            },
-            "AVG": {
-                "nombre": "Promedio",
-                "aplicable_a": ["numerico", "calculado"],
-                "tipo_resultado": "numerico",
-                "formato": "decimal"
-            }
-        },
-
-        "campos_default": [
-            "mes",
-            "num_partes",
-            "importe_presupuestado",
-            "importe_certificado",
-            "porcentaje_avance"
-        ]
     }
 }
 
@@ -2854,29 +2754,6 @@ CAMPOS_CERTIFICACIONES = {
         "Red",
         "Tipo",
         "Estado"
-    ]
-}
-
-CAMPOS_PLANIFICACION = {
-    "Información Básica": [
-        "Código del parte",
-        "Descripción",
-        "Estado"
-    ],
-    "Fechas Planificadas": [
-        "Fecha inicio planificada",
-        "Fecha fin planificada",
-        "Duración planificada"
-    ],
-    "Fechas Reales": [
-        "Fecha inicio real",
-        "Fecha fin real",
-        "Duración real"
-    ],
-    "Avance": [
-        "% Avance",
-        "Desviación temporal",
-        "En plazo"
     ]
 }
 

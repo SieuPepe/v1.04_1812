@@ -27,9 +27,6 @@ PLANTILLAS_POR_INFORME = {
     # Categoría: CERTIFICACIÓN
     "Certificación Detallado": "Plantilla_Certificacion.docx",
     "Certificación Resumen": "Plantilla_Certificacion.docx",
-
-    # Categoría: PLANIFICACIÓN
-    "Informe de Avance": "Plantilla_Planificacion.docx",
 }
 
 # Plantilla por defecto si no se encuentra el tipo de informe

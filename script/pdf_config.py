@@ -283,28 +283,6 @@ CONFIGURACIONES_PDF = {
             "Importe": 3.0,
             "importe": 3.0
         }
-    },
-
-    # ============================================================
-    # PLANIFICACIÓN
-    # ============================================================
-
-    "Informe de Avance": {
-        "orientacion": "horizontal",
-        "esquema_colores": "teal",
-        "mostrar_logos": True,
-        "mostrar_fecha": True,
-        "mostrar_proyecto": True,
-        "fuente_titulo": "Helvetica-Bold",
-        "tamaño_titulo": 18,
-        "color_titulo": "#00695C",  # Teal oscuro
-        "color_header_tabla": "#E0F2F1",  # Teal muy claro
-        "color_grupo_nivel0": "#00695C",
-        "color_grupo_nivel1": "#00897B",
-        "color_grupo_nivel2": "#4DB6AC",
-        "bordes_tabla": True,
-        "filas_alternadas": True,
-        "pie_pagina_personalizado": None
     }
 }
 
