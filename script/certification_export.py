@@ -5,6 +5,7 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Border, Side,Alignment
 import calendar
 import locale
+from .db_config import get_config
 
 
 def export_monthly_certification(user,password,schema,output_path,date):
@@ -26,10 +27,11 @@ def export_monthly_certification(user,password,schema,output_path,date):
         wb = Workbook()
 
 
-        #Conexión con BBDD
+        #Conexión con BBDD usando configuración centralizada
+        config = get_config()
         conexion = mysql.connector.connect(
-                    host='localhost',
-                    port=3307,
+                    host=config.host,
+                    port=config.port,
                     user=user,
                     password=password
                 )

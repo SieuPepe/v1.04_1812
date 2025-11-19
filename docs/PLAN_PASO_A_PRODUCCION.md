@@ -1,4 +1,4 @@
-# PLAN DE PASO A PRODUCCIÓN - HydroFlow Manager v1.04
+# PLAN DE PASO A PRODUCCIÓN - HydroFlow Manager v2.0
 
 ## 📋 ÍNDICE
 1. [Preparación Base de Datos](#1-preparación-base-de-datos)
@@ -870,7 +870,10 @@ ORDER BY SUM(DATA_LENGTH + INDEX_LENGTH) DESC;
 ---
 
 **Documento creado:** 2025-11-03
-**Versión:** 1.1
-**Proyecto:** HydroFlow Manager v1.04
+**Versión:** 2.0
+**Proyecto:** HydroFlow Manager v2.0
 **Módulo nuevo:** Sistema de Generación de Informes Dinámicos con Guardar/Cargar Configuraciones
-**Actualización:** Agregada arquitectura multi-esquema y preparación de esquema plantilla
+**Actualización:**
+- Versión 2.0 - Configuración flexible de BD (local/remoto)
+- Eliminados valores hardcodeados de host/puerto/usuario
+- Sistema de configuración centralizado vía variables de entorno

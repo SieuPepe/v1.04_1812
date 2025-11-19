@@ -58,7 +58,7 @@ class ConnectionConfig:
         """
         default_config = {
             'host': 'localhost',
-            'port': 3307,
+            'port': 3306,  # Puerto estándar de MySQL
             'user': '',
             'remember_user': False,
             'connection_type': 'local'  # 'local' o 'remote'
@@ -131,7 +131,7 @@ class ConnectionConfig:
 
             # Puerto
             print(f"\nPuerto de MySQL/MariaDB:")
-            port_input = input(f"Puerto [{self.config.get('port', 3307)}]: ").strip()
+            port_input = input(f"Puerto [{self.config.get('port', 3306)}]: ").strip()
             if port_input:
                 try:
                     self.config['port'] = int(port_input)

@@ -20,7 +20,7 @@ class DatabaseConfig:
 
     # Valores por defecto (pueden ser sobrescritos por variables de entorno o config de usuario)
     DEFAULT_HOST = 'localhost'
-    DEFAULT_PORT = 3307
+    DEFAULT_PORT = 3306  # Puerto estándar de MySQL
     DEFAULT_MANAGER_SCHEMA = 'manager'
     DEFAULT_EXAMPLE_SCHEMA = 'cert_dev'
 
