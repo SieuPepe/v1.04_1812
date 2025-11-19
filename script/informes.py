@@ -1441,6 +1441,9 @@ def ejecutar_informe_ordenes_recursos(user, password, schema, informe_nombre, fi
         campos_recursos = definicion.get('campos_recursos', {})
         campos_filtro = definicion.get('campos', {})
 
+        # Determinar si es informe de certificación
+        es_certificacion = 'Certificación' in informe_nombre
+
         # PASO 1: Construir query para obtener órdenes según filtros y agrupaciones
         query_ordenes = _build_query_ordenes(
             definicion, filtros, ordenaciones, agrupaciones, schema, user, password
@@ -1473,7 +1476,7 @@ def ejecutar_informe_ordenes_recursos(user, password, schema, informe_nombre, fi
                     continue
 
                 # Query para obtener recursos de esta orden específica
-                query_recursos = _build_query_recursos(orden_id, campos_recursos)
+                query_recursos = _build_query_recursos(orden_id, campos_recursos, es_certificacion)
 
                 cursor.execute(query_recursos)
                 recursos_data = cursor.fetchall()
@@ -1626,24 +1629,49 @@ def _build_query_ordenes(definicion, filtros, ordenaciones, agrupaciones, schema
     return query
 
 
-def _build_query_recursos(orden_id, campos_recursos):
-    """Construye query SQL para obtener recursos de una orden específica"""
-    # Query fijo para obtener los 6 campos de recursos
-    query = f"""
-        SELECT
-            precio.codigo AS codigo,
-            pres.cantidad AS cantidad,
-            unidad_dim.unidad AS unidad,
-            precio.resumen AS resumen,
-            precio.coste AS coste,
-            (pres.cantidad * precio.coste) AS coste_total
-        FROM tbl_part_presupuesto pres
-        LEFT JOIN tbl_pres_precios precio ON pres.precio_id = precio.id
-        LEFT JOIN tbl_pres_unidades unidad_dim ON precio.id_unidades = unidad_dim.id
-        WHERE pres.parte_id = {orden_id}
-          AND pres.cantidad > 0
-        ORDER BY precio.codigo
+def _build_query_recursos(orden_id, campos_recursos, es_certificacion=False):
+    """Construye query SQL para obtener recursos de una orden específica
+
+    Args:
+        orden_id: ID de la orden de trabajo
+        campos_recursos: Definición de los campos de recursos
+        es_certificacion: Si es True, obtiene datos de certificación en lugar de presupuesto
     """
+    if es_certificacion:
+        # Query para certificaciones - usa tbl_part_certificacion
+        query = f"""
+            SELECT
+                precio.codigo AS codigo,
+                cert.cantidad_cert AS cantidad,
+                unidad_dim.unidad AS unidad,
+                precio.resumen AS resumen,
+                precio.coste AS coste,
+                (cert.cantidad_cert * precio.coste) AS coste_total
+            FROM tbl_part_certificacion cert
+            LEFT JOIN tbl_pres_precios precio ON cert.precio_id = precio.id
+            LEFT JOIN tbl_pres_unidades unidad_dim ON precio.id_unidades = unidad_dim.id
+            WHERE cert.parte_id = {orden_id}
+              AND cert.cantidad_cert > 0
+              AND cert.certificada = 1
+            ORDER BY precio.codigo
+        """
+    else:
+        # Query para presupuesto - usa tbl_part_presupuesto
+        query = f"""
+            SELECT
+                precio.codigo AS codigo,
+                pres.cantidad AS cantidad,
+                unidad_dim.unidad AS unidad,
+                precio.resumen AS resumen,
+                precio.coste AS coste,
+                (pres.cantidad * precio.coste) AS coste_total
+            FROM tbl_part_presupuesto pres
+            LEFT JOIN tbl_pres_precios precio ON pres.precio_id = precio.id
+            LEFT JOIN tbl_pres_unidades unidad_dim ON precio.id_unidades = unidad_dim.id
+            WHERE pres.parte_id = {orden_id}
+              AND pres.cantidad > 0
+            ORDER BY precio.codigo
+        """
     return query
 
 
