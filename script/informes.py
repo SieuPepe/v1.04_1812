@@ -1497,15 +1497,15 @@ def ejecutar_informe_ordenes_recursos(user, password, schema, informe_nombre, fi
                     recursos_list.append(recurso_dict)
                     total_orden += float(recurso_dict['coste_total'] or 0)
 
-                # Agregar orden con sus recursos
-                ordenes_con_recursos.append({
-                    'id': orden_id,
-                    'datos_orden': orden_dict,
-                    'recursos': recursos_list,
-                    'total_orden': total_orden
-                })
-
-                gran_total += total_orden
+                # Agregar orden con sus recursos (solo si tiene importe > 0)
+                if total_orden > 0:
+                    ordenes_con_recursos.append({
+                        'id': orden_id,
+                        'datos_orden': orden_dict,
+                        'recursos': recursos_list,
+                        'total_orden': total_orden
+                    })
+                    gran_total += total_orden
 
             cursor.close()
 
