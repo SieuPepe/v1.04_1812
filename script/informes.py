@@ -689,6 +689,13 @@ def build_query_with_sql_aggregation(informe_nombre, filtros=None, ordenaciones=
     if definicion.get('filtro_certificada'):
         where_conditions.append(("p.certificada = 1", {'logica': 'Y'}))
 
+    if definicion.get('filtro_importe_cero'):
+        # Excluir partes con importe = 0 (para informes de resumen de certificación)
+        if tabla_principal == 'tbl_partes':
+            # Filtrar partes donde el importe de certificación sea > 0
+            filtro_importe = f"(SELECT COALESCE(SUM(pc.cantidad_cert * pc.precio_unit), 0) FROM {schema}.tbl_part_certificacion pc WHERE pc.parte_id = p.id AND pc.certificada = 1) > 0"
+            where_conditions.append((filtro_importe, {'logica': 'Y'}))
+
     where_clause = ""
     if where_conditions:
         where_parts = []

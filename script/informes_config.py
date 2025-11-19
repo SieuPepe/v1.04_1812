@@ -2391,6 +2391,7 @@ INFORMES_DEFINICIONES = {
         "calcular_resumen_economico": True,  # Flag para activar cálculos PEM, GG, BI
         "porcentaje_gastos_generales": 8,    # 8%
         "porcentaje_beneficio": 3,            # 3%
+        "filtro_importe_cero": True,          # Excluir partes con importe = 0
 
         "campos": {
             "mes": {
