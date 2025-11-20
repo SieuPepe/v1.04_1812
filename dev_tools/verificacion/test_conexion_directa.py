@@ -3,16 +3,33 @@
 Test de conexión DIRECTA a cert_dev sin usar abstracciones
 """
 
+import os
+import sys
+from pathlib import Path
 import mysql.connector
 
-# Parámetros de conexión DIRECTOS
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).resolve().parent.parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
+
+# Parámetros de conexión desde variables de entorno
 config = {
-    'host': 'localhost',
-    'port': 3307,
-    'user': 'root',
-    'password': 'Lauburu1969',
-    'database': 'cert_dev'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': int(os.getenv('DB_PORT', '3306')),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_SCHEMA', 'cert_dev')
 }
+
+# Validar credenciales
+if not config['user'] or not config['password']:
+    print("ERROR: Se requieren credenciales en variables de entorno")
+    print("Configure DB_USER y DB_PASSWORD en el archivo .env")
+    sys.exit(1)
 
 print("=" * 80)
 print("TEST DE CONEXIÓN DIRECTA A cert_dev")

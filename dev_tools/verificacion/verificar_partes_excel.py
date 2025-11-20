@@ -3,6 +3,7 @@
 Script para verificar la discrepancia entre códigos de partes en Excel y BD
 """
 
+import os
 import sys
 from pathlib import Path
 import pandas as pd
@@ -13,14 +14,31 @@ sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_project_connection
 
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).parent.parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
+
 EXCEL_FILE = 'MEDICIONES OTS.xlsx'
-DEFAULT_USER = 'root'
-DEFAULT_PASSWORD = 'Lauburu1969'
 DEFAULT_SCHEMA = 'cert_dev'
 
 
 def main():
     """Verificar códigos de partes."""
+
+    # Obtener credenciales desde variables de entorno
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+    schema = os.getenv('DB_SCHEMA', DEFAULT_SCHEMA)
+
+    if not user or not password:
+        print("ERROR: Se requieren credenciales en variables de entorno")
+        print("Configure DB_USER y DB_PASSWORD en el archivo .env")
+        sys.exit(1)
+
     print("=" * 80)
     print("VERIFICAR CÓDIGOS DE PARTES - Excel vs Base de Datos")
     print("=" * 80)
@@ -35,9 +53,9 @@ def main():
     print(f"   Primeros 10 códigos: {sorted(list(codigos_excel))[:10]}")
 
     # 2. Leer códigos de la BD
-    print(f"\n🔍 Consultando tabla tbl_partes en esquema '{DEFAULT_SCHEMA}'...")
+    print(f"\n🔍 Consultando tabla tbl_partes en esquema '{schema}'...")
     try:
-        with get_project_connection(DEFAULT_USER, DEFAULT_PASSWORD, DEFAULT_SCHEMA) as conn:
+        with get_project_connection(user, password, schema) as conn:
             cursor = conn.cursor()
 
             # Contar total de partes

@@ -15,10 +15,26 @@ sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_project_connection
 
-# Configuración
-USER = os.getenv('DB_USER', 'root')
-PASSWORD = os.getenv('DB_PASSWORD', 'Lauburu1969')
+# Configuración - requiere variables de entorno
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
 SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+# Validar que se proporcionaron credenciales
+if not USER or not PASSWORD:
+    print("=" * 70)
+    print("ERROR: Se requieren credenciales de base de datos")
+    print("=" * 70)
+    print("\nConfigure las variables de entorno DB_USER y DB_PASSWORD:")
+    print("  Windows (PowerShell):")
+    print("    $env:DB_USER='tu_usuario'")
+    print("    $env:DB_PASSWORD='tu_contraseña'")
+    print("\n  Linux/Mac:")
+    print("    export DB_USER=tu_usuario")
+    print("    export DB_PASSWORD=tu_contraseña")
+    print("\nO configúrelas en el archivo .env del proyecto")
+    print("=" * 70)
+    sys.exit(1)
 
 
 def obtener_partes_sin_presupuesto(conn):

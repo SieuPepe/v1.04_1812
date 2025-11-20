@@ -432,13 +432,16 @@ class CertLotesWindow(customtkinter.CTkToplevel):
 
 
 if __name__ == "__main__":
-    # Test standalone
+    # Test standalone - requiere credenciales desde variables de entorno
+    import getpass
+
     app = customtkinter.CTk()
     app.withdraw()
 
-    USER = "root"
-    PASSWORD = "NuevaPass!2025"
-    SCHEMA = "cert_dev"
+    # Leer desde variables de entorno o solicitar
+    USER = os.getenv('DB_USER') or input("Usuario de BD: ")
+    PASSWORD = os.getenv('DB_PASSWORD') or getpass.getpass("Contraseña de BD: ")
+    SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
 
     win = CertLotesWindow(app, USER, PASSWORD, SCHEMA)
     app.mainloop()

@@ -5,7 +5,7 @@ Este módulo maneja toda la configuración de conexión a la base de datos,
 incluyendo host, puerto, y esquemas.
 
 Configuración mediante (en orden de prioridad):
-1. Variables de entorno
+1. Variables de entorno (desde archivo .env)
 2. Archivo de configuración del usuario
 3. Valores por defecto
 """
@@ -13,6 +13,17 @@ Configuración mediante (en orden de prioridad):
 import os
 from pathlib import Path
 from typing import Optional
+
+# Cargar variables de entorno desde .env
+try:
+    from dotenv import load_dotenv
+    # Calcular ruta al .env (script/db_config.py -> proyecto/.env)
+    _project_root = Path(__file__).resolve().parent.parent
+    _env_path = _project_root / '.env'
+    load_dotenv(dotenv_path=_env_path, override=False)
+except ImportError:
+    # Si python-dotenv no está instalado, continuar sin él
+    pass
 
 
 class DatabaseConfig:
