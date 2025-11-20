@@ -1,5 +1,8 @@
-# HydroFlow Manager - Requirements
-# Instalar con: pip install -r requirements.txt
+# HydroFlow Manager v2.0 - Production Requirements
+# Dependencias mínimas para ejecutar la aplicación en producción
+# Instalar con: pip install -r requirements-prod.txt
+
+# Python >= 3.8 requerido
 
 # Base de datos MySQL
 mysql-connector-python>=8.0.0
@@ -24,7 +27,7 @@ xlsxwriter>=3.0.0
 python-docx>=0.8.0
 reportlab>=3.6.0
 
-# Word to PDF conversion (Windows only, but safe to install on all platforms)
+# Word to PDF conversion (Windows only)
 pywin32>=305; sys_platform == 'win32'
 
 # Variables de entorno
