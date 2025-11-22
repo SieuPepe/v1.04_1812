@@ -815,6 +815,14 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
     def install_dependencies(self):
         """Instalar dependencias de Python"""
         print("[DEBUG] install_dependencies() llamado")
+
+        # Evitar clics múltiples - deshabilitar botón inmediatamente
+        for widget in self.container.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget('text') == 'Instalar Dependencias':
+                widget.config(state=tk.DISABLED, text='Instalando...')
+                print("[DEBUG] Botón deshabilitado")
+                break
+
         self.deps_log.delete('1.0', tk.END)
         self.log_deps("Instalando dependencias de Python...")
         self.log_deps(f"Python: {sys.version}")
@@ -854,49 +862,60 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
             '--upgrade'
         ]
 
-        print("[DEBUG] Ejecutando pip SINCRÓNICAMENTE (sin thread)...")
+        print("[DEBUG] Iniciando thread de instalación...")
 
-        try:
-            # VERSIÓN SIMPLIFICADA SIN THREAD PARA DEBUG
-            print("[DEBUG] Ejecutando subprocess.run...")
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minutos máximo
-            )
-
-            print(f"[DEBUG] pip terminó con código: {result.returncode}")
-            print(f"[DEBUG] Salida tiene {len(result.stdout)} caracteres")
-
-            # Mostrar salida completa
-            self.log_deps(result.stdout)
-
-            if result.returncode == 0:
-                print("[DEBUG] Éxito - mostrando mensaje")
-                self.log_deps("\n✓ Dependencias instaladas exitosamente")
-                messagebox.showinfo(
-                    "Éxito",
-                    "Las dependencias de Python han sido instaladas.\n\n"
-                    "Haga clic en 'Siguiente' para finalizar la instalación."
-                )
-            else:
-                print("[DEBUG] Error - mostrando mensaje")
-                self.log_deps("\n✗ Error al instalar dependencias")
-                self.log_deps(result.stderr)
-                messagebox.showerror(
-                    "Error",
-                    f"Error al instalar dependencias.\n\n{result.stderr[:200]}"
+        def run_install():
+            """Ejecutar instalación en thread separado"""
+            print("[DEBUG] Thread iniciado")
+            try:
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=1200  # 20 minutos máximo
                 )
 
-        except subprocess.TimeoutExpired:
-            print("[DEBUG] TIMEOUT después de 5 minutos")
-            self.log_deps("\n✗ Timeout - la instalación tardó más de 5 minutos")
-        except Exception as e:
-            print(f"[DEBUG] EXCEPCIÓN: {e}")
-            import traceback
-            traceback.print_exc()
-            self.log_deps(f"\n✗ Error: {e}")
+                print(f"[DEBUG] pip terminó con código: {result.returncode}")
+
+                # Actualizar UI desde el thread principal
+                def update_ui():
+                    print("[DEBUG] Actualizando UI")
+                    self.log_deps(result.stdout)
+
+                    if result.returncode == 0:
+                        self.log_deps("\n✓ Dependencias instaladas exitosamente")
+                        messagebox.showinfo(
+                            "Éxito",
+                            "Las dependencias de Python han sido instaladas.\n\n"
+                            "Haga clic en 'Siguiente' para finalizar la instalación."
+                        )
+                    else:
+                        self.log_deps("\n✗ Error al instalar dependencias")
+                        self.log_deps(result.stderr)
+                        messagebox.showerror(
+                            "Error",
+                            f"Error al instalar dependencias.\n\n{result.stderr[:200]}"
+                        )
+
+                self.root.after(0, update_ui)
+
+            except subprocess.TimeoutExpired:
+                print("[DEBUG] TIMEOUT después de 20 minutos")
+                def show_timeout():
+                    self.log_deps("\n✗ Timeout - la instalación tardó más de 20 minutos")
+                self.root.after(0, show_timeout)
+            except Exception as e:
+                print(f"[DEBUG] EXCEPCIÓN en thread: {e}")
+                import traceback
+                traceback.print_exc()
+                def show_error():
+                    self.log_deps(f"\n✗ Error: {e}")
+                self.root.after(0, show_error)
+
+        # Iniciar thread
+        thread = threading.Thread(target=run_install, daemon=True)
+        thread.start()
+        print("[DEBUG] install_dependencies() completado, thread corriendo en background")
 
     def log_deps(self, message):
         """Agregar mensaje al log de dependencias"""
