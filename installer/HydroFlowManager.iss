@@ -112,7 +112,7 @@ Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Fil
 
 [Run]
 ; Ejecutar asistente de configuración después de la instalación
-Filename: "{app}\{#MyAppConfigExeName}"; Parameters: """{app}"""; Description: "Configurar conexion a base de datos"; Flags: postinstall waituntilterminated skipifsilent
+Filename: "{app}\{#MyAppConfigExeName}"; Parameters: """{app}"""; Description: "Configurar conexion a base de datos"; Flags: postinstall shellexec skipifsilent
 
 ; Opción para ejecutar la aplicación inmediatamente
 Filename: "{app}\{#MyAppExeName}"; Description: "Ejecutar {#MyAppName}"; Flags: postinstall nowait skipifsilent unchecked
