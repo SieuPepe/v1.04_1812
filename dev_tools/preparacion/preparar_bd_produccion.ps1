@@ -202,16 +202,16 @@ foreach ($tabla in $tablasDatos) {
 
 if ($datosEncontrados) {
     Write-Warning "Se encontraron datos de prueba en '$DB_EXAMPLE_SCHEMA'"
-    Write-Info "  RECOMENDACIÓN: Limpie los datos antes de crear el backup"
-    Write-Info "  Las tablas de catálogos (tbl_pres_precios, etc.) pueden tener datos"
+    Write-Info "  RECOMENDACION: Limpie los datos antes de crear el backup"
+    Write-Info "  Las tablas de catalogos (tbl_pres_precios, etc.) pueden tener datos"
     Write-Info ""
-    $continuar = Read-Host "¿Desea continuar de todos modos? (s/n)"
+    $continuar = Read-Host "Desea continuar de todos modos? (s/n)"
     if ($continuar -ne "s") {
-        Write-Info "Operación cancelada por el usuario"
+        Write-Info "Operacion cancelada por el usuario"
         exit 0
     }
 } else {
-    Write-Success "Esquema '$DB_EXAMPLE_SCHEMA' está limpio (sin datos transaccionales)"
+    Write-Success "Esquema '$DB_EXAMPLE_SCHEMA' esta limpio (sin datos transaccionales)"
 }
 
 # ============================================================================
@@ -256,7 +256,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $fileSize = (Get-Item $managerBackup).Length / 1KB
-Write-Success "Backup creado: $managerBackup ($([math]::Round($fileSize, 2)) KB)"
+$fileSizeRounded = [math]::Round($fileSize, 2)
+Write-Success "Backup creado: $managerBackup ($fileSizeRounded KB)"
 
 # ============================================================================
 # PASO 7: Backup del esquema proyecto_tipo (estructura + catálogos)
@@ -283,9 +284,10 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $fileSize = (Get-Item $proyectoTipoBackup).Length / 1KB
-Write-Success "Backup creado: $proyectoTipoBackup ($([math]::Round($fileSize, 2)) KB)"
+$fileSizeRounded = [math]::Round($fileSize, 2)
+Write-Success "Backup creado: $proyectoTipoBackup ($fileSizeRounded KB)"
 
-# También crear backup de solo estructura (sin datos)
+# Tambien crear backup de solo estructura (sin datos)
 $proyectoTipoEstructura = "$backupPath/proyecto_tipo_solo_estructura.sql"
 
 Write-Info "Creando backup de estructura (sin datos)..."
@@ -306,7 +308,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $fileSize = (Get-Item $proyectoTipoEstructura).Length / 1KB
-Write-Success "Backup de estructura creado: $proyectoTipoEstructura ($([math]::Round($fileSize, 2)) KB)"
+$fileSizeRounded = [math]::Round($fileSize, 2)
+Write-Success "Backup de estructura creado: $proyectoTipoEstructura ($fileSizeRounded KB)"
 
 # ============================================================================
 # PASO 8: Generar reporte de validación
