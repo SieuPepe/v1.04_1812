@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-HydroFlow Manager v2.0 - Setup Wizard
+HydroFlow Manager v2.0 - Setup Wizard (Versión Simplificada)
 Instalador Gráfico Interactivo
 
-Este wizard guía al usuario a través del proceso completo de instalación:
+Este wizard guía al usuario a través del proceso de instalación:
 1. Verificación de MySQL
-2. Configuración de conexión a base de datos
-3. Creación de esquemas
-4. Importación de datos
-5. Configuración de archivo .env
-6. Instalación de dependencias Python
+2. Configuración de conexión a base de datos existente
+3. Prueba de conexión
+4. Instalación de dependencias Python
+5. Generación de archivo .env
+
+NOTA: Esta versión asume que la base de datos ya está configurada.
+No crea esquemas ni importa datos.
 
 Diseñado para usuarios sin experiencia técnica.
 """
@@ -51,8 +53,16 @@ class SetupWizard:
         self.mysql_running = False
         self.connection_tested = False
 
-        # Directorio del proyecto
-        self.project_root = Path(__file__).resolve().parent.parent
+        # Directorio del proyecto (donde se instalará)
+        self.project_root = Path.cwd()
+
+        # Directorio de recursos empaquetados (donde están los archivos del .exe)
+        if getattr(sys, 'frozen', False):
+            # Ejecutándose como .exe compilado - usar directorio temporal de PyInstaller
+            self.bundle_dir = Path(sys._MEIPASS)
+        else:
+            # Ejecutándose como script Python - usar directorio raíz del proyecto
+            self.bundle_dir = Path(__file__).resolve().parent.parent
 
         # Crear interfaz
         self.create_ui()
@@ -113,6 +123,17 @@ class SetupWizard:
 
     def show_step(self, step):
         """Mostrar paso específico"""
+        import traceback
+        print(f"\n{'='*60}")
+        print(f"[DEBUG] show_step llamado con step={step}")
+        print(f"[DEBUG] current_step era: {self.current_step}")
+        print(f"[DEBUG] Llamado desde:")
+        # Solo mostrar los últimos 3 frames relevantes
+        stack = traceback.extract_stack()
+        for frame in stack[-4:-1]:
+            print(f"  {frame.filename}:{frame.lineno} en {frame.name}")
+        print(f"{'='*60}\n")
+
         self.current_step = step
         self.clear_container()
 
@@ -121,8 +142,6 @@ class SetupWizard:
             self.step_verify_mysql,
             self.step_configure_database,
             self.step_test_connection,
-            self.step_create_schemas,
-            self.step_import_data,
             self.step_install_dependencies,
             self.step_finish
         ]
@@ -140,7 +159,7 @@ class SetupWizard:
 
     def next_step(self):
         """Ir al siguiente paso"""
-        if self.current_step == 7:  # Último paso
+        if self.current_step == 5:  # Último paso
             self.finish_installation()
         else:
             self.show_step(self.current_step + 1)
@@ -158,36 +177,30 @@ class SetupWizard:
         """Pantalla de bienvenida"""
         tk.Label(
             self.container,
-            text="Bienvenido al Instalador de HydroFlow Manager",
-            font=('Arial', 16, 'bold')
-        ).pack(pady=20)
+            text="HydroFlow Manager v2.0 - Instalador",
+            font=('Arial', 14, 'bold')
+        ).pack(pady=10)
 
-        welcome_text = """
-Este asistente le guiará a través de la configuración de HydroFlow Manager v2.0.
+        welcome_text = """Este asistente configurará HydroFlow Manager v2.0.
 
-El instalador realizará las siguientes acciones:
+Pasos de instalación:
+✓ Verificar MySQL  ✓ Configurar conexión  ✓ Instalar dependencias  ✓ Generar .env
 
-✓ Verificar que MySQL esté corriendo
-✓ Configurar la conexión a la base de datos
-✓ Crear los esquemas necesarios en MySQL
-✓ Importar los datos iniciales
-✓ Instalar las dependencias de Python
-✓ Generar archivo de configuración .env
+REQUISITOS:
+• MySQL/MariaDB instalado y corriendo
+• Base de datos configurada (esquemas y datos ya importados)
+• Credenciales de MySQL (usuario y contraseña)
+• Conexión a Internet
 
-REQUISITOS PREVIOS:
-• MySQL/MariaDB debe estar instalado y corriendo
-• Tener credenciales de MySQL (usuario y contraseña con permisos)
-• Conexión a Internet para descargar dependencias de Python
-
-Haga clic en "Siguiente" para continuar.
+NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 """
 
         tk.Label(
             self.container,
             text=welcome_text,
             justify=tk.LEFT,
-            font=('Arial', 10)
-        ).pack(pady=10, padx=20)
+            font=('Arial', 9)
+        ).pack(pady=5, padx=20)
 
     # ========================================================================
     # PASO 2: Verificar MySQL
@@ -230,35 +243,25 @@ Haga clic en "Siguiente" para continuar.
 
     def verify_mysql(self):
         """Verificar si MySQL está instalado"""
-        self.log_mysql("Verificando instalación de MySQL...")
+        self.log_mysql("Verificando instalación de MySQL...\n")
 
         # Buscar mysql.exe
         mysql_path = shutil.which('mysql')
 
         if mysql_path:
-            self.log_mysql(f"✓ MySQL encontrado en: {mysql_path}")
+            self.log_mysql(f"✓ MySQL encontrado en: {mysql_path}\n")
             self.mysql_installed = True
-
-            # Verificar versión
-            try:
-                result = subprocess.run(
-                    ['mysql', '--version'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                self.log_mysql(f"✓ {result.stdout.strip()}")
-            except Exception as e:
-                self.log_mysql(f"⚠ Error al verificar versión: {e}")
-
-            # Verificar si está corriendo
-            self.verify_mysql_service()
+            self.log_mysql("=" * 60)
+            self.log_mysql("✓ VERIFICACIÓN COMPLETADA - MySQL detectado")
+            self.log_mysql("=" * 60)
+            self.log_mysql("\nPuede continuar al siguiente paso.")
         else:
-            self.log_mysql("✗ MySQL no encontrado en el PATH")
-            self.log_mysql("\nBuscar en ubicaciones comunes...")
+            self.log_mysql("⚠ MySQL no encontrado en el PATH")
+            self.log_mysql("\nBuscando en ubicaciones comunes...\n")
 
             common_paths = [
                 r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
+                r"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
                 r"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql.exe",
                 r"C:\xampp\mysql\bin\mysql.exe",
                 r"C:\wamp64\bin\mysql\mysql8.0.27\bin\mysql.exe"
@@ -267,61 +270,43 @@ Haga clic en "Siguiente" para continuar.
             found = False
             for path in common_paths:
                 if os.path.exists(path):
-                    self.log_mysql(f"✓ MySQL encontrado en: {path}")
-                    self.log_mysql("  Considere agregar esta ruta al PATH del sistema")
+                    self.log_mysql(f"✓ MySQL encontrado en: {path}\n")
+                    self.log_mysql("  NOTA: Considere agregar esta ruta al PATH del sistema\n")
                     self.mysql_installed = True
                     found = True
+                    self.log_mysql("=" * 60)
+                    self.log_mysql("✓ VERIFICACIÓN COMPLETADA - MySQL detectado")
+                    self.log_mysql("=" * 60)
+                    self.log_mysql("\nPuede continuar al siguiente paso.")
                     break
 
             if not found:
-                self.log_mysql("\n✗ MySQL no encontrado en ubicaciones comunes")
+                self.log_mysql("=" * 60)
+                self.log_mysql("✗ VERIFICACIÓN FALLIDA - MySQL NO encontrado")
+                self.log_mysql("=" * 60)
                 self.log_mysql("\n** IMPORTANTE **")
-                self.log_mysql("MySQL/MariaDB debe estar instalado antes de continuar.")
-                self.log_mysql("\nPor favor:")
-                self.log_mysql("1. Instale MySQL/MariaDB")
-                self.log_mysql("2. Asegúrese de que el servicio esté corriendo")
-                self.log_mysql("3. Vuelva a ejecutar este instalador")
+                self.log_mysql("MySQL/MariaDB debe estar instalado antes de continuar.\n")
+                self.log_mysql("Por favor:")
+                self.log_mysql("1. Instale MySQL/MariaDB o XAMPP")
+                self.log_mysql("2. Asegúrese de que esté corriendo")
+                self.log_mysql("3. Haga clic en 'Verificar Nuevamente'\n")
                 self.mysql_installed = False
 
                 messagebox.showwarning(
                     "MySQL No Encontrado",
                     "MySQL/MariaDB no está instalado o no se encuentra en el PATH.\n\n"
-                    "Por favor, instale MySQL/MariaDB antes de continuar con la instalación.\n\n"
-                    "Puede descargar MySQL desde:\n"
-                    "https://dev.mysql.com/downloads/mysql/"
+                    "Opciones:\n"
+                    "• Instale MySQL desde: https://dev.mysql.com/downloads/mysql/\n"
+                    "• O instale XAMPP: https://www.apachefriends.org/\n\n"
+                    "Luego haga clic en 'Verificar Nuevamente'."
                 )
 
-    def verify_mysql_service(self):
-        """Verificar si el servicio MySQL está corriendo"""
-        self.log_mysql("\nVerificando servicio MySQL...")
-
-        try:
-            result = subprocess.run(
-                ['sc', 'query', 'MySQL'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-
-            if 'RUNNING' in result.stdout:
-                self.log_mysql("✓ Servicio MySQL está corriendo")
-                self.mysql_running = True
-            elif 'STOPPED' in result.stdout:
-                self.log_mysql("⚠ Servicio MySQL está detenido")
-                self.log_mysql("  Puede iniciarlo desde Servicios de Windows")
-                self.mysql_running = False
-            else:
-                self.log_mysql("⚠ No se pudo determinar el estado del servicio")
-                self.mysql_running = False
-        except Exception as e:
-            self.log_mysql(f"⚠ Error al verificar servicio: {e}")
-            self.mysql_running = False
 
     def log_mysql(self, message):
         """Agregar mensaje al log de MySQL"""
         self.mysql_status_text.insert(tk.END, message + '\n')
         self.mysql_status_text.see(tk.END)
-        self.root.update()
+        self.mysql_status_text.update_idletasks()
 
     # ========================================================================
     # PASO 3: Configurar Base de Datos
@@ -427,7 +412,7 @@ Haga clic en "Siguiente" para continuar.
         self.root.after(500, self.test_connection)
 
     def test_connection(self):
-        """Probar conexión a MySQL"""
+        """Probar conexión a MySQL usando mysql-connector-python"""
         self.connection_log.delete('1.0', tk.END)
         self.log_connection("Probando conexión a MySQL...")
         self.log_connection(f"Host: {self.config['db_host'].get()}")
@@ -435,66 +420,85 @@ Haga clic en "Siguiente" para continuar.
         self.log_connection(f"Usuario: {self.config['db_user'].get()}")
         self.log_connection("")
 
-        # Comando de prueba
-        cmd = [
-            'mysql',
-            '-h', self.config['db_host'].get(),
-            '-P', self.config['db_port'].get(),
-            '-u', self.config['db_user'].get(),
-            f'-p{self.config["db_password"].get()}',
-            '-e', 'SELECT VERSION();'
-        ]
-
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
+            # Intentar importar mysql.connector
+            try:
+                import mysql.connector
+            except ImportError:
+                self.log_connection("✗ ERROR: mysql-connector-python no está instalado")
+                self.log_connection("")
+                self.log_connection("Instalando mysql-connector-python...")
+                subprocess.run([sys.executable, '-m', 'pip', 'install', 'mysql-connector-python'],
+                             check=True, capture_output=True)
+                import mysql.connector
+                self.log_connection("✓ mysql-connector-python instalado")
+                self.log_connection("")
+
+            # Intentar conectar
+            connection = mysql.connector.connect(
+                host=self.config['db_host'].get(),
+                port=int(self.config['db_port'].get()),
+                user=self.config['db_user'].get(),
+                password=self.config['db_password'].get()
             )
 
-            if result.returncode == 0:
-                self.log_connection("✓ CONEXIÓN EXITOSA")
-                self.log_connection("")
-                self.log_connection(result.stdout)
-                self.connection_tested = True
+            # Obtener versión de MySQL
+            cursor = connection.cursor()
+            cursor.execute("SELECT VERSION();")
+            version = cursor.fetchone()[0]
 
-                messagebox.showinfo(
-                    "Éxito",
-                    "La conexión a MySQL fue exitosa.\n\n"
-                    "Haga clic en 'Siguiente' para continuar."
-                )
-            else:
-                self.log_connection("✗ ERROR DE CONEXIÓN")
-                self.log_connection("")
-                self.log_connection(result.stderr)
-                self.connection_tested = False
+            cursor.close()
+            connection.close()
 
-                messagebox.showerror(
-                    "Error de Conexión",
-                    "No se pudo conectar a MySQL.\n\n"
-                    "Verifique:\n"
-                    "• Que MySQL esté corriendo\n"
-                    "• Que las credenciales sean correctas\n"
-                    "• Que el puerto sea el correcto"
-                )
-        except subprocess.TimeoutExpired:
-            self.log_connection("✗ TIMEOUT")
-            self.log_connection("La conexión tardó demasiado tiempo")
-            self.connection_tested = False
-        except FileNotFoundError:
-            self.log_connection("✗ ERROR: mysql.exe no encontrado")
-            self.log_connection("Asegúrese de que MySQL esté instalado")
-            self.connection_tested = False
+            self.log_connection("=" * 60)
+            self.log_connection("✓ CONEXIÓN EXITOSA")
+            self.log_connection("=" * 60)
+            self.log_connection(f"\nVersión de MySQL: {version}")
+            self.log_connection("\nPuede continuar al siguiente paso.")
+            self.connection_tested = True
+
+            messagebox.showinfo(
+                "Éxito",
+                f"La conexión a MySQL fue exitosa.\n\n"
+                f"Versión: {version}\n\n"
+                "Haga clic en 'Siguiente' para continuar."
+            )
+
         except Exception as e:
-            self.log_connection(f"✗ ERROR: {e}")
+            error_msg = str(e)
+            self.log_connection("=" * 60)
+            self.log_connection("✗ ERROR DE CONEXIÓN")
+            self.log_connection("=" * 60)
+            self.log_connection(f"\n{error_msg}\n")
+
+            # Mensajes específicos de ayuda
+            if "Access denied" in error_msg or "1045" in error_msg:
+                self.log_connection("CAUSA: Credenciales incorrectas")
+                self.log_connection("• Verifique el usuario y contraseña")
+            elif "Can't connect" in error_msg or "2003" in error_msg:
+                self.log_connection("CAUSA: No se puede conectar al servidor")
+                self.log_connection("• Verifique que MySQL esté corriendo")
+                self.log_connection("• Verifique el puerto (3306 o 3307)")
+            elif "Unknown database" in error_msg or "1049" in error_msg:
+                self.log_connection("CAUSA: Base de datos no existe")
+
             self.connection_tested = False
+
+            messagebox.showerror(
+                "Error de Conexión",
+                f"No se pudo conectar a MySQL.\n\n"
+                f"Error: {error_msg}\n\n"
+                "Verifique:\n"
+                "• Que MySQL esté corriendo\n"
+                "• Que las credenciales sean correctas\n"
+                "• Que el puerto sea el correcto"
+            )
 
     def log_connection(self, message):
         """Agregar mensaje al log de conexión"""
         self.connection_log.insert(tk.END, message + '\n')
         self.connection_log.see(tk.END)
-        self.root.update()
+        self.connection_log.update_idletasks()
 
     # ========================================================================
     # PASO 5: Crear Esquemas
@@ -606,7 +610,7 @@ Haga clic en "Siguiente" para continuar.
         """Agregar mensaje al log de esquemas"""
         self.schema_log.insert(tk.END, message + '\n')
         self.schema_log.see(tk.END)
-        self.root.update()
+        self.schema_log.update_idletasks()
 
     # ========================================================================
     # PASO 6: Importar Datos
@@ -771,14 +775,16 @@ Haga clic en "Siguiente" para continuar.
         """Agregar mensaje al log de importación"""
         self.import_log.insert(tk.END, message + '\n')
         self.import_log.see(tk.END)
-        self.root.update()
+        self.import_log.update_idletasks()
 
     # ========================================================================
-    # PASO 7: Instalar Dependencias
+    # PASO 5: Instalar Dependencias
     # ========================================================================
 
     def step_install_dependencies(self):
         """Instalar dependencias de Python"""
+        print("[DEBUG] step_install_dependencies ejecutándose")
+
         tk.Label(
             self.container,
             text="Instalar Dependencias",
@@ -809,17 +815,43 @@ Haga clic en "Siguiente" para continuar.
             font=('Arial', 10, 'bold')
         ).pack(pady=10)
 
+        print("[DEBUG] step_install_dependencies completado")
+
     def install_dependencies(self):
         """Instalar dependencias de Python"""
+        print("[DEBUG] install_dependencies() llamado")
+
+        # Evitar clics múltiples - deshabilitar botón inmediatamente
+        for widget in self.container.winfo_children():
+            if isinstance(widget, tk.Button) and widget.cget('text') == 'Instalar Dependencias':
+                widget.config(state=tk.DISABLED, text='Instalando...')
+                print("[DEBUG] Botón deshabilitado")
+                break
+
         self.deps_log.delete('1.0', tk.END)
         self.log_deps("Instalando dependencias de Python...")
         self.log_deps(f"Python: {sys.version}")
         self.log_deps("")
+        print("[DEBUG] Buscando requirements.txt...")
 
-        requirements_file = self.project_root / 'requirements.txt'
+        # Buscar requirements.txt en el bundle (archivos empaquetados dentro del .exe)
+        requirements_file = self.bundle_dir / 'requirements.txt'
 
         if not requirements_file.exists():
-            self.log_deps("✗ Archivo requirements.txt no encontrado")
+            self.log_deps("=" * 60)
+            self.log_deps("✗ Archivo requirements.txt no encontrado en el instalador")
+            self.log_deps("=" * 60)
+            self.log_deps("\nEste instalador no incluye requirements.txt.")
+            self.log_deps("Puede omitir este paso y continuar.")
+            self.log_deps("\nLas dependencias pueden instalarse manualmente después con:")
+            self.log_deps("  pip install -r requirements.txt")
+
+            messagebox.showwarning(
+                "requirements.txt no encontrado",
+                "El instalador no incluye requirements.txt.\n\n"
+                "Puede omitir este paso y continuar.\n\n"
+                "Las dependencias pueden instalarse manualmente después."
+            )
             return
 
         self.log_deps(f"Usando: {requirements_file}")
@@ -835,46 +867,95 @@ Haga clic en "Siguiente" para continuar.
             '--upgrade'
         ]
 
-        try:
-            # Ejecutar en un thread para no bloquear la UI
-            def run_install():
+        print("[DEBUG] Iniciando thread de instalación...")
+
+        def run_install():
+            """Ejecutar instalación en thread separado con progreso en tiempo real"""
+            print("[DEBUG] Thread iniciado")
+            try:
+                # Usar Popen para leer salida en tiempo real
                 process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    bufsize=1
+                    bufsize=1,
+                    universal_newlines=True
                 )
 
-                for line in process.stdout:
-                    self.root.after(0, lambda l=line: self.log_deps(l.strip()))
+                print("[DEBUG] Proceso pip iniciado, mostrando progreso...")
 
+                # Leer salida línea por línea y actualizar en tiempo real
+                for line in iter(process.stdout.readline, ''):
+                    if line:
+                        # Crear una closure correcta capturando el valor de line
+                        line_text = line.rstrip()
+                        def update_line(text=line_text):
+                            try:
+                                self.log_deps(text)
+                            except:
+                                pass  # Si el widget fue destruido, ignorar
+
+                        # Programar actualización en el thread principal
+                        self.root.after(0, update_line)
+
+                # Esperar a que termine el proceso
                 process.wait()
+                returncode = process.returncode
 
-                if process.returncode == 0:
-                    self.root.after(0, lambda: self.log_deps("\n✓ Dependencias instaladas exitosamente"))
-                    self.root.after(0, lambda: messagebox.showinfo(
-                        "Éxito",
-                        "Las dependencias de Python han sido instaladas.\n\n"
-                        "Haga clic en 'Siguiente' para finalizar la instalación."
-                    ))
-                else:
-                    self.root.after(0, lambda: self.log_deps("\n✗ Error al instalar dependencias"))
+                print(f"[DEBUG] pip terminó con código: {returncode}")
 
-            thread = threading.Thread(target=run_install, daemon=True)
-            thread.start()
+                # Mostrar mensaje final
+                def show_final_message():
+                    print("[DEBUG] Mostrando mensaje final")
+                    if returncode == 0:
+                        self.log_deps("\n" + "=" * 60)
+                        self.log_deps("✓ DEPENDENCIAS INSTALADAS EXITOSAMENTE")
+                        self.log_deps("=" * 60)
+                        messagebox.showinfo(
+                            "Éxito",
+                            "Las dependencias de Python han sido instaladas correctamente.\n\n"
+                            "Haga clic en 'Siguiente' para finalizar la configuración."
+                        )
+                    else:
+                        self.log_deps("\n" + "=" * 60)
+                        self.log_deps("✗ ERROR AL INSTALAR DEPENDENCIAS")
+                        self.log_deps("=" * 60)
+                        messagebox.showerror(
+                            "Error",
+                            "Hubo un error al instalar las dependencias.\n\n"
+                            "Revise el log para más detalles."
+                        )
 
-        except Exception as e:
-            self.log_deps(f"\n✗ Error: {e}")
+                self.root.after(0, show_final_message)
+
+            except Exception as e:
+                print(f"[DEBUG] EXCEPCIÓN en thread: {e}")
+                import traceback
+                traceback.print_exc()
+
+                def show_error():
+                    self.log_deps(f"\n✗ Error: {e}")
+                    messagebox.showerror("Error", f"Error durante la instalación:\n\n{str(e)}")
+
+                self.root.after(0, show_error)
+
+        # Iniciar thread
+        thread = threading.Thread(target=run_install, daemon=True)
+        thread.start()
+        print("[DEBUG] install_dependencies() completado, thread corriendo en background")
 
     def log_deps(self, message):
         """Agregar mensaje al log de dependencias"""
-        self.deps_log.insert(tk.END, message + '\n')
-        self.deps_log.see(tk.END)
-        self.root.update()
+        try:
+            self.deps_log.insert(tk.END, message + '\n')
+            self.deps_log.see(tk.END)
+            self.deps_log.update_idletasks()
+        except:
+            pass  # Ignorar errores si el widget ya no existe
 
     # ========================================================================
-    # PASO 8: Finalizar
+    # PASO 6: Finalizar
     # ========================================================================
 
     def step_finish(self):
@@ -887,21 +968,17 @@ Haga clic en "Siguiente" para continuar.
         ).pack(pady=30)
 
         finish_text = """
-HydroFlow Manager v2.0 ha sido instalado exitosamente.
+HydroFlow Manager v2.0 ha sido configurado exitosamente.
 
-✓ MySQL configurado
-✓ Esquemas de base de datos creados
-✓ Datos iniciales importados
-✓ Dependencias instaladas
-✓ Archivo .env configurado
+✓ Conexión a MySQL verificada
+✓ Dependencias de Python instaladas
+✓ Archivo .env generado
 
-Puede iniciar la aplicación ejecutando:
-  python main.py
+Para iniciar la aplicación:
+  1. Navegue al directorio del proyecto
+  2. Ejecute: python main.py
 
-O compilar el ejecutable con:
-  .\\build.ps1
-
-Gracias por instalar HydroFlow Manager.
+Gracias por usar HydroFlow Manager.
 """
 
         tk.Label(

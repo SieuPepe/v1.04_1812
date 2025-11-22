@@ -1,351 +1,354 @@
-# HydroFlow Manager v2.0 - Sistema de Instalación
+# HydroFlow Manager v1.04 - Sistema de Instalación Profesional
 
-Este directorio contiene el sistema de instalación gráfico de HydroFlow Manager v2.0, diseñado para usuarios sin conocimientos técnicos.
+Sistema de instalación profesional con Inno Setup para HydroFlow Manager v1.04, diseñado para distribución a usuarios finales.
 
-## 📋 Contenido
+## 🎯 Características del Instalador
 
-### `setup_wizard.py`
-Wizard de instalación gráfico (GUI) con interfaz Tkinter.
+### ✨ Profesional y Completo
+- **Interfaz moderna** estilo Windows (como VSCode, Discord, etc.)
+- **Selección de carpeta** de instalación
+- **Accesos directos** automáticos (escritorio y menú inicio)
+- **Asistente de configuración** post-instalación
+- **Desinstalador** incluido
 
-**Características:**
-- Interfaz gráfica paso a paso
-- Verifica que MySQL esté corriendo
-- Configura la conexión a MySQL
-- Crea los esquemas de base de datos
-- Importa datos iniciales
-- Instala dependencias de Python
-- Genera archivo `.env` automáticamente
+### 📦 Todo Incluido (Offline)
+- **Todas las dependencias** Python embebidas (sin conexión a internet)
+- **Recursos** y archivos necesarios incluidos
+- **Documentación** integrada
+- Instalador **standalone** de ~150-200 MB
 
-### `build_installer.ps1`
-Script PowerShell para compilar el wizard en un ejecutable standalone.
+### 🔒 Seguro y Profesional
+- Verificación de requisitos previos (MySQL)
+- Configuración guiada paso a paso
+- Gestión segura de credenciales (.env)
+- Desinstalación limpia
 
-**Uso:**
-```powershell
-.\installer\build_installer.ps1
+## 📋 Arquitectura del Sistema
+
+### Componentes
+
+```
+installer/
+├── build_all.ps1                    # Script maestro - USAR ESTE
+├── build_app.ps1                    # Compila aplicación principal
+├── build_config.ps1                 # Compila configurador
+├── build_inno_setup.ps1             # Compila instalador final
+├── config_wizard.py                 # Asistente de configuración (simplificado)
+├── HydroFlowManager.iss             # Script Inno Setup
+├── LEER_ANTES_DE_INSTALAR.txt       # Info pre-instalación
+├── LEER_DESPUES_DE_INSTALAR.txt     # Info post-instalación
+└── README_NEW.md                    # Esta documentación
+
+dist/
+├── HydroFlowManager.exe             # App principal (generado)
+├── HydroFlowManager_Config.exe      # Configurador (generado)
+└── HydroFlowManager_v1.04_Setup.exe # Instalador final (generado)
 ```
 
-**Resultado:**
-- `dist/HydroFlowManager_Setup.exe` - Instalador ejecutable
+### Flujo de Compilación
 
-## 🎯 Cómo Funciona el Instalador
+```
+1. build_app.ps1
+   └─> Compila main.py
+       └─> dist/HydroFlowManager.exe (app principal con todas las dependencias)
 
-### Paso 1: Bienvenida
-- Muestra información sobre lo que se va a instalar
-- Lista los requisitos previos
+2. build_config.ps1
+   └─> Compila config_wizard.py
+       └─> dist/HydroFlowManager_Config.exe (asistente de configuración)
 
-### Paso 2: Verificación de MySQL
-- Verifica que MySQL/MariaDB esté instalado
-- Comprueba que el servicio MySQL esté corriendo
-- **Busca en ubicaciones comunes:**
-  - `C:\Program Files\MySQL\MySQL Server 8.0\`
-  - `C:\xampp\mysql\`
-  - `C:\wamp64\bin\mysql\`
+3. build_inno_setup.ps1
+   └─> Empaqueta ambos .exe con Inno Setup
+       └─> dist/HydroFlowManager_v1.04_Setup.exe (instalador profesional)
+```
 
-> **IMPORTANTE:** MySQL/MariaDB debe estar instalado **antes** de ejecutar este instalador. El instalador NO instala MySQL, solo configura la conexión.
+### Flujo de Instalación (Usuario Final)
 
-### Paso 3: Configuración de Base de Datos
-- Solicita al usuario:
-  - Host (por defecto: localhost)
-  - Puerto (por defecto: 3306)
-  - Usuario (por defecto: root)
-  - Contraseña
-  - Nombres de esquemas (opcionales)
+```
+1. Usuario ejecuta HydroFlowManager_v1.04_Setup.exe
+   ├─> Pantalla de bienvenida
+   ├─> Licencia
+   ├─> Selección de carpeta
+   ├─> Selección de componentes (iconos)
+   ├─> Verificación de MySQL
+   └─> Instalación de archivos
 
-### Paso 4: Probar Conexión
-- Prueba la conexión a MySQL con las credenciales proporcionadas
-- Muestra mensaje de éxito o error
-- Muestra la versión de MySQL conectada
+2. Post-instalación automática:
+   └─> Se ejecuta HydroFlowManager_Config.exe
+       ├─> Configurar conexión MySQL
+       ├─> Probar conexión
+       └─> Generar archivo .env
 
-### Paso 5: Crear Esquemas
-- Crea los siguientes esquemas en MySQL:
-  - `manager` - Esquema maestro de proyectos
-  - `proyecto_tipo` - Plantilla de proyecto tipo
-  - `cert_dev` - Esquema de trabajo/desarrollo
-
-### Paso 6: Importar Datos
-- Permite seleccionar archivos SQL de backup
-- Auto-detecta archivos en `backups/produccion/`
-- Importa:
-  - `manager_estructura_y_datos.sql`
-  - `proyecto_tipo_completo.sql`
-
-### Paso 7: Instalar Dependencias
-- Instala las dependencias de Python desde `requirements.txt`
-- Muestra progreso en tiempo real
-- Usa `pip install -r requirements.txt`
-
-### Paso 8: Finalización
-- Genera el archivo `.env` con la configuración
-- Muestra resumen de instalación
-- Proporciona instrucciones para ejecutar la aplicación
+3. Usuario ejecuta HydroFlowManager.exe
+   └─> Aplicación lista para usar
+```
 
 ## 🚀 Compilar el Instalador
 
 ### Requisitos Previos
 
 1. **Python 3.8+** instalado
-2. **PyInstaller** instalado:
-   ```bash
+2. **PyInstaller**:
+   ```powershell
    pip install pyinstaller
    ```
 
-### Compilación
+3. **Todas las dependencias del proyecto**:
+   ```powershell
+   pip install -r requirements.txt
+   ```
+
+4. **Inno Setup 6.0+** instalado:
+   - Descargar de: https://jrsoftware.org/isdl.php
+   - Instalar en la ruta por defecto
+
+### Compilación Completa (Recomendado)
 
 ```powershell
 # Desde el directorio raíz del proyecto
-.\installer\build_installer.ps1
+.\installer\build_all.ps1
 ```
 
-El script:
-1. Verifica que PyInstaller esté instalado
-2. Limpia builds anteriores
-3. Compila `setup_wizard.py` en un ejecutable
-4. Incluye archivos necesarios:
-   - `.env.example`
-   - `INSTALACION.md`
-   - Backups SQL en `backups/`
-5. Genera `dist/HydroFlowManager_Setup.exe`
+Este script:
+1. Compila la aplicación principal (`HydroFlowManager.exe`)
+2. Compila el configurador (`HydroFlowManager_Config.exe`)
+3. Genera el instalador con Inno Setup (`HydroFlowManager_v1.04_Setup.exe`)
 
-### Resultado
+**Resultado:** `dist\HydroFlowManager_v1.04_Setup.exe` (~150-200 MB)
 
-```
-dist/
-└── HydroFlowManager_Setup.exe   (~15-20 MB)
-```
+### Compilación por Pasos (Opcional)
 
-Este ejecutable es **standalone** y puede distribuirse a los usuarios finales.
-
-## 📦 Distribución a Usuarios
-
-### Opción 1: Instalador Standalone
-
-Distribuir solo el ejecutable:
-```
-HydroFlowManager_Setup.exe
-```
-
-El instalador:
-- Incluye el wizard de instalación
-- Incluye plantillas de configuración
-- **PERO:** No incluye backups SQL (el usuario debe proporcionarlos)
-
-### Opción 2: Paquete Completo (Recomendado)
-
-Crear un ZIP con:
-```
-HydroFlowManager_v2.0/
-├── HydroFlowManager_Setup.exe
-├── backups/
-│   └── produccion/
-│       └── <timestamp>/
-│           ├── manager_estructura_y_datos.sql
-│           └── proyecto_tipo_completo.sql
-├── INSTALACION.md
-└── README.txt
-```
-
-**Ventajas:**
-- Usuario tiene todo lo necesario
-- Backups SQL incluidos
-- Documentación incluida
-
-### Crear el Paquete Completo
+Si necesita compilar componentes individuales:
 
 ```powershell
-# Crear estructura
-mkdir HydroFlowManager_v2.0
-copy dist\HydroFlowManager_Setup.exe HydroFlowManager_v2.0\
-copy -Recurse backups\produccion HydroFlowManager_v2.0\backups\produccion
-copy INSTALACION.md HydroFlowManager_v2.0\
+# 1. Compilar solo la aplicación principal
+.\installer\build_app.ps1
 
-# Crear README para el usuario
-@"
-HydroFlow Manager v2.0 - Paquete de Instalación
+# 2. Compilar solo el configurador
+.\installer\build_config.ps1
 
-REQUISITOS PREVIOS:
-1. MySQL/MariaDB instalado y corriendo
-2. Credenciales de MySQL (usuario y contraseña con permisos)
-
-INSTALACIÓN:
-1. Ejecute HydroFlowManager_Setup.exe
-2. Siga las instrucciones del asistente paso a paso
-3. El instalador configurará todo automáticamente
-
-IMPORTANTE:
-- El instalador NO instala MySQL. MySQL debe estar instalado previamente.
-- Asegúrese de tener las credenciales de MySQL disponibles.
-- El proceso toma aproximadamente 5-10 minutos.
-
-Para más información, consulte INSTALACION.md
-"@ | Out-File HydroFlowManager_v2.0\README.txt -Encoding UTF8
-
-# Comprimir
-Compress-Archive -Path HydroFlowManager_v2.0 -DestinationPath HydroFlowManager_v2.0_Setup.zip
+# 3. Compilar solo el instalador (requiere los 2 anteriores)
+.\installer\build_inno_setup.ps1
 ```
 
-## 🔧 Desarrollo y Testing
+## 📦 Distribución
 
-### Ejecutar el Wizard Sin Compilar
+### Archivo a Distribuir
 
-```bash
-python installer/setup_wizard.py
+```
+dist/HydroFlowManager_v1.04_Setup.exe
 ```
 
-Útil para desarrollo y testing.
+Este único archivo contiene TODO lo necesario:
+- ✅ Aplicación principal con todas las dependencias Python
+- ✅ Asistente de configuración
+- ✅ Recursos y documentación
+- ✅ Scripts de instalación y desinstalación
 
-### Modificar el Wizard
+### Requisitos del Usuario Final
 
-El archivo `setup_wizard.py` está organizado en métodos por paso:
-- `step_welcome()` - Paso 1
-- `step_verify_mysql()` - Paso 2
-- `step_configure_database()` - Paso 3
-- `step_test_connection()` - Paso 4
-- `step_create_schemas()` - Paso 5
-- `step_import_data()` - Paso 6
-- `step_install_dependencies()` - Paso 7
-- `step_finish()` - Paso 8
+El usuario SOLO necesita:
+1. **Windows** 7/8/10/11 (64-bit recomendado)
+2. **MySQL o MariaDB** instalado y corriendo
+3. **Base de datos HydroFlow** ya creada e importada
+4. **Credenciales** de acceso a MySQL
 
-Para agregar un nuevo paso:
-1. Crear método `step_mi_paso()`
-2. Agregarlo a la lista en `show_step()`
-3. Recompilar el instalador
+**NO necesita:**
+- ❌ Python instalado
+- ❌ Dependencias Python
+- ❌ Conexión a internet
+- ❌ Conocimientos técnicos
 
-### Testing del Instalador
+### Cómo Distribuir
 
-1. **Test en entorno limpio:**
-   - Usar máquina virtual con MySQL instalado
-   - Probar instalación desde cero
+**Opción 1: Archivo único** (Recomendado)
+```
+HydroFlowManager_v1.04_Setup.exe
+```
 
-2. **Test de errores:**
-   - Probar con MySQL detenido
-   - Probar con credenciales incorrectas
-   - Probar sin permisos suficientes
+**Opción 2: Con documentación extra**
+```
+HydroFlowManager_v1.04/
+├── HydroFlowManager_v1.04_Setup.exe
+├── INSTRUCCIONES.txt
+└── MANUAL_USUARIO.pdf (si existe)
+```
 
-3. **Test de UI:**
-   - Verificar que todos los botones funcionan
-   - Verificar que la navegación entre pasos es correcta
-   - Verificar que los logs se muestran correctamente
+## 🔧 Configuración Post-Instalación
 
-## 📝 Configuración Generada
+### Asistente de Configuración
 
-### Archivo .env
+El instalador ejecuta automáticamente `HydroFlowManager_Config.exe` que:
 
-El instalador genera automáticamente el archivo `.env`:
+1. **Bienvenida**
+   - Explica el proceso
+   - Lista requisitos previos
 
-```bash
-# HydroFlow Manager v2.0 - Configuración
-# Generado automáticamente por el instalador
+2. **Configurar Base de Datos**
+   - Host (localhost)
+   - Puerto (3307 por defecto)
+   - Usuario (root)
+   - Contraseña
+   - Nombres de esquemas
 
-# Servidor MySQL
+3. **Probar Conexión**
+   - Verifica credenciales
+   - Verifica que los esquemas existen
+   - Muestra versión de MySQL
+
+4. **Finalización**
+   - Genera archivo `.env`
+   - Muestra resumen
+
+### Archivo .env Generado
+
+```ini
+# HydroFlow Manager v1.04 - Configuración
 DB_HOST=localhost
-DB_PORT=3306
-
-# Credenciales (MANTENER SEGURO)
+DB_PORT=3307
 DB_USER=root
 DB_PASSWORD=<contraseña_ingresada>
-
-# Esquemas
 DB_MANAGER_SCHEMA=manager
 DB_EXAMPLE_SCHEMA=proyecto_tipo
 DB_SCHEMA=cert_dev
-
-# Rendimiento
 DB_USE_POOLING=true
 ```
 
 ## 🐛 Troubleshooting
 
-### Error: "MySQL no encontrado"
+### Error: PyInstaller no encontrado
 
-**Causa:** MySQL no está en el PATH o no está instalado
+```powershell
+pip install pyinstaller
+```
 
-**Solución:**
-1. Instalar MySQL/MariaDB
-2. O agregar MySQL al PATH:
-   ```
-   C:\Program Files\MySQL\MySQL Server 8.0\bin
-   ```
-3. Reiniciar el instalador
+### Error: Inno Setup no encontrado
 
-### Error: "No se pudo conectar a MySQL"
+1. Descargar de: https://jrsoftware.org/isdl.php
+2. Instalar en ruta por defecto: `C:\Program Files (x86)\Inno Setup 6\`
 
-**Causa:** Credenciales incorrectas o servicio no corriendo
+### Error: HydroFlowManager.exe no encontrado
 
-**Solución:**
-1. Verificar que MySQL esté corriendo (Servicios de Windows)
-2. Verificar usuario y contraseña
-3. Verificar puerto (3306 por defecto, puede ser 3307)
+```powershell
+# Compilar primero la aplicación
+.\installer\build_app.ps1
+```
 
-### Error: "Error al crear esquemas"
+### Error: Faltan dependencias Python
 
-**Causa:** Usuario sin permisos suficientes
+```powershell
+# Instalar todas las dependencias
+pip install -r requirements.txt
+```
 
-**Solución:**
-1. Usar usuario `root` con permisos completos
-2. O otorgar permisos:
-   ```sql
-   GRANT ALL PRIVILEGES ON *.* TO 'usuario'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
+### El instalador es muy grande
 
-### Error: "Error al importar datos"
+Normal. El instalador incluye TODAS las dependencias Python (~150-200 MB).
+Esto es intencional para que funcione offline.
 
-**Causa:** Archivos SQL no encontrados o corruptos
+### El antivirus bloquea el instalador
 
-**Solución:**
-1. Verificar que los archivos SQL existan en `backups/produccion/`
-2. Regenerar backups con `preparar_bd_produccion.ps1`
-3. Seleccionar archivos manualmente en el paso 6
+Falso positivo común en ejecutables PyInstaller. Agregar a excepciones.
 
-### El instalador se congela
+## 📝 Personalización
 
-**Causa:** Instalación de dependencias Python tarda mucho
+### Cambiar Icono
 
-**Solución:**
-1. Esperar (puede tardar 5-10 minutos)
-2. Verificar conexión a Internet
-3. Si persiste, instalar dependencias manualmente:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Reemplazar: `resources\icon.ico`
 
-## 📄 Archivos Generados Durante Instalación
+### Cambiar Puerto Por Defecto
 
-El instalador crea/modifica:
-- `.env` - Configuración de base de datos
-- Esquemas en MySQL (manager, proyecto_tipo, cert_dev)
-- Datos importados desde SQL
-- Dependencias de Python instaladas
+Editar `installer/config_wizard.py`:
+```python
+'db_port': tk.StringVar(value='3307'),  # Cambiar aquí
+```
 
-## 🔒 Seguridad
+### Cambiar Mensajes de Instalación
 
-### Credenciales
+Editar:
+- `installer/LEER_ANTES_DE_INSTALAR.txt`
+- `installer/LEER_DESPUES_DE_INSTALAR.txt`
 
-- Las credenciales se solicitan durante la instalación
-- Se guardan en `.env` (archivo local, no se sube a Git)
-- **ADVERTENCIA:** `.env` contiene credenciales en texto plano
-- **Recomendación:** Proteger el archivo `.env` con permisos adecuados
+### Modificar Script Inno Setup
 
-### Archivos SQL
+Editar: `installer/HydroFlowManager.iss`
 
-- Los backups SQL contienen estructura y datos
-- Verificar que no contengan datos sensibles antes de distribuir
-- Usar `preparar_bd_produccion.ps1` para generar backups limpios
+Documentación Inno Setup: https://jrsoftware.org/ishelp/
 
-## 📞 Soporte
+## 📊 Comparación con Sistema Anterior
 
-Para problemas con el instalador:
-1. Consultar este README
-2. Consultar `INSTALACION.md` en el directorio raíz
-3. Revisar los logs del instalador
+| Característica | Sistema Anterior | Sistema Nuevo |
+|----------------|------------------|---------------|
+| **Interfaz** | Wizard simple | Instalador profesional |
+| **Selección de carpeta** | ❌ No | ✅ Sí |
+| **Accesos directos** | ❌ No | ✅ Sí |
+| **Dependencias** | Se descargan | ✅ Incluidas |
+| **Conexión internet** | Requerida | ❌ No necesaria |
+| **Crea esquemas** | ✅ Sí | ❌ No (asume BD lista) |
+| **Importa datos** | ✅ Sí | ❌ No (asume BD lista) |
+| **Instala Python deps** | ✅ Sí | ❌ No (ya incluidas) |
+| **Tamaño** | ~15-20 MB | ~150-200 MB |
+| **Profesionalismo** | Básico | ⭐⭐⭐⭐⭐ |
+
+## 🗑️ Archivos Obsoletos
+
+Los siguientes archivos del sistema anterior ya NO se usan:
+
+- ~~`installer/setup_wizard.py`~~ → Reemplazado por `config_wizard.py`
+- ~~`installer/build_installer.ps1`~~ → Reemplazado por `build_all.ps1`
+
+Se conservan por compatibilidad pero se pueden eliminar.
 
 ## 📚 Documentación Relacionada
 
-- `INSTALACION.md` - Guía de instalación manual
-- `docs/COMPILACION_Y_DISTRIBUCION.md` - Guía de compilación
-- `dev_tools/preparacion/README.md` - Preparación de base de datos
-- `docs/CHANGELOG_v2.0.md` - Changelog completo de v2.0
+- `LICENSE.txt` - Licencia del software
+- `INSTALACION.md` - Guía de instalación manual (raíz del proyecto)
+- `README.md` - Documentación general del proyecto
+- Inno Setup Docs: https://jrsoftware.org/ishelp/
 
-## 📄 Licencia
+## 💡 Notas Importantes
 
-Este instalador es parte de HydroFlow Manager v2.0 y está sujeto a la misma licencia.
+### Para Desarrolladores
+
+- **NO compilar** con dependencias de desarrollo
+- **Probar** siempre en máquina limpia antes de distribuir
+- **Verificar** que el antivirus no bloquee
+- **Documentar** cambios de versión en el script .iss
+
+### Para Distribución
+
+- El instalador es **standalone** (auto-contenido)
+- Se puede distribuir por **email, USB, descarga directa**
+- **No requiere** instalación de Python
+- **No requiere** conexión a internet
+- Usuario **debe tener MySQL ya instalado**
+
+### Puerto 3307
+
+El puerto por defecto es **3307** (no 3306) según especificación del proyecto.
+Usuarios con MySQL en 3306 pueden cambiarlo en el asistente de configuración.
+
+## ✅ Checklist Pre-Distribución
+
+Antes de distribuir el instalador a usuarios finales:
+
+- [ ] Compilado con `build_all.ps1` sin errores
+- [ ] Probado en máquina limpia (sin Python)
+- [ ] Verificado que se crean accesos directos
+- [ ] Verificado que el configurador funciona
+- [ ] Verificado que la aplicación se ejecuta correctamente
+- [ ] Antivirus no bloquea (o agregado a excepciones)
+- [ ] Archivo de salida: `HydroFlowManager_v1.04_Setup.exe`
+- [ ] Tamaño razonable (~150-200 MB)
+- [ ] Documentación actualizada
+
+## 📞 Soporte
+
+Para problemas con el sistema de instalación:
+1. Consultar esta documentación
+2. Revisar sección Troubleshooting
+3. Verificar logs de compilación
+
+---
+
+**HydroFlow Manager v1.04** - Sistema de Instalación Profesional
+Compilado con PyInstaller + Inno Setup
