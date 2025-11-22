@@ -124,10 +124,15 @@ class SetupWizard:
     def show_step(self, step):
         """Mostrar paso específico"""
         import traceback
+        print(f"\n{'='*60}")
         print(f"[DEBUG] show_step llamado con step={step}")
-        print(f"[DEBUG] Traceback:")
-        for line in traceback.format_stack()[:-1]:
-            print(line.strip())
+        print(f"[DEBUG] current_step era: {self.current_step}")
+        print(f"[DEBUG] Llamado desde:")
+        # Solo mostrar los últimos 3 frames relevantes
+        stack = traceback.extract_stack()
+        for frame in stack[-4:-1]:
+            print(f"  {frame.filename}:{frame.lineno} en {frame.name}")
+        print(f"{'='*60}\n")
 
         self.current_step = step
         self.clear_container()
