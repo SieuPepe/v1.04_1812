@@ -18,9 +18,8 @@
 2. [Análisis de Situación Actual](#2-análisis-de-situación-actual)
 3. [Propuestas de Mejoras - Prioridad Alta](#3-propuestas-de-mejoras---prioridad-alta)
 4. [Propuestas de Mejoras - Prioridad Media](#4-propuestas-de-mejoras---prioridad-media)
-5. [Mejoras de UX/UI](#5-mejoras-de-uxui)
-6. [Recomendaciones Finales](#6-recomendaciones-finales)
-7. [Anexos](#7-anexos)
+5. [Recomendaciones Finales](#5-recomendaciones-finales)
+6. [Anexos](#6-anexos)
 
 ---
 
@@ -38,11 +37,10 @@ HydroFlow Manager v1.04 es un sistema de gestión de infraestructura hidráulica
 
 ### 1.2. Objetivo del Informe
 
-Este informe presenta un análisis detallado de **18 propuestas de mejora** clasificadas en tres categorías:
+Este informe presenta un análisis detallado de **10 propuestas de mejora** clasificadas en dos categorías:
 
 1. **Mejoras Funcionales de Alto Impacto** (6 propuestas)
-2. **Mejoras Funcionales de Impacto Medio** (3 propuestas)
-3. **Mejoras de Experiencia de Usuario (UX/UI)** (8 propuestas)
+2. **Mejoras Funcionales de Impacto Medio** (4 propuestas)
 
 Cada propuesta incluye:
 - Descripción funcional detallada
@@ -629,163 +627,209 @@ Inteligencia Artificial que predice problemas, optimiza recursos y recomienda ac
 
 ---
 
-## 5. MEJORAS DE UX/UI
+### 4.4. Integración con QGIS (Sistema de Información Geográfica)
 
-### 5.1. Búsqueda Global Inteligente
+#### Descripción Funcional
 
-#### Descripción
+Integración bidireccional con QGIS, el software GIS open-source líder del mercado, para análisis geoespacial avanzado y gestión cartográfica profesional de la infraestructura hidráulica.
 
-Buscador tipo Spotlight/Alfred accesible desde cualquier pantalla (Ctrl+K) con resultados instantáneos.
+**¿Qué es QGIS?**
 
-**Funcionalidades:**
-- Búsqueda fuzzy (tolerante a errores)
-- Búsqueda por voz
-- Resultados categorizados (partes, recursos, documentos, usuarios)
-- Vista previa sin abrir
-- Historial de búsquedas
-- Sugerencias inteligentes
-- Filtros rápidos
+QGIS (Quantum GIS) es un Sistema de Información Geográfica de código abierto multiplataforma que permite visualizar, editar y analizar datos geoespaciales. Es utilizado por profesionales de todo el mundo en áreas como ingeniería civil, gestión de recursos naturales, planificación urbana y gestión de infraestructuras.
 
-**Complejidad:** Media
+**Funcionalidades principales de la integración:**
+
+1. **Exportación de Datos Geoespaciales:**
+   - Exportar recursos a formatos GIS estándar:
+     - **Shapefile** (.shp) - Estándar de la industria
+     - **GeoJSON** (.geojson) - Ligero y compatible con web
+     - **KML/KMZ** (.kml) - Compatible con Google Earth
+     - **GeoPackage** (.gpkg) - Formato moderno recomendado por OGC
+     - **CSV con coordenadas** (.csv) - Universal
+   - Exportar partes de trabajo con geometría de puntos/líneas/polígonos
+   - Exportar rutas de técnicos con tracks GPS
+   - Incluir todos los atributos alfanuméricos (estado, tipo, presupuesto, etc.)
+   - Opciones de filtrado antes de exportar
+   - Sistema de coordenadas configurable (WGS84, ETRS89, UTM, etc.)
+
+2. **Importación desde QGIS:**
+   - Importar capas vectoriales creadas en QGIS
+   - Actualización masiva de coordenadas de recursos
+   - Importar nuevos recursos desde shapefile
+   - Validación automática de geometrías
+   - Mapeo de campos personalizable (campo QGIS → campo HydroFlow)
+   - Detección de duplicados por coordenadas
+
+3. **Sincronización Bidireccional:**
+   - Sincronización automática programada
+   - Detección de cambios (nuevos, modificados, eliminados)
+   - Resolución de conflictos manual o automática
+   - Log de sincronización con historial
+   - Modo sincronización incremental (solo cambios)
+   - Notificaciones de sincronización completada/fallida
+
+4. **Conexión Directa a Base de Datos:**
+   - QGIS se conecta directamente a la BD de HydroFlow Manager
+   - Visualización en tiempo real de datos
+   - Edición directa desde QGIS con validaciones
+   - Capas dinámicas que reflejan estado actual
+   - Consultas SQL espaciales personalizadas
+   - Vistas materializadas para rendimiento
+
+5. **Análisis Espacial Avanzado en QGIS:**
+   - **Análisis de proximidad:**
+     - Buffers (áreas de influencia)
+     - Vecino más cercano
+     - Recursos a menos de X metros
+   - **Análisis de densidad:**
+     - Mapas de calor avanzados
+     - Clusters espaciales (DBSCAN)
+     - Análisis de patrones
+   - **Análisis de redes:**
+     - Rutas óptimas multipunto
+     - Áreas de servicio
+     - Análisis de conectividad
+   - **Geoprocesamiento:**
+     - Intersección de capas
+     - Unión espacial
+     - Recorte por área
+     - Disolución de polígonos
+   - **Análisis de terreno:**
+     - Modelos digitales de elevación (DEM)
+     - Perfiles de elevación
+     - Pendientes y orientaciones
+     - Cuencas hidrográficas
+
+6. **Gestión de Capas Base:**
+   - Capas de recursos (puntos)
+   - Capas de partes de trabajo (puntos/líneas)
+   - Capas de rutas de técnicos (líneas)
+   - Capas de áreas de municipios (polígonos)
+   - Capas de redes hidráulicas (líneas)
+   - Capas de cuencas (polígonos)
+   - Simbología personalizada por tipo/estado
+   - Etiquetado inteligente
+
+7. **Creación de Mapas Profesionales:**
+   - Compositor de mapas de QGIS
+   - Plantillas de mapas corporativas
+   - Exportación a PDF de alta calidad
+   - Leyendas automáticas
+   - Escalas gráficas
+   - Norte geográfico
+   - Grids de coordenadas
+   - Mapas multipágina (atlas)
+
+8. **Plugins y Extensiones:**
+   - Desarrollo de plugin QGIS específico para HydroFlow
+   - Panel lateral con funciones rápidas
+   - Formularios personalizados de edición
+   - Validaciones específicas del negocio
+   - Acciones contextuales (abrir en HydroFlow Manager)
+   - Generación de informes desde QGIS
+
+9. **Gestión de Datos Ráster:**
+   - Importar ortofotografías
+   - Modelos digitales del terreno (MDT)
+   - Imágenes satelitales
+   - Mapas históricos georeferenciados
+   - Análisis combinado vectorial-ráster
+
+10. **Servicios Web Geoespaciales:**
+    - Publicar datos como WMS (Web Map Service)
+    - Publicar datos como WFS (Web Feature Service)
+    - Consumir servicios del Catastro
+    - Consumir servicios del IGN
+    - Consumir servicios de Infraestructuras de Datos Espaciales (IDE)
+
+#### Valor de Negocio
+
+| Beneficio | Impacto |
+|-----------|---------|
+| **Análisis espacial profesional** | Capacidades GIS de nivel experto sin coste de licencias |
+| **Interoperabilidad** | Integración con sistemas GIS corporativos existentes |
+| **Visualizaciones avanzadas** | Mapas profesionales de calidad para presentaciones e informes |
+| **Decisiones basadas en geografía** | Análisis de proximidad, densidad, rutas óptimas |
+| **Cumplimiento normativo** | Compatibilidad con directivas INSPIRE y estándares OGC |
+| **Colaboración técnica** | Compartir datos con ingenieros, topógrafos, planificadores |
+| **Reducción de costes** | QGIS es gratuito vs software GIS comercial (ArcGIS 1,500€+/año) |
+| **Análisis histórico** | Visualizar evolución temporal de infraestructuras |
+| **Planificación estratégica** | Identificar zonas óptimas para nuevas infraestructuras |
+
+#### Casos de Uso Específicos
+
+1. **Planificación de Rutas de Inspección:**
+   - Exportar recursos pendientes de inspección a QGIS
+   - Calcular ruta óptima que minimice distancia total
+   - Generar mapa de ruta con waypoints
+   - Importar orden de visita a HydroFlow Manager
+
+2. **Análisis de Cobertura:**
+   - Crear buffers de 500m alrededor de recursos críticos
+   - Identificar zonas sin cobertura
+   - Planificar ubicación de nuevos recursos
+   - Análisis de accesibilidad por tipo de vía
+
+3. **Gestión de Emergencias:**
+   - Identificar recursos afectados en área de incidencia
+   - Calcular recursos más cercanos para respuesta rápida
+   - Generar mapa de situación para coordinación
+   - Análisis de impacto en red hidráulica
+
+4. **Informes Geográficos:**
+   - Mapas de distribución de partes por municipio
+   - Mapas de calor de incidencias
+   - Atlas de proyectos con mapa por comarca
+   - Evolución temporal animada
+
+5. **Integración con Catastro:**
+   - Importar parcelas catastrales
+   - Identificar recursos por referencia catastral
+   - Cruce de datos con titularidad
+   - Generación de informes de afecciones
+
+#### Complejidad Técnica
+
+- **Complejidad:** Media-Alta
+- **Tecnologías:**
+  - PyQGIS (Python API de QGIS)
+  - GDAL/OGR (librerías de conversión geoespacial)
+  - PostgreSQL/PostGIS (extensión espacial de base de datos)
+  - GeoAlchemy (ORM con capacidades espaciales)
+  - Fiona, Shapely (manipulación de geometrías en Python)
+  - PyProj (transformaciones de coordenadas)
+- **Dependencias:**
+  - Coordenadas en base de datos
+  - Sistema de proyección de coordenadas definido
+  - QGIS instalado en equipo del usuario (desktop)
+- **Formatos soportados:** Shapefile, GeoJSON, KML, GeoPackage, CSV, GML, DXF
+
+#### Consideraciones de Implementación
+
+**Ventajas:**
+- ✅ QGIS es gratuito y open-source
+- ✅ Comunidad activa y extensa documentación
+- ✅ Potencia profesional equiparable a software comercial
+- ✅ Actualizaciones frecuentes y nuevas funcionalidades
+- ✅ Multiplataforma (Windows, Linux, macOS)
+- ✅ Estándares abiertos (OGC, ISO)
+
+**Consideraciones:**
+- ⚠️ Requiere formación GIS básica para usuarios
+- ⚠️ Instalación de QGIS en equipos que lo requieran
+- ⚠️ Gestión de sistemas de coordenadas (puede ser complejo)
+- ⚠️ Archivos Shapefile tienen limitaciones (nombres de campos cortos, etc.)
+
+**Alternativa recomendada:**
+Para maximizar el valor, se recomienda implementar en dos fases:
+1. **Fase 1 (MVP):** Exportación básica a Shapefile/GeoJSON + documentación de uso
+2. **Fase 2 (Avanzado):** Conexión directa a BD + plugin QGIS personalizado + sincronización
 
 ---
 
-### 5.2. Mejoras de Formularios
+## 5. RECOMENDACIONES FINALES
 
-#### Descripción
-
-Formularios intuitivos con validación en tiempo real y guardado automático.
-
-**Funcionalidades:**
-- Formularios multi-paso (wizards)
-- Validación inline con mensajes amigables
-- Autocompletado inteligente basado en histórico
-- Guardado automático
-- Recuperación de borradores
-- Campos condicionales
-- Copiar datos de parte similar
-- Sugerencias contextuales
-
-**Complejidad:** Media
-
----
-
-### 5.3. Tablas Mejoradas con Funciones Avanzadas
-
-#### Descripción
-
-Tablas tipo Excel con edición inline, filtros y acciones en lote.
-
-**Funcionalidades:**
-- Filtros por columna (Excel-style)
-- Ordenación multi-columna
-- Edición inline (doble clic)
-- Copiar/pegar desde Excel
-- Congelar filas/columnas
-- Agrupación y subtotales
-- Resaltado condicional (colores según valores)
-- Selección múltiple con acciones en lote
-- Exportar selección
-- Columnas redimensionables
-- Guardar vistas personalizadas
-
-**Complejidad:** Media
-
----
-
-### 5.4. Modo Oscuro / Claro
-
-#### Descripción
-
-Toggle entre tema claro y oscuro con persistencia de preferencia.
-
-**Beneficios:**
-- Reducción de fatiga visual
-- Uso en exteriores (modo claro) e interiores (modo oscuro)
-- Preferencia personal
-
-**Complejidad:** Baja
-
----
-
-### 5.5. Personalización por Usuario
-
-#### Descripción
-
-Cada usuario configura su experiencia según sus necesidades.
-
-**Opciones configurables:**
-- Widgets del dashboard
-- Columnas visibles en tablas
-- Filtros predeterminados
-- Tema (claro/oscuro)
-- Idioma (español/euskera/inglés)
-- Página de inicio
-- Notificaciones habilitadas
-- Atajos de teclado
-
-**Complejidad:** Media
-
----
-
-### 5.6. Rediseño de Navegación y Sidebar
-
-#### Descripción
-
-Menú contextual inteligente con breadcrumbs y accesos rápidos.
-
-**Funcionalidades:**
-- Breadcrumbs siempre visible
-- Favoritos y recientes
-- Acciones rápidas contextuales
-- Sidebar colapsable
-- Atajos de teclado
-- Navegación con menos clics
-
-**Complejidad:** Media
-
----
-
-### 5.7. Onboarding y Tutoriales Interactivos
-
-#### Descripción
-
-Tour guiado y centro de ayuda para nuevos usuarios.
-
-**Funcionalidades:**
-- Tour inicial paso a paso
-- Tooltips contextuales
-- Videos tutoriales embebidos
-- Centro de ayuda integrado
-- Búsqueda en documentación
-- FAQ contextual
-- Modo práctica (sandbox)
-
-**Complejidad:** Media
-
----
-
-### 5.8. Mejoras de Accesibilidad (A11Y)
-
-#### Descripción
-
-Cumplimiento WCAG 2.1 nivel AA para inclusión.
-
-**Mejoras:**
-- Navegación completa por teclado
-- Soporte para lectores de pantalla
-- Contraste de colores adecuado
-- Tamaños de fuente ajustables
-- Textos alternativos en imágenes
-- Zoom hasta 200% sin pérdida
-
-**Complejidad:** Media
-
----
-
-## 6. RECOMENDACIONES FINALES
-
-### 6.1. Priorización Recomendada
+### 5.1. Priorización Recomendada
 
 Basado en el análisis de impacto vs esfuerzo, recomendamos el siguiente orden de implementación:
 
@@ -823,29 +867,30 @@ Estas 6 mejoras proporcionan el mayor valor:
    - Alto impacto en rutas
    - Valor diferencial
 
-**+ Mejoras UX/UI transversales**
-- Mejoran adopción de todas las funcionalidades
-- Reducen curva de aprendizaje
-- Aumentan satisfacción de usuarios
-
 #### FASE 2 - SHOULD HAVE (Prioridad Media)
 
-1. **Plantillas y Automatizaciones** ⭐⭐⭐⭐⭐
+1. **Integración con QGIS** ⭐⭐⭐⭐⭐
+   - Análisis espacial profesional
+   - Interoperabilidad GIS
+   - Mapas de calidad profesional
+   - Cero coste de licencias
+
+2. **Plantillas y Automatizaciones** ⭐⭐⭐⭐⭐
    - Máximo ahorro de tiempo
    - Alto impacto
    - Escalabilidad
 
-2. **Chat Interno** ⭐⭐⭐⭐
+3. **Chat Interno** ⭐⭐⭐⭐
    - Mejora comunicación
    - Centraliza conversaciones
    - Mejora colaboración
 
-3. **Análisis Predictivo** ⭐⭐⭐⭐
+4. **Análisis Predictivo** ⭐⭐⭐⭐
    - Anticipación a problemas
    - Optimización inteligente
    - Requiere datos históricos
 
-### 6.2. Estrategia de Implementación
+### 5.2. Estrategia de Implementación
 
 #### Enfoque Ágil Recomendado
 
@@ -869,7 +914,7 @@ Estas 6 mejoras proporcionan el mayor valor:
    - Sesiones de Q&A
    - Documentación actualizada
 
-### 6.3. Gestión de Riesgos
+### 5.3. Gestión de Riesgos
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|--------------|---------|------------|
@@ -879,7 +924,7 @@ Estas 6 mejoras proporcionan el mayor valor:
 | **Datos insuficientes (IA)** | Alta | Medio | Comenzar con modelos simples, evolucionar |
 | **Integración compleja** | Media | Medio | POCs tempranos, arquitectura modular |
 
-### 6.4. Factores Críticos de Éxito
+### 5.4. Factores Críticos de Éxito
 
 Para maximizar el éxito del proyecto:
 
@@ -910,9 +955,9 @@ Para maximizar el éxito del proyecto:
 
 ---
 
-## 7. ANEXOS
+## 6. ANEXOS
 
-### 7.1. Glosario de Términos
+### 6.1. Glosario de Términos
 
 | Término | Definición |
 |---------|------------|
@@ -922,15 +967,23 @@ Para maximizar el éxito del proyecto:
 | **OCR** | Optical Character Recognition |
 | **API** | Application Programming Interface |
 | **IA** | Inteligencia Artificial |
+| **GIS** | Geographic Information System - Sistema de Información Geográfica |
+| **QGIS** | Quantum GIS - Software GIS de código abierto |
+| **WGS84** | World Geodetic System 1984 - Sistema geodésico de referencia |
+| **ETRS89** | European Terrestrial Reference System 1989 |
+| **Shapefile** | Formato vectorial de ESRI para datos geoespaciales |
+| **GeoJSON** | Formato JSON para codificar estructuras geográficas |
+| **WMS** | Web Map Service - Servicio web de mapas |
+| **WFS** | Web Feature Service - Servicio web de elementos geográficos |
 
-### 7.2. Referencias Técnicas
+### 6.2. Referencias Técnicas
 
 - **Documentación actual del sistema:** `/docs/`
 - **Arquitectura:** `/docs/architecture/`
 - **ADRs:** `/docs/adr/`
 - **Changelog:** `/docs/CHANGELOG.md`
 
-### 7.3. Comparativa de Mercado
+### 6.3. Comparativa de Mercado
 
 **Soluciones similares analizadas:**
 1. Fieldwire (construcción)
@@ -944,7 +997,7 @@ Para maximizar el éxito del proyecto:
 - Datos en infraestructura propia
 - Control total del producto
 
-### 7.4. Contacto
+### 6.4. Contacto
 
 Para consultas sobre este informe:
 
@@ -957,15 +1010,20 @@ Email: desarrollo@hydroflow.com
 
 ### Propuesta de Implementación
 
-Este informe presenta **17 mejoras** clasificadas en:
+Este informe presenta **10 mejoras** clasificadas en:
 
-- **6 mejoras de Prioridad Alta** (incluyendo App Móvil)
-- **3 mejoras de Prioridad Media**
-- **8 mejoras de UX/UI**
+- **6 mejoras de Prioridad Alta** (incluyendo App Móvil como primera prioridad)
+- **4 mejoras de Prioridad Media** (incluyendo integración con QGIS)
+
+**Destacados:**
+- **Aplicación Móvil:** Prioridad máxima para conectar técnicos en campo
+- **Integración QGIS:** Análisis espacial profesional sin coste de licencias
+- **Dashboard y Notificaciones:** Visibilidad y proactividad en tiempo real
+- **Gestión Documental:** Centralización de toda la información
 
 **Recomendación:** ✅ **PROCEDER CON FASE 1**
 
-Las mejoras propuestas proporcionan un valor significativo al sistema, mejorando la productividad, eficiencia y experiencia de usuario, manteniendo HydroFlow Manager competitivo en el mercado.
+Las mejoras propuestas proporcionan un valor significativo al sistema, mejorando la productividad, eficiencia y capacidades de análisis geoespacial, manteniendo HydroFlow Manager competitivo en el mercado.
 
 ---
 
