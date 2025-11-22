@@ -1,0 +1,98 @@
+================================================================================
+   HydroFlow Manager v1.04 - Información Importante
+================================================================================
+
+Gracias por elegir HydroFlow Manager v1.04, el sistema de gestión integral
+para proyectos hidráulicos.
+
+REQUISITOS PREVIOS OBLIGATORIOS
+================================================================================
+
+Antes de continuar con la instalación, DEBE asegurarse de que:
+
+1. MySQL o MariaDB está instalado en su sistema
+   - Versión recomendada: MySQL 8.0+ o MariaDB 10.5+
+   - El servicio MySQL debe estar CORRIENDO
+
+2. La base de datos HydroFlow está creada e importada
+   - Esquema 'manager' con estructura y datos
+   - Esquema 'proyecto_tipo' como plantilla
+   - Esquema 'cert_dev' para desarrollo/trabajo
+
+3. Tiene las credenciales de acceso a MySQL
+   - Usuario con permisos suficientes (generalmente 'root')
+   - Contraseña del usuario
+   - Puerto de MySQL (por defecto: 3307)
+
+
+QUÉ HACE ESTE INSTALADOR
+================================================================================
+
+Este instalador:
+
+✓ Instala la aplicación HydroFlow Manager en la carpeta seleccionada
+✓ Crea accesos directos en el escritorio y menú inicio
+✓ Incluye TODAS las dependencias necesarias (sin conexión a internet)
+✓ Ejecuta un asistente de configuración post-instalación
+
+Este instalador NO:
+
+✗ NO instala MySQL/MariaDB (debe estar instalado previamente)
+✗ NO crea esquemas de base de datos (deben existir previamente)
+✗ NO importa datos (deben estar importados previamente)
+
+
+PROCESO DE INSTALACIÓN
+================================================================================
+
+1. Selección de carpeta de instalación
+   - Por defecto: C:\Program Files\HydroFlow Manager
+   - Puede elegir otra ubicación
+
+2. Selección de componentes
+   - Crear icono en escritorio (recomendado)
+   - Crear icono en inicio rápido (opcional)
+
+3. Instalación de archivos
+   - Copia todos los archivos necesarios
+   - Tarda aproximadamente 1-2 minutos
+
+4. Configuración inicial (automática)
+   - Se ejecutará el asistente de configuración
+   - Debe proporcionar los datos de conexión a MySQL
+   - Se generará el archivo de configuración .env
+
+
+IMPORTANTE - FIREWALL Y ANTIVIRUS
+================================================================================
+
+Algunos antivirus pueden detectar falsamente la aplicación como amenaza.
+Esto es un "falso positivo" común en aplicaciones compiladas con PyInstaller.
+
+Si su antivirus bloquea la instalación:
+1. Agregue HydroFlow Manager a la lista de excepciones
+2. O desactive temporalmente el antivirus durante la instalación
+
+
+ESPACIO EN DISCO REQUERIDO
+================================================================================
+
+Instalación completa: aproximadamente 150-200 MB
+
+
+SOPORTE
+================================================================================
+
+Para problemas durante la instalación, consulte:
+- INSTALACION.md (incluido en la instalación)
+- README.md (incluido en la instalación)
+
+
+LICENCIA
+================================================================================
+
+Al continuar con la instalación, acepta los términos de la licencia
+que se muestra en la siguiente pantalla.
+
+
+Presione 'Siguiente' para continuar con la instalación.
