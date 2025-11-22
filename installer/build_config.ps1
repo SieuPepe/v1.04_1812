@@ -54,7 +54,6 @@ $pyinstallerArgs = @(
     "--onefile",
     "--windowed",
     "--clean",
-    "--uac-admin",
     "--hidden-import=tkinter",
     "--hidden-import=tkinter.ttk",
     "--hidden-import=tkinter.messagebox",

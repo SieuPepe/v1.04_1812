@@ -111,8 +111,8 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
 
 [Run]
-; Ejecutar asistente de configuración después de la instalación
-Filename: "{app}\{#MyAppConfigExeName}"; Parameters: """{app}"""; Description: "Configurar conexion a base de datos"; Flags: postinstall shellexec skipifsilent
+; Ejecutar asistente de configuración después de la instalación (hereda privilegios del instalador)
+Filename: "{app}\{#MyAppConfigExeName}"; Parameters: """{app}"""; Description: "Configurar conexion a base de datos"; Flags: postinstall waituntilterminated skipifsilent
 
 ; Opción para ejecutar la aplicación inmediatamente
 Filename: "{app}\{#MyAppExeName}"; Description: "Ejecutar {#MyAppName}"; Flags: postinstall nowait skipifsilent unchecked
