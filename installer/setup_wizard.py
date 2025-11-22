@@ -854,19 +854,26 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
                 )
 
                 for line in process.stdout:
-                    self.root.after(0, lambda l=line: self.log_deps(l.strip()))
+                    # Usar una función separada para evitar problemas con lambda
+                    def update_log(text=line.strip()):
+                        self.log_deps(text)
+                    self.root.after(0, update_log)
 
                 process.wait()
 
                 if process.returncode == 0:
-                    self.root.after(0, lambda: self.log_deps("\n✓ Dependencias instaladas exitosamente"))
-                    self.root.after(0, lambda: messagebox.showinfo(
-                        "Éxito",
-                        "Las dependencias de Python han sido instaladas.\n\n"
-                        "Haga clic en 'Siguiente' para finalizar la instalación."
-                    ))
+                    def show_success():
+                        self.log_deps("\n✓ Dependencias instaladas exitosamente")
+                        messagebox.showinfo(
+                            "Éxito",
+                            "Las dependencias de Python han sido instaladas.\n\n"
+                            "Haga clic en 'Siguiente' para finalizar la instalación."
+                        )
+                    self.root.after(0, show_success)
                 else:
-                    self.root.after(0, lambda: self.log_deps("\n✗ Error al instalar dependencias"))
+                    def show_error():
+                        self.log_deps("\n✗ Error al instalar dependencias")
+                    self.root.after(0, show_error)
 
             thread = threading.Thread(target=run_install, daemon=True)
             thread.start()
@@ -894,21 +901,17 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         ).pack(pady=30)
 
         finish_text = """
-HydroFlow Manager v2.0 ha sido instalado exitosamente.
+HydroFlow Manager v2.0 ha sido configurado exitosamente.
 
-✓ MySQL configurado
-✓ Esquemas de base de datos creados
-✓ Datos iniciales importados
-✓ Dependencias instaladas
-✓ Archivo .env configurado
+✓ Conexión a MySQL verificada
+✓ Dependencias de Python instaladas
+✓ Archivo .env generado
 
-Puede iniciar la aplicación ejecutando:
-  python main.py
+Para iniciar la aplicación:
+  1. Navegue al directorio del proyecto
+  2. Ejecute: python main.py
 
-O compilar el ejecutable con:
-  .\\build.ps1
-
-Gracias por instalar HydroFlow Manager.
+Gracias por usar HydroFlow Manager.
 """
 
         tk.Label(
