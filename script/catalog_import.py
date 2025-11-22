@@ -1,6 +1,7 @@
 import pandas as pd
 import mysql.connector
 from mysql.connector import Error
+from .db_config import get_config
 
 
 def catalog_import(user, password, schema,file_path):
@@ -59,13 +60,14 @@ def catalog_import(user, password, schema,file_path):
 
 
     try:
-        # Conectar a la base de datos MySQL
+        # Conectar a la base de datos MySQL usando configuración centralizada
+        config = get_config()
         conn = mysql.connector.connect(
-            host='localhost',  # Cambia esto según tu configuración
+            host=config.host,
             database=schema,
-            port=3307,  # Cambia esto según tu base de datos
-            user=user,  # Cambia esto según tu usuario
-            password=password  # Cambia esto según tu contraseña
+            port=config.port,
+            user=user,
+            password=password
         )
         cursor = conn.cursor()
 

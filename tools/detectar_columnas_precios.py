@@ -5,12 +5,23 @@ Script para detectar la estructura exacta de tbl_pres_precios
 """
 
 import os
+import sys
 from script.db_connection import get_project_connection
 
-# Configuración
-USER = 'root'
-PASSWORD = os.getenv('DB_PASSWORD', 'NuevaPass!2025')
-SCHEMA = 'cert_dev'
+# Configuración - requiere variables de entorno
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
+SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+# Validar que se proporcionaron credenciales
+if not USER or not PASSWORD:
+    print("=" * 80)
+    print("ERROR: Se requieren credenciales de base de datos")
+    print("=" * 80)
+    print("\nConfigure las variables de entorno DB_USER y DB_PASSWORD")
+    print("O en el archivo .env del proyecto")
+    print("=" * 80)
+    sys.exit(1)
 
 def detectar_columnas_precios():
     """Detecta las columnas exactas de tbl_pres_precios"""

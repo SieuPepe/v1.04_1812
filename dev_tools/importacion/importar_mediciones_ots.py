@@ -35,9 +35,15 @@ from script.db_connection import get_project_connection
 
 # Configuración por defecto
 DEFAULT_SCHEMA = 'cert_dev'
-DEFAULT_USER = 'root'
-DEFAULT_PASSWORD = 'Lauburu1969'
 EXCEL_FILE = 'MEDICIONES OTS.xlsx'
+
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).parent.parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
 
 
 def validar_archivo_excel(archivo_path):
@@ -260,17 +266,30 @@ Ejemplos de uso:
 
     parser.add_argument(
         '--user',
-        default=DEFAULT_USER,
-        help=f'Usuario de la base de datos (default: {DEFAULT_USER})'
+        default=None,
+        help='Usuario de la base de datos (default: desde .env DB_USER)'
     )
 
     parser.add_argument(
         '--password',
-        default=DEFAULT_PASSWORD,
-        help='Contraseña de la base de datos'
+        default=None,
+        help='Contraseña de la base de datos (default: desde .env DB_PASSWORD)'
     )
 
     args = parser.parse_args()
+
+    # Obtener credenciales desde variables de entorno si no se especificaron
+    if args.user is None:
+        args.user = os.getenv('DB_USER')
+    if args.password is None:
+        args.password = os.getenv('DB_PASSWORD')
+
+    # Validar credenciales
+    if not args.user or not args.password:
+        print("\nERROR: Se requieren credenciales de base de datos")
+        print("Especifíquelas con --user y --password")
+        print("O configúrelas en el archivo .env (DB_USER y DB_PASSWORD)")
+        sys.exit(1)
 
     # Banner
     print("=" * 80)

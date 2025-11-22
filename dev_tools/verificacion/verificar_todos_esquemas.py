@@ -3,6 +3,7 @@
 Script para verificar TODOS los esquemas y encontrar dónde están los partes
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -12,12 +13,26 @@ sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_connection
 
-DEFAULT_USER = 'root'
-DEFAULT_PASSWORD = 'Lauburu1969'
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).parent.parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
 
 
 def verificar_todos_esquemas():
     """Verificar todos los esquemas disponibles."""
+
+    # Obtener credenciales desde variables de entorno
+    user = os.getenv('DB_USER')
+    password = os.getenv('DB_PASSWORD')
+
+    if not user or not password:
+        print("ERROR: Se requieren credenciales en variables de entorno")
+        print("Configure DB_USER y DB_PASSWORD en el archivo .env")
+        sys.exit(1)
 
     print("=" * 80)
     print("VERIFICAR TODOS LOS ESQUEMAS - Búsqueda de tbl_partes")
@@ -25,7 +40,7 @@ def verificar_todos_esquemas():
 
     try:
         # Conectarse sin especificar esquema
-        with get_connection(DEFAULT_USER, DEFAULT_PASSWORD, None) as conn:
+        with get_connection(user, password, None) as conn:
             cursor = conn.cursor()
 
             # 1. Listar todos los esquemas

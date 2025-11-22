@@ -25,13 +25,21 @@ import sys
 from pathlib import Path
 from datetime import date
 
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).resolve().parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
+
 # Agregar el directorio raíz al path
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Configuración
-USER = os.getenv('DB_USER', 'root')
-PASSWORD = os.getenv('DB_PASSWORD', 'TU_PASSWORD_AQUI')  # ⚠️ CAMBIAR
-SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'cert_dev')  # ⚠️ CAMBIAR
+# Configuración desde .env
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
+SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
 
 # Código único para el parte de prueba
 TEST_CODIGO = f'TEST-FLUJO-{date.today().strftime("%Y%m%d%H%M%S")}'
@@ -399,9 +407,10 @@ def main():
     print()
 
     # Verificar credenciales
-    if PASSWORD == 'TU_PASSWORD_AQUI':
-        print_error("⚠️  ADVERTENCIA: Debes configurar la contraseña antes de ejecutar")
-        print_info("Edita la sección CONFIGURACIÓN al inicio del script")
+    if not USER or not PASSWORD:
+        print_error("ERROR: Se requieren credenciales de base de datos")
+        print_info("Configure DB_USER y DB_PASSWORD en el archivo .env")
+        print_info("Consulte INSTALACION.md para más detalles")
         return False
 
     # Lista de pasos

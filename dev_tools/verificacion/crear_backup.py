@@ -1,18 +1,27 @@
 #!/usr/bin/env python3
 """
 Script para crear backups de la base de datos MySQL
-HydroFlow Manager v1.04 - FASE 1: PREPARACIÓN DE DATOS
+HydroFlow Manager v2.0 - FASE 1: PREPARACIÓN DE DATOS
 
 Este script crea backups usando Python + mysql.connector (no requiere mysqldump)
+Usa la configuración centralizada de db_config.py
 """
 import sys
+import os
 import getpass
 from datetime import datetime
 from pathlib import Path
 
-# Configuración por defecto
-HOST = 'localhost'
-PORT = 3307
+# Agregar el directorio raíz al path para importar módulos
+root_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(root_dir))
+
+from script.db_config import get_config
+
+# Configuración usando valores centralizados
+config = get_config()
+HOST = config.host
+PORT = config.port
 USER = 'root'
 PASSWORD = None  # Se solicitará si no se proporciona
 SCHEMA = 'cert_dev'  # Esquema por defecto

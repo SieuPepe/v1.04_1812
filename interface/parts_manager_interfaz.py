@@ -2896,7 +2896,7 @@ class AppPartsManager(customtkinter.CTk):
         # Versión
         version = customtkinter.CTkLabel(
             scroll_frame,
-            text="Versión 1.04.1812",
+            text="Versión 2.0",
             font=customtkinter.CTkFont(size=18)
         )
         version.grid(row=1, column=0, pady=(0, 30))
