@@ -101,17 +101,51 @@ Write-Success "Credenciales cargadas desde .env"
 # Verificar mysqldump
 $mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
 if (-not $mysqldump) {
-    Write-Error "mysqldump no encontrado en PATH"
-    Write-Info "  Instale MySQL Client y agregue al PATH"
-    Write-Info "  O ejecute este script desde MySQL Command Line Client"
-    exit 1
+    Write-Warning "mysqldump no encontrado en PATH"
+    Write-Info "  Buscando en ubicaciones comunes..."
+
+    # Ubicaciones comunes de MySQL
+    $mysqlPaths = @(
+        "C:\Program Files\MySQL\MySQL Server 8.0\bin",
+        "C:\Program Files\MySQL\MySQL Server 8.4\bin",
+        "C:\Program Files\MySQL\MySQL Server 5.7\bin",
+        "C:\xampp\mysql\bin",
+        "C:\wamp64\bin\mysql\mysql8.0.27\bin",
+        "C:\wamp\bin\mysql\mysql8.0.27\bin"
+    )
+
+    $found = $false
+    foreach ($path in $mysqlPaths) {
+        if (Test-Path "$path\mysqldump.exe") {
+            Write-Success "MySQL encontrado en: $path"
+            Write-Info "  Agregando al PATH temporalmente..."
+            $env:Path += ";$path"
+            $found = $true
+            break
+        }
+    }
+
+    if (-not $found) {
+        Write-Error "mysqldump no encontrado"
+        Write-Info "  Instale MySQL Client y agregue al PATH"
+        Write-Info "  O ejecute este script desde MySQL Command Line Client"
+        Write-Info ""
+        Write-Info "  Para agregar MySQL al PATH permanentemente:"
+        Write-Info "  1. Busque donde esta instalado MySQL"
+        Write-Info "  2. Agregue la carpeta 'bin' al PATH del sistema"
+        Write-Info "  3. Ejemplo: C:\Program Files\MySQL\MySQL Server 8.0\bin"
+        exit 1
+    }
+
+    # Verificar nuevamente
+    $mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
 }
 Write-Success "mysqldump disponible: $($mysqldump.Source)"
 
 # Verificar mysql client
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
 if (-not $mysql) {
-    Write-Error "mysql client no encontrado en PATH"
+    Write-Error "mysql client no encontrado (deberia estar en el mismo directorio que mysqldump)"
     exit 1
 }
 Write-Success "mysql client disponible: $($mysql.Source)"
