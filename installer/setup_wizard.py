@@ -54,7 +54,14 @@ class SetupWizard:
         self.connection_tested = False
 
         # Directorio del proyecto
-        self.project_root = Path(__file__).resolve().parent.parent
+        # Si está compilado con PyInstaller, usar el directorio actual
+        # Si no, usar parent.parent (para desarrollo)
+        if getattr(sys, 'frozen', False):
+            # Ejecutándose como .exe compilado
+            self.project_root = Path.cwd()
+        else:
+            # Ejecutándose como script Python
+            self.project_root = Path(__file__).resolve().parent.parent
 
         # Crear interfaz
         self.create_ui()
@@ -800,11 +807,28 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         self.log_deps("Instalando dependencias de Python...")
         self.log_deps(f"Python: {sys.version}")
         self.log_deps("")
+        self.log_deps(f"Directorio de proyecto: {self.project_root}")
+        self.log_deps("")
 
         requirements_file = self.project_root / 'requirements.txt'
 
         if not requirements_file.exists():
+            self.log_deps("=" * 60)
             self.log_deps("✗ Archivo requirements.txt no encontrado")
+            self.log_deps("=" * 60)
+            self.log_deps(f"\nBuscando en: {requirements_file}")
+            self.log_deps("\nPor favor:")
+            self.log_deps("1. Asegúrese de ejecutar el instalador desde")
+            self.log_deps("   el directorio del proyecto HydroFlow Manager")
+            self.log_deps("2. Verifique que requirements.txt exista")
+            self.log_deps("\nO puede omitir este paso y continuar.")
+
+            messagebox.showwarning(
+                "requirements.txt no encontrado",
+                f"No se encontró requirements.txt en:\n{requirements_file}\n\n"
+                "Asegúrese de ejecutar el instalador desde el directorio del proyecto.\n\n"
+                "Puede omitir este paso y continuar."
+            )
             return
 
         self.log_deps(f"Usando: {requirements_file}")
