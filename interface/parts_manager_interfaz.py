@@ -3087,25 +3087,24 @@ class AppPartsManager(customtkinter.CTk):
         nota.grid(row=3, column=0, pady=(20, 0), sticky="w")
 
     def _descargar_manual(self, tipo):
-        """Abre un manual según el tipo especificado"""
+        """Abre un manual PDF según el tipo especificado"""
         import os
         import platform
         import subprocess
-        import webbrowser
         from tkinter import messagebox
 
-        # Definir rutas de los manuales (ahora en formato Markdown)
+        # Definir rutas de los manuales en PDF
         manuales = {
-            "usuario": "docs/Manual_Usuario_HydroFlow.md",
-            "informes": "docs/Manual_Informes_HydroFlow.md",
-            "tecnica": "docs/Guia_Tecnica_HydroFlow.md"
+            "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
+            "informes": "docs/Manual_Informes_HydroFlow.pdf",
+            "tecnica": "docs/Guia_Tecnica_HydroFlow.pdf"
         }
 
         manual_path = os.path.join(parent_path, manuales.get(tipo, ""))
 
         if os.path.exists(manual_path):
             try:
-                # Abrir el archivo con el programa predeterminado del sistema
+                # Abrir el PDF con el visor predeterminado del sistema
                 sistema = platform.system()
 
                 if sistema == "Windows":
@@ -3118,28 +3117,19 @@ class AppPartsManager(customtkinter.CTk):
                     # En Linux y otros, usar 'xdg-open'
                     subprocess.run(["xdg-open", manual_path], check=True)
 
-                messagebox.showinfo(
-                    "Manual abierto",
-                    f"Se ha abierto el manual:\n{os.path.basename(manual_path)}"
-                )
+                # No mostrar mensaje de confirmación para evitar redundancia
             except Exception as e:
-                # Si falla, intentar abrirlo en el navegador web
-                try:
-                    webbrowser.open(f"file://{os.path.abspath(manual_path)}")
-                    messagebox.showinfo(
-                        "Manual abierto",
-                        f"Se ha abierto el manual en el navegador:\n{os.path.basename(manual_path)}"
-                    )
-                except Exception as e2:
-                    messagebox.showerror(
-                        "Error al abrir manual",
-                        f"No se pudo abrir el manual:\n{str(e)}\n{str(e2)}"
-                    )
+                messagebox.showerror(
+                    "Error al abrir manual",
+                    f"No se pudo abrir el manual PDF:\n{str(e)}\n\n"
+                    "Asegúrese de tener un visor de PDF instalado."
+                )
         else:
             messagebox.showwarning(
                 "Manual no disponible",
-                f"El manual no se encuentra en la ruta esperada:\n{manual_path}\n\n"
-                "Asegúrese de que la instalación se realizó correctamente."
+                f"El manual no se encuentra en la ruta de instalación:\n{manual_path}\n\n"
+                "Puede acceder a los manuales desde el menú de inicio de Windows:\n"
+                "Menú Inicio → HydroFlow Manager → (Manual de Usuario / Manual de Informes / Guía Técnica)"
             )
 
     def _create_soporte_tab(self, parent):

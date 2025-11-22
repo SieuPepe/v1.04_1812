@@ -98,10 +98,24 @@ Source: "..\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\.env.example"; DestDir: "{app}"; Flags: ignoreversion
 #endif
 
+; Manuales de usuario en PDF
+#ifexist "..\docs\Manual_Usuario_HydroFlow.pdf"
+Source: "..\docs\Manual_Usuario_HydroFlow.pdf"; DestDir: "{app}\docs"; Flags: ignoreversion
+#endif
+#ifexist "..\docs\Manual_Informes_HydroFlow.pdf"
+Source: "..\docs\Manual_Informes_HydroFlow.pdf"; DestDir: "{app}\docs"; Flags: ignoreversion
+#endif
+#ifexist "..\docs\Guia_Tecnica_HydroFlow.pdf"
+Source: "..\docs\Guia_Tecnica_HydroFlow.pdf"; DestDir: "{app}\docs"; Flags: ignoreversion
+#endif
+
 [Icons]
 ; Menú inicio
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Configurar {#MyAppName}"; Filename: "{app}\{#MyAppConfigExeName}"
+Name: "{group}\Manual de Usuario"; Filename: "{app}\docs\Manual_Usuario_HydroFlow.pdf"; Comment: "Manual de usuario de HydroFlow Manager"
+Name: "{group}\Manual de Informes"; Filename: "{app}\docs\Manual_Informes_HydroFlow.pdf"; Comment: "Manual del generador de informes"
+Name: "{group}\Guia Tecnica"; Filename: "{app}\docs\Guia_Tecnica_HydroFlow.pdf"; Comment: "Guia tecnica para administradores"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 
 ; Escritorio
