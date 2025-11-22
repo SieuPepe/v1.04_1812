@@ -72,6 +72,11 @@ Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".env.example"; DestDir: "{app}"; Flags: ignoreversion; DestName: ".env"
 
+; Manuales de usuario
+Source: "docs\Manual_Usuario_HydroFlow.md"; DestDir: "{app}\docs"; Flags: ignoreversion
+Source: "docs\Manual_Informes_HydroFlow.md"; DestDir: "{app}\docs"; Flags: ignoreversion
+Source: "docs\Guia_Tecnica_HydroFlow.md"; DestDir: "{app}\docs"; Flags: ignoreversion
+
 [Dirs]
 Name: "{app}\informes_guardados"; Permissions: users-full
 Name: "{app}\output"; Permissions: users-full
@@ -82,6 +87,9 @@ Name: "{userappdata}\{#MyAppName}\exports"; Permissions: users-full
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppIcon}"
+Name: "{group}\Manual de Usuario"; Filename: "{app}\docs\Manual_Usuario_HydroFlow.md"; Comment: "Manual de usuario de HydroFlow Manager"
+Name: "{group}\Manual de Informes"; Filename: "{app}\docs\Manual_Informes_HydroFlow.md"; Comment: "Manual del generador de informes"
+Name: "{group}\Guía Técnica"; Filename: "{app}\docs\Guia_Tecnica_HydroFlow.md"; Comment: "Guía técnica para administradores"
 Name: "{group}\Desinstalar {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppIcon}"
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon; IconFilename: "{app}\{#MyAppIcon}"

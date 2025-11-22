@@ -3033,7 +3033,7 @@ class AppPartsManager(customtkinter.CTk):
         # Descripción
         descripcion = customtkinter.CTkLabel(
             scroll_frame,
-            text="Descarga los manuales disponibles para aprender a usar HydroFlow Manager:",
+            text="Accede a los manuales disponibles para aprender a usar HydroFlow Manager:",
             font=customtkinter.CTkFont(size=14),
             wraplength=600,
             justify="left"
@@ -3048,7 +3048,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Usuario
         btn_manual_usuario = customtkinter.CTkButton(
             botones_frame,
-            text="📄 Manual de Usuario (PDF)",
+            text="📄 Manual de Usuario",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("usuario")
@@ -3058,7 +3058,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Informes
         btn_manual_informes = customtkinter.CTkButton(
             botones_frame,
-            text="📊 Manual de Informes (PDF)",
+            text="📊 Manual de Informes",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("informes")
@@ -3068,7 +3068,7 @@ class AppPartsManager(customtkinter.CTk):
         # Guía Técnica
         btn_guia_tecnica = customtkinter.CTkButton(
             botones_frame,
-            text="🔧 Guía Técnica (PDF)",
+            text="🔧 Guía Técnica",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("tecnica")
@@ -3078,7 +3078,7 @@ class AppPartsManager(customtkinter.CTk):
         # Nota informativa
         nota = customtkinter.CTkLabel(
             scroll_frame,
-            text="Los manuales se descargarán en formato PDF en la carpeta de Descargas.",
+            text="Los manuales se abrirán en tu visor de documentos predeterminado.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
             wraplength=600,
@@ -3087,40 +3087,59 @@ class AppPartsManager(customtkinter.CTk):
         nota.grid(row=3, column=0, pady=(20, 0), sticky="w")
 
     def _descargar_manual(self, tipo):
-        """Descarga un manual según el tipo especificado"""
+        """Abre un manual según el tipo especificado"""
         import os
-        import shutil
+        import platform
+        import subprocess
+        import webbrowser
         from tkinter import messagebox
 
-        # Definir rutas de los manuales
+        # Definir rutas de los manuales (ahora en formato Markdown)
         manuales = {
-            "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
-            "informes": "docs/Manual_Informes_HydroFlow.pdf",
-            "tecnica": "docs/Guia_Tecnica_HydroFlow.pdf"
+            "usuario": "docs/Manual_Usuario_HydroFlow.md",
+            "informes": "docs/Manual_Informes_HydroFlow.md",
+            "tecnica": "docs/Guia_Tecnica_HydroFlow.md"
         }
 
         manual_path = os.path.join(parent_path, manuales.get(tipo, ""))
 
         if os.path.exists(manual_path):
-            # Copiar a carpeta de descargas del usuario
-            downloads_path = os.path.join(os.path.expanduser("~"), "Downloads")
-            destino = os.path.join(downloads_path, os.path.basename(manual_path))
-
             try:
-                shutil.copy(manual_path, destino)
+                # Abrir el archivo con el programa predeterminado del sistema
+                sistema = platform.system()
+
+                if sistema == "Windows":
+                    # En Windows, usar os.startfile
+                    os.startfile(manual_path)
+                elif sistema == "Darwin":
+                    # En macOS, usar 'open'
+                    subprocess.run(["open", manual_path], check=True)
+                else:
+                    # En Linux y otros, usar 'xdg-open'
+                    subprocess.run(["xdg-open", manual_path], check=True)
+
                 messagebox.showinfo(
-                    "Descarga completada",
-                    f"El manual se ha descargado en:\n{destino}"
+                    "Manual abierto",
+                    f"Se ha abierto el manual:\n{os.path.basename(manual_path)}"
                 )
             except Exception as e:
-                messagebox.showerror(
-                    "Error de descarga",
-                    f"No se pudo copiar el manual:\n{str(e)}"
-                )
+                # Si falla, intentar abrirlo en el navegador web
+                try:
+                    webbrowser.open(f"file://{os.path.abspath(manual_path)}")
+                    messagebox.showinfo(
+                        "Manual abierto",
+                        f"Se ha abierto el manual en el navegador:\n{os.path.basename(manual_path)}"
+                    )
+                except Exception as e2:
+                    messagebox.showerror(
+                        "Error al abrir manual",
+                        f"No se pudo abrir el manual:\n{str(e)}\n{str(e2)}"
+                    )
         else:
             messagebox.showwarning(
                 "Manual no disponible",
-                "Este manual aún no está disponible. Será añadido en futuras actualizaciones."
+                f"El manual no se encuentra en la ruta esperada:\n{manual_path}\n\n"
+                "Asegúrese de que la instalación se realizó correctamente."
             )
 
     def _create_soporte_tab(self, parent):
