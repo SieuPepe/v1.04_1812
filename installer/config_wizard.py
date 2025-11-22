@@ -35,6 +35,7 @@ class ConfigWizard:
             'db_port': tk.StringVar(value='3307'),  # Puerto por defecto 3307
             'db_user': tk.StringVar(value='root'),
             'db_password': tk.StringVar(value=''),
+            'db_password_confirm': tk.StringVar(value=''),
             'db_manager_schema': tk.StringVar(value='manager'),
             'db_example_schema': tk.StringVar(value='proyecto_tipo'),
             'db_schema': tk.StringVar(value='cert_dev')
@@ -43,6 +44,11 @@ class ConfigWizard:
         # Estado
         self.current_step = 0
         self.connection_ok = False
+        self.show_passwords = False
+
+        # Referencias a widgets de contraseña (para el botón ojito)
+        self.password_entry = None
+        self.password_confirm_entry = None
 
         # Crear UI
         self.create_ui()
@@ -163,6 +169,7 @@ Presione 'Siguiente' para comenzar.
             ("Puerto:", 'db_port', "3307 por defecto"),
             ("Usuario:", 'db_user', "Usuario con permisos"),
             ("Contraseña:", 'db_password', "Contraseña de MySQL"),
+            ("Confirmar Contraseña:", 'db_password_confirm', "Repita la contraseña"),
             ("", "", ""),  # Separador
             ("Esquema Manager:", 'db_manager_schema', "Esquema maestro"),
             ("Esquema Proyecto Tipo:", 'db_example_schema', "Plantilla de proyecto"),
@@ -182,20 +189,41 @@ Presione 'Siguiente' para comenzar.
                 row=row, column=0, sticky=tk.W, pady=5, padx=(0, 10)
             )
 
-            if config_key == 'db_password':
+            if config_key in ['db_password', 'db_password_confirm']:
+                # Frame para contraseña y botón ojito
+                entry_frame = ttk.Frame(self.step_frame)
+                entry_frame.grid(row=row, column=1, sticky=tk.W, pady=5)
+
                 entry = ttk.Entry(
-                    self.step_frame,
+                    entry_frame,
                     textvariable=self.config[config_key],
-                    width=30,
+                    width=25,
                     show='*'
                 )
+                entry.pack(side=tk.LEFT)
+
+                # Guardar referencia para el botón ojito
+                if config_key == 'db_password':
+                    self.password_entry = entry
+                else:
+                    self.password_confirm_entry = entry
+
+                # Botón ojito solo en el primer campo de contraseña
+                if config_key == 'db_password':
+                    toggle_btn = ttk.Button(
+                        entry_frame,
+                        text="👁",
+                        width=3,
+                        command=self.toggle_password_visibility
+                    )
+                    toggle_btn.pack(side=tk.LEFT, padx=(5, 0))
             else:
                 entry = ttk.Entry(
                     self.step_frame,
                     textvariable=self.config[config_key],
                     width=30
                 )
-            entry.grid(row=row, column=1, sticky=tk.W, pady=5)
+                entry.grid(row=row, column=1, sticky=tk.W, pady=5)
 
             ttk.Label(
                 self.step_frame,
@@ -374,6 +402,23 @@ Una vez finalizado, puede ejecutar HydroFlow Manager desde:
         text_widget.config(state='disabled')
         text_widget.grid(row=0, column=0, pady=10)
 
+    def toggle_password_visibility(self):
+        """Alternar visibilidad de las contraseñas"""
+        self.show_passwords = not self.show_passwords
+
+        if self.show_passwords:
+            # Mostrar contraseñas
+            if self.password_entry:
+                self.password_entry.config(show='')
+            if self.password_confirm_entry:
+                self.password_confirm_entry.config(show='')
+        else:
+            # Ocultar contraseñas
+            if self.password_entry:
+                self.password_entry.config(show='*')
+            if self.password_confirm_entry:
+                self.password_confirm_entry.config(show='*')
+
     def next_step(self):
         """Ir al siguiente paso"""
         # Validaciones antes de avanzar
@@ -389,6 +434,15 @@ Una vez finalizado, puede ejecutar HydroFlow Manager desde:
                     "Campos Incompletos",
                     "Por favor complete todos los campos obligatorios:\n"
                     "Host, Puerto, Usuario y Contraseña"
+                )
+                return
+
+            # Validar que las contraseñas coincidan
+            if self.config['db_password'].get() != self.config['db_password_confirm'].get():
+                messagebox.showwarning(
+                    "Contraseñas No Coinciden",
+                    "La contraseña y su confirmación no coinciden.\n\n"
+                    "Por favor verifique e intente nuevamente."
                 )
                 return
 
