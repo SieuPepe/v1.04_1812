@@ -68,7 +68,7 @@ Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checked
-Name: "quicklaunchicon"; Description: "Crear icono en inicio rápido"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "quicklaunchicon"; Description: "Crear icono en inicio rapido"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 ; Ejecutable principal
