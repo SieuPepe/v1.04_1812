@@ -870,51 +870,74 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         print("[DEBUG] Iniciando thread de instalación...")
 
         def run_install():
-            """Ejecutar instalación en thread separado"""
+            """Ejecutar instalación en thread separado con progreso en tiempo real"""
             print("[DEBUG] Thread iniciado")
             try:
-                result = subprocess.run(
+                # Usar Popen para leer salida en tiempo real
+                process = subprocess.Popen(
                     cmd,
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
                     text=True,
-                    timeout=1200  # 20 minutos máximo
+                    bufsize=1,
+                    universal_newlines=True
                 )
 
-                print(f"[DEBUG] pip terminó con código: {result.returncode}")
+                print("[DEBUG] Proceso pip iniciado, mostrando progreso...")
 
-                # Actualizar UI desde el thread principal
-                def update_ui():
-                    print("[DEBUG] Actualizando UI")
-                    self.log_deps(result.stdout)
+                # Leer salida línea por línea y actualizar en tiempo real
+                for line in iter(process.stdout.readline, ''):
+                    if line:
+                        # Crear una closure correcta capturando el valor de line
+                        line_text = line.rstrip()
+                        def update_line(text=line_text):
+                            try:
+                                self.log_deps(text)
+                            except:
+                                pass  # Si el widget fue destruido, ignorar
 
-                    if result.returncode == 0:
-                        self.log_deps("\n✓ Dependencias instaladas exitosamente")
+                        # Programar actualización en el thread principal
+                        self.root.after(0, update_line)
+
+                # Esperar a que termine el proceso
+                process.wait()
+                returncode = process.returncode
+
+                print(f"[DEBUG] pip terminó con código: {returncode}")
+
+                # Mostrar mensaje final
+                def show_final_message():
+                    print("[DEBUG] Mostrando mensaje final")
+                    if returncode == 0:
+                        self.log_deps("\n" + "=" * 60)
+                        self.log_deps("✓ DEPENDENCIAS INSTALADAS EXITOSAMENTE")
+                        self.log_deps("=" * 60)
                         messagebox.showinfo(
                             "Éxito",
-                            "Las dependencias de Python han sido instaladas.\n\n"
-                            "Haga clic en 'Siguiente' para finalizar la instalación."
+                            "Las dependencias de Python han sido instaladas correctamente.\n\n"
+                            "Haga clic en 'Siguiente' para finalizar la configuración."
                         )
                     else:
-                        self.log_deps("\n✗ Error al instalar dependencias")
-                        self.log_deps(result.stderr)
+                        self.log_deps("\n" + "=" * 60)
+                        self.log_deps("✗ ERROR AL INSTALAR DEPENDENCIAS")
+                        self.log_deps("=" * 60)
                         messagebox.showerror(
                             "Error",
-                            f"Error al instalar dependencias.\n\n{result.stderr[:200]}"
+                            "Hubo un error al instalar las dependencias.\n\n"
+                            "Revise el log para más detalles."
                         )
 
-                self.root.after(0, update_ui)
+                self.root.after(0, show_final_message)
 
-            except subprocess.TimeoutExpired:
-                print("[DEBUG] TIMEOUT después de 20 minutos")
-                def show_timeout():
-                    self.log_deps("\n✗ Timeout - la instalación tardó más de 20 minutos")
-                self.root.after(0, show_timeout)
             except Exception as e:
                 print(f"[DEBUG] EXCEPCIÓN en thread: {e}")
                 import traceback
                 traceback.print_exc()
+
                 def show_error():
                     self.log_deps(f"\n✗ Error: {e}")
+                    messagebox.showerror("Error", f"Error durante la instalación:\n\n{str(e)}")
+
                 self.root.after(0, show_error)
 
         # Iniciar thread
