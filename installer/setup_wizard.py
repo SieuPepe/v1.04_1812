@@ -393,7 +393,7 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         self.root.after(500, self.test_connection)
 
     def test_connection(self):
-        """Probar conexión a MySQL"""
+        """Probar conexión a MySQL usando mysql-connector-python"""
         self.connection_log.delete('1.0', tk.END)
         self.log_connection("Probando conexión a MySQL...")
         self.log_connection(f"Host: {self.config['db_host'].get()}")
@@ -401,60 +401,79 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         self.log_connection(f"Usuario: {self.config['db_user'].get()}")
         self.log_connection("")
 
-        # Comando de prueba
-        cmd = [
-            'mysql',
-            '-h', self.config['db_host'].get(),
-            '-P', self.config['db_port'].get(),
-            '-u', self.config['db_user'].get(),
-            f'-p{self.config["db_password"].get()}',
-            '-e', 'SELECT VERSION();'
-        ]
-
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
+            # Intentar importar mysql.connector
+            try:
+                import mysql.connector
+            except ImportError:
+                self.log_connection("✗ ERROR: mysql-connector-python no está instalado")
+                self.log_connection("")
+                self.log_connection("Instalando mysql-connector-python...")
+                subprocess.run([sys.executable, '-m', 'pip', 'install', 'mysql-connector-python'],
+                             check=True, capture_output=True)
+                import mysql.connector
+                self.log_connection("✓ mysql-connector-python instalado")
+                self.log_connection("")
+
+            # Intentar conectar
+            connection = mysql.connector.connect(
+                host=self.config['db_host'].get(),
+                port=int(self.config['db_port'].get()),
+                user=self.config['db_user'].get(),
+                password=self.config['db_password'].get()
             )
 
-            if result.returncode == 0:
-                self.log_connection("✓ CONEXIÓN EXITOSA")
-                self.log_connection("")
-                self.log_connection(result.stdout)
-                self.connection_tested = True
+            # Obtener versión de MySQL
+            cursor = connection.cursor()
+            cursor.execute("SELECT VERSION();")
+            version = cursor.fetchone()[0]
 
-                messagebox.showinfo(
-                    "Éxito",
-                    "La conexión a MySQL fue exitosa.\n\n"
-                    "Haga clic en 'Siguiente' para continuar."
-                )
-            else:
-                self.log_connection("✗ ERROR DE CONEXIÓN")
-                self.log_connection("")
-                self.log_connection(result.stderr)
-                self.connection_tested = False
+            cursor.close()
+            connection.close()
 
-                messagebox.showerror(
-                    "Error de Conexión",
-                    "No se pudo conectar a MySQL.\n\n"
-                    "Verifique:\n"
-                    "• Que MySQL esté corriendo\n"
-                    "• Que las credenciales sean correctas\n"
-                    "• Que el puerto sea el correcto"
-                )
-        except subprocess.TimeoutExpired:
-            self.log_connection("✗ TIMEOUT")
-            self.log_connection("La conexión tardó demasiado tiempo")
-            self.connection_tested = False
-        except FileNotFoundError:
-            self.log_connection("✗ ERROR: mysql.exe no encontrado")
-            self.log_connection("Asegúrese de que MySQL esté instalado")
-            self.connection_tested = False
+            self.log_connection("=" * 60)
+            self.log_connection("✓ CONEXIÓN EXITOSA")
+            self.log_connection("=" * 60)
+            self.log_connection(f"\nVersión de MySQL: {version}")
+            self.log_connection("\nPuede continuar al siguiente paso.")
+            self.connection_tested = True
+
+            messagebox.showinfo(
+                "Éxito",
+                f"La conexión a MySQL fue exitosa.\n\n"
+                f"Versión: {version}\n\n"
+                "Haga clic en 'Siguiente' para continuar."
+            )
+
         except Exception as e:
-            self.log_connection(f"✗ ERROR: {e}")
+            error_msg = str(e)
+            self.log_connection("=" * 60)
+            self.log_connection("✗ ERROR DE CONEXIÓN")
+            self.log_connection("=" * 60)
+            self.log_connection(f"\n{error_msg}\n")
+
+            # Mensajes específicos de ayuda
+            if "Access denied" in error_msg or "1045" in error_msg:
+                self.log_connection("CAUSA: Credenciales incorrectas")
+                self.log_connection("• Verifique el usuario y contraseña")
+            elif "Can't connect" in error_msg or "2003" in error_msg:
+                self.log_connection("CAUSA: No se puede conectar al servidor")
+                self.log_connection("• Verifique que MySQL esté corriendo")
+                self.log_connection("• Verifique el puerto (3306 o 3307)")
+            elif "Unknown database" in error_msg or "1049" in error_msg:
+                self.log_connection("CAUSA: Base de datos no existe")
+
             self.connection_tested = False
+
+            messagebox.showerror(
+                "Error de Conexión",
+                f"No se pudo conectar a MySQL.\n\n"
+                f"Error: {error_msg}\n\n"
+                "Verifique:\n"
+                "• Que MySQL esté corriendo\n"
+                "• Que las credenciales sean correctas\n"
+                "• Que el puerto sea el correcto"
+            )
 
     def log_connection(self, message):
         """Agregar mensaje al log de conexión"""
