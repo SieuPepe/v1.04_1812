@@ -224,35 +224,25 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 
     def verify_mysql(self):
         """Verificar si MySQL está instalado"""
-        self.log_mysql("Verificando instalación de MySQL...")
+        self.log_mysql("Verificando instalación de MySQL...\n")
 
         # Buscar mysql.exe
         mysql_path = shutil.which('mysql')
 
         if mysql_path:
-            self.log_mysql(f"✓ MySQL encontrado en: {mysql_path}")
+            self.log_mysql(f"✓ MySQL encontrado en: {mysql_path}\n")
             self.mysql_installed = True
-
-            # Verificar versión
-            try:
-                result = subprocess.run(
-                    ['mysql', '--version'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-                self.log_mysql(f"✓ {result.stdout.strip()}")
-            except Exception as e:
-                self.log_mysql(f"⚠ Error al verificar versión: {e}")
-
-            # Verificar si está corriendo
-            self.verify_mysql_service()
+            self.log_mysql("=" * 60)
+            self.log_mysql("✓ VERIFICACIÓN COMPLETADA - MySQL detectado")
+            self.log_mysql("=" * 60)
+            self.log_mysql("\nPuede continuar al siguiente paso.")
         else:
-            self.log_mysql("✗ MySQL no encontrado en el PATH")
-            self.log_mysql("\nBuscar en ubicaciones comunes...")
+            self.log_mysql("⚠ MySQL no encontrado en el PATH")
+            self.log_mysql("\nBuscando en ubicaciones comunes...\n")
 
             common_paths = [
                 r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
+                r"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
                 r"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql.exe",
                 r"C:\xampp\mysql\bin\mysql.exe",
                 r"C:\wamp64\bin\mysql\mysql8.0.27\bin\mysql.exe"
@@ -261,55 +251,37 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
             found = False
             for path in common_paths:
                 if os.path.exists(path):
-                    self.log_mysql(f"✓ MySQL encontrado en: {path}")
-                    self.log_mysql("  Considere agregar esta ruta al PATH del sistema")
+                    self.log_mysql(f"✓ MySQL encontrado en: {path}\n")
+                    self.log_mysql("  NOTA: Considere agregar esta ruta al PATH del sistema\n")
                     self.mysql_installed = True
                     found = True
+                    self.log_mysql("=" * 60)
+                    self.log_mysql("✓ VERIFICACIÓN COMPLETADA - MySQL detectado")
+                    self.log_mysql("=" * 60)
+                    self.log_mysql("\nPuede continuar al siguiente paso.")
                     break
 
             if not found:
-                self.log_mysql("\n✗ MySQL no encontrado en ubicaciones comunes")
+                self.log_mysql("=" * 60)
+                self.log_mysql("✗ VERIFICACIÓN FALLIDA - MySQL NO encontrado")
+                self.log_mysql("=" * 60)
                 self.log_mysql("\n** IMPORTANTE **")
-                self.log_mysql("MySQL/MariaDB debe estar instalado antes de continuar.")
-                self.log_mysql("\nPor favor:")
-                self.log_mysql("1. Instale MySQL/MariaDB")
-                self.log_mysql("2. Asegúrese de que el servicio esté corriendo")
-                self.log_mysql("3. Vuelva a ejecutar este instalador")
+                self.log_mysql("MySQL/MariaDB debe estar instalado antes de continuar.\n")
+                self.log_mysql("Por favor:")
+                self.log_mysql("1. Instale MySQL/MariaDB o XAMPP")
+                self.log_mysql("2. Asegúrese de que esté corriendo")
+                self.log_mysql("3. Haga clic en 'Verificar Nuevamente'\n")
                 self.mysql_installed = False
 
                 messagebox.showwarning(
                     "MySQL No Encontrado",
                     "MySQL/MariaDB no está instalado o no se encuentra en el PATH.\n\n"
-                    "Por favor, instale MySQL/MariaDB antes de continuar con la instalación.\n\n"
-                    "Puede descargar MySQL desde:\n"
-                    "https://dev.mysql.com/downloads/mysql/"
+                    "Opciones:\n"
+                    "• Instale MySQL desde: https://dev.mysql.com/downloads/mysql/\n"
+                    "• O instale XAMPP: https://www.apachefriends.org/\n\n"
+                    "Luego haga clic en 'Verificar Nuevamente'."
                 )
 
-    def verify_mysql_service(self):
-        """Verificar si el servicio MySQL está corriendo"""
-        self.log_mysql("\nVerificando servicio MySQL...")
-
-        try:
-            result = subprocess.run(
-                ['sc', 'query', 'MySQL'],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-
-            if 'RUNNING' in result.stdout:
-                self.log_mysql("✓ Servicio MySQL está corriendo")
-                self.mysql_running = True
-            elif 'STOPPED' in result.stdout:
-                self.log_mysql("⚠ Servicio MySQL está detenido")
-                self.log_mysql("  Puede iniciarlo desde Servicios de Windows")
-                self.mysql_running = False
-            else:
-                self.log_mysql("⚠ No se pudo determinar el estado del servicio")
-                self.mysql_running = False
-        except Exception as e:
-            self.log_mysql(f"⚠ Error al verificar servicio: {e}")
-            self.mysql_running = False
 
     def log_mysql(self, message):
         """Agregar mensaje al log de MySQL"""
