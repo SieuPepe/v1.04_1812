@@ -1,12 +1,12 @@
 # ============================================================================
-# HydroFlow Manager v2.0 - Script de Preparación de Base de Datos
+# HydroFlow Manager v2.0 - Script de Preparacion de Base de Datos
 # ============================================================================
 #
-# Este script ayuda a preparar la base de datos para producción:
+# Este script ayuda a preparar la base de datos para produccion:
 # 1. Crear backups de esquemas limpios (proyecto_tipo y manager)
 # 2. Validar que proyecto_tipo no tiene datos de prueba
-# 3. Generar reportes de validación
-# 4. Preparar scripts SQL para instalación
+# 3. Generar reportes de validacion
+# 4. Preparar scripts SQL para instalacion
 #
 # IMPORTANTE: Ejecutar ANTES de compilar y distribuir
 #
@@ -55,11 +55,11 @@ function Write-Info {
 # PASO 1: Verificar requisitos
 # ============================================================================
 
-Write-Header "PASO 1: Verificación de Requisitos"
+Write-Header "PASO 1: Verificacion de Requisitos"
 
-# Verificar que estamos en el directorio raíz del proyecto
+# Verificar que estamos en el directorio raiz del proyecto
 if (-not (Test-Path "main.py")) {
-    Write-Error "Este script debe ejecutarse desde el directorio raíz del proyecto"
+    Write-Error "Este script debe ejecutarse desde el directorio raiz del proyecto"
     exit 1
 }
 Write-Success "Directorio correcto"
@@ -68,13 +68,13 @@ Write-Success "Directorio correcto"
 if (-not (Test-Path ".env")) {
     Write-Error "Archivo .env no encontrado"
     Write-Info "  Cree el archivo .env desde .env.example"
-    Write-Info "  Consulte INSTALACION.md para más detalles"
+    Write-Info "  Consulte INSTALACION.md para mas detalles"
     exit 1
 }
 Write-Success "Archivo .env encontrado"
 
 # Cargar variables de entorno desde .env
-Write-Info "Cargando configuración desde .env..."
+Write-Info "Cargando configuracion desde .env..."
 Get-Content .env | ForEach-Object {
     if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
         $name = $matches[1].Trim()
@@ -120,7 +120,7 @@ Write-Success "mysql client disponible: $($mysql.Source)"
 # PASO 2: Verificar conexión a base de datos
 # ============================================================================
 
-Write-Header "PASO 2: Verificación de Conexión a Base de Datos"
+Write-Header "PASO 2: Verificacion de Conexion a Base de Datos"
 
 Write-Info "Conectando a ${DB_HOST}:${DB_PORT} como $DB_USER..."
 
@@ -218,7 +218,7 @@ if ($datosEncontrados) {
 # PASO 5: Crear directorio de backups
 # ============================================================================
 
-Write-Header "PASO 5: Preparación de Directorio de Backups"
+Write-Header "PASO 5: Preparacion de Directorio de Backups"
 
 $backupDir = "backups/produccion"
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -312,18 +312,18 @@ $fileSizeRounded = [math]::Round($fileSize, 2)
 Write-Success "Backup de estructura creado: $proyectoTipoEstructura ($fileSizeRounded KB)"
 
 # ============================================================================
-# PASO 8: Generar reporte de validación
+# PASO 8: Generar reporte de validacion
 # ============================================================================
 
-Write-Header "PASO 8: Generación de Reporte de Validación"
+Write-Header "PASO 8: Generacion de Reporte de Validacion"
 
 $reportePath = "$backupPath/reporte_validacion.txt"
 
-Write-Info "Generando reporte de validación..."
+Write-Info "Generando reporte de validacion..."
 
 $reporte = @"
 ================================================================================
-REPORTE DE VALIDACIÓN - PREPARACIÓN PARA PRODUCCIÓN
+REPORTE DE VALIDACION - PREPARACION PARA PRODUCCION
 ================================================================================
 
 Fecha y hora: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
@@ -336,15 +336,15 @@ ESQUEMAS PROCESADOS
 
 1. ESQUEMA MANAGER: $DB_MANAGER_SCHEMA
    - Backup completo: manager_estructura_y_datos.sql
-   - Contiene: Tabla de proyectos y configuración global
+   - Contiene: Tabla de proyectos y configuracion global
 
 2. ESQUEMA PROYECTO_TIPO: $DB_EXAMPLE_SCHEMA
    - Backup completo: proyecto_tipo_completo.sql
    - Backup estructura: proyecto_tipo_solo_estructura.sql
-   - Contiene: Estructura de tablas + catálogos de precios
+   - Contiene: Estructura de tablas + catalogos de precios
 
 ================================================================================
-VALIDACIÓN DE DATOS
+VALIDACION DE DATOS
 ================================================================================
 
 Tablas transaccionales en '$DB_EXAMPLE_SCHEMA':
@@ -357,8 +357,12 @@ foreach ($tabla in $tablasDatos) {
 
     if ($LASTEXITCODE -eq 0) {
         $count = [int]($result -replace '\s', '')
-        $status = if ($count -eq 0) { "✓ OK (vacía)" } else { "⚠ ADVERTENCIA ($count registros)" }
-        $reporte += "`n  - $tabla`: $status"
+        if ($count -eq 0) {
+            $status = "OK (vacia)"
+        } else {
+            $status = "ADVERTENCIA ($count registros)"
+        }
+        $reporte += "`r`n  - ${tabla}: $status"
     }
 }
 
@@ -366,12 +370,12 @@ $reporte += @"
 
 
 ================================================================================
-CATÁLOGOS EN '$DB_EXAMPLE_SCHEMA'
+CATALOGOS EN '$DB_EXAMPLE_SCHEMA'
 ================================================================================
 
 "@
 
-# Verificar tablas de catálogo
+# Verificar tablas de catalogo
 $tablasCatalogo = @("tbl_pres_precios")
 
 foreach ($tabla in $tablasCatalogo) {
@@ -380,7 +384,7 @@ foreach ($tabla in $tablasCatalogo) {
 
     if ($LASTEXITCODE -eq 0) {
         $count = [int]($result -replace '\s', '')
-        $reporte += "`n  - $tabla`: $count registros"
+        $reporte += "`r`n  - ${tabla}: $count registros"
     }
 }
 
@@ -397,24 +401,24 @@ ARCHIVOS GENERADOS
   - $reportePath
 
 ================================================================================
-PRÓXIMOS PASOS
+PROXIMOS PASOS
 ================================================================================
 
-1. Revisar este reporte de validación
+1. Revisar este reporte de validacion
 
 2. Si hay advertencias, considere limpiar datos de prueba:
    - DELETE FROM tbl_partes WHERE codigo LIKE 'TEST%';
    - DELETE FROM tbl_part_presupuesto WHERE parte_id NOT IN (SELECT id FROM tbl_partes);
    - DELETE FROM tbl_part_certificacion WHERE parte_id NOT IN (SELECT id FROM tbl_partes);
 
-3. Si todo está correcto, puede proceder con la compilación:
+3. Si todo esta correcto, puede proceder con la compilacion:
    - Ejecute: .\build.ps1
    - Consulte: docs/COMPILACION_Y_DISTRIBUCION.md
 
-4. Los backups están listos para:
-   - Instalación en nuevos servidores
-   - Recuperación de desastres
-   - Distribución con la aplicación
+4. Los backups estan listos para:
+   - Instalacion en nuevos servidores
+   - Recuperacion de desastres
+   - Distribucion con la aplicacion
 
 ================================================================================
 FIN DEL REPORTE
@@ -427,9 +431,9 @@ Write-Success "Reporte generado: $reportePath"
 
 # Mostrar resumen
 Write-Host ""
-Write-Host "=" * 80 -ForegroundColor Green
-Write-Host "PREPARACIÓN COMPLETADA EXITOSAMENTE" -ForegroundColor Green
-Write-Host "=" * 80 -ForegroundColor Green
+Write-Host ("=" * 80) -ForegroundColor Green
+Write-Host "PREPARACION COMPLETADA EXITOSAMENTE" -ForegroundColor Green
+Write-Host ("=" * 80) -ForegroundColor Green
 Write-Host ""
 Write-Info "Backups creados en: $backupPath"
 Write-Info "  - manager_estructura_y_datos.sql"
@@ -437,15 +441,15 @@ Write-Info "  - proyecto_tipo_completo.sql"
 Write-Info "  - proyecto_tipo_solo_estructura.sql"
 Write-Info "  - reporte_validacion.txt"
 Write-Host ""
-Write-Info "Revise el reporte de validación para verificar que todo está correcto"
+Write-Info "Revise el reporte de validacion para verificar que todo esta correcto"
 Write-Host ""
 
-# Abrir reporte automáticamente
-$abrir = Read-Host "¿Desea abrir el reporte de validación? (s/n)"
+# Abrir reporte automaticamente
+$abrir = Read-Host "Desea abrir el reporte de validacion? (s/n)"
 if ($abrir -eq "s") {
     notepad $reportePath
 }
 
 Write-Host ""
-Write-Success "Proceso completado. La base de datos está lista para producción."
+Write-Success "Proceso completado. La base de datos esta lista para produccion."
 Write-Host ""
