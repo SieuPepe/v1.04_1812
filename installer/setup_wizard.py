@@ -814,10 +814,12 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 
     def install_dependencies(self):
         """Instalar dependencias de Python"""
+        print("[DEBUG] install_dependencies() llamado")
         self.deps_log.delete('1.0', tk.END)
         self.log_deps("Instalando dependencias de Python...")
         self.log_deps(f"Python: {sys.version}")
         self.log_deps("")
+        print("[DEBUG] Buscando requirements.txt...")
 
         # Buscar requirements.txt en el bundle (archivos empaquetados dentro del .exe)
         requirements_file = self.bundle_dir / 'requirements.txt'
@@ -852,9 +854,12 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
             '--upgrade'
         ]
 
+        print("[DEBUG] Iniciando thread de instalación...")
+
         try:
             # Ejecutar en un thread para no bloquear la UI
             def run_install():
+                print("[DEBUG] Thread de instalación iniciado")
                 process = subprocess.Popen(
                     cmd,
                     stdout=subprocess.PIPE,
@@ -863,16 +868,23 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
                     bufsize=1
                 )
 
+                line_count = 0
                 for line in process.stdout:
+                    line_count += 1
+                    if line_count % 10 == 0:
+                        print(f"[DEBUG] Procesadas {line_count} líneas de pip")
+
                     # Usar una función separada para evitar problemas con lambda
                     def update_log(text=line.strip()):
                         self.log_deps(text)
                     self.root.after(0, update_log)
 
                 process.wait()
+                print(f"[DEBUG] Proceso pip terminado con código: {process.returncode}")
 
                 if process.returncode == 0:
                     def show_success():
+                        print("[DEBUG] Mostrando mensaje de éxito")
                         self.log_deps("\n✓ Dependencias instaladas exitosamente")
                         messagebox.showinfo(
                             "Éxito",
@@ -882,13 +894,16 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
                     self.root.after(0, show_success)
                 else:
                     def show_error():
+                        print("[DEBUG] Mostrando mensaje de error")
                         self.log_deps("\n✗ Error al instalar dependencias")
                     self.root.after(0, show_error)
 
             thread = threading.Thread(target=run_install, daemon=True)
             thread.start()
+            print("[DEBUG] Thread iniciado, install_dependencies() completando")
 
         except Exception as e:
+            print(f"[DEBUG] EXCEPCIÓN en install_dependencies: {e}")
             self.log_deps(f"\n✗ Error: {e}")
 
     def log_deps(self, message):
