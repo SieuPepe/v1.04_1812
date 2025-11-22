@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
-HydroFlow Manager v2.0 - Setup Wizard
+HydroFlow Manager v2.0 - Setup Wizard (Versión Simplificada)
 Instalador Gráfico Interactivo
 
-Este wizard guía al usuario a través del proceso completo de instalación:
+Este wizard guía al usuario a través del proceso de instalación:
 1. Verificación de MySQL
-2. Configuración de conexión a base de datos
-3. Creación de esquemas
-4. Importación de datos
-5. Configuración de archivo .env
-6. Instalación de dependencias Python
+2. Configuración de conexión a base de datos existente
+3. Prueba de conexión
+4. Instalación de dependencias Python
+5. Generación de archivo .env
+
+NOTA: Esta versión asume que la base de datos ya está configurada.
+No crea esquemas ni importa datos.
 
 Diseñado para usuarios sin experiencia técnica.
 """
@@ -121,8 +123,6 @@ class SetupWizard:
             self.step_verify_mysql,
             self.step_configure_database,
             self.step_test_connection,
-            self.step_create_schemas,
-            self.step_import_data,
             self.step_install_dependencies,
             self.step_finish
         ]
@@ -140,7 +140,7 @@ class SetupWizard:
 
     def next_step(self):
         """Ir al siguiente paso"""
-        if self.current_step == 7:  # Último paso
+        if self.current_step == 5:  # Último paso
             self.finish_installation()
         else:
             self.show_step(self.current_step + 1)
@@ -168,16 +168,19 @@ Este asistente le guiará a través de la configuración de HydroFlow Manager v2
 El instalador realizará las siguientes acciones:
 
 ✓ Verificar que MySQL esté corriendo
-✓ Configurar la conexión a la base de datos
-✓ Crear los esquemas necesarios en MySQL
-✓ Importar los datos iniciales
+✓ Configurar la conexión a la base de datos existente
+✓ Probar la conexión a la base de datos
 ✓ Instalar las dependencias de Python
 ✓ Generar archivo de configuración .env
 
 REQUISITOS PREVIOS:
 • MySQL/MariaDB debe estar instalado y corriendo
-• Tener credenciales de MySQL (usuario y contraseña con permisos)
+• Base de datos ya debe estar configurada (esquemas y datos)
+• Tener credenciales de MySQL (usuario y contraseña)
 • Conexión a Internet para descargar dependencias de Python
+
+NOTA: Esta versión NO crea esquemas ni importa datos.
+      La base de datos debe estar lista antes de la instalación.
 
 Haga clic en "Siguiente" para continuar.
 """
@@ -774,7 +777,7 @@ Haga clic en "Siguiente" para continuar.
         self.root.update()
 
     # ========================================================================
-    # PASO 7: Instalar Dependencias
+    # PASO 5: Instalar Dependencias
     # ========================================================================
 
     def step_install_dependencies(self):
@@ -874,7 +877,7 @@ Haga clic en "Siguiente" para continuar.
         self.root.update()
 
     # ========================================================================
-    # PASO 8: Finalizar
+    # PASO 6: Finalizar
     # ========================================================================
 
     def step_finish(self):
