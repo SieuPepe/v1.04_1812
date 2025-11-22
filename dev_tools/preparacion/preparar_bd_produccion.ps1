@@ -1,0 +1,448 @@
+# ============================================================================
+# HydroFlow Manager v2.0 - Script de Preparación de Base de Datos
+# ============================================================================
+#
+# Este script ayuda a preparar la base de datos para producción:
+# 1. Crear backups de esquemas limpios (proyecto_tipo y manager)
+# 2. Validar que proyecto_tipo no tiene datos de prueba
+# 3. Generar reportes de validación
+# 4. Preparar scripts SQL para instalación
+#
+# IMPORTANTE: Ejecutar ANTES de compilar y distribuir
+#
+# Requisitos:
+# - MySQL Client (mysqldump) instalado y en PATH
+# - Archivo .env configurado con credenciales
+# - Acceso a base de datos con permisos de lectura
+#
+# Uso:
+#   .\dev_tools\preparacion\preparar_bd_produccion.ps1
+#
+# ============================================================================
+
+# Configuración de colores
+$Host.UI.RawUI.ForegroundColor = "White"
+
+function Write-Header {
+    param([string]$Message)
+    Write-Host ""
+    Write-Host "=" * 80 -ForegroundColor Cyan
+    Write-Host $Message -ForegroundColor Cyan
+    Write-Host "=" * 80 -ForegroundColor Cyan
+}
+
+function Write-Success {
+    param([string]$Message)
+    Write-Host "✓ $Message" -ForegroundColor Green
+}
+
+function Write-Error {
+    param([string]$Message)
+    Write-Host "✗ $Message" -ForegroundColor Red
+}
+
+function Write-Warning {
+    param([string]$Message)
+    Write-Host "⚠ $Message" -ForegroundColor Yellow
+}
+
+function Write-Info {
+    param([string]$Message)
+    Write-Host "ℹ $Message" -ForegroundColor White
+}
+
+# ============================================================================
+# PASO 1: Verificar requisitos
+# ============================================================================
+
+Write-Header "PASO 1: Verificación de Requisitos"
+
+# Verificar que estamos en el directorio raíz del proyecto
+if (-not (Test-Path "main.py")) {
+    Write-Error "Este script debe ejecutarse desde el directorio raíz del proyecto"
+    exit 1
+}
+Write-Success "Directorio correcto"
+
+# Verificar archivo .env
+if (-not (Test-Path ".env")) {
+    Write-Error "Archivo .env no encontrado"
+    Write-Info "  Cree el archivo .env desde .env.example"
+    Write-Info "  Consulte INSTALACION.md para más detalles"
+    exit 1
+}
+Write-Success "Archivo .env encontrado"
+
+# Cargar variables de entorno desde .env
+Write-Info "Cargando configuración desde .env..."
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+        $name = $matches[1].Trim()
+        $value = $matches[2].Trim()
+        Set-Item -Path "env:$name" -Value $value
+    }
+}
+
+# Obtener configuración
+$DB_HOST = $env:DB_HOST
+$DB_PORT = $env:DB_PORT
+$DB_USER = $env:DB_USER
+$DB_PASSWORD = $env:DB_PASSWORD
+$DB_MANAGER_SCHEMA = $env:DB_MANAGER_SCHEMA
+$DB_EXAMPLE_SCHEMA = if ($env:DB_EXAMPLE_SCHEMA) { $env:DB_EXAMPLE_SCHEMA } else { "proyecto_tipo" }
+
+# Validar credenciales
+if (-not $DB_USER -or -not $DB_PASSWORD) {
+    Write-Error "DB_USER o DB_PASSWORD no configurados en .env"
+    exit 1
+}
+Write-Success "Credenciales cargadas desde .env"
+
+# Verificar mysqldump
+$mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
+if (-not $mysqldump) {
+    Write-Error "mysqldump no encontrado en PATH"
+    Write-Info "  Instale MySQL Client y agregue al PATH"
+    Write-Info "  O ejecute este script desde MySQL Command Line Client"
+    exit 1
+}
+Write-Success "mysqldump disponible: $($mysqldump.Source)"
+
+# Verificar mysql client
+$mysql = Get-Command mysql -ErrorAction SilentlyContinue
+if (-not $mysql) {
+    Write-Error "mysql client no encontrado en PATH"
+    exit 1
+}
+Write-Success "mysql client disponible: $($mysql.Source)"
+
+# ============================================================================
+# PASO 2: Verificar conexión a base de datos
+# ============================================================================
+
+Write-Header "PASO 2: Verificación de Conexión a Base de Datos"
+
+Write-Info "Conectando a ${DB_HOST}:${DB_PORT} como $DB_USER..."
+
+# Test de conexión
+$testQuery = "SELECT VERSION();"
+$testResult = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -e $testQuery 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "No se pudo conectar a la base de datos"
+    Write-Info "  Verifique las credenciales en .env"
+    Write-Info "  Verifique que MySQL esté ejecutándose"
+    exit 1
+}
+
+Write-Success "Conexión exitosa"
+Write-Info "  Versión de MySQL: $(($testResult | Select-String 'VERSION').Line)"
+
+# ============================================================================
+# PASO 3: Validar que los esquemas existen
+# ============================================================================
+
+Write-Header "PASO 3: Validación de Esquemas"
+
+# Verificar esquema manager
+Write-Info "Verificando esquema '$DB_MANAGER_SCHEMA'..."
+$checkManager = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '$DB_MANAGER_SCHEMA';"
+$resultManager = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -e $checkManager 2>&1
+
+if ($LASTEXITCODE -ne 0 -or $resultManager -notmatch $DB_MANAGER_SCHEMA) {
+    Write-Error "Esquema '$DB_MANAGER_SCHEMA' no existe"
+    Write-Info "  Cree el esquema manager antes de continuar"
+    exit 1
+}
+Write-Success "Esquema '$DB_MANAGER_SCHEMA' encontrado"
+
+# Verificar esquema proyecto_tipo
+Write-Info "Verificando esquema '$DB_EXAMPLE_SCHEMA'..."
+$checkExample = "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '$DB_EXAMPLE_SCHEMA';"
+$resultExample = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -e $checkExample 2>&1
+
+if ($LASTEXITCODE -ne 0 -or $resultExample -notmatch $DB_EXAMPLE_SCHEMA) {
+    Write-Error "Esquema '$DB_EXAMPLE_SCHEMA' no existe"
+    Write-Info "  Cree el esquema proyecto_tipo antes de continuar"
+    exit 1
+}
+Write-Success "Esquema '$DB_EXAMPLE_SCHEMA' encontrado"
+
+# ============================================================================
+# PASO 4: Validar que proyecto_tipo está limpio (sin datos de prueba)
+# ============================================================================
+
+Write-Header "PASO 4: Validación de Datos en proyecto_tipo"
+
+Write-Info "Verificando que '$DB_EXAMPLE_SCHEMA' no tiene datos de prueba..."
+
+# Tablas que NO deben tener datos (datos transaccionales)
+$tablasDatos = @(
+    "tbl_partes",
+    "tbl_part_presupuesto",
+    "tbl_part_certificacion"
+)
+
+$datosEncontrados = $false
+
+foreach ($tabla in $tablasDatos) {
+    $countQuery = "SELECT COUNT(*) as count FROM ${DB_EXAMPLE_SCHEMA}.${tabla};"
+    $result = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -N -e $countQuery 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        $count = [int]($result -replace '\s', '')
+        if ($count -gt 0) {
+            Write-Warning "Tabla '$tabla' tiene $count registros"
+            $datosEncontrados = $true
+        } else {
+            Write-Success "Tabla '$tabla' está vacía"
+        }
+    }
+}
+
+if ($datosEncontrados) {
+    Write-Warning "Se encontraron datos de prueba en '$DB_EXAMPLE_SCHEMA'"
+    Write-Info "  RECOMENDACIÓN: Limpie los datos antes de crear el backup"
+    Write-Info "  Las tablas de catálogos (tbl_pres_precios, etc.) pueden tener datos"
+    Write-Info ""
+    $continuar = Read-Host "¿Desea continuar de todos modos? (s/n)"
+    if ($continuar -ne "s") {
+        Write-Info "Operación cancelada por el usuario"
+        exit 0
+    }
+} else {
+    Write-Success "Esquema '$DB_EXAMPLE_SCHEMA' está limpio (sin datos transaccionales)"
+}
+
+# ============================================================================
+# PASO 5: Crear directorio de backups
+# ============================================================================
+
+Write-Header "PASO 5: Preparación de Directorio de Backups"
+
+$backupDir = "backups/produccion"
+$timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$backupPath = "$backupDir/$timestamp"
+
+if (-not (Test-Path $backupPath)) {
+    New-Item -ItemType Directory -Path $backupPath -Force | Out-Null
+    Write-Success "Directorio creado: $backupPath"
+} else {
+    Write-Success "Directorio ya existe: $backupPath"
+}
+
+# ============================================================================
+# PASO 6: Backup del esquema manager (solo estructura + datos de referencia)
+# ============================================================================
+
+Write-Header "PASO 6: Backup de Esquema 'manager'"
+
+$managerBackup = "$backupPath/manager_estructura_y_datos.sql"
+
+Write-Info "Creando backup de '$DB_MANAGER_SCHEMA' (estructura + datos)..."
+Write-Info "  Destino: $managerBackup"
+
+& mysqldump -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" `
+    --single-transaction `
+    --routines `
+    --triggers `
+    --events `
+    --databases $DB_MANAGER_SCHEMA `
+    --result-file=$managerBackup 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Error al crear backup de '$DB_MANAGER_SCHEMA'"
+    exit 1
+}
+
+$fileSize = (Get-Item $managerBackup).Length / 1KB
+Write-Success "Backup creado: $managerBackup ($([math]::Round($fileSize, 2)) KB)"
+
+# ============================================================================
+# PASO 7: Backup del esquema proyecto_tipo (estructura + catálogos)
+# ============================================================================
+
+Write-Header "PASO 7: Backup de Esquema 'proyecto_tipo'"
+
+$proyectoTipoBackup = "$backupPath/proyecto_tipo_completo.sql"
+
+Write-Info "Creando backup de '$DB_EXAMPLE_SCHEMA' (estructura + datos de catálogo)..."
+Write-Info "  Destino: $proyectoTipoBackup"
+
+& mysqldump -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" `
+    --single-transaction `
+    --routines `
+    --triggers `
+    --events `
+    --databases $DB_EXAMPLE_SCHEMA `
+    --result-file=$proyectoTipoBackup 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Error al crear backup de '$DB_EXAMPLE_SCHEMA'"
+    exit 1
+}
+
+$fileSize = (Get-Item $proyectoTipoBackup).Length / 1KB
+Write-Success "Backup creado: $proyectoTipoBackup ($([math]::Round($fileSize, 2)) KB)"
+
+# También crear backup de solo estructura (sin datos)
+$proyectoTipoEstructura = "$backupPath/proyecto_tipo_solo_estructura.sql"
+
+Write-Info "Creando backup de estructura (sin datos)..."
+Write-Info "  Destino: $proyectoTipoEstructura"
+
+& mysqldump -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" `
+    --single-transaction `
+    --no-data `
+    --routines `
+    --triggers `
+    --events `
+    --databases $DB_EXAMPLE_SCHEMA `
+    --result-file=$proyectoTipoEstructura 2>&1
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Error al crear backup de estructura"
+    exit 1
+}
+
+$fileSize = (Get-Item $proyectoTipoEstructura).Length / 1KB
+Write-Success "Backup de estructura creado: $proyectoTipoEstructura ($([math]::Round($fileSize, 2)) KB)"
+
+# ============================================================================
+# PASO 8: Generar reporte de validación
+# ============================================================================
+
+Write-Header "PASO 8: Generación de Reporte de Validación"
+
+$reportePath = "$backupPath/reporte_validacion.txt"
+
+Write-Info "Generando reporte de validación..."
+
+$reporte = @"
+================================================================================
+REPORTE DE VALIDACIÓN - PREPARACIÓN PARA PRODUCCIÓN
+================================================================================
+
+Fecha y hora: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+Usuario: $env:USERNAME
+Host BD: ${DB_HOST}:${DB_PORT}
+
+================================================================================
+ESQUEMAS PROCESADOS
+================================================================================
+
+1. ESQUEMA MANAGER: $DB_MANAGER_SCHEMA
+   - Backup completo: manager_estructura_y_datos.sql
+   - Contiene: Tabla de proyectos y configuración global
+
+2. ESQUEMA PROYECTO_TIPO: $DB_EXAMPLE_SCHEMA
+   - Backup completo: proyecto_tipo_completo.sql
+   - Backup estructura: proyecto_tipo_solo_estructura.sql
+   - Contiene: Estructura de tablas + catálogos de precios
+
+================================================================================
+VALIDACIÓN DE DATOS
+================================================================================
+
+Tablas transaccionales en '$DB_EXAMPLE_SCHEMA':
+
+"@
+
+foreach ($tabla in $tablasDatos) {
+    $countQuery = "SELECT COUNT(*) as count FROM ${DB_EXAMPLE_SCHEMA}.${tabla};"
+    $result = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -N -e $countQuery 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        $count = [int]($result -replace '\s', '')
+        $status = if ($count -eq 0) { "✓ OK (vacía)" } else { "⚠ ADVERTENCIA ($count registros)" }
+        $reporte += "`n  - $tabla`: $status"
+    }
+}
+
+$reporte += @"
+
+
+================================================================================
+CATÁLOGOS EN '$DB_EXAMPLE_SCHEMA'
+================================================================================
+
+"@
+
+# Verificar tablas de catálogo
+$tablasCatalogo = @("tbl_pres_precios")
+
+foreach ($tabla in $tablasCatalogo) {
+    $countQuery = "SELECT COUNT(*) as count FROM ${DB_EXAMPLE_SCHEMA}.${tabla};"
+    $result = & mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -N -e $countQuery 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        $count = [int]($result -replace '\s', '')
+        $reporte += "`n  - $tabla`: $count registros"
+    }
+}
+
+$reporte += @"
+
+
+================================================================================
+ARCHIVOS GENERADOS
+================================================================================
+
+  - $managerBackup
+  - $proyectoTipoBackup
+  - $proyectoTipoEstructura
+  - $reportePath
+
+================================================================================
+PRÓXIMOS PASOS
+================================================================================
+
+1. Revisar este reporte de validación
+
+2. Si hay advertencias, considere limpiar datos de prueba:
+   - DELETE FROM tbl_partes WHERE codigo LIKE 'TEST%';
+   - DELETE FROM tbl_part_presupuesto WHERE parte_id NOT IN (SELECT id FROM tbl_partes);
+   - DELETE FROM tbl_part_certificacion WHERE parte_id NOT IN (SELECT id FROM tbl_partes);
+
+3. Si todo está correcto, puede proceder con la compilación:
+   - Ejecute: .\build.ps1
+   - Consulte: docs/COMPILACION_Y_DISTRIBUCION.md
+
+4. Los backups están listos para:
+   - Instalación en nuevos servidores
+   - Recuperación de desastres
+   - Distribución con la aplicación
+
+================================================================================
+FIN DEL REPORTE
+================================================================================
+"@
+
+$reporte | Out-File -FilePath $reportePath -Encoding UTF8
+
+Write-Success "Reporte generado: $reportePath"
+
+# Mostrar resumen
+Write-Host ""
+Write-Host "=" * 80 -ForegroundColor Green
+Write-Host "PREPARACIÓN COMPLETADA EXITOSAMENTE" -ForegroundColor Green
+Write-Host "=" * 80 -ForegroundColor Green
+Write-Host ""
+Write-Info "Backups creados en: $backupPath"
+Write-Info "  - manager_estructura_y_datos.sql"
+Write-Info "  - proyecto_tipo_completo.sql"
+Write-Info "  - proyecto_tipo_solo_estructura.sql"
+Write-Info "  - reporte_validacion.txt"
+Write-Host ""
+Write-Info "Revise el reporte de validación para verificar que todo está correcto"
+Write-Host ""
+
+# Abrir reporte automáticamente
+$abrir = Read-Host "¿Desea abrir el reporte de validación? (s/n)"
+if ($abrir -eq "s") {
+    notepad $reportePath
+}
+
+Write-Host ""
+Write-Success "Proceso completado. La base de datos está lista para producción."
+Write-Host ""
