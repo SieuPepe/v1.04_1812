@@ -68,9 +68,9 @@ $pyinstallerArgs = @(
 )
 
 # Agregar icono si existe
-if (Test-Path "resources\icon.ico") {
-    $pyinstallerArgs += "--icon=resources\icon.ico"
-    Write-Host "Icono incluido: resources\icon.ico" -ForegroundColor Green
+if (Test-Path "resources\images\logo.ico") {
+    $pyinstallerArgs += "--icon=resources\images\logo.ico"
+    Write-Host "Icono incluido: resources\images\logo.ico" -ForegroundColor Green
 } else {
     Write-Host "Icono no encontrado (opcional)" -ForegroundColor Yellow
 }

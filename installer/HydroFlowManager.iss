@@ -1,4 +1,4 @@
-; ============================================================================
+﻿; ============================================================================
 ; HydroFlow Manager v1.04 - Inno Setup Script
 ; ============================================================================
 ;
@@ -36,7 +36,7 @@ AllowNoIcons=yes
 ; Archivo de salida
 OutputDir=..\dist
 OutputBaseFilename=HydroFlowManager_v{#MyAppVersion}_Setup
-SetupIconFile=..\resources\icon.ico
+SetupIconFile=..\resources\images\logo.ico
 
 ; Compresión
 Compression=lzma2/max
