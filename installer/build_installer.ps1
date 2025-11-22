@@ -61,8 +61,9 @@ Write-Host ""
 $pyinstallerArgs = @(
     "installer\setup_wizard.py",
     "--name=HydroFlowManager_Setup",
-    "--onefile",
-    "--windowed"
+    "--onefile"
+    # TEMPORALMENTE SIN --windowed PARA VER LOGS DE DEBUG
+    # "--windowed"
 )
 
 # Agregar icono si existe
