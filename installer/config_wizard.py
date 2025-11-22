@@ -412,11 +412,9 @@ Una vez finalizado, puede ejecutar HydroFlow Manager desde:
 
     def finish(self):
         """Finalizar configuración"""
-        try:
-            # Generar archivo .env
-            env_path = self.install_dir / '.env'
+        env_path = self.install_dir / '.env'
 
-            env_content = f"""# HydroFlow Manager v1.04 - Configuración
+        env_content = f"""# HydroFlow Manager v1.04 - Configuración
 # Generado automáticamente por el asistente de configuración
 
 # Servidor MySQL
@@ -436,6 +434,8 @@ DB_SCHEMA={self.config['db_schema'].get()}
 DB_USE_POOLING=true
 """
 
+        try:
+            # Intentar escribir directamente el archivo
             with open(env_path, 'w', encoding='utf-8') as f:
                 f.write(env_content)
 
@@ -446,6 +446,44 @@ DB_USE_POOLING=true
             )
 
             self.root.quit()
+
+        except PermissionError:
+            # Si falla por permisos, usar PowerShell con elevación
+            try:
+                import tempfile
+
+                # Guardar en archivo temporal
+                with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.env', encoding='utf-8') as tmp_file:
+                    tmp_file.write(env_content)
+                    tmp_path = tmp_file.name
+
+                # Comando PowerShell para copiar con elevación
+                ps_cmd = f'Start-Process powershell -Verb RunAs -ArgumentList "-Command","Copy-Item \\"{tmp_path}\\" \\"{env_path}\\" -Force" -Wait'
+
+                result = subprocess.run(['powershell', '-Command', ps_cmd],
+                                      capture_output=True,
+                                      text=True)
+
+                if result.returncode == 0:
+                    messagebox.showinfo(
+                        "Configuración Guardada",
+                        f"La configuración se ha guardado correctamente en:\n{env_path}\n\n"
+                        f"Puede ejecutar HydroFlow Manager desde:\n{self.install_dir}\\HydroFlowManager.exe"
+                    )
+                    self.root.quit()
+                else:
+                    raise Exception("No se pudo copiar el archivo con PowerShell")
+
+            except Exception as e2:
+                messagebox.showerror(
+                    "Error de Permisos",
+                    f"No se pudo guardar la configuración en:\n{env_path}\n\n"
+                    f"Por favor, ejecute este configurador como Administrador:\n"
+                    f"1. Cierre este asistente\n"
+                    f"2. Click derecho en 'Configurar HydroFlow Manager' en el menú Inicio\n"
+                    f"3. Seleccione 'Ejecutar como administrador'\n\n"
+                    f"Error técnico: {str(e2)}"
+                )
 
         except Exception as e:
             messagebox.showerror(

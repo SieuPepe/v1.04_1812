@@ -210,12 +210,32 @@ begin
   end;
 end;
 
-// Mensaje después de la instalación
+// Crear archivo .env después de la instalación
 procedure CurStepChanged(CurStep: TSetupStep);
+var
+  EnvFilePath: String;
+  EnvContent: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    // La configuración se ejecutará automáticamente por [Run] PostInstall
-    // No es necesario hacer nada aquí
+    // Crear archivo .env vacío con permisos de escritura
+    // El configurador luego lo actualizará con los datos reales
+    EnvFilePath := ExpandConstant('{app}\.env');
+
+    // Contenido inicial del archivo .env
+    EnvContent := '# HydroFlow Manager v1.04 - Configuracion' + #13#10 +
+                  '# Este archivo sera actualizado por el asistente de configuracion' + #13#10 +
+                  #13#10 +
+                  'DB_HOST=localhost' + #13#10 +
+                  'DB_PORT=3307' + #13#10 +
+                  'DB_USER=' + #13#10 +
+                  'DB_PASSWORD=' + #13#10 +
+                  'DB_MANAGER_SCHEMA=manager' + #13#10 +
+                  'DB_EXAMPLE_SCHEMA=proyecto_tipo' + #13#10 +
+                  'DB_SCHEMA=cert_dev' + #13#10 +
+                  'DB_USE_POOLING=true' + #13#10;
+
+    // Guardar archivo con privilegios de administrador
+    SaveStringToFile(EnvFilePath, EnvContent, False);
   end;
 end;
