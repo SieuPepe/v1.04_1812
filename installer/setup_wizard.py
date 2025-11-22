@@ -295,7 +295,7 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         """Agregar mensaje al log de MySQL"""
         self.mysql_status_text.insert(tk.END, message + '\n')
         self.mysql_status_text.see(tk.END)
-        self.root.update()
+        self.mysql_status_text.update_idletasks()
 
     # ========================================================================
     # PASO 3: Configurar Base de Datos
@@ -487,7 +487,7 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         """Agregar mensaje al log de conexión"""
         self.connection_log.insert(tk.END, message + '\n')
         self.connection_log.see(tk.END)
-        self.root.update()
+        self.connection_log.update_idletasks()
 
     # ========================================================================
     # PASO 5: Crear Esquemas
@@ -599,7 +599,7 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         """Agregar mensaje al log de esquemas"""
         self.schema_log.insert(tk.END, message + '\n')
         self.schema_log.see(tk.END)
-        self.root.update()
+        self.schema_log.update_idletasks()
 
     # ========================================================================
     # PASO 6: Importar Datos
@@ -764,7 +764,7 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
         """Agregar mensaje al log de importación"""
         self.import_log.insert(tk.END, message + '\n')
         self.import_log.see(tk.END)
-        self.root.update()
+        self.import_log.update_idletasks()
 
     # ========================================================================
     # PASO 5: Instalar Dependencias
@@ -883,9 +883,12 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 
     def log_deps(self, message):
         """Agregar mensaje al log de dependencias"""
-        self.deps_log.insert(tk.END, message + '\n')
-        self.deps_log.see(tk.END)
-        self.root.update()
+        try:
+            self.deps_log.insert(tk.END, message + '\n')
+            self.deps_log.see(tk.END)
+            self.deps_log.update_idletasks()
+        except:
+            pass  # Ignorar errores si el widget ya no existe
 
     # ========================================================================
     # PASO 6: Finalizar
