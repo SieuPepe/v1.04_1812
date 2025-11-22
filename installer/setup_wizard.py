@@ -158,39 +158,30 @@ class SetupWizard:
         """Pantalla de bienvenida"""
         tk.Label(
             self.container,
-            text="Bienvenido al Instalador de HydroFlow Manager",
-            font=('Arial', 16, 'bold')
-        ).pack(pady=20)
+            text="HydroFlow Manager v2.0 - Instalador",
+            font=('Arial', 14, 'bold')
+        ).pack(pady=10)
 
-        welcome_text = """
-Este asistente le guiará a través de la configuración de HydroFlow Manager v2.0.
+        welcome_text = """Este asistente configurará HydroFlow Manager v2.0.
 
-El instalador realizará las siguientes acciones:
+Pasos de instalación:
+✓ Verificar MySQL  ✓ Configurar conexión  ✓ Instalar dependencias  ✓ Generar .env
 
-✓ Verificar que MySQL esté corriendo
-✓ Configurar la conexión a la base de datos existente
-✓ Probar la conexión a la base de datos
-✓ Instalar las dependencias de Python
-✓ Generar archivo de configuración .env
+REQUISITOS:
+• MySQL/MariaDB instalado y corriendo
+• Base de datos configurada (esquemas y datos ya importados)
+• Credenciales de MySQL (usuario y contraseña)
+• Conexión a Internet
 
-REQUISITOS PREVIOS:
-• MySQL/MariaDB debe estar instalado y corriendo
-• Base de datos ya debe estar configurada (esquemas y datos)
-• Tener credenciales de MySQL (usuario y contraseña)
-• Conexión a Internet para descargar dependencias de Python
-
-NOTA: Esta versión NO crea esquemas ni importa datos.
-      La base de datos debe estar lista antes de la instalación.
-
-Haga clic en "Siguiente" para continuar.
+NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 """
 
         tk.Label(
             self.container,
             text=welcome_text,
             justify=tk.LEFT,
-            font=('Arial', 10)
-        ).pack(pady=10, padx=20)
+            font=('Arial', 9)
+        ).pack(pady=5, padx=20)
 
     # ========================================================================
     # PASO 2: Verificar MySQL
