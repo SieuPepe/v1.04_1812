@@ -104,36 +104,60 @@ if (-not $mysqldump) {
     Write-Warning "mysqldump no encontrado en PATH"
     Write-Info "  Buscando en ubicaciones comunes..."
 
-    # Ubicaciones comunes de MySQL
+    # Ubicaciones comunes de MySQL - buscar XAMPP/WAMP primero (mas compatibles)
     $mysqlPaths = @(
-        "C:\Program Files\MySQL\MySQL Server 8.0\bin",
-        "C:\Program Files\MySQL\MySQL Server 8.4\bin",
-        "C:\Program Files\MySQL\MySQL Server 5.7\bin",
         "C:\xampp\mysql\bin",
         "C:\wamp64\bin\mysql\mysql8.0.27\bin",
-        "C:\wamp\bin\mysql\mysql8.0.27\bin"
+        "C:\wamp64\bin\mysql\mysql8.0.28\bin",
+        "C:\wamp64\bin\mysql\mysql8.0.31\bin",
+        "C:\wamp\bin\mysql\mysql8.0.27\bin",
+        "C:\Program Files\MySQL\MySQL Server 8.0\bin",
+        "C:\Program Files\MySQL\MySQL Server 8.4\bin",
+        "C:\Program Files\MySQL\MySQL Server 5.7\bin"
     )
+
+    # Buscar dinámicamente en wamp64
+    if (Test-Path "C:\wamp64\bin\mysql") {
+        $wampMysqlDirs = Get-ChildItem "C:\wamp64\bin\mysql" -Directory | ForEach-Object { "$($_.FullName)\bin" }
+        $mysqlPaths += $wampMysqlDirs
+    }
 
     $found = $false
     foreach ($path in $mysqlPaths) {
         if (Test-Path "$path\mysqldump.exe") {
-            Write-Success "MySQL encontrado en: $path"
-            Write-Info "  Agregando al PATH temporalmente..."
-            $env:Path += ";$path"
-            $found = $true
-            break
+            Write-Info "  Probando MySQL en: $path"
+
+            # Verificar que mysql.exe funcione
+            $testExe = "$path\mysql.exe"
+            try {
+                $testOutput = & $testExe --version 2>&1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Success "MySQL encontrado y funcional en: $path"
+                    Write-Info "  Agregando al PATH temporalmente..."
+                    $env:Path = "$path;$env:Path"
+                    $found = $true
+                    break
+                }
+            } catch {
+                Write-Info "  MySQL en $path no es compatible (posible problema de arquitectura)"
+                continue
+            }
         }
     }
 
     if (-not $found) {
-        Write-Error "mysqldump no encontrado"
-        Write-Info "  Instale MySQL Client y agregue al PATH"
-        Write-Info "  O ejecute este script desde MySQL Command Line Client"
+        Write-Error "mysqldump no encontrado o no compatible"
         Write-Info ""
-        Write-Info "  Para agregar MySQL al PATH permanentemente:"
-        Write-Info "  1. Busque donde esta instalado MySQL"
-        Write-Info "  2. Agregue la carpeta 'bin' al PATH del sistema"
-        Write-Info "  3. Ejemplo: C:\Program Files\MySQL\MySQL Server 8.0\bin"
+        Write-Info "  SOLUCIONES:"
+        Write-Info "  1. Si tiene XAMPP instalado:"
+        Write-Info "     - Agregue C:\xampp\mysql\bin al PATH"
+        Write-Info "  2. Si tiene MySQL instalado:"
+        Write-Info "     - Agregue la carpeta bin de MySQL al PATH"
+        Write-Info "  3. O ejecute este script desde MySQL Command Line Client"
+        Write-Info ""
+        Write-Info "  Para agregar al PATH permanentemente:"
+        Write-Info "  - Win+X > Sistema > Configuracion avanzada > Variables de entorno"
+        Write-Info "  - Editar PATH y agregar la ruta de MySQL bin"
         exit 1
     }
 
