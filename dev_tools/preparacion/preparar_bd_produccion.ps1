@@ -98,11 +98,32 @@ if (-not $DB_USER -or -not $DB_PASSWORD) {
 }
 Write-Success "Credenciales cargadas desde .env"
 
-# Verificar mysqldump
-$mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
-if (-not $mysqldump) {
-    Write-Warning "mysqldump no encontrado en PATH"
-    Write-Info "  Buscando en ubicaciones comunes..."
+# Verificar mysqldump y mysql - primero probar si el que esta en PATH funciona
+$mysqlWorking = $false
+$mysql = Get-Command mysql -ErrorAction SilentlyContinue
+
+if ($mysql) {
+    Write-Info "MySQL encontrado en PATH: $($mysql.Source)"
+    Write-Info "  Verificando compatibilidad..."
+
+    try {
+        $testOutput = & mysql --version 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "MySQL en PATH es funcional"
+            $mysqlWorking = $true
+        }
+    } catch {
+        Write-Warning "MySQL en PATH no es compatible con este sistema"
+    }
+}
+
+if (-not $mysqlWorking) {
+    if ($mysql) {
+        Write-Warning "MySQL en PATH no funciona correctamente"
+    } else {
+        Write-Warning "mysqldump/mysql no encontrado en PATH"
+    }
+    Write-Info "  Buscando alternativas en ubicaciones comunes..."
 
     # Ubicaciones comunes de MySQL - buscar XAMPP/WAMP primero (mas compatibles)
     $mysqlPaths = @(
@@ -112,11 +133,10 @@ if (-not $mysqldump) {
         "C:\wamp64\bin\mysql\mysql8.0.31\bin",
         "C:\wamp\bin\mysql\mysql8.0.27\bin",
         "C:\Program Files\MySQL\MySQL Server 8.0\bin",
-        "C:\Program Files\MySQL\MySQL Server 8.4\bin",
         "C:\Program Files\MySQL\MySQL Server 5.7\bin"
     )
 
-    # Buscar dinámicamente en wamp64
+    # Buscar dinamicamente en wamp64
     if (Test-Path "C:\wamp64\bin\mysql") {
         $wampMysqlDirs = Get-ChildItem "C:\wamp64\bin\mysql" -Directory | ForEach-Object { "$($_.FullName)\bin" }
         $mysqlPaths += $wampMysqlDirs
@@ -132,46 +152,43 @@ if (-not $mysqldump) {
             try {
                 $testOutput = & $testExe --version 2>&1
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Success "MySQL encontrado y funcional en: $path"
-                    Write-Info "  Agregando al PATH temporalmente..."
+                    Write-Success "MySQL funcional encontrado en: $path"
+                    Write-Info "  Agregando al PATH con prioridad..."
+                    # Agregar al INICIO del PATH para que tenga prioridad
                     $env:Path = "$path;$env:Path"
                     $found = $true
+                    $mysqlWorking = $true
                     break
                 }
             } catch {
-                Write-Info "  MySQL en $path no es compatible (posible problema de arquitectura)"
+                Write-Info "  MySQL en $path no es compatible"
                 continue
             }
         }
     }
 
     if (-not $found) {
-        Write-Error "mysqldump no encontrado o no compatible"
+        Write-Error "No se encontro MySQL compatible"
         Write-Info ""
         Write-Info "  SOLUCIONES:"
-        Write-Info "  1. Si tiene XAMPP instalado:"
-        Write-Info "     - Agregue C:\xampp\mysql\bin al PATH"
-        Write-Info "  2. Si tiene MySQL instalado:"
-        Write-Info "     - Agregue la carpeta bin de MySQL al PATH"
-        Write-Info "  3. O ejecute este script desde MySQL Command Line Client"
-        Write-Info ""
-        Write-Info "  Para agregar al PATH permanentemente:"
-        Write-Info "  - Win+X > Sistema > Configuracion avanzada > Variables de entorno"
-        Write-Info "  - Editar PATH y agregar la ruta de MySQL bin"
+        Write-Info "  1. Instale XAMPP (incluye MySQL compatible):"
+        Write-Info "     https://www.apachefriends.org/"
+        Write-Info "  2. O use MySQL Command Line Client"
+        Write-Info "  3. O agregue manualmente una version compatible al PATH"
         exit 1
     }
-
-    # Verificar nuevamente
-    $mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
 }
-Write-Success "mysqldump disponible: $($mysqldump.Source)"
 
-# Verificar mysql client
+# Verificar comandos finales
+$mysqldump = Get-Command mysqldump -ErrorAction SilentlyContinue
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
-if (-not $mysql) {
-    Write-Error "mysql client no encontrado (deberia estar en el mismo directorio que mysqldump)"
+
+if (-not $mysqldump -or -not $mysql) {
+    Write-Error "Error: mysqldump o mysql no disponibles"
     exit 1
 }
+
+Write-Success "mysqldump disponible: $($mysqldump.Source)"
 Write-Success "mysql client disponible: $($mysql.Source)"
 
 # ============================================================================
