@@ -223,17 +223,17 @@ begin
     EnvFilePath := ExpandConstant('{app}\.env');
 
     // Contenido inicial del archivo .env
-    EnvContent := '# HydroFlow Manager v1.04 - Configuracion' + #13#10 +
-                  '# Este archivo sera actualizado por el asistente de configuracion' + #13#10 +
-                  #13#10 +
-                  'DB_HOST=localhost' + #13#10 +
-                  'DB_PORT=3307' + #13#10 +
-                  'DB_USER=' + #13#10 +
-                  'DB_PASSWORD=' + #13#10 +
-                  'DB_MANAGER_SCHEMA=manager' + #13#10 +
-                  'DB_EXAMPLE_SCHEMA=proyecto_tipo' + #13#10 +
-                  'DB_SCHEMA=cert_dev' + #13#10 +
-                  'DB_USE_POOLING=true' + #13#10;
+    EnvContent := '# HydroFlow Manager v1.04 - Configuracion' + #13#10;
+    EnvContent := EnvContent + '# Este archivo sera actualizado por el asistente de configuracion' + #13#10;
+    EnvContent := EnvContent + #13#10;
+    EnvContent := EnvContent + 'DB_HOST=localhost' + #13#10;
+    EnvContent := EnvContent + 'DB_PORT=3307' + #13#10;
+    EnvContent := EnvContent + 'DB_USER=' + #13#10;
+    EnvContent := EnvContent + 'DB_PASSWORD=' + #13#10;
+    EnvContent := EnvContent + 'DB_MANAGER_SCHEMA=manager' + #13#10;
+    EnvContent := EnvContent + 'DB_EXAMPLE_SCHEMA=proyecto_tipo' + #13#10;
+    EnvContent := EnvContent + 'DB_SCHEMA=cert_dev' + #13#10;
+    EnvContent := EnvContent + 'DB_USE_POOLING=true' + #13#10;
 
     // Guardar archivo con privilegios de administrador
     SaveStringToFile(EnvFilePath, EnvContent, False);
