@@ -67,7 +67,7 @@ ArchitecturesInstallIn64BitMode=x64
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: "quicklaunchicon"; Description: "Crear icono en inicio rapido"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
