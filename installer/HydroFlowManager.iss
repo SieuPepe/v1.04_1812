@@ -78,15 +78,25 @@ Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\dist\{#MyAppConfigExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Recursos (si existen)
-Source: "..\resources\*"; DestDir: "{app}\resources"; Flags: ignoreversion recursesubdirs createallsubdirs; Check: DirExists('..\resources')
+#ifexist "..\resources"
+Source: "..\resources\*"; DestDir: "{app}\resources"; Flags: ignoreversion recursesubdirs createallsubdirs
+#endif
 
 ; Documentación
-Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion; Check: FileExists('..\README.md')
-Source: "..\INSTALACION.md"; DestDir: "{app}"; Flags: ignoreversion; Check: FileExists('..\INSTALACION.md')
-Source: "..\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion; Check: FileExists('..\LICENSE.txt')
+#ifexist "..\README.md"
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+#endif
+#ifexist "..\INSTALACION.md"
+Source: "..\INSTALACION.md"; DestDir: "{app}"; Flags: ignoreversion
+#endif
+#ifexist "..\LICENSE.txt"
+Source: "..\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+#endif
 
 ; Archivo .env.example para referencia
-Source: "..\.env.example"; DestDir: "{app}"; Flags: ignoreversion; Check: FileExists('..\.env.example')
+#ifexist "..\.env.example"
+Source: "..\.env.example"; DestDir: "{app}"; Flags: ignoreversion
+#endif
 
 [Icons]
 ; Menú inicio
@@ -208,16 +218,4 @@ begin
     // La configuración se ejecutará automáticamente por [Run] PostInstall
     // No es necesario hacer nada aquí
   end;
-end;
-
-// Verificar si un directorio existe (helper function para [Files] Check)
-function DirExists(const Path: String): Boolean;
-begin
-  Result := DirectoryExists(ExpandConstant(Path));
-end;
-
-// Verificar si un archivo existe (helper function para [Files] Check)
-function FileExists(const Path: String): Boolean;
-begin
-  Result := FileExists(ExpandConstant(Path));
 end;
