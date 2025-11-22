@@ -854,56 +854,48 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
             '--upgrade'
         ]
 
-        print("[DEBUG] Iniciando thread de instalación...")
+        print("[DEBUG] Ejecutando pip SINCRÓNICAMENTE (sin thread)...")
 
         try:
-            # Ejecutar en un thread para no bloquear la UI
-            def run_install():
-                print("[DEBUG] Thread de instalación iniciado")
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    bufsize=1
+            # VERSIÓN SIMPLIFICADA SIN THREAD PARA DEBUG
+            print("[DEBUG] Ejecutando subprocess.run...")
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minutos máximo
+            )
+
+            print(f"[DEBUG] pip terminó con código: {result.returncode}")
+            print(f"[DEBUG] Salida tiene {len(result.stdout)} caracteres")
+
+            # Mostrar salida completa
+            self.log_deps(result.stdout)
+
+            if result.returncode == 0:
+                print("[DEBUG] Éxito - mostrando mensaje")
+                self.log_deps("\n✓ Dependencias instaladas exitosamente")
+                messagebox.showinfo(
+                    "Éxito",
+                    "Las dependencias de Python han sido instaladas.\n\n"
+                    "Haga clic en 'Siguiente' para finalizar la instalación."
+                )
+            else:
+                print("[DEBUG] Error - mostrando mensaje")
+                self.log_deps("\n✗ Error al instalar dependencias")
+                self.log_deps(result.stderr)
+                messagebox.showerror(
+                    "Error",
+                    f"Error al instalar dependencias.\n\n{result.stderr[:200]}"
                 )
 
-                line_count = 0
-                for line in process.stdout:
-                    line_count += 1
-                    if line_count % 10 == 0:
-                        print(f"[DEBUG] Procesadas {line_count} líneas de pip")
-
-                    # Usar una función separada para evitar problemas con lambda
-                    def update_log(text=line.strip()):
-                        self.log_deps(text)
-                    self.root.after(0, update_log)
-
-                process.wait()
-                print(f"[DEBUG] Proceso pip terminado con código: {process.returncode}")
-
-                if process.returncode == 0:
-                    def show_success():
-                        print("[DEBUG] Mostrando mensaje de éxito")
-                        self.log_deps("\n✓ Dependencias instaladas exitosamente")
-                        messagebox.showinfo(
-                            "Éxito",
-                            "Las dependencias de Python han sido instaladas.\n\n"
-                            "Haga clic en 'Siguiente' para finalizar la instalación."
-                        )
-                    self.root.after(0, show_success)
-                else:
-                    def show_error():
-                        print("[DEBUG] Mostrando mensaje de error")
-                        self.log_deps("\n✗ Error al instalar dependencias")
-                    self.root.after(0, show_error)
-
-            thread = threading.Thread(target=run_install, daemon=True)
-            thread.start()
-            print("[DEBUG] Thread iniciado, install_dependencies() completando")
-
+        except subprocess.TimeoutExpired:
+            print("[DEBUG] TIMEOUT después de 5 minutos")
+            self.log_deps("\n✗ Timeout - la instalación tardó más de 5 minutos")
         except Exception as e:
-            print(f"[DEBUG] EXCEPCIÓN en install_dependencies: {e}")
+            print(f"[DEBUG] EXCEPCIÓN: {e}")
+            import traceback
+            traceback.print_exc()
             self.log_deps(f"\n✗ Error: {e}")
 
     def log_deps(self, message):
