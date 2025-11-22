@@ -84,6 +84,13 @@ if (Test-Path "INSTALACION.md") {
     Write-Host "Archivo incluido: INSTALACION.md" -ForegroundColor Green
 }
 
+if (Test-Path "requirements.txt") {
+    $pyinstallerArgs += "--add-data=requirements.txt;."
+    Write-Host "Archivo incluido: requirements.txt" -ForegroundColor Green
+} else {
+    Write-Host "requirements.txt no encontrado (recomendado)" -ForegroundColor Yellow
+}
+
 # Agregar backups solo si existe el directorio
 if (Test-Path "backups") {
     $pyinstallerArgs += "--add-data=backups;backups"
