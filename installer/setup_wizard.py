@@ -123,6 +123,12 @@ class SetupWizard:
 
     def show_step(self, step):
         """Mostrar paso específico"""
+        import traceback
+        print(f"[DEBUG] show_step llamado con step={step}")
+        print(f"[DEBUG] Traceback:")
+        for line in traceback.format_stack()[:-1]:
+            print(line.strip())
+
         self.current_step = step
         self.clear_container()
 
@@ -772,6 +778,8 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
 
     def step_install_dependencies(self):
         """Instalar dependencias de Python"""
+        print("[DEBUG] step_install_dependencies ejecutándose")
+
         tk.Label(
             self.container,
             text="Instalar Dependencias",
@@ -801,6 +809,8 @@ NOTA: Este instalador NO crea esquemas. La BD debe estar lista.
             width=20,
             font=('Arial', 10, 'bold')
         ).pack(pady=10)
+
+        print("[DEBUG] step_install_dependencies completado")
 
     def install_dependencies(self):
         """Instalar dependencias de Python"""
