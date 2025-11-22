@@ -8,24 +8,38 @@ Este script realiza pruebas de:
 4. Comparación de tiempos antes/después
 
 Uso:
-    python script/test_optimizaciones.py --user <usuario> --password <contraseña> --schema <esquema>
+    # Usando credenciales desde .env
+    python tests/test_optimizaciones.py
+
+    # O especificando credenciales explícitamente
+    python tests/test_optimizaciones.py --user <usuario> --password <contraseña> --schema <esquema>
 
 Argumentos:
-    --user: Usuario de MySQL
-    --password: Contraseña del usuario
-    --schema: Esquema de proyecto para testing
+    --user: Usuario de MySQL (default: desde .env DB_USER)
+    --password: Contraseña del usuario (default: desde .env DB_PASSWORD)
+    --schema: Esquema de proyecto para testing (default: desde .env DB_SCHEMA)
     --iterations: Número de iteraciones para pruebas de rendimiento (default: 10)
     --verbose: Muestra información detallada
+    --output: Archivo de salida JSON (opcional)
 """
 
 import argparse
 import logging
+import os
 import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Tuple
 from datetime import datetime
 import json
+
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).resolve().parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
 
 # Configurar logging
 logging.basicConfig(
@@ -379,9 +393,12 @@ def main():
     parser = argparse.ArgumentParser(
         description='Tests de optimización de backend'
     )
-    parser.add_argument('--user', required=True, help='Usuario de MySQL')
-    parser.add_argument('--password', required=True, help='Contraseña del usuario')
-    parser.add_argument('--schema', required=True, help='Esquema de proyecto')
+    parser.add_argument('--user', default=None,
+                       help='Usuario de MySQL (default: desde .env DB_USER)')
+    parser.add_argument('--password', default=None,
+                       help='Contraseña del usuario (default: desde .env DB_PASSWORD)')
+    parser.add_argument('--schema', default=None,
+                       help='Esquema de proyecto (default: desde .env DB_SCHEMA)')
     parser.add_argument('--iterations', type=int, default=10,
                        help='Número de iteraciones (default: 10)')
     parser.add_argument('--verbose', action='store_true',
@@ -389,6 +406,26 @@ def main():
     parser.add_argument('--output', help='Archivo de salida JSON (opcional)')
 
     args = parser.parse_args()
+
+    # Usar .env como fallback si no se proporcionan argumentos
+    if args.user is None:
+        args.user = os.getenv('DB_USER')
+    if args.password is None:
+        args.password = os.getenv('DB_PASSWORD')
+    if args.schema is None:
+        args.schema = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    # Validar que tenemos credenciales
+    if not args.user or not args.password:
+        logger.error("ERROR: Se requieren credenciales de base de datos")
+        logger.error("  Proporcione --user y --password, o configure DB_USER y DB_PASSWORD en .env")
+        logger.error("  Consulte INSTALACION.md para más detalles")
+        return 1
+
+    if not args.schema:
+        logger.error("ERROR: Se requiere esquema de base de datos")
+        logger.error("  Proporcione --schema, o configure DB_SCHEMA en .env")
+        return 1
 
     # Configurar nivel de logging
     if args.verbose:

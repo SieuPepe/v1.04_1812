@@ -22,12 +22,20 @@ import sys
 from pathlib import Path
 from datetime import date
 
+# Cargar .env
+try:
+    from dotenv import load_dotenv
+    project_root = Path(__file__).resolve().parent.parent
+    load_dotenv(dotenv_path=project_root / '.env')
+except ImportError:
+    pass
+
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Configuración
-USER = os.getenv('DB_USER', 'root')
-PASSWORD = os.getenv('DB_PASSWORD', 'TU_PASSWORD_AQUI')  # ⚠️ CAMBIAR
-SCHEMA = os.getenv('DB_EXAMPLE_SCHEMA', 'cert_dev')  # ⚠️ CAMBIAR
+# Configuración desde .env
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
+SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
 
 try:
     from script.db_connection import get_project_connection
@@ -246,8 +254,10 @@ def main():
     print(f"\nEsquema: {SCHEMA}")
     print(f"Usuario: {USER}")
 
-    if PASSWORD == 'TU_PASSWORD_AQUI':
-        print("❌ ERROR: Configurar PASSWORD en la sección CONFIGURACIÓN")
+    if not USER or not PASSWORD:
+        print("❌ ERROR: Se requieren credenciales de base de datos")
+        print("   Configure DB_USER y DB_PASSWORD en el archivo .env")
+        print("   Consulte INSTALACION.md para más detalles")
         return False
 
     tests = [
