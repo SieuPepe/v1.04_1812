@@ -57,15 +57,44 @@ Write-Host ""
 Write-Host "Compilando wizard de instalacion..." -ForegroundColor Cyan
 Write-Host ""
 
+# Argumentos base de PyInstaller
 $pyinstallerArgs = @(
     "installer\setup_wizard.py",
     "--name=HydroFlowManager_Setup",
     "--onefile",
-    "--windowed",
-    "--icon=resources\icon.ico",
-    "--add-data=.env.example;.",
-    "--add-data=INSTALACION.md;.",
-    "--add-data=backups;backups",
+    "--windowed"
+)
+
+# Agregar icono si existe
+if (Test-Path "resources\icon.ico") {
+    $pyinstallerArgs += "--icon=resources\icon.ico"
+    Write-Host "Icono incluido: resources\icon.ico" -ForegroundColor Green
+} else {
+    Write-Host "Icono no encontrado (opcional)" -ForegroundColor Yellow
+}
+
+# Agregar archivos de datos si existen
+if (Test-Path ".env.example") {
+    $pyinstallerArgs += "--add-data=.env.example;."
+    Write-Host "Archivo incluido: .env.example" -ForegroundColor Green
+}
+
+if (Test-Path "INSTALACION.md") {
+    $pyinstallerArgs += "--add-data=INSTALACION.md;."
+    Write-Host "Archivo incluido: INSTALACION.md" -ForegroundColor Green
+}
+
+# Agregar backups solo si existe el directorio
+if (Test-Path "backups") {
+    $pyinstallerArgs += "--add-data=backups;backups"
+    Write-Host "Directorio incluido: backups\" -ForegroundColor Green
+} else {
+    Write-Host "Directorio backups\ no encontrado (opcional)" -ForegroundColor Yellow
+    Write-Host "  El instalador permitira seleccionar archivos SQL manualmente" -ForegroundColor Yellow
+}
+
+# Agregar imports y opciones finales
+$pyinstallerArgs += @(
     "--hidden-import=tkinter",
     "--hidden-import=tkinter.ttk",
     "--hidden-import=tkinter.scrolledtext",
@@ -73,6 +102,8 @@ $pyinstallerArgs = @(
     "--hidden-import=tkinter.messagebox",
     "--clean"
 )
+
+Write-Host ""
 
 # Ejecutar PyInstaller
 & pyinstaller $pyinstallerArgs
