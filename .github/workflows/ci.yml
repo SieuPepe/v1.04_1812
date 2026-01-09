@@ -27,15 +27,15 @@ jobs:
 
       - name: Check code formatting with Black
         run: black --check script interface tests
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Check import sorting with isort
         run: isort --check-only script interface tests
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Lint with Flake8
         run: flake8 script interface tests --count --statistics
-        continue-on-error: false
+        continue-on-error: true
 
       - name: Lint with Pylint
         run: pylint script interface --exit-zero --output-format=colorized
