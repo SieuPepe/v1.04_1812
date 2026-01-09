@@ -127,24 +127,23 @@ class AppParts(customtkinter.CTk):
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
 
-            # Get next number for this specific prefix (independent numbering per prefix)
+            # Get next number with GLOBAL numbering (all prefixes share same sequence)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Extract the numeric part from existing codes with this prefix
-                # Más robusto: maneja NULLs y códigos vacíos
+                # Obtener el último número usado de TODOS los códigos (numeración global)
                 cur.execute("""
                     SELECT COALESCE(
                         MAX(
                             CAST(
-                                REPLACE(codigo, %s, '') AS UNSIGNED
+                                SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED
                             )
                         ),
                         0
                     ) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
-                      AND codigo LIKE %s
-                """, (prefix + '-', prefix + '-%'))
+                      AND codigo LIKE '%-%'
+                """)
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
