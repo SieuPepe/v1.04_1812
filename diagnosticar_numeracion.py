@@ -11,13 +11,10 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_project_connection
-from script.db_config import load_db_config
 import os
 
-# Cargar configuración desde .env
-config = load_db_config()
-
-# Usar credenciales del .env o permitir override
+# Las credenciales se cargan automáticamente desde .env al importar db_config
+# Usar credenciales del .env o valores por defecto
 schema = os.getenv('DB_SCHEMA', 'cert_dev')
 user = os.getenv('DB_USER', 'root')
 password = os.getenv('DB_PASSWORD', '')
