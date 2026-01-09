@@ -26,6 +26,16 @@ dependencies = [
     "matplotlib>=3.5.0",
 ]
 
+# ============================================================================
+# SETUPTOOLS - Package Discovery Configuration
+# ============================================================================
+[tool.setuptools]
+# Solo incluir los paquetes Python reales, excluir directorios de datos/recursos
+packages = ["script", "interface"]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql", "*.json", "*.yaml"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
