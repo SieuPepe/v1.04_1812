@@ -36,3 +36,38 @@ La numeración ahora es correlativa global. Si el último parte fue `OT/0523`, e
 
 ---
 
+## Bug #2: GitHub Actions - Error setuptools flat-layout
+**Fecha:** 2026-01-09
+**Estado:** ✅ RESUELTO
+**Commit:** `cd04ca6`
+
+### Descripción del problema
+GitHub Actions fallaba en el paso "Install dependencies" con el error:
+```
+error: Multiple top-level packages discovered in a flat-layout:
+['script', 'resources', 'interface', 'installer', 'dev_tools',
+'informes_guardados', 'informes_exhaustivos', 'ejemplos_informes_generados'].
+```
+
+### Causa raíz
+`setuptools` hacía auto-discovery de paquetes y encontraba múltiples directorios de nivel superior. No sabía cuáles eran paquetes Python reales y cuáles eran directorios de datos/recursos.
+
+### Archivo modificado
+- `pyproject.toml`
+
+### Solución aplicada
+Agregar configuración explícita de paquetes en `pyproject.toml`:
+
+```toml
+[tool.setuptools]
+packages = ["script", "interface"]
+
+[tool.setuptools.package-data]
+"*" = ["*.sql", "*.json", "*.yaml"]
+```
+
+### Resultado
+Setuptools ahora sabe exactamente qué directorios son paquetes Python (`script`, `interface`) y ignora los directorios de datos como `resources`, `installer`, `dev_tools`, etc.
+
+---
+
