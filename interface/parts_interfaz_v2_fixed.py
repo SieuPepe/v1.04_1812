@@ -356,25 +356,26 @@ class AppPartsV2(customtkinter.CTkToplevel):
             print(f"[DEBUG] Prefijo obtenido: {prefix}")  # DEBUG
 
             # Get next number with GLOBAL numbering (all prefixes share same sequence)
-            # Formato: PREFIX-NNNN (sin año)
+            # Formato: PREFIX/NNNN (usando barra como en los datos existentes)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
                 # Obtener el último número usado de TODOS los códigos (numeración global)
+                # NOTA: Los códigos existentes usan barra / como separador (OT/0001, TP/0002)
                 cur.execute("""
                     SELECT COALESCE(MAX(
                         CAST(
-                            SUBSTRING_INDEX(codigo, '-', -1)
+                            SUBSTRING_INDEX(codigo, '/', -1)
                             AS UNSIGNED
                         )
                     ), 0) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
-                      AND codigo LIKE '%-%'
+                      AND codigo LIKE '%/%'
                 """)
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:04d}"
+            codigo = f"{prefix}/{next_id:04d}"
             print(f"[DEBUG] Código generado: {codigo}")  # DEBUG
 
             # Update readonly entry

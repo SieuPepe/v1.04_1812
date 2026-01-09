@@ -1398,21 +1398,22 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         # Obtener prefijo del tipo de trabajo (OT, GF o TP)
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
 
-        # Generar código único con numeración GLOBAL (formato: PREFIX-NNNN)
+        # Generar código único con numeración GLOBAL (formato: PREFIX/NNNN)
         # Busca el MAX de TODOS los códigos existentes, sin filtrar por prefijo,
         # para mantener numeración correlativa independiente del tipo de trabajo
+        # NOTA: Los códigos existentes usan barra / como separador (OT/0001, TP/0002)
         query_next = (
             "SELECT COALESCE(MAX("
-            "CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)"
+            "CAST(SUBSTRING_INDEX(codigo, '/', -1) AS UNSIGNED)"
             "), 0) + 1 "
             "FROM " + schema + ".tbl_partes "
-            "WHERE codigo IS NOT NULL AND codigo LIKE '%-%'"
+            "WHERE codigo IS NOT NULL AND codigo LIKE '%/%'"
         )
         cur.execute(query_next)
 
         # Convertir a int explícitamente para evitar problemas con Decimal
         next_num = int(cur.fetchone()[0])
-        codigo = f"{prefix}-{next_num:04d}"
+        codigo = f"{prefix}/{next_num:04d}"
 
         # Verificar qué columnas existen en tbl_partes (con caché)
         columns = set(_get_table_columns_cached(user, password, schema, 'tbl_partes'))

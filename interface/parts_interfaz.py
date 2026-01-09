@@ -131,23 +131,24 @@ class AppParts(customtkinter.CTk):
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
                 # Obtener el último número usado de TODOS los códigos (numeración global)
+                # NOTA: Los códigos existentes usan barra / como separador (OT/0001, TP/0002)
                 cur.execute("""
                     SELECT COALESCE(
                         MAX(
                             CAST(
-                                SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED
+                                SUBSTRING_INDEX(codigo, '/', -1) AS UNSIGNED
                             )
                         ),
                         0
                     ) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
-                      AND codigo LIKE '%-%'
+                      AND codigo LIKE '%/%'
                 """)
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:05d}"
+            codigo = f"{prefix}/{next_id:04d}"
 
             # Update readonly entry
             self.codigo_ot_entry.configure(state="normal")
