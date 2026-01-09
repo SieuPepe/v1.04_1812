@@ -3,7 +3,7 @@
 ; Incluye instalación automática de LibreOffice para exportación a PDF
 
 #define MyAppName "HydroFlow Manager"
-#define MyAppVersion "1.04.1812"
+#define MyAppVersion "1.05"
 #define MyAppPublisher "URBIDE"
 #define MyAppURL "https://www.urbide.com/"
 #define MyAppExeName "HidroFlowManager.exe"

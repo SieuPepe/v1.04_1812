@@ -13,7 +13,7 @@
 #   .\installer\build_inno_setup.ps1
 #
 # Resultado:
-#   dist\HydroFlowManager_v1.04_Setup.exe
+#   dist\HydroFlowManager_v1.05_Setup.exe
 #
 # ============================================================================
 
@@ -21,7 +21,7 @@ $Host.UI.RawUI.ForegroundColor = "White"
 
 Write-Host ""
 Write-Host ("=" * 80) -ForegroundColor Cyan
-Write-Host "Build Inno Setup Installer - HydroFlow Manager v1.04" -ForegroundColor Cyan
+Write-Host "Build Inno Setup Installer - HydroFlow Manager v1.05" -ForegroundColor Cyan
 Write-Host ("=" * 80) -ForegroundColor Cyan
 Write-Host ""
 
@@ -80,9 +80,9 @@ Write-Host "✓ Inno Setup Compiler encontrado: $ISCC" -ForegroundColor Green
 Write-Host ""
 
 # Limpiar instalador anterior
-if (Test-Path "dist\HydroFlowManager_v1.04_Setup.exe") {
+if (Test-Path "dist\HydroFlowManager_v1.05_Setup.exe") {
     Write-Host "Limpiando instalador anterior..." -ForegroundColor Yellow
-    Remove-Item "dist\HydroFlowManager_v1.04_Setup.exe" -Force
+    Remove-Item "dist\HydroFlowManager_v1.05_Setup.exe" -Force
 }
 
 # Compilar con Inno Setup
@@ -98,7 +98,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host ("=" * 80) -ForegroundColor Green
     Write-Host ""
 
-    $installerPath = "dist\HydroFlowManager_v1.04_Setup.exe"
+    $installerPath = "dist\HydroFlowManager_v1.05_Setup.exe"
     if (Test-Path $installerPath) {
         $size = (Get-Item $installerPath).Length / 1MB
         $sizeRounded = [math]::Round($size, 2)

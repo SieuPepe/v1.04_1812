@@ -16,7 +16,7 @@ $Host.UI.RawUI.ForegroundColor = "White"
 
 Write-Host ""
 Write-Host ("=" * 80) -ForegroundColor Cyan
-Write-Host "Build Config Wizard - HydroFlow Manager v1.04" -ForegroundColor Cyan
+Write-Host "Build Config Wizard - HydroFlow Manager v1.05" -ForegroundColor Cyan
 Write-Host ("=" * 80) -ForegroundColor Cyan
 Write-Host ""
 

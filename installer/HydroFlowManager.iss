@@ -1,8 +1,8 @@
 ﻿; ============================================================================
-; HydroFlow Manager v1.04 - Inno Setup Script
+; HydroFlow Manager v1.05 - Inno Setup Script
 ; ============================================================================
 ;
-; Script de instalación profesional para HydroFlow Manager v1.04
+; Script de instalación profesional para HydroFlow Manager v1.05
 ; Genera un instalador .exe con todas las dependencias incluidas
 ;
 ; Requisitos:
@@ -17,7 +17,7 @@
 ; ============================================================================
 
 #define MyAppName "HydroFlow Manager"
-#define MyAppVersion "1.04"
+#define MyAppVersion "1.05"
 #define MyAppPublisher "HydroFlow"
 #define MyAppExeName "HydroFlowManager.exe"
 #define MyAppConfigExeName "HydroFlowManager_Config.exe"

@@ -5,7 +5,7 @@
 # Este script compila TODOS los componentes del instalador en el orden correcto:
 # 1. Aplicación principal (HydroFlowManager.exe)
 # 2. Asistente de configuración (HydroFlowManager_Config.exe)
-# 3. Instalador profesional con Inno Setup (HydroFlowManager_v1.04_Setup.exe)
+# 3. Instalador profesional con Inno Setup (HydroFlowManager_v1.05_Setup.exe)
 #
 # Requisitos:
 #   - Python 3.8+
@@ -17,7 +17,7 @@
 #   .\installer\build_all.ps1
 #
 # Resultado:
-#   dist\HydroFlowManager_v1.04_Setup.exe (instalador final)
+#   dist\HydroFlowManager_v1.05_Setup.exe (instalador final)
 #
 # ============================================================================
 
@@ -26,7 +26,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host ""
 Write-Host ("=" * 80) -ForegroundColor Cyan
-Write-Host "BUILD ALL - HydroFlow Manager v1.04" -ForegroundColor Cyan
+Write-Host "BUILD ALL - HydroFlow Manager v1.05" -ForegroundColor Cyan
 Write-Host ("=" * 80) -ForegroundColor Cyan
 Write-Host ""
 
@@ -108,9 +108,9 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-if (-not (Test-Path "dist\HydroFlowManager_v1.04_Setup.exe")) {
+if (-not (Test-Path "dist\HydroFlowManager_v1.05_Setup.exe")) {
     Write-Host ""
-    Write-Host "ERROR: No se encontro dist\HydroFlowManager_v1.04_Setup.exe" -ForegroundColor Red
+    Write-Host "ERROR: No se encontro dist\HydroFlowManager_v1.05_Setup.exe" -ForegroundColor Red
     exit 1
 }
 
@@ -124,7 +124,7 @@ Write-Host "COMPILACION COMPLETA - EXITO!" -ForegroundColor Green
 Write-Host ("=" * 80) -ForegroundColor Green
 Write-Host ""
 
-$installerPath = "dist\HydroFlowManager_v1.04_Setup.exe"
+$installerPath = "dist\HydroFlowManager_v1.05_Setup.exe"
 $size = (Get-Item $installerPath).Length / 1MB
 $sizeRounded = [math]::Round($size, 2)
 

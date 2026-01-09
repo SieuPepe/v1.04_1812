@@ -7,6 +7,35 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
+## [1.05] - 2026-01-09
+
+### ✨ Añadido
+
+#### Documentación de Usuario
+- **Manual de Usuario en PDF** (180 KB) - Guía completa de todas las funcionalidades
+- **Manual de Informes en PDF** (170 KB) - Documentación exhaustiva del generador de informes
+- **Guía Técnica en PDF** (194 KB) - Manual técnico para administradores
+- **Accesos directos en menú de inicio** para acceder a los manuales
+- **Integración en menú de Ayuda** de la aplicación
+- Script `convert_manuals_to_pdf.py` para regenerar PDFs desde Markdown
+
+#### Sistema de Instalación
+- Manuales integrados en el instalador (installer/HydroFlowManager.iss)
+- Accesos directos automáticos en el menú de inicio de Windows
+- Apertura de manuales multiplataforma (Windows/macOS/Linux)
+
+### 🔧 Cambiado
+- Actualizada versión del instalador a v1.05
+- Mejorados mensajes de error al abrir manuales
+- Optimizada función de apertura de documentos PDF
+
+### 📚 Documentación
+- Generados PDFs profesionales con estilos mejorados
+- CSS optimizado para impresión y visualización
+- Formato consistente en todos los manuales
+
+---
+
 ## [1.04] - 2025-11-12
 
 ### ✨ Añadido

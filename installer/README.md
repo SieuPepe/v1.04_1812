@@ -1,6 +1,6 @@
-# HydroFlow Manager v1.04 - Sistema de Instalación Profesional
+# HydroFlow Manager v1.05 - Sistema de Instalación Profesional
 
-Sistema de instalación profesional con Inno Setup para HydroFlow Manager v1.04, diseñado para distribución a usuarios finales.
+Sistema de instalación profesional con Inno Setup para HydroFlow Manager v1.05, diseñado para distribución a usuarios finales.
 
 ## 🎯 Características del Instalador
 
@@ -42,7 +42,7 @@ installer/
 dist/
 ├── HydroFlowManager.exe             # App principal (generado)
 ├── HydroFlowManager_Config.exe      # Configurador (generado)
-└── HydroFlowManager_v1.04_Setup.exe # Instalador final (generado)
+└── HydroFlowManager_v1.05_Setup.exe # Instalador final (generado)
 ```
 
 ### Flujo de Compilación
@@ -58,13 +58,13 @@ dist/
 
 3. build_inno_setup.ps1
    └─> Empaqueta ambos .exe con Inno Setup
-       └─> dist/HydroFlowManager_v1.04_Setup.exe (instalador profesional)
+       └─> dist/HydroFlowManager_v1.05_Setup.exe (instalador profesional)
 ```
 
 ### Flujo de Instalación (Usuario Final)
 
 ```
-1. Usuario ejecuta HydroFlowManager_v1.04_Setup.exe
+1. Usuario ejecuta HydroFlowManager_v1.05_Setup.exe
    ├─> Pantalla de bienvenida
    ├─> Licencia
    ├─> Selección de carpeta
@@ -111,9 +111,9 @@ dist/
 Este script:
 1. Compila la aplicación principal (`HydroFlowManager.exe`)
 2. Compila el configurador (`HydroFlowManager_Config.exe`)
-3. Genera el instalador con Inno Setup (`HydroFlowManager_v1.04_Setup.exe`)
+3. Genera el instalador con Inno Setup (`HydroFlowManager_v1.05_Setup.exe`)
 
-**Resultado:** `dist\HydroFlowManager_v1.04_Setup.exe` (~150-200 MB)
+**Resultado:** `dist\HydroFlowManager_v1.05_Setup.exe` (~150-200 MB)
 
 ### Compilación por Pasos (Opcional)
 
@@ -135,7 +135,7 @@ Si necesita compilar componentes individuales:
 ### Archivo a Distribuir
 
 ```
-dist/HydroFlowManager_v1.04_Setup.exe
+dist/HydroFlowManager_v1.05_Setup.exe
 ```
 
 Este único archivo contiene TODO lo necesario:
@@ -162,13 +162,13 @@ El usuario SOLO necesita:
 
 **Opción 1: Archivo único** (Recomendado)
 ```
-HydroFlowManager_v1.04_Setup.exe
+HydroFlowManager_v1.05_Setup.exe
 ```
 
 **Opción 2: Con documentación extra**
 ```
-HydroFlowManager_v1.04/
-├── HydroFlowManager_v1.04_Setup.exe
+HydroFlowManager_v1.05/
+├── HydroFlowManager_v1.05_Setup.exe
 ├── INSTRUCCIONES.txt
 └── MANUAL_USUARIO.pdf (si existe)
 ```
@@ -202,7 +202,7 @@ El instalador ejecuta automáticamente `HydroFlowManager_Config.exe` que:
 ### Archivo .env Generado
 
 ```ini
-# HydroFlow Manager v1.04 - Configuración
+# HydroFlow Manager v1.05 - Configuración
 DB_HOST=localhost
 DB_PORT=3307
 DB_USER=root
@@ -337,7 +337,7 @@ Antes de distribuir el instalador a usuarios finales:
 - [ ] Verificado que el configurador funciona
 - [ ] Verificado que la aplicación se ejecuta correctamente
 - [ ] Antivirus no bloquea (o agregado a excepciones)
-- [ ] Archivo de salida: `HydroFlowManager_v1.04_Setup.exe`
+- [ ] Archivo de salida: `HydroFlowManager_v1.05_Setup.exe`
 - [ ] Tamaño razonable (~150-200 MB)
 - [ ] Documentación actualizada
 
@@ -350,5 +350,5 @@ Para problemas con el sistema de instalación:
 
 ---
 
-**HydroFlow Manager v1.04** - Sistema de Instalación Profesional
+**HydroFlow Manager v1.05** - Sistema de Instalación Profesional
 Compilado con PyInstaller + Inno Setup
