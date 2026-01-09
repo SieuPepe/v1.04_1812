@@ -11,11 +11,19 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_project_connection
+from script.db_config import load_db_config
+import os
 
-# Conectar a la base de datos usando el módulo del proyecto
-schema = 'cert_dev'
-user = 'aperez'  # Desde los logs de debug
-password = 'WGueXNk9'  # Desde los logs de debug
+# Cargar configuración desde .env
+config = load_db_config()
+
+# Usar credenciales del .env
+schema = os.getenv('DB_SCHEMA', 'cert_dev')
+user = os.getenv('DB_USER', 'root')
+password = os.getenv('DB_PASSWORD', '')
+
+print(f"Conectando como: {user}@localhost al schema: {schema}")
+print("="*80)
 
 with get_project_connection(user, password, schema) as conn:
     cursor = conn.cursor()

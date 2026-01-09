@@ -11,11 +11,19 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from script.db_connection import get_project_connection
+from script.db_config import load_db_config
+import os
 
-# Conectar a la base de datos
-schema = 'cert_dev'
-user = 'aperez'
-password = 'WGueXNk9'
+# Cargar configuración desde .env
+config = load_db_config()
+
+# Usar credenciales del .env o permitir override
+schema = os.getenv('DB_SCHEMA', 'cert_dev')
+user = os.getenv('DB_USER', 'root')
+password = os.getenv('DB_PASSWORD', '')
+
+print(f"Conectando como: {user}@localhost al schema: {schema}")
+print("="*100)
 
 print("=" * 100)
 print("DIAGNÓSTICO DE NUMERACIÓN DE PARTES")
