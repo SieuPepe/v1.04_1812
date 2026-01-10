@@ -123,6 +123,9 @@ class AppPartsManager(customtkinter.CTk):
         ayuda_path = os.path.join(parent_path, "resources/images/ayuda.png")
         self.ayuda_image = customtkinter.CTkImage(Image.open(ayuda_path), size=(30, 30))
 
+        config_path = os.path.join(parent_path, "resources/images/permisos.png")
+        self.config_image = customtkinter.CTkImage(Image.open(config_path), size=(30, 30))
+
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0, width=200)
@@ -206,6 +209,16 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.informes_button.grid(row=7, column=0, sticky="ew")
 
+        # Botón Configuración
+        self.config_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=0, height=40,
+            border_spacing=10, text="Configuración", fg_color="transparent",
+            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+            image=self.config_image, font=customtkinter.CTkFont(size=15, weight="bold"),
+            anchor="w", command=self._open_config_window
+        )
+        self.config_button.grid(row=8, column=0, sticky="ew")
+
         # Botón Ayuda
         self.ayuda_button = customtkinter.CTkButton(
             self.navigation_frame, corner_radius=0, height=40,
@@ -214,10 +227,10 @@ class AppPartsManager(customtkinter.CTk):
             image=self.ayuda_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("ayuda")
         )
-        self.ayuda_button.grid(row=8, column=0, sticky="ew")
+        self.ayuda_button.grid(row=9, column=0, sticky="ew")
 
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(9, weight=1)
+        self.navigation_frame.grid_rowconfigure(10, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -227,7 +240,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=10, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=11, padx=30, pady=(15, 15), sticky="nsew")
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
@@ -3621,6 +3634,12 @@ R: Los partes eliminados no se pueden recuperar. Contacta con el administrador s
             justify="left"
         )
         info_sistema.grid(row=6, column=0, pady=(0, 20), sticky="w")
+
+    def _open_config_window(self):
+        """Abre la ventana de configuración del sistema."""
+        from interface.config_interfaz import AppConfiguracion
+        config_window = AppConfiguracion(self, self.user, self.password, self.schema)
+        config_window.focus()
 
     def back_to_selector(self):
         """Volver al selector de tipo de usuario"""
