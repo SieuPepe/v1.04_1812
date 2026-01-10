@@ -3270,19 +3270,23 @@ class AppPartsManager(customtkinter.CTk):
         # Crear pestañas
         tab_acerca_de = tabview.add("Acerca de")
         tab_manual = tabview.add("Manuales")
+        tab_asistente = tabview.add("Asistente IA")
         tab_soporte = tabview.add("Soporte")
-        tab_conexion = tabview.add("Conexión")
+        tab_conexion = tabview.add("Conexion")
 
-        # ===== PESTAÑA: ACERCA DE =====
+        # ===== PESTANA: ACERCA DE =====
         self._create_acerca_de_tab(tab_acerca_de)
 
-        # ===== PESTAÑA: MANUALES =====
+        # ===== PESTANA: MANUALES =====
         self._create_manual_usuario_tab(tab_manual)
 
-        # ===== PESTAÑA: SOPORTE =====
+        # ===== PESTANA: ASISTENTE IA =====
+        self._create_asistente_ia_tab(tab_asistente)
+
+        # ===== PESTANA: SOPORTE =====
         self._create_soporte_tab(tab_soporte)
 
-        # ===== PESTAÑA: CONEXIÓN =====
+        # ===== PESTANA: CONEXION =====
         self._create_conexion_tab(tab_conexion)
 
         # Seleccionar "Acerca de" por defecto
@@ -3716,6 +3720,115 @@ R: Los partes eliminados no se pueden recuperar. Contacta con el administrador s
             justify="left"
         )
         nota.grid(row=5, column=0, pady=(0, 20), sticky="w")
+
+    def _create_asistente_ia_tab(self, parent):
+        """Crea el contenido de la pestana 'Asistente IA'"""
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Titulo
+        titulo = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Asistente de Inteligencia Artificial",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # Descripcion
+        desc = customtkinter.CTkLabel(
+            scroll_frame,
+            text="El Asistente IA te ayuda a resolver dudas sobre la aplicacion, "
+                 "consultar datos de la base de datos y entender el codigo fuente.",
+            font=customtkinter.CTkFont(size=14),
+            text_color="gray",
+            wraplength=500,
+            justify="left"
+        )
+        desc.grid(row=1, column=0, pady=(0, 20), sticky="w")
+
+        # Frame de caracteristicas
+        features_frame = customtkinter.CTkFrame(scroll_frame)
+        features_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        features_frame.grid_columnconfigure(0, weight=1)
+
+        features_title = customtkinter.CTkLabel(
+            features_frame,
+            text="Capacidades del Asistente:",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        )
+        features_title.grid(row=0, column=0, padx=20, pady=(15, 10), sticky="w")
+
+        features = [
+            "Responder preguntas sobre el uso de HydroFlow Manager",
+            "Consultar estadisticas y datos de la base de datos",
+            "Ejecutar consultas SQL de solo lectura",
+            "Explicar el funcionamiento del codigo fuente",
+            "Ayudar con la resolucion de problemas tecnicos"
+        ]
+
+        for i, feature in enumerate(features):
+            feature_label = customtkinter.CTkLabel(
+                features_frame,
+                text=f"  * {feature}",
+                font=customtkinter.CTkFont(size=13),
+                anchor="w"
+            )
+            feature_label.grid(row=i+1, column=0, padx=20, pady=3, sticky="w")
+
+        # Espacio adicional
+        customtkinter.CTkLabel(features_frame, text="").grid(row=len(features)+1, column=0, pady=5)
+
+        # Frame de requisitos
+        req_frame = customtkinter.CTkFrame(scroll_frame, fg_color="#3d2a1a")
+        req_frame.grid(row=3, column=0, sticky="ew", pady=(0, 20))
+
+        req_title = customtkinter.CTkLabel(
+            req_frame,
+            text="Requisitos:",
+            font=customtkinter.CTkFont(size=14, weight="bold"),
+            text_color="#FFD700"
+        )
+        req_title.grid(row=0, column=0, padx=20, pady=(15, 5), sticky="w")
+
+        req_text = customtkinter.CTkLabel(
+            req_frame,
+            text="El asistente utiliza Ollama para ejecutar modelos de IA localmente.\n"
+                 "Debes tener Ollama instalado y un modelo descargado.\n\n"
+                 "Instalacion:\n"
+                 "  1. Descarga Ollama desde https://ollama.ai\n"
+                 "  2. Ejecuta: ollama serve\n"
+                 "  3. Descarga un modelo: ollama pull llama3.2:3b",
+            font=customtkinter.CTkFont(size=12),
+            justify="left",
+            anchor="w"
+        )
+        req_text.grid(row=1, column=0, padx=20, pady=(5, 15), sticky="w")
+
+        # Boton para abrir el asistente
+        btn_frame = customtkinter.CTkFrame(scroll_frame, fg_color="transparent")
+        btn_frame.grid(row=4, column=0, pady=20)
+
+        btn_open = customtkinter.CTkButton(
+            btn_frame,
+            text="Abrir Asistente IA",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            width=250,
+            height=50,
+            fg_color="#1f6aa5",
+            hover_color="#144870",
+            command=self._open_ai_assistant
+        )
+        btn_open.pack()
+
+    def _open_ai_assistant(self):
+        """Abre la ventana del asistente de IA."""
+        from interface.ai_assistant_interfaz import AIAssistantWindow
+        assistant_window = AIAssistantWindow(self, self.user, self.password, self.schema)
+        assistant_window.focus()
 
     def _open_config_window(self):
         """Abre la ventana de configuración del sistema."""
