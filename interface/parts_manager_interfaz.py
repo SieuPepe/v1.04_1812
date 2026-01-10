@@ -3461,7 +3461,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Usuario
         btn_manual_usuario = customtkinter.CTkButton(
             botones_frame,
-            text="Manual de Usuario",
+            text="Manual de Usuario (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("usuario")
@@ -3471,7 +3471,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Informes
         btn_manual_informes = customtkinter.CTkButton(
             botones_frame,
-            text="Manual de Informes",
+            text="Manual de Informes (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("informes")
@@ -3481,7 +3481,7 @@ class AppPartsManager(customtkinter.CTk):
         # Guía Técnica
         btn_guia_tecnica = customtkinter.CTkButton(
             botones_frame,
-            text="Manual Tecnico",
+            text="Guia Tecnica (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("tecnica")
@@ -3491,7 +3491,7 @@ class AppPartsManager(customtkinter.CTk):
         # Nota informativa
         nota = customtkinter.CTkLabel(
             scroll_frame,
-            text="Los manuales se copiarán en la carpeta de Descargas en formato Markdown.",
+            text="Los manuales se copiaran en la carpeta de Descargas en formato PDF.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
             wraplength=600,
@@ -3505,11 +3505,11 @@ class AppPartsManager(customtkinter.CTk):
         import shutil
         from tkinter import messagebox
 
-        # Definir rutas de los manuales (archivos Markdown existentes)
+        # Definir rutas de los manuales PDF
         manuales = {
-            "usuario": "docs/manual/Manual_Usuario_v2.0.md",
-            "informes": "docs/manual/Manual_Informes_v2.0.md",
-            "tecnica": "docs/manual/Manual_Tecnico_v2.0.md"
+            "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
+            "informes": "docs/Manual_Informes_HydroFlow.pdf",
+            "tecnica": "docs/Guia_Tecnica_HydroFlow.pdf"
         }
 
         manual_path = os.path.join(parent_path, manuales.get(tipo, ""))
