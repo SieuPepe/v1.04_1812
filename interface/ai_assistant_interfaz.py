@@ -29,9 +29,9 @@ class AIAssistantWindow(customtkinter.CTkToplevel):
         self.geometry("700x600")
         self.minsize(600, 500)
 
-        # Hacer modal
+        # Hacer modal (pero no bloquear eventos)
         self.transient(parent)
-        self.grab_set()
+        # self.grab_set()  # Desactivado temporalmente para debug
 
         # Configurar grid
         self.grid_columnconfigure(0, weight=1)
@@ -43,8 +43,11 @@ class AIAssistantWindow(customtkinter.CTkToplevel):
         self._create_input_area()
         self._create_status_bar()
 
-        # Verificar requisitos
-        self.after(100, self._check_requirements)
+        # Verificar requisitos despues de mostrar ventana
+        self.after(500, self._check_requirements)
+
+        # Forzar actualizacion de ventana
+        self.update()
 
     def _create_header(self):
         """Crea el encabezado con titulo y selector de modelo."""
@@ -202,27 +205,34 @@ class AIAssistantWindow(customtkinter.CTkToplevel):
 
     def _check_requirements(self):
         """Verifica los requisitos del asistente en un hilo separado."""
+        print("[DEBUG] _check_requirements() llamado")  # DEBUG
         self._set_status("Conectando con Ollama...")
+        self.update()  # Forzar actualizacion UI
 
         # Ejecutar verificacion en hilo separado para no bloquear UI
         thread = threading.Thread(target=self._do_check_requirements)
         thread.daemon = True
         thread.start()
+        print("[DEBUG] Thread iniciado")  # DEBUG
 
     def _do_check_requirements(self):
         """Ejecuta la verificacion de requisitos (en hilo separado)."""
+        print("[DEBUG] _do_check_requirements() iniciado")  # DEBUG
         from script.ai_assistant import check_requirements, AIAssistant
 
         try:
             reqs = check_requirements()
+            print(f"[DEBUG] check_requirements() retorno: {reqs}")  # DEBUG
             # Actualizar UI desde el hilo principal
             self.after(0, lambda: self._apply_requirements(reqs))
         except Exception as e:
+            print(f"[DEBUG] Error en check_requirements: {e}")  # DEBUG
             self.after(0, lambda: self._set_status(f"Error: {str(e)}", error=True))
             self.after(0, lambda: self._add_error_message(f"Error: {str(e)}"))
 
     def _apply_requirements(self, reqs):
         """Aplica los resultados de la verificacion a la UI."""
+        print(f"[DEBUG] _apply_requirements() llamado con: {reqs}")  # DEBUG
         from script.ai_assistant import AIAssistant
 
         if not reqs['ollama_installed']:
