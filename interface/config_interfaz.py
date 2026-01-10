@@ -25,8 +25,8 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         # Configuración de ventana
         self.title("Configuración del Sistema")
-        self.geometry("1100x750")
-        self.minsize(1000, 650)
+        self.geometry("750x550")
+        self.minsize(700, 500)
 
         # Hacer modal
         self.transient(parent)
@@ -519,19 +519,19 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         filter_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
         filter_frame.grid_columnconfigure(3, weight=1)
 
-        # Filtro por familia
-        customtkinter.CTkLabel(filter_frame, text="Familia:", font=("", 12, "bold")).grid(
+        # Filtro por capítulo
+        customtkinter.CTkLabel(filter_frame, text="Capítulo:", font=("", 12, "bold")).grid(
             row=0, column=0, padx=(0, 10), pady=5, sticky="e")
 
-        self.familia_var = customtkinter.StringVar(value="Todas")
-        self.familia_menu = customtkinter.CTkOptionMenu(
+        self.capitulo_var = customtkinter.StringVar(value="Todos")
+        self.capitulo_menu = customtkinter.CTkOptionMenu(
             filter_frame,
-            variable=self.familia_var,
-            values=["Todas"],
-            width=200,
-            command=self._on_familia_change
+            variable=self.capitulo_var,
+            values=["Todos"],
+            width=250,
+            command=self._on_capitulo_change
         )
-        self.familia_menu.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.capitulo_menu.grid(row=0, column=1, padx=5, pady=5, sticky="w")
 
         # Búsqueda
         customtkinter.CTkLabel(filter_frame, text="Buscar:", font=("", 12, "bold")).grid(
@@ -582,7 +582,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         style.map("Catalogo.Treeview", background=[('selected', '#1f6aa5')])
 
         # Crear TreeView
-        columns = ("id", "codigo", "descripcion", "precio", "familia", "activo")
+        columns = ("id", "codigo", "resumen", "precio", "capitulo", "unidad")
         self.catalogo_tree = ttk.Treeview(
             tree_frame,
             columns=columns,
@@ -593,17 +593,17 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         # Configurar columnas
         self.catalogo_tree.heading("id", text="ID")
         self.catalogo_tree.heading("codigo", text="Código")
-        self.catalogo_tree.heading("descripcion", text="Descripción")
+        self.catalogo_tree.heading("resumen", text="Resumen")
         self.catalogo_tree.heading("precio", text="Precio")
-        self.catalogo_tree.heading("familia", text="Familia")
-        self.catalogo_tree.heading("activo", text="Activo")
+        self.catalogo_tree.heading("capitulo", text="Capítulo")
+        self.catalogo_tree.heading("unidad", text="Ud.")
 
-        self.catalogo_tree.column("id", width=50, anchor="center")
-        self.catalogo_tree.column("codigo", width=100, anchor="w")
-        self.catalogo_tree.column("descripcion", width=350, anchor="w")
-        self.catalogo_tree.column("precio", width=80, anchor="e")
-        self.catalogo_tree.column("familia", width=150, anchor="w")
-        self.catalogo_tree.column("activo", width=70, anchor="center")
+        self.catalogo_tree.column("id", width=40, anchor="center")
+        self.catalogo_tree.column("codigo", width=80, anchor="w")
+        self.catalogo_tree.column("resumen", width=280, anchor="w")
+        self.catalogo_tree.column("precio", width=70, anchor="e")
+        self.catalogo_tree.column("capitulo", width=120, anchor="w")
+        self.catalogo_tree.column("unidad", width=50, anchor="center")
 
         self.catalogo_tree.grid(row=0, column=0, sticky="nsew")
 
@@ -627,10 +627,10 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         )
         self.partida_codigo_entry.grid(row=0, column=2, padx=5, pady=12)
 
-        # Descripción
-        customtkinter.CTkLabel(add_frame, text="Descripción:").grid(row=0, column=3, padx=5, pady=12)
+        # Resumen
+        customtkinter.CTkLabel(add_frame, text="Resumen:").grid(row=0, column=3, padx=5, pady=12)
         self.partida_desc_entry = customtkinter.CTkEntry(
-            add_frame, width=300, fg_color="#171717", text_color="#FFFFFF"
+            add_frame, width=250, fg_color="#171717", text_color="#FFFFFF"
         )
         self.partida_desc_entry.grid(row=0, column=4, padx=5, pady=12, sticky="ew")
 
@@ -680,23 +680,27 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             command=self._load_catalogo_data
         ).grid(row=0, column=3, padx=10, pady=5)
 
-        # Cargar familias y datos después de que la ventana esté lista
-        self.after(100, self._load_catalogo_familias)
+        # Cargar capítulos y datos después de que la ventana esté lista
+        self.after(100, self._load_catalogo_capitulos)
         self.after(200, self._load_catalogo_data)
 
-    def _load_catalogo_familias(self):
-        """Carga las familias disponibles."""
-        from script.db_config_admin import get_catalogo_familias
+    def _load_catalogo_capitulos(self):
+        """Carga los capítulos disponibles."""
+        from script.db_config_admin import get_catalogo_capitulos
 
         try:
-            familias = get_catalogo_familias(self.user, self.password, self.schema)
-            valores = ["Todas"] + [f"{f[0]} - {f[1]}" for f in familias]
-            self.familia_menu.configure(values=valores)
+            capitulos = get_catalogo_capitulos(self.user, self.password, self.schema)
+            # capitulos: (id, codigo_capitulo, capitulo)
+            valores = ["Todos"] + [f"{c[0]} - {c[1]} {c[2]}" for c in capitulos]
+            self.capitulo_menu.configure(values=valores)
+            # Guardar mapping para obtener el id del capítulo seleccionado
+            self._capitulos_map = {f"{c[0]} - {c[1]} {c[2]}": c[0] for c in capitulos}
         except Exception as e:
-            print(f"Error al cargar familias: {e}")
+            print(f"Error al cargar capítulos: {e}")
+            self._capitulos_map = {}
 
-    def _on_familia_change(self, value):
-        """Callback cuando cambia la familia seleccionada."""
+    def _on_capitulo_change(self, value):
+        """Callback cuando cambia el capítulo seleccionado."""
         self._load_catalogo_data()
 
     def _on_search_change(self, event):
@@ -715,30 +719,29 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             self.catalogo_tree.delete(item)
 
         try:
-            # Obtener filtros
-            familia_value = self.familia_var.get()
-            familia_id = None
-            if familia_value != "Todas" and " - " in familia_value:
-                try:
-                    familia_id = int(familia_value.split(" - ")[0])
-                except ValueError:
-                    pass
+            # Obtener filtro de capítulo
+            capitulo_value = self.capitulo_var.get()
+            capitulo_id = None
+            if capitulo_value != "Todos" and hasattr(self, '_capitulos_map'):
+                capitulo_id = self._capitulos_map.get(capitulo_value)
 
             search_text = self.search_entry.get().strip() or None
 
             # Obtener datos
             partidas = get_catalogo_partidas(
                 self.user, self.password, self.schema,
-                familia_id=familia_id,
+                capitulo_id=capitulo_id,
                 search_text=search_text
             )
 
             # Insertar en TreeView
+            # partidas: (id, codigo, resumen, coste, codigo_capitulo, capitulo, unidad)
             for partida in partidas:
-                activo_text = "✓ Sí" if partida[5] == 1 else "✗ No"
                 precio_text = f"{partida[3]:.2f}" if partida[3] else "0.00"
+                capitulo_text = f"{partida[4]}" if partida[4] else ""
+                unidad_text = partida[6] if partida[6] else ""
                 self.catalogo_tree.insert("", "end", values=(
-                    partida[0], partida[1], partida[2], precio_text, partida[4] or "", activo_text
+                    partida[0], partida[1], partida[2], precio_text, capitulo_text, unidad_text
                 ))
 
             if not partidas:
@@ -746,21 +749,37 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         except Exception as e:
             print(f"Error al cargar catálogo: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _add_catalogo_partida(self):
-        """Añade una nueva partida al catálogo."""
+        """Añade una nueva partida al catálogo (al capítulo seleccionado)."""
         from script.db_config_admin import add_catalogo_partida, validar_precio
 
         codigo = self.partida_codigo_entry.get().strip().upper()
-        descripcion = self.partida_desc_entry.get().strip()
+        resumen = self.partida_desc_entry.get().strip()
         precio_str = self.partida_precio_entry.get().strip() or "0"
 
         if not codigo:
             CTkMessagebox(title="Error", message="El código es obligatorio", icon="cancel")
             return
 
-        if not descripcion:
-            CTkMessagebox(title="Error", message="La descripción es obligatoria", icon="cancel")
+        if not resumen:
+            CTkMessagebox(title="Error", message="El resumen es obligatorio", icon="cancel")
+            return
+
+        # Obtener capítulo seleccionado
+        capitulo_value = self.capitulo_var.get()
+        capitulo_id = None
+        if capitulo_value != "Todos" and hasattr(self, '_capitulos_map'):
+            capitulo_id = self._capitulos_map.get(capitulo_value)
+
+        if not capitulo_id:
+            CTkMessagebox(
+                title="Error",
+                message="Seleccione un capítulo para añadir la partida",
+                icon="cancel"
+            )
             return
 
         # Validar precio
@@ -769,11 +788,14 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             CTkMessagebox(title="Error", message=error_msg, icon="cancel")
             return
 
-        # Capitalizar descripción
-        if descripcion:
-            descripcion = descripcion[0].upper() + descripcion[1:] if len(descripcion) > 1 else descripcion.upper()
+        # Capitalizar resumen
+        if resumen:
+            resumen = resumen[0].upper() + resumen[1:] if len(resumen) > 1 else resumen.upper()
 
-        result = add_catalogo_partida(self.user, self.password, self.schema, codigo, descripcion, precio)
+        result = add_catalogo_partida(
+            self.user, self.password, self.schema,
+            codigo, resumen, precio, capitulo_id
+        )
 
         if result['success']:
             CTkMessagebox(title="Éxito", message=result['message'], icon="check")
@@ -795,13 +817,13 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         values = item['values']
         record_id = values[0]
         current_codigo = values[1]
-        current_desc = values[2]
+        current_resumen = values[2]
         current_precio = values[3]
 
         # Crear diálogo de edición
         dialog = customtkinter.CTkToplevel(self)
         dialog.title("Editar Partida")
-        dialog.geometry("500x280")
+        dialog.geometry("450x250")
         dialog.transient(self)
         dialog.grab_set()
         dialog.resizable(False, False)
@@ -817,37 +839,37 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         # Código
         customtkinter.CTkLabel(dialog, text="Código:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=20, pady=10, sticky="e")
-        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
-        codigo_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+            row=1, column=0, padx=20, pady=8, sticky="e")
+        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=280)
+        codigo_entry.grid(row=1, column=1, padx=20, pady=8, sticky="ew")
         codigo_entry.insert(0, current_codigo)
 
-        # Descripción
-        customtkinter.CTkLabel(dialog, text="Descripción:", font=("", 12, "bold")).grid(
-            row=2, column=0, padx=20, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
-        desc_entry.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
-        desc_entry.insert(0, current_desc)
+        # Resumen
+        customtkinter.CTkLabel(dialog, text="Resumen:", font=("", 12, "bold")).grid(
+            row=2, column=0, padx=20, pady=8, sticky="e")
+        resumen_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=280)
+        resumen_entry.grid(row=2, column=1, padx=20, pady=8, sticky="ew")
+        resumen_entry.insert(0, current_resumen)
 
         # Precio
         customtkinter.CTkLabel(dialog, text="Precio:", font=("", 12, "bold")).grid(
-            row=3, column=0, padx=20, pady=10, sticky="e")
-        precio_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
-        precio_entry.grid(row=3, column=1, padx=20, pady=10, sticky="ew")
+            row=3, column=0, padx=20, pady=8, sticky="e")
+        precio_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=280)
+        precio_entry.grid(row=3, column=1, padx=20, pady=8, sticky="ew")
         precio_entry.insert(0, current_precio)
 
         # Botones
         btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=15)
 
         def save_changes():
             from script.db_config_admin import update_catalogo_partida, validar_precio
 
             codigo = codigo_entry.get().strip().upper()
-            descripcion = desc_entry.get().strip()
+            resumen = resumen_entry.get().strip()
 
-            if descripcion:
-                descripcion = descripcion[0].upper() + descripcion[1:] if len(descripcion) > 1 else descripcion.upper()
+            if resumen:
+                resumen = resumen[0].upper() + resumen[1:] if len(resumen) > 1 else resumen.upper()
 
             success, precio, error_msg = validar_precio(precio_entry.get())
             if not success:
@@ -855,7 +877,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
                 return
 
             result = update_catalogo_partida(
-                self.user, self.password, self.schema, record_id, codigo, descripcion, precio
+                self.user, self.password, self.schema, record_id, codigo, resumen, precio
             )
 
             if result['success']:
@@ -886,11 +908,12 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         item = self.catalogo_tree.item(selected[0])
         record_id = item['values'][0]
-        descripcion = item['values'][2]
+        codigo = item['values'][1]
+        resumen = item['values'][2]
 
         msg = CTkMessagebox(
             title="Confirmar eliminación",
-            message=f"¿Está seguro de eliminar '{descripcion}'?\n\nEsta acción no se puede deshacer.",
+            message=f"¿Está seguro de eliminar la partida '{codigo}'?\n{resumen}\n\nEsta acción no se puede deshacer.",
             icon="warning",
             option_1="Cancelar",
             option_2="Eliminar"
@@ -914,19 +937,20 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         item = self.catalogo_tree.item(selected[0])
         values = item['values']
+        # values: (id, codigo, resumen, precio, capitulo, unidad)
 
         # Rellenar los campos de nueva partida con los valores duplicados
         self.partida_codigo_entry.delete(0, 'end')
         self.partida_codigo_entry.insert(0, f"{values[1]}_COPIA")
 
         self.partida_desc_entry.delete(0, 'end')
-        self.partida_desc_entry.insert(0, values[2])
+        self.partida_desc_entry.insert(0, values[2])  # resumen
 
         self.partida_precio_entry.delete(0, 'end')
-        self.partida_precio_entry.insert(0, values[3])
+        self.partida_precio_entry.insert(0, values[3])  # precio
 
         CTkMessagebox(
             title="Duplicar",
-            message="Los datos se han copiado al formulario.\nModifique el código y pulse 'Añadir'.",
+            message="Los datos se han copiado al formulario.\nSeleccione un capítulo, modifique el código y pulse 'Añadir'.",
             icon="info"
         )
