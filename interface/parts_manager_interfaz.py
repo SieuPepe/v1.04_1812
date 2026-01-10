@@ -1975,7 +1975,7 @@ class AppPartsManager(customtkinter.CTk):
         self.total_presupuesto_label.grid(row=0, column=1, sticky="e", padx=(0, 20))
 
         # Cargar datos
-        if partes_list and partes_list[0] != "Sin partes":
+        if self.presupuesto_partes_list and self.presupuesto_partes_list[0] != "Sin partes":
             self._load_presupuesto_data()
 
     def _toggle_presupuesto_dropdown(self):
