@@ -524,41 +524,53 @@ def check_requirements() -> Dict[str, Any]:
         'message': ''
     }
 
-    # Verificar si Ollama esta instalado
+    # En Windows con la app de escritorio, el comando puede no estar en PATH
+    # Verificamos directamente la API HTTP que es mas confiable
     try:
-        result = subprocess.run(['ollama', '--version'], capture_output=True, text=True)
-        requirements['ollama_installed'] = result.returncode == 0
-    except FileNotFoundError:
-        requirements['ollama_installed'] = False
+        response = requests.get(
+            "http://localhost:11434/api/tags",
+            timeout=5
+        )
+        if response.status_code == 200:
+            # Si la API responde, Ollama esta instalado y corriendo
+            requirements['ollama_installed'] = True
+            requirements['ollama_running'] = True
 
-    if not requirements['ollama_installed']:
-        requirements['message'] = "Ollama no esta instalado. Visita https://ollama.ai para instalarlo."
-        return requirements
+            # Obtener modelos
+            data = response.json()
+            requirements['models_available'] = [model['name'] for model in data.get('models', [])]
 
-    # Verificar si esta corriendo
-    available, msg = AIAssistant.check_ollama_available()
-    requirements['ollama_running'] = available
+            # Recomendar modelo
+            recommended_models = ['llama3.2', 'mistral', 'llama3.1', 'codellama', 'llama2']
+            for rec in recommended_models:
+                for available in requirements['models_available']:
+                    if available.startswith(rec):
+                        requirements['recommended_model'] = available
+                        break
+                if requirements['recommended_model']:
+                    break
 
-    if not available:
-        requirements['message'] = msg
-        return requirements
+            if not requirements['models_available']:
+                requirements['message'] = "Ollama listo pero sin modelos. Ejecuta: ollama pull mistral:7b"
+            else:
+                requirements['message'] = f"Ollama listo. Modelos: {', '.join(requirements['models_available'])}"
+        else:
+            requirements['message'] = f"Ollama responde con error: {response.status_code}"
 
-    # Obtener modelos disponibles
-    requirements['models_available'] = AIAssistant.get_available_models()
+    except requests.exceptions.ConnectionError:
+        # La API no responde - verificar si el comando existe
+        try:
+            result = subprocess.run(['ollama', '--version'], capture_output=True, text=True, timeout=5)
+            requirements['ollama_installed'] = result.returncode == 0
+            requirements['message'] = "Ollama instalado pero no ejecutandose. Abre la aplicacion Ollama."
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            requirements['ollama_installed'] = False
+            requirements['message'] = "Ollama no detectado. Instala desde https://ollama.ai"
 
-    # Recomendar modelo
-    for model in AIAssistant.RECOMMENDED_MODELS:
-        base_name = model.split(':')[0]
-        for available in requirements['models_available']:
-            if available.startswith(base_name):
-                requirements['recommended_model'] = available
-                break
-        if requirements['recommended_model']:
-            break
+    except requests.exceptions.Timeout:
+        requirements['message'] = "Ollama no responde (timeout). Reinicia la aplicacion Ollama."
 
-    if not requirements['models_available']:
-        requirements['message'] = "No hay modelos instalados. Ejecuta 'ollama pull llama3.2:3b' para descargar uno."
-    else:
-        requirements['message'] = f"Ollama listo. Modelos: {', '.join(requirements['models_available'])}"
+    except Exception as e:
+        requirements['message'] = f"Error verificando Ollama: {str(e)}"
 
     return requirements
