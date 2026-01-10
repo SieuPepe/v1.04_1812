@@ -1037,7 +1037,7 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_datos_basicos_tab(self, parte_id):
         """Carga la pestaña de Datos Básicos - Layout optimizado en 2 columnas"""
-        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia, get_concejos_by_municipio
+        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_comarcas_by_provincia, get_municipios_by_provincia, get_concejos_by_municipio
         from tkcalendar import DateEntry
 
         # Bandera para evitar marcar como cambiado durante la carga inicial
@@ -1091,11 +1091,25 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=1, padx=5, pady=8, sticky="w")
             row_left += 1
 
-            # Código (solo lectura)
+            # Código (solo lectura) - en la misma fila que ID
             customtkinter.CTkLabel(left_frame, text="Código:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             customtkinter.CTkLabel(
                 left_frame, text=parte_data[1], font=("", 14, "bold"), text_color="#4CAF50"
+            ).grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            row_left += 1
+
+            # Tipo Trabajo (solo lectura) - en zona superior
+            tipo_trabajo_id = parte_data[5]
+            customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            tipo_trabajo_texto = ""
+            for item in dims.get("TIPO_TRABAJO", []):
+                if item.startswith(f"{tipo_trabajo_id} -"):
+                    tipo_trabajo_texto = item.split(" - ", 1)[1] if " - " in item else item
+                    break
+            customtkinter.CTkLabel(
+                left_frame, text=tipo_trabajo_texto, font=("", 12), text_color="#2196F3"
             ).grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
             row_left += 1
 
@@ -1154,19 +1168,7 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Tipo Trabajo - DESHABILITADO (no se puede cambiar)
-            customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
-                row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []), state="disabled")
-            self.tipo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            tipo_trabajo_id = parte_data[5]  # Guardar el ID del tipo de trabajo
-            for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{tipo_trabajo_id} -"):  # Actualizado: era 6, ahora 5
-                    self.tipo_menu.set(item)
-                    break
-            row_left += 1
-
-            # Determinar qué campos habilitar según tipo de trabajo:
+            # Determinar qué campos habilitar según tipo de trabajo (tipo_trabajo_id ya se obtuvo arriba):
             # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
             # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
             # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
@@ -1206,17 +1208,28 @@ class AppPartsManager(customtkinter.CTk):
             self.provincia_menu = customtkinter.CTkOptionMenu(
                 left_frame,
                 values=provincias_list,
-                command=self._on_provincia_change
+                command=self._on_provincia_change_edit
             )
             self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # Municipio - CREAR ANTES de establecer la provincia
+            # Comarca - en cascada con Provincia
+            customtkinter.CTkLabel(left_frame, text="Comarca:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.comarca_menu = customtkinter.CTkOptionMenu(
+                left_frame,
+                values=["Selecciona provincia primero"],
+                command=self._on_comarca_change_edit
+            )
+            self.comarca_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
+
+            # Municipio - en cascada con Comarca
             customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             self.municipio_menu = customtkinter.CTkOptionMenu(
                 left_frame,
-                values=["Seleccione provincia primero"],
+                values=["Selecciona comarca primero"],
                 command=self._on_municipio_change_edit
             )
             self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
@@ -1229,36 +1242,48 @@ class AppPartsManager(customtkinter.CTk):
             self.concejo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # AHORA establecer provincia, municipio y concejo
+            # AHORA establecer provincia, comarca, municipio y concejo
             current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
             current_concejo_id = parte_data[23] if len(parte_data) > 23 else None  # concejo_id
             if current_municipio_id:
-                # Obtener provincia del municipio actual
+                # Obtener provincia y comarca del municipio actual
                 try:
                     with get_project_connection(self.user, self.password, self.schema) as cn:
                         cur = cn.cursor()
-                        # FIX: Tabla correcta es dim_municipios (con 's'), no dim_municipio
-                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipios WHERE id = %s", (current_municipio_id,))
+                        # Obtener provincia_id y comarca_id del municipio
+                        cur.execute(f"SELECT provincia_id, comarca_id FROM {self.schema}.dim_municipios WHERE id = %s", (current_municipio_id,))
                         result = cur.fetchone()
                         if result:
                             provincia_id = result[0]
+                            comarca_id = result[1]
 
-                            # Cargar municipios de esta provincia ANTES de establecer provincia
-                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
-                            self.municipio_menu.configure(values=municipios_list)
+                            # Cargar comarcas de esta provincia
+                            comarcas_list = get_comarcas_by_provincia(self.user, self.password, self.schema, provincia_id)
+                            self.comarca_menu.configure(values=comarcas_list if comarcas_list else ["(sin comarcas)"])
 
-                            # Establecer provincia (esto dispara _on_provincia_change que actualiza lista de municipios)
+                            # Cargar municipios de esta comarca
+                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, comarca_id=comarca_id)
+                            self.municipio_menu.configure(values=municipios_list if municipios_list else ["(sin municipios)"])
+
+                            # Establecer provincia
                             for item in provincias_list:
                                 if item.startswith(f"{provincia_id} -"):
                                     self.provincia_menu.set(item)
                                     break
 
-                            # Establecer municipio DESPUES de establecer provincia
-                            # La lista ya fue actualizada por _on_provincia_change
-                            for item in municipios_list:
-                                if item.startswith(f"{current_municipio_id} -"):
-                                    self.municipio_menu.set(item)
-                                    break
+                            # Establecer comarca
+                            if comarcas_list and comarca_id:
+                                for item in comarcas_list:
+                                    if item.startswith(f"{comarca_id} -"):
+                                        self.comarca_menu.set(item)
+                                        break
+
+                            # Establecer municipio
+                            if municipios_list:
+                                for item in municipios_list:
+                                    if item.startswith(f"{current_municipio_id} -"):
+                                        self.municipio_menu.set(item)
+                                        break
 
                             # Cargar y establecer concejo (si existe)
                             concejos_list = get_concejos_by_municipio(self.user, self.password, self.schema, current_municipio_id)
@@ -1278,7 +1303,7 @@ class AppPartsManager(customtkinter.CTk):
 
                         cur.close()
                 except Exception as e:
-                    print(f"Error al cargar provincia/municipio/concejo: {e}")
+                    print(f"Error al cargar provincia/comarca/municipio/concejo: {e}")
                     import traceback
                     traceback.print_exc()
 
@@ -1456,7 +1481,8 @@ class AppPartsManager(customtkinter.CTk):
         # Nota: municipio_menu ya tiene command=self._on_municipio_change_edit que marca cambios
         if hasattr(self, 'concejo_menu'):
             self.concejo_menu.configure(command=lambda _: self._mark_as_changed())
-        # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
+        # Nota: provincia_menu ya tiene command=self._on_provincia_change_edit que marca cambios
+        # Nota: comarca_menu ya tiene command=self._on_comarca_change_edit que marca cambios
 
         # Textbox widgets
         if hasattr(self, 'desc_text'):
@@ -1470,43 +1496,75 @@ class AppPartsManager(customtkinter.CTk):
         if hasattr(self, 'fecha_fin_entry'):
             self.fecha_fin_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
 
-    def _on_provincia_change(self, selected_provincia):
-        """Actualiza lista de municipios cuando cambia la provincia"""
-        from script.modulo_db import get_municipios_by_provincia
+    def _on_provincia_change_edit(self, selected_provincia):
+        """Actualiza lista de comarcas cuando cambia la provincia"""
+        from script.modulo_db import get_comarcas_by_provincia
 
         # Si estamos cargando datos iniciales, NO hacer nada
-        # La carga inicial se encarga de configurar todo correctamente
         if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
             return
 
         try:
             provincia_id = int(selected_provincia.split(" - ")[0])
-            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+            comarcas_list = get_comarcas_by_provincia(self.user, self.password, self.schema, provincia_id)
 
+            if hasattr(self, 'comarca_menu'):
+                if comarcas_list:
+                    self.comarca_menu.configure(values=comarcas_list)
+                    self.comarca_menu.set(comarcas_list[0])
+                    # Disparar cascada a municipios
+                    self._on_comarca_change_edit(comarcas_list[0])
+                else:
+                    self.comarca_menu.configure(values=["(sin comarcas)"])
+                    self.comarca_menu.set("(sin comarcas)")
+
+            # Limpiar municipios y concejos
             if hasattr(self, 'municipio_menu'):
-                # Actualizar la lista de municipios disponibles para esta provincia
-                if municipios_list:
-                    self.municipio_menu.configure(values=municipios_list)
+                self.municipio_menu.configure(values=["Selecciona comarca primero"])
+                self.municipio_menu.set("Selecciona comarca primero")
 
-                    # Es un cambio manual del usuario
-                    current_municipio = self.municipio_menu.get()
-
-                    # Solo mantener el municipio actual si está en la nueva lista
-                    if current_municipio not in municipios_list:
-                        # El municipio actual no pertenece a la nueva provincia seleccionada
-                        # No seleccionar automáticamente ninguno, dejar vacío
-                        self.municipio_menu.set("")
-
-            # Marcar como cambiado
-            self._mark_as_changed()
-
-            # También limpiar concejos cuando cambia la provincia
             if hasattr(self, 'concejo_menu'):
                 self.concejo_menu.configure(values=["(Sin concejo)"])
                 self.concejo_menu.set("(Sin concejo)")
 
+            # Marcar como cambiado
+            self._mark_as_changed()
+
         except Exception as e:
             print(f"Error al cambiar provincia: {e}")
+
+    def _on_comarca_change_edit(self, selected_comarca):
+        """Actualiza lista de municipios cuando cambia la comarca"""
+        from script.modulo_db import get_municipios_by_provincia
+
+        # Si estamos cargando datos iniciales, NO hacer nada
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
+        try:
+            comarca_id = int(selected_comarca.split(" - ")[0])
+            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, comarca_id=comarca_id)
+
+            if hasattr(self, 'municipio_menu'):
+                if municipios_list:
+                    self.municipio_menu.configure(values=municipios_list)
+                    self.municipio_menu.set(municipios_list[0])
+                    # Disparar cascada a concejos
+                    self._on_municipio_change_edit(municipios_list[0])
+                else:
+                    self.municipio_menu.configure(values=["(sin municipios)"])
+                    self.municipio_menu.set("(sin municipios)")
+
+            # Limpiar concejos
+            if hasattr(self, 'concejo_menu'):
+                self.concejo_menu.configure(values=["(Sin concejo)"])
+                self.concejo_menu.set("(Sin concejo)")
+
+            # Marcar como cambiado
+            self._mark_as_changed()
+
+        except Exception as e:
+            print(f"Error al cambiar comarca: {e}")
 
     def _on_municipio_change_edit(self, selected_municipio):
         """Actualiza lista de concejos cuando cambia el municipio"""
