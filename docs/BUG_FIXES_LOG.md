@@ -277,3 +277,32 @@ Ahora al hacer doble clic o pulsar "Ver Detalle" en un parte del resumen, se car
 
 ---
 
+## Limpieza #1: Eliminar tabla dim_ot y código asociado (código muerto)
+**Fecha:** 2026-01-10
+**Estado:** ✅ COMPLETADO
+
+### Descripción
+La tabla `dim_ot` y sus funciones asociadas eran código residual de un diseño anterior que ya no se utiliza. El sistema actual genera códigos de parte automáticamente con formato `TIPO/NNNN` (ej: `OT/0523`) sin necesidad de una tabla dimensional.
+
+### Archivos modificados
+- `script/db_partes.py`: Eliminadas funciones `add_dim_ot()`, `get_all_dim_ot()`, `delete_dim_ot()` y referencias en diccionarios
+- `script/modulo_db.py`: Eliminadas importaciones y exportaciones de las funciones
+- `script/db_cache.py`: Eliminada entrada `'dim_ot': 1800` del TTL de caché
+
+### Código eliminado
+```python
+# Funciones eliminadas de db_partes.py:
+def add_dim_ot(user, password, schema, ot_codigo, descripcion=None): ...
+def get_all_dim_ot(user, password, schema): ...
+def delete_dim_ot(user, password, schema, ot_id): ...
+
+# Referencias eliminadas en diccionarios:
+'dim_ot': ('descripcion', 'ot', 'nombre', 'codigo'),  # de candidates_map
+'OT': _fetch_dim_list_guess(..., 'dim_ot'),  # de get_dim_all()
+```
+
+### Resultado
+Código más limpio y mantenible. La tabla `dim_ot` puede eliminarse de la base de datos si existe.
+
+---
+

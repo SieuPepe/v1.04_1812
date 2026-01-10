@@ -85,7 +85,6 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     """
     # Mapeo de candidatos por tabla (orden de preferencia)
     candidates_map = {
-        'dim_ot': ('descripcion', 'ot', 'nombre', 'codigo'),
         'dim_red': ('descripcion', 'red', 'nombre', 'codigo'),
         'dim_tipo_trabajo': ('descripcion', 'tipo', 'nombre', 'codigo'),
         'dim_codigo_trabajo': ('descripcion', 'cod_trabajo', 'codigo', 'nombre'),
@@ -151,74 +150,17 @@ def get_dim_all(user: str, password: str, schema: str):
     """
     Devuelve dict con las listas de dimensiones para la UI,
     detectando automáticamente la columna visible:
-      - dim_ot
       - dim_red
       - dim_tipo_trabajo
       - dim_codigo_trabajo
       - dim_tipos_rep
     """
     return {
-        'OT': _fetch_dim_list_guess(user, password, schema, 'dim_ot'),
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
         'TIPOS_REP': _fetch_dim_list_guess(user, password, schema, 'dim_tipos_rep'),
     }
-
-
-def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcion: str = None):
-    """
-    Añade un nuevo código de OT a la tabla dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            # Detectar la columna de texto
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                query_insert = "INSERT INTO dim_ot (ot_codigo, {}) VALUES (%s, %s)".format(text_col)
-                cur.execute(query_insert, (ot_codigo, descripcion or ot_codigo))
-            else:
-                cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
-
-
-def get_all_dim_ot(user: str, password: str, schema: str):
-    """
-    Devuelve todos los registros de dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                cur.execute(f"SELECT id, ot_codigo, {text_col} FROM dim_ot ORDER BY ot_codigo")
-            else:
-                cur.execute("SELECT id, ot_codigo FROM dim_ot ORDER BY ot_codigo")
-            rows = cur.fetchall()
-            cur.close()
-            return rows
-    except Exception as e:
-        return []
-
-
-def delete_dim_ot(user: str, password: str, schema: str, ot_id: int):
-    """
-    Elimina un código de OT.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            cur.execute("DELETE FROM dim_ot WHERE id = %s", (ot_id,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
 
 
 # ==================== GESTIÓN DE PARTES ====================

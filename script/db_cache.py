@@ -46,7 +46,6 @@ class CacheConfig:
         'dim_tipo_trabajo': 1800,
         'dim_codigo_trabajo': 1800,
         'dim_tipos_rep': 1800,
-        'dim_ot': 1800,
 
         # Estados (pueden cambiar ocasionalmente)
         'tbl_parte_estados': 900,
