@@ -1102,21 +1102,33 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Tipo Trabajo
+            # Tipo Trabajo - DESHABILITADO (no se puede cambiar)
             customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []))
+            self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []), state="disabled")
             self.tipo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            tipo_trabajo_id = parte_data[5]  # Guardar el ID del tipo de trabajo
             for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
+                if item.startswith(f"{tipo_trabajo_id} -"):  # Actualizado: era 6, ahora 5
                     self.tipo_menu.set(item)
                     break
             row_left += 1
 
+            # Determinar qué campos habilitar según tipo de trabajo:
+            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
+            cod_menu_state = "disabled"
+            tipo_rep_menu_state = "disabled"
+            if tipo_trabajo_id == 2:  # OT - Orden de Trabajo
+                tipo_rep_menu_state = "normal"
+            elif tipo_trabajo_id == 3:  # TP - Trabajos Programados
+                cod_menu_state = "normal"
+
             # Código trabajo
             customtkinter.CTkLabel(left_frame, text="Código Trabajo:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []))
+            self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []), state=cod_menu_state)
             self.cod_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
                 if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
@@ -1127,7 +1139,7 @@ class AppPartsManager(customtkinter.CTk):
             # Tipo de Reparación
             customtkinter.CTkLabel(left_frame, text="Tipo Reparación:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []))
+            self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []), state=tipo_rep_menu_state)
             self.tipo_rep_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("TIPOS_REP", []):
                 if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
@@ -1429,16 +1441,29 @@ class AppPartsManager(customtkinter.CTk):
             # Extraer IDs de dimensiones
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
-            cod_id = int(self.cod_menu.get().split(" - ")[0])
 
-            # Tipo de reparación
+            # cod_id y tipo_rep_id dependen del tipo de trabajo:
+            # GF (ID 1): Ninguno
+            # OT (ID 2): Solo tipo_rep_id
+            # TP (ID 3): Solo cod_id
+            cod_id = None
             tipo_rep_id = None
-            try:
-                tipo_rep_text = self.tipo_rep_menu.get()
-                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
-                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
-            except:
-                pass
+
+            if tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+                try:
+                    cod_text = self.cod_menu.get()
+                    if cod_text and " - " in cod_text:
+                        cod_id = int(cod_text.split(" - ")[0])
+                except:
+                    pass
+            elif tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+                try:
+                    tipo_rep_text = self.tipo_rep_menu.get()
+                    if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                        tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+                except:
+                    pass
+            # GF (ID 1): No requiere ninguno de los dos
 
             # Municipio
             municipio_id = None
