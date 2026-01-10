@@ -2073,14 +2073,7 @@ class AppPartsManager(customtkinter.CTk):
             command=self._export_presupuesto,
             width=120
         )
-        btn_export.pack(side="left", padx=(0, 10))
-
-        btn_update = customtkinter.CTkButton(
-            buttons_frame, text="⚙️ Gestionar Catálogo",
-            command=self._update_catalog_presupuesto,
-            width=180
-        )
-        btn_update.pack(side="left")
+        btn_export.pack(side="left")
 
         # Tabla de presupuesto
         table_frame = customtkinter.CTkFrame(self.presupuesto_frame)
@@ -3276,17 +3269,21 @@ class AppPartsManager(customtkinter.CTk):
 
         # Crear pestañas
         tab_acerca_de = tabview.add("Acerca de")
-        tab_manual = tabview.add("Manual de Usuario")
+        tab_manual = tabview.add("Manuales")
         tab_soporte = tabview.add("Soporte")
+        tab_conexion = tabview.add("Conexión")
 
         # ===== PESTAÑA: ACERCA DE =====
         self._create_acerca_de_tab(tab_acerca_de)
 
-        # ===== PESTAÑA: MANUAL DE USUARIO =====
+        # ===== PESTAÑA: MANUALES =====
         self._create_manual_usuario_tab(tab_manual)
 
         # ===== PESTAÑA: SOPORTE =====
         self._create_soporte_tab(tab_soporte)
+
+        # ===== PESTAÑA: CONEXIÓN =====
+        self._create_conexion_tab(tab_conexion)
 
         # Seleccionar "Acerca de" por defecto
         tabview.set("Acerca de")
@@ -3622,18 +3619,103 @@ R: Los partes eliminados no se pueden recuperar. Contacta con el administrador s
         faq_text.insert("1.0", faq_content)
         faq_text.configure(state="disabled")
 
-        # Información de versión de BD
-        separator2 = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
-        separator2.grid(row=5, column=0, sticky="ew", pady=30)
+    def _create_conexion_tab(self, parent):
+        """Crea el contenido de la pestaña 'Conexión' con información de la base de datos"""
+        from script.db_config import config
 
-        info_sistema = customtkinter.CTkLabel(
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Título
+        titulo = customtkinter.CTkLabel(
             scroll_frame,
-            text=f"Información del Sistema:\nEsquema BD: {self.schema}\nUsuario: {self.user}",
+            text="Información de Conexión",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # Descripción
+        desc = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Configuración de la conexión a la base de datos:",
+            font=customtkinter.CTkFont(size=14),
+            text_color="gray"
+        )
+        desc.grid(row=1, column=0, pady=(0, 20), sticky="w")
+
+        # Frame de información
+        info_frame = customtkinter.CTkFrame(scroll_frame)
+        info_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        info_frame.grid_columnconfigure(1, weight=1)
+
+        # Obtener información de conexión
+        try:
+            db_host = config.get("host", "No disponible")
+            db_port = config.get("port", "No disponible")
+            db_name = config.get("database", "No disponible")
+        except:
+            db_host = "No disponible"
+            db_port = "No disponible"
+            db_name = "No disponible"
+
+        # Información de conexión
+        connection_info = [
+            ("🖥️ Servidor (Host):", db_host),
+            ("🔌 Puerto:", str(db_port)),
+            ("🗄️ Base de datos:", db_name),
+            ("📁 Esquema del proyecto:", self.schema),
+            ("👤 Usuario conectado:", self.user),
+        ]
+
+        row = 0
+        for label_text, value_text in connection_info:
+            label = customtkinter.CTkLabel(
+                info_frame,
+                text=label_text,
+                font=customtkinter.CTkFont(size=14, weight="bold")
+            )
+            label.grid(row=row, column=0, padx=20, pady=12, sticky="w")
+
+            value = customtkinter.CTkLabel(
+                info_frame,
+                text=value_text,
+                font=customtkinter.CTkFont(size=14)
+            )
+            value.grid(row=row, column=1, padx=20, pady=12, sticky="w")
+            row += 1
+
+        # Separador
+        separator = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator.grid(row=3, column=0, sticky="ew", pady=20)
+
+        # Estado de conexión
+        estado_frame = customtkinter.CTkFrame(scroll_frame, fg_color="#1a472a")
+        estado_frame.grid(row=4, column=0, sticky="ew", pady=(0, 20))
+
+        estado_label = customtkinter.CTkLabel(
+            estado_frame,
+            text="✅ Conexión activa",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            text_color="#90EE90"
+        )
+        estado_label.pack(padx=20, pady=15)
+
+        # Nota informativa
+        nota = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Nota: Esta información es solo de lectura y muestra los parámetros "
+                 "de conexión actuales. Para modificar la configuración de conexión, "
+                 "contacta con el administrador del sistema.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
+            wraplength=500,
             justify="left"
         )
-        info_sistema.grid(row=6, column=0, pady=(0, 20), sticky="w")
+        nota.grid(row=5, column=0, pady=(0, 20), sticky="w")
 
     def _open_config_window(self):
         """Abre la ventana de configuración del sistema."""
