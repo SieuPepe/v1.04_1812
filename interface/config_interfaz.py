@@ -174,7 +174,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         style.map(style_name, background=[('selected', '#1f6aa5')])
 
         # Crear TreeView
-        columns = ("id", "codigo", "descripcion", "activo")
+        columns = ("id", "codigo", "descripcion")
         tree = ttk.Treeview(
             tree_frame,
             columns=columns,
@@ -187,12 +187,10 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         tree.heading("id", text="ID")
         tree.heading("codigo", text="Código")
         tree.heading("descripcion", text="Descripción")
-        tree.heading("activo", text="Activo")
 
         tree.column("id", width=60, anchor="center")
-        tree.column("codigo", width=120, anchor="w")
-        tree.column("descripcion", width=400, anchor="w")
-        tree.column("activo", width=80, anchor="center")
+        tree.column("codigo", width=150, anchor="w")
+        tree.column("descripcion", width=450, anchor="w")
 
         tree.grid(row=0, column=0, sticky="nsew")
 
@@ -277,16 +275,6 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             command=lambda: self._delete_dimension_record(table_name)
         ).grid(row=0, column=1, padx=10, pady=5)
 
-        # Botón Activar/Desactivar
-        customtkinter.CTkButton(
-            actions_frame,
-            text="🔄 Activar/Desact.",
-            width=130,
-            fg_color="#8B4513",
-            hover_color="#5D2E0C",
-            command=lambda: self._toggle_dimension_record(table_name)
-        ).grid(row=0, column=2, padx=10, pady=5)
-
         # Botón Actualizar
         customtkinter.CTkButton(
             actions_frame,
@@ -296,7 +284,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             hover_color=("gray70", "gray30"),
             border_width=1,
             command=lambda: self._load_dimension_data(table_name)
-        ).grid(row=0, column=3, padx=10, pady=5)
+        ).grid(row=0, column=2, padx=10, pady=5)
 
         # Cargar datos iniciales
         self.after(100, lambda: self._load_dimension_data(table_name))
@@ -319,10 +307,9 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             # Obtener datos
             records = get_dimension_records(self.user, self.password, self.schema, table_name)
 
-            # Insertar en el TreeView
+            # Insertar en el TreeView (id, codigo, descripcion)
             for record in records:
-                activo_text = "✓ Sí" if record[3] == 1 else "✗ No"
-                tree.insert("", "end", values=(record[0], record[1], record[2], activo_text))
+                tree.insert("", "end", values=(record[0], record[1], record[2]))
 
             if not records:
                 print(f"No se encontraron registros en {table_name}")
