@@ -1419,8 +1419,17 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         columns = set(_get_table_columns_cached(user, password, schema, 'tbl_partes'))
 
         # Construir INSERT dinámicamente según columnas disponibles
-        insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
-        insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
+        # cod_trabajo_id y tipo_rep_id son opcionales según el tipo de trabajo:
+        # GF (ID 1): Ninguno
+        # OT (ID 2): Solo tipo_rep_id
+        # TP (ID 3): Solo cod_trabajo_id
+        insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id']
+        insert_vals = [codigo, red_id, tipo_trabajo_id]
+
+        # Solo incluir cod_trabajo_id si tiene valor (TP - Trabajos Programados)
+        if cod_trabajo_id is not None:
+            insert_cols.append('cod_trabajo_id')
+            insert_vals.append(cod_trabajo_id)
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:

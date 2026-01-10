@@ -336,12 +336,22 @@ class AppPartsV2(customtkinter.CTkToplevel):
             tipo_id = self._take_id(tipo_value)
             print(f"[DEBUG] ID extraído: {tipo_id}")  # DEBUG
 
-            # Habilitar/deshabilitar "Código trabajo" según tipo de trabajo
-            # Solo habilitado si tipo_trabajo == 3 (Trabajos programados)
-            if tipo_id == 3:
+            # Habilitar/deshabilitar desplegables según tipo de trabajo:
+            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
+            if tipo_id == 1:  # GF - Gastos Fijos
+                self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="disabled")
+            elif tipo_id == 2:  # OT - Orden de Trabajo
+                self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="normal")
+            elif tipo_id == 3:  # TP - Trabajos Programados
                 self.cod_menu.configure(state="normal")
+                self.tipo_rep_menu.configure(state="disabled")
             else:
                 self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="disabled")
 
             if not tipo_id:
                 self.codigo_ot_entry.configure(state="normal")
@@ -410,12 +420,30 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
-        cod_id = self._take_id(self.cod_menu.get())
-        tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
 
-        if not all([red_id, tipo_id, cod_id]):
-            CTkMessagebox(title="Campos obligatorios", message="Selecciona Red, Tipo y Código de Trabajo", icon="warning")
+        # Validar campos obligatorios básicos
+        if not red_id or not tipo_id:
+            CTkMessagebox(title="Campos obligatorios", message="Selecciona Red y Tipo de Trabajo", icon="warning")
             return
+
+        # cod_id y tipo_rep_id dependen del tipo de trabajo:
+        # GF (ID 1): Ninguno es obligatorio, ambos NULL
+        # OT (ID 2): tipo_rep_id obligatorio, cod_id NULL
+        # TP (ID 3): cod_id obligatorio, tipo_rep_id NULL
+        cod_id = None
+        tipo_rep_id = None
+
+        if tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+            tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
+            if not tipo_rep_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Orden de Trabajo, debes seleccionar Tipo de Reparación", icon="warning")
+                return
+        elif tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+            cod_id = self._take_id(self.cod_menu.get())
+            if not cod_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Trabajos Programados, debes seleccionar Código de Trabajo", icon="warning")
+                return
+        # GF (ID 1): No requiere ninguno de los dos
 
         descripcion = self.descripcion_entry.get().strip()
         if not descripcion:
