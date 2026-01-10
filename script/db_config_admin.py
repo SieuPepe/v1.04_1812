@@ -29,8 +29,10 @@ def get_dimension_columns(user: str, password: str, schema: str, table_name: str
 
             result = {'id': 'id'}
 
-            # Detectar columna de código
-            for col in ['codigo', 'cod', 'code']:
+            # Detectar columna de código según la tabla
+            # Cada tabla puede tener un nombre diferente para el código
+            codigo_candidates = ['codigo', 'cod', 'code', 'red_codigo', 'cod_trabajo', 'tipo_codigo']
+            for col in codigo_candidates:
                 if col in columns:
                     result['codigo'] = col
                     break
