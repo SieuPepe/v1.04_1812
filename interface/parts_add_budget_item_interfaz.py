@@ -53,7 +53,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(filter_frame, text="Partida:",
                                font=("", 13, "bold")).grid(row=0, column=2, padx=10, pady=10, sticky="e")
 
-        # Frame contenedor para entry + botón dropdown
+        # Frame contenedor para entry + botones
         self.item_search_container = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
         self.item_search_container.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
         self.item_search_container.grid_columnconfigure(0, weight=1)
@@ -67,18 +67,32 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.item_search_entry.bind('<KeyRelease>', self._filter_items_list)
         self.item_search_entry.bind('<Return>', lambda e: self._select_first_item_match())
 
+        # Botón X para limpiar
+        self.item_clear_btn = customtkinter.CTkButton(
+            self.item_search_container,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_item_search
+        )
+        self.item_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
         # Botón dropdown ▼
         self.item_dropdown_btn = customtkinter.CTkButton(
             self.item_search_container,
             text="▼",
-            width=40,
+            width=30,
             command=self._toggle_item_dropdown
         )
-        self.item_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
+        self.item_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
 
         # Variables para el Toplevel del dropdown
         self.item_dropdown_toplevel = None
         self.item_dropdown_visible = False
+
+        # Vincular movimiento de ventana para reposicionar dropdown
+        self.bind('<Configure>', self._on_window_move)
 
         # Variables para almacenar partida seleccionada y lista completa
         self.selected_item_text = None
@@ -263,6 +277,25 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         else:
             self._show_item_dropdown()
 
+    def _clear_item_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.item_search_entry.delete(0, 'end')
+        self.selected_item_text = None
+        self._hide_item_dropdown()
+        # Limpiar precio también
+        self.precio_entry.configure(state="normal")
+        self.precio_entry.delete(0, 'end')
+        self.precio_entry.configure(state="readonly")
+        self.precio_catalogo_label.configure(text="")
+
+    def _on_window_move(self, event=None):
+        """Reposiciona el dropdown cuando la ventana se mueve"""
+        if self.item_dropdown_visible and self.item_dropdown_toplevel:
+            x = self.item_search_entry.winfo_rootx()
+            y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
+            width = self.item_search_entry.winfo_width() + 65
+            self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
     def _show_item_dropdown(self, filtered=None):
         """Muestra el dropdown como Toplevel flotante"""
         if self.item_dropdown_toplevel:
@@ -274,12 +307,13 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         # Obtener posición del entry
         x = self.item_search_entry.winfo_rootx()
         y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
-        width = self.item_search_entry.winfo_width() + 45
+        width = self.item_search_entry.winfo_width() + 65
 
         # Crear Toplevel
         self.item_dropdown_toplevel = customtkinter.CTkToplevel(self)
         self.item_dropdown_toplevel.withdraw()
         self.item_dropdown_toplevel.overrideredirect(True)
+        self.item_dropdown_toplevel.attributes('-topmost', True)
         self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
 
         # Frame con scroll
@@ -311,6 +345,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             ).pack(pady=5)
 
         self.item_dropdown_toplevel.deiconify()
+        self.item_dropdown_toplevel.lift()
         self.item_dropdown_visible = True
 
     def _hide_item_dropdown(self):

@@ -808,7 +808,7 @@ class AppPartsManager(customtkinter.CTk):
             self.partes_list = ["Sin partes"]
             self.partes_list_full = ["Sin partes"]
 
-        # Frame contenedor para entry + botón dropdown
+        # Frame contenedor para entry + botones
         search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container.grid_columnconfigure(0, weight=1)
@@ -822,14 +822,25 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_search_entry.bind('<KeyRelease>', self._filter_partes_list)
         self.partes_search_entry.bind('<Return>', lambda e: self._select_first_match())
 
+        # Botón X para limpiar
+        self.partes_clear_btn = customtkinter.CTkButton(
+            search_container,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_partes_search
+        )
+        self.partes_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
         # Botón dropdown ▼
         self.partes_dropdown_btn = customtkinter.CTkButton(
             search_container,
             text="▼",
-            width=40,
+            width=30,
             command=self._toggle_partes_dropdown
         )
-        self.partes_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
+        self.partes_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
 
         # Variable para el Toplevel del dropdown
         self.partes_dropdown_toplevel = None
@@ -883,6 +894,12 @@ class AppPartsManager(customtkinter.CTk):
         else:
             self._show_partes_dropdown()
 
+    def _clear_partes_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.partes_search_entry.delete(0, 'end')
+        self.selected_parte_text = None
+        self._hide_partes_dropdown()
+
     def _show_partes_dropdown(self, filtered=None):
         """Muestra el dropdown como Toplevel flotante"""
         if self.partes_dropdown_toplevel:
@@ -891,12 +908,13 @@ class AppPartsManager(customtkinter.CTk):
         # Obtener posición del entry
         x = self.partes_search_entry.winfo_rootx()
         y = self.partes_search_entry.winfo_rooty() + self.partes_search_entry.winfo_height()
-        width = self.partes_search_entry.winfo_width() + 45
+        width = self.partes_search_entry.winfo_width() + 65
 
         # Crear Toplevel
         self.partes_dropdown_toplevel = customtkinter.CTkToplevel(self)
         self.partes_dropdown_toplevel.withdraw()
         self.partes_dropdown_toplevel.overrideredirect(True)
+        self.partes_dropdown_toplevel.attributes('-topmost', True)
         self.partes_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
 
         # Frame con scroll
@@ -929,6 +947,7 @@ class AppPartsManager(customtkinter.CTk):
             ).pack(pady=5)
 
         self.partes_dropdown_toplevel.deiconify()
+        self.partes_dropdown_toplevel.lift()
         self.partes_dropdown_visible = True
 
     def _hide_partes_dropdown(self):
@@ -1831,7 +1850,7 @@ class AppPartsManager(customtkinter.CTk):
             self.presupuesto_partes_list = ["Sin partes"]
             self.presupuesto_partes_list_full = ["Sin partes"]
 
-        # Frame contenedor para entry + botón dropdown
+        # Frame contenedor para entry + botones
         pres_search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         pres_search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         pres_search_container.grid_columnconfigure(0, weight=1)
@@ -1845,14 +1864,25 @@ class AppPartsManager(customtkinter.CTk):
         self.presupuesto_search_entry.bind('<KeyRelease>', self._filter_presupuesto_partes)
         self.presupuesto_search_entry.bind('<Return>', lambda e: self._select_first_presupuesto_match())
 
+        # Botón X para limpiar
+        self.presupuesto_clear_btn = customtkinter.CTkButton(
+            pres_search_container,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_presupuesto_search
+        )
+        self.presupuesto_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
         # Botón dropdown ▼
         self.presupuesto_dropdown_btn = customtkinter.CTkButton(
             pres_search_container,
             text="▼",
-            width=40,
+            width=30,
             command=self._toggle_presupuesto_dropdown
         )
-        self.presupuesto_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
+        self.presupuesto_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
 
         # Variable para el Toplevel del dropdown
         self.presupuesto_dropdown_toplevel = None
@@ -1985,6 +2015,12 @@ class AppPartsManager(customtkinter.CTk):
         else:
             self._show_presupuesto_dropdown()
 
+    def _clear_presupuesto_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.presupuesto_search_entry.delete(0, 'end')
+        self.selected_presupuesto_parte = None
+        self._hide_presupuesto_dropdown()
+
     def _show_presupuesto_dropdown(self, filtered=None):
         """Muestra el dropdown como Toplevel flotante"""
         if self.presupuesto_dropdown_toplevel:
@@ -1992,11 +2028,12 @@ class AppPartsManager(customtkinter.CTk):
 
         x = self.presupuesto_search_entry.winfo_rootx()
         y = self.presupuesto_search_entry.winfo_rooty() + self.presupuesto_search_entry.winfo_height()
-        width = self.presupuesto_search_entry.winfo_width() + 45
+        width = self.presupuesto_search_entry.winfo_width() + 65
 
         self.presupuesto_dropdown_toplevel = customtkinter.CTkToplevel(self)
         self.presupuesto_dropdown_toplevel.withdraw()
         self.presupuesto_dropdown_toplevel.overrideredirect(True)
+        self.presupuesto_dropdown_toplevel.attributes('-topmost', True)
         self.presupuesto_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
 
         scroll_frame = customtkinter.CTkScrollableFrame(
@@ -2027,6 +2064,7 @@ class AppPartsManager(customtkinter.CTk):
             ).pack(pady=5)
 
         self.presupuesto_dropdown_toplevel.deiconify()
+        self.presupuesto_dropdown_toplevel.lift()
         self.presupuesto_dropdown_visible = True
 
     def _hide_presupuesto_dropdown(self):
@@ -2404,7 +2442,7 @@ class AppPartsManager(customtkinter.CTk):
             self.cert_list = ["Sin partes"]
             self.cert_list_full = self.cert_list.copy()
 
-        # Frame contenedor para Entry + Botón Dropdown
+        # Frame contenedor para Entry + Botones
         search_container_cert = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container_cert.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container_cert.grid_rowconfigure(0, weight=1)
@@ -2419,14 +2457,25 @@ class AppPartsManager(customtkinter.CTk):
         self.cert_search_entry.bind('<KeyRelease>', self._filter_cert_list)
         self.cert_search_entry.bind('<Return>', lambda e: self._select_first_cert_match())
 
+        # Botón X para limpiar
+        self.cert_clear_btn = customtkinter.CTkButton(
+            search_container_cert,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_cert_search
+        )
+        self.cert_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
         # Botón dropdown ▼
         self.cert_dropdown_btn = customtkinter.CTkButton(
             search_container_cert,
             text="▼",
-            width=40,
+            width=30,
             command=self._toggle_cert_dropdown
         )
-        self.cert_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
+        self.cert_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
 
         # Variables para el Toplevel del dropdown
         self.cert_dropdown_toplevel = None
@@ -2627,6 +2676,12 @@ class AppPartsManager(customtkinter.CTk):
         else:
             self._show_cert_dropdown()
 
+    def _clear_cert_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.cert_search_entry.delete(0, 'end')
+        self.selected_cert_text = None
+        self._hide_cert_dropdown()
+
     def _show_cert_dropdown(self, filtered=None):
         """Muestra el dropdown como Toplevel flotante"""
         if self.cert_dropdown_toplevel:
@@ -2635,12 +2690,13 @@ class AppPartsManager(customtkinter.CTk):
         # Obtener posición del entry
         x = self.cert_search_entry.winfo_rootx()
         y = self.cert_search_entry.winfo_rooty() + self.cert_search_entry.winfo_height()
-        width = self.cert_search_entry.winfo_width() + 45
+        width = self.cert_search_entry.winfo_width() + 65
 
         # Crear Toplevel
         self.cert_dropdown_toplevel = customtkinter.CTkToplevel(self)
         self.cert_dropdown_toplevel.withdraw()
         self.cert_dropdown_toplevel.overrideredirect(True)
+        self.cert_dropdown_toplevel.attributes('-topmost', True)
         self.cert_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
 
         # Frame con scroll
@@ -2672,6 +2728,7 @@ class AppPartsManager(customtkinter.CTk):
             ).pack(pady=5)
 
         self.cert_dropdown_toplevel.deiconify()
+        self.cert_dropdown_toplevel.lift()
         self.cert_dropdown_visible = True
 
     def _hide_cert_dropdown(self):
