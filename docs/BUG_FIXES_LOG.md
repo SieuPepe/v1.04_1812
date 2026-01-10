@@ -385,3 +385,54 @@ def _select_*_from_dropdown(self, item):  # Selecciona opción
 
 ---
 
+## Mejora #3: Botón X para limpiar y corrección de z-order en dropdowns
+**Fecha:** 2026-01-10
+**Estado:** ✅ COMPLETADO
+
+### Descripción del problema
+1. En "Añadir Partida", el dropdown aparecía **por detrás** de su propia ventana (ambos son Toplevel)
+2. Al mover la ventana, el dropdown se quedaba flotando en su posición original
+3. No había forma de limpiar el campo de búsqueda rápidamente
+
+### Solución implementada
+
+**1. Botón ✕ para limpiar:**
+```python
+self.item_clear_btn = customtkinter.CTkButton(
+    container,
+    text="✕",
+    width=30,
+    fg_color="transparent",
+    hover_color="#8B0000",
+    command=self._clear_*_search
+)
+```
+
+**2. Corrección de z-order:**
+```python
+self.dropdown_toplevel.attributes('-topmost', True)
+self.dropdown_toplevel.lift()
+```
+
+**3. Vinculación al movimiento de ventana (solo Añadir Partida):**
+```python
+self.bind('<Configure>', self._on_window_move)
+
+def _on_window_move(self, event=None):
+    if self.item_dropdown_visible and self.item_dropdown_toplevel:
+        x = self.item_search_entry.winfo_rootx()
+        y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
+        self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+```
+
+### Archivos modificados
+- `parts_manager_interfaz.py` (3 selectores)
+- `parts_add_budget_item_interfaz.py` (1 selector)
+
+### Resultado
+- Botón ✕ permite limpiar el campo con un clic
+- El dropdown siempre aparece por encima de cualquier ventana
+- En Añadir Partida, el dropdown sigue a la ventana cuando se mueve
+
+---
+
