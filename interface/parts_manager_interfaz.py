@@ -3461,7 +3461,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Usuario
         btn_manual_usuario = customtkinter.CTkButton(
             botones_frame,
-            text="📄 Manual de Usuario (PDF)",
+            text="Manual de Usuario",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("usuario")
@@ -3471,7 +3471,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Informes
         btn_manual_informes = customtkinter.CTkButton(
             botones_frame,
-            text="📊 Manual de Informes (PDF)",
+            text="Manual de Informes",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("informes")
@@ -3481,7 +3481,7 @@ class AppPartsManager(customtkinter.CTk):
         # Guía Técnica
         btn_guia_tecnica = customtkinter.CTkButton(
             botones_frame,
-            text="🔧 Guía Técnica (PDF)",
+            text="Manual Tecnico",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("tecnica")
@@ -3491,7 +3491,7 @@ class AppPartsManager(customtkinter.CTk):
         # Nota informativa
         nota = customtkinter.CTkLabel(
             scroll_frame,
-            text="Los manuales se descargarán en formato PDF en la carpeta de Descargas.",
+            text="Los manuales se copiarán en la carpeta de Descargas en formato Markdown.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
             wraplength=600,
@@ -3505,11 +3505,11 @@ class AppPartsManager(customtkinter.CTk):
         import shutil
         from tkinter import messagebox
 
-        # Definir rutas de los manuales
+        # Definir rutas de los manuales (archivos Markdown existentes)
         manuales = {
-            "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
-            "informes": "docs/Manual_Informes_HydroFlow.pdf",
-            "tecnica": "docs/Guia_Tecnica_HydroFlow.pdf"
+            "usuario": "docs/manual/Manual_Usuario_v2.0.md",
+            "informes": "docs/manual/Manual_Informes_v2.0.md",
+            "tecnica": "docs/manual/Manual_Tecnico_v2.0.md"
         }
 
         manual_path = os.path.join(parent_path, manuales.get(tipo, ""))
@@ -3523,7 +3523,7 @@ class AppPartsManager(customtkinter.CTk):
                 shutil.copy(manual_path, destino)
                 messagebox.showinfo(
                     "Descarga completada",
-                    f"El manual se ha descargado en:\n{destino}"
+                    f"El manual se ha copiado en:\n{destino}"
                 )
             except Exception as e:
                 messagebox.showerror(
@@ -3652,23 +3652,23 @@ R: Los partes eliminados no se pueden recuperar. Contacta con el administrador s
         info_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
         info_frame.grid_columnconfigure(1, weight=1)
 
-        # Obtener información de conexión
+        # Obtener información de conexión desde la configuración
         try:
-            db_host = config.get("host", "No disponible")
-            db_port = config.get("port", "No disponible")
-            db_name = config.get("database", "No disponible")
-        except:
+            db_host = config.host if config.host else "No configurado"
+            db_port = str(config.port) if config.port else "No configurado"
+            db_manager = config.manager_schema if config.manager_schema else "No configurado"
+        except Exception:
             db_host = "No disponible"
             db_port = "No disponible"
-            db_name = "No disponible"
+            db_manager = "No disponible"
 
         # Información de conexión
         connection_info = [
-            ("🖥️ Servidor (Host):", db_host),
-            ("🔌 Puerto:", str(db_port)),
-            ("🗄️ Base de datos:", db_name),
-            ("📁 Esquema del proyecto:", self.schema),
-            ("👤 Usuario conectado:", self.user),
+            ("Servidor (Host):", db_host),
+            ("Puerto:", db_port),
+            ("Esquema Manager:", db_manager),
+            ("Esquema del proyecto:", self.schema),
+            ("Usuario conectado:", self.user),
         ]
 
         row = 0
