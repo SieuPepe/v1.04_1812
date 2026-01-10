@@ -306,3 +306,43 @@ Código más limpio y mantenible. La tabla `dim_ot` puede eliminarse de la base 
 
 ---
 
+## Mejora #1: Campo de búsqueda con filtrado para Partidas en presupuesto
+**Fecha:** 2026-01-10
+**Estado:** ✅ COMPLETADO
+
+### Descripción
+En la ventana "Añadir Partida al Presupuesto del Parte", el desplegable de Partidas era un CTkOptionMenu estático que dificultaba encontrar partidas cuando había muchas en un capítulo.
+
+### Solución implementada
+Reemplazar el CTkOptionMenu por un **campo de búsqueda con filtrado dinámico** (igual que "Buscar Parte" en Gestión de Partes):
+
+1. **Entry de búsqueda**: El usuario escribe para filtrar
+2. **Dropdown flotante**: Muestra las partidas que coinciden con la búsqueda
+3. **Selección por clic**: Al hacer clic en una opción, se selecciona y actualiza el precio
+
+### Archivo modificado
+- `interface/parts_add_budget_item_interfaz.py`
+
+### Funciones añadidas
+```python
+def _filter_items_list(self, event=None):    # Filtra partidas según texto
+def _select_item_from_dropdown(self, item_text):  # Selecciona desde dropdown
+def _select_first_item_match(self):          # Selecciona con Enter
+def _set_selected_item(self, item_text):     # Establece selección
+def _update_precio_from_selection(self):     # Actualiza precio unitario
+```
+
+### Flujo de uso
+```
+1. Seleccionar Capítulo → [FONTANERÍA]
+2. Pulsar "Filtrar" → Se cargan las partidas
+3. Escribir en campo Partida → "tuber"
+4. Aparece dropdown con partidas que contienen "tuber"
+5. Clic en la partida deseada → Se selecciona y muestra precio
+```
+
+### Resultado
+Búsqueda rápida de partidas en capítulos con muchos elementos, mejorando la experiencia de usuario.
+
+---
+
