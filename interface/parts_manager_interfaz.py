@@ -808,7 +808,7 @@ class AppPartsManager(customtkinter.CTk):
             self.partes_list = ["Sin partes"]
             self.partes_list_full = ["Sin partes"]
 
-        # Frame contenedor para entry + dropdown
+        # Frame contenedor para entry + botón dropdown
         search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container.grid_columnconfigure(0, weight=1)
@@ -822,22 +822,18 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_search_entry.bind('<KeyRelease>', self._filter_partes_list)
         self.partes_search_entry.bind('<Return>', lambda e: self._select_first_match())
 
-        # Frame flotante para dropdown (inicialmente oculto)
-        self.partes_dropdown_frame = customtkinter.CTkFrame(
+        # Botón dropdown ▼
+        self.partes_dropdown_btn = customtkinter.CTkButton(
             search_container,
-            fg_color="#2b2b2b",
-            border_width=1,
-            border_color="gray"
+            text="▼",
+            width=40,
+            command=self._toggle_partes_dropdown
         )
-        self.partes_dropdown_frame.grid_remove()  # Oculto inicialmente
+        self.partes_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
 
-        # Scrollable frame para lista de partes
-        self.partes_listbox_frame = customtkinter.CTkScrollableFrame(
-            self.partes_dropdown_frame,
-            height=200,
-            fg_color="transparent"
-        )
-        self.partes_listbox_frame.pack(fill="both", expand=True)
+        # Variable para el Toplevel del dropdown
+        self.partes_dropdown_toplevel = None
+        self.partes_dropdown_visible = False
 
         # Variable para almacenar el parte seleccionado
         self.selected_parte_text = None
@@ -880,55 +876,88 @@ class AppPartsManager(customtkinter.CTk):
         if self.partes_list and self.partes_list[0] != "Sin partes":
             self._load_parte_tabs()
 
+    def _toggle_partes_dropdown(self):
+        """Muestra/oculta el dropdown de partes"""
+        if self.partes_dropdown_visible:
+            self._hide_partes_dropdown()
+        else:
+            self._show_partes_dropdown()
+
+    def _show_partes_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.partes_dropdown_toplevel:
+            self.partes_dropdown_toplevel.destroy()
+
+        # Obtener posición del entry
+        x = self.partes_search_entry.winfo_rootx()
+        y = self.partes_search_entry.winfo_rooty() + self.partes_search_entry.winfo_height()
+        width = self.partes_search_entry.winfo_width() + 45
+
+        # Crear Toplevel
+        self.partes_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.partes_dropdown_toplevel.withdraw()
+        self.partes_dropdown_toplevel.overrideredirect(True)
+        self.partes_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.partes_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.partes_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda p=item: self._select_parte_from_dropdown(p)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más. Refine su búsqueda.",
+                text_color="gray",
+                font=("", 10)
+            ).pack(pady=5)
+
+        self.partes_dropdown_toplevel.deiconify()
+        self.partes_dropdown_visible = True
+
+    def _hide_partes_dropdown(self):
+        """Oculta el dropdown"""
+        if self.partes_dropdown_toplevel:
+            self.partes_dropdown_toplevel.destroy()
+            self.partes_dropdown_toplevel = None
+        self.partes_dropdown_visible = False
+
     def _filter_partes_list(self, event=None):
         """Filtra la lista de partes según el texto de búsqueda"""
         search_text = self.partes_search_entry.get().lower()
 
         if not search_text:
-            # Si está vacío, ocultar dropdown
-            self.partes_dropdown_frame.grid_remove()
+            self._hide_partes_dropdown()
             return
 
         # Filtrar partes que contengan el texto de búsqueda
         filtered = [p for p in self.partes_list_full if search_text in p.lower()]
 
-        # Limpiar listbox
-        for widget in self.partes_listbox_frame.winfo_children():
-            widget.destroy()
-
         if filtered:
-            # Mostrar dropdown
-            self.partes_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
-
-            # Crear botones para cada resultado (máximo 10)
-            for parte in filtered[:10]:
-                btn = customtkinter.CTkButton(
-                    self.partes_listbox_frame,
-                    text=parte,
-                    anchor="w",
-                    fg_color="transparent",
-                    hover_color="#1f6aa5",
-                    command=lambda p=parte: self._select_parte_from_dropdown(p)
-                )
-                btn.pack(fill="x", padx=2, pady=1)
-
-            # Mostrar contador si hay más resultados
-            if len(filtered) > 10:
-                info_label = customtkinter.CTkLabel(
-                    self.partes_listbox_frame,
-                    text=f"... y {len(filtered) - 10} más. Refine su búsqueda.",
-                    text_color="gray",
-                    font=("", 10)
-                )
-                info_label.pack(pady=5)
+            self._show_partes_dropdown(filtered)
         else:
-            # Ocultar si no hay resultados
-            self.partes_dropdown_frame.grid_remove()
+            self._hide_partes_dropdown()
 
     def _select_parte_from_dropdown(self, parte_text):
         """Selecciona un parte del dropdown"""
         self._set_selected_parte(parte_text)
-        self.partes_dropdown_frame.grid_remove()
+        self._hide_partes_dropdown()
         self._load_parte_tabs()
 
     def _select_first_match(self):
@@ -938,7 +967,7 @@ class AppPartsManager(customtkinter.CTk):
             filtered = [p for p in self.partes_list_full if search_text in p.lower()]
             if filtered:
                 self._set_selected_parte(filtered[0])
-                self.partes_dropdown_frame.grid_remove()
+                self._hide_partes_dropdown()
                 self._load_parte_tabs()
 
     def _set_selected_parte(self, parte_text):
@@ -1796,24 +1825,49 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
         except:
-            partes_list = ["Sin partes"]
+            self.presupuesto_partes_list = ["Sin partes"]
+            self.presupuesto_partes_list_full = ["Sin partes"]
 
-        self.presupuesto_selector = customtkinter.CTkOptionMenu(
-            selector_frame,
-            values=partes_list if partes_list else ["Sin partes"],
-            command=lambda x: self._load_presupuesto_data()
+        # Frame contenedor para entry + botón dropdown
+        pres_search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
+        pres_search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        pres_search_container.grid_columnconfigure(0, weight=1)
+
+        # Entry de búsqueda
+        self.presupuesto_search_entry = customtkinter.CTkEntry(
+            pres_search_container,
+            placeholder_text="Escriba para buscar parte..."
         )
-        self.presupuesto_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        self.presupuesto_search_entry.grid(row=0, column=0, sticky="ew")
+        self.presupuesto_search_entry.bind('<KeyRelease>', self._filter_presupuesto_partes)
+        self.presupuesto_search_entry.bind('<Return>', lambda e: self._select_first_presupuesto_match())
 
-        if partes_list and hasattr(self, 'selected_parte_id'):
-            for item in partes_list:
-                if item.startswith(f"{self.selected_parte_id} -"):
-                    self.presupuesto_selector.set(item)
-                    break
-        elif partes_list:
-            self.presupuesto_selector.set(partes_list[0])
+        # Botón dropdown ▼
+        self.presupuesto_dropdown_btn = customtkinter.CTkButton(
+            pres_search_container,
+            text="▼",
+            width=40,
+            command=self._toggle_presupuesto_dropdown
+        )
+        self.presupuesto_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
+
+        # Variable para el Toplevel del dropdown
+        self.presupuesto_dropdown_toplevel = None
+        self.presupuesto_dropdown_visible = False
+        self.selected_presupuesto_parte = None
+
+        # Seleccionar parte por defecto
+        if self.presupuesto_partes_list and self.presupuesto_partes_list[0] != "Sin partes":
+            if hasattr(self, 'selected_parte_id'):
+                for item in self.presupuesto_partes_list:
+                    if item.startswith(f"{self.selected_parte_id} -"):
+                        self._set_selected_presupuesto_parte(item)
+                        break
+            else:
+                self._set_selected_presupuesto_parte(self.presupuesto_partes_list[0])
 
         btn_reload = customtkinter.CTkButton(
             selector_frame, text="🔄", width=40,
@@ -1924,21 +1978,115 @@ class AppPartsManager(customtkinter.CTk):
         if partes_list and partes_list[0] != "Sin partes":
             self._load_presupuesto_data()
 
+    def _toggle_presupuesto_dropdown(self):
+        """Muestra/oculta el dropdown de partes en presupuesto"""
+        if self.presupuesto_dropdown_visible:
+            self._hide_presupuesto_dropdown()
+        else:
+            self._show_presupuesto_dropdown()
+
+    def _show_presupuesto_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.presupuesto_dropdown_toplevel:
+            self.presupuesto_dropdown_toplevel.destroy()
+
+        x = self.presupuesto_search_entry.winfo_rootx()
+        y = self.presupuesto_search_entry.winfo_rooty() + self.presupuesto_search_entry.winfo_height()
+        width = self.presupuesto_search_entry.winfo_width() + 45
+
+        self.presupuesto_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.presupuesto_dropdown_toplevel.withdraw()
+        self.presupuesto_dropdown_toplevel.overrideredirect(True)
+        self.presupuesto_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.presupuesto_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        items = filtered if filtered else self.presupuesto_partes_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda p=item: self._select_presupuesto_parte_from_dropdown(p)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más.",
+                text_color="gray",
+                font=("", 10)
+            ).pack(pady=5)
+
+        self.presupuesto_dropdown_toplevel.deiconify()
+        self.presupuesto_dropdown_visible = True
+
+    def _hide_presupuesto_dropdown(self):
+        """Oculta el dropdown"""
+        if self.presupuesto_dropdown_toplevel:
+            self.presupuesto_dropdown_toplevel.destroy()
+            self.presupuesto_dropdown_toplevel = None
+        self.presupuesto_dropdown_visible = False
+
+    def _filter_presupuesto_partes(self, event=None):
+        """Filtra la lista de partes en presupuesto"""
+        search_text = self.presupuesto_search_entry.get().lower()
+        if not search_text:
+            self._hide_presupuesto_dropdown()
+            return
+        filtered = [p for p in self.presupuesto_partes_list_full if search_text in p.lower()]
+        if filtered:
+            self._show_presupuesto_dropdown(filtered)
+        else:
+            self._hide_presupuesto_dropdown()
+
+    def _select_presupuesto_parte_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown de presupuesto"""
+        self._set_selected_presupuesto_parte(parte_text)
+        self._hide_presupuesto_dropdown()
+        self._load_presupuesto_data()
+
+    def _select_first_presupuesto_match(self):
+        """Selecciona el primer resultado con Enter"""
+        search_text = self.presupuesto_search_entry.get().lower()
+        if search_text:
+            filtered = [p for p in self.presupuesto_partes_list_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_presupuesto_parte(filtered[0])
+                self._hide_presupuesto_dropdown()
+                self._load_presupuesto_data()
+
+    def _set_selected_presupuesto_parte(self, parte_text):
+        """Establece el parte seleccionado en presupuesto"""
+        self.selected_presupuesto_parte = parte_text
+        self.presupuesto_search_entry.delete(0, 'end')
+        self.presupuesto_search_entry.insert(0, parte_text)
+
     def _reload_presupuesto_selector(self):
         """Recarga el selector de partes en presupuesto"""
         from script.modulo_db import get_partes_resumen
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
 
-            if partes_list:
-                self.presupuesto_selector.configure(values=partes_list)
-                self.presupuesto_selector.set(partes_list[0])
+            if self.presupuesto_partes_list:
+                self._set_selected_presupuesto_parte(self.presupuesto_partes_list[0])
                 self._load_presupuesto_data()
             else:
-                self.presupuesto_selector.configure(values=["Sin partes"])
-                self.presupuesto_selector.set("Sin partes")
+                self.presupuesto_partes_list = ["Sin partes"]
+                self.presupuesto_partes_list_full = ["Sin partes"]
+                self.presupuesto_search_entry.delete(0, 'end')
+                self.presupuesto_search_entry.configure(placeholder_text="Sin partes")
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
 
@@ -1950,8 +2098,8 @@ class AppPartsManager(customtkinter.CTk):
         for item in self.tree_presupuesto.get_children():
             self.tree_presupuesto.delete(item)
 
-        selected = self.presupuesto_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_presupuesto_parte
+        if not selected or selected == "Sin partes":
             self.total_presupuesto_label.configure(text="TOTAL: 0.00€")
             return
 
@@ -1983,8 +2131,8 @@ class AppPartsManager(customtkinter.CTk):
 
     def _add_partida_presupuesto(self):
         """Añade partida al presupuesto del parte (ventana similar a registros)"""
-        selected = self.presupuesto_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_presupuesto_parte
+        if not selected or selected == "Sin partes":
             CTkMessagebox(title="Aviso", message="Seleccione un parte primero", icon="info")
             return
 
@@ -2256,13 +2404,13 @@ class AppPartsManager(customtkinter.CTk):
             self.cert_list = ["Sin partes"]
             self.cert_list_full = self.cert_list.copy()
 
-        # Frame contenedor para Entry + Dropdown
+        # Frame contenedor para Entry + Botón Dropdown
         search_container_cert = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container_cert.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container_cert.grid_rowconfigure(0, weight=1)
         search_container_cert.grid_columnconfigure(0, weight=1)
 
-        # Entry para búsqueda con dropdown
+        # Entry para búsqueda
         self.cert_search_entry = customtkinter.CTkEntry(
             search_container_cert,
             placeholder_text="Escriba para buscar parte..."
@@ -2271,26 +2419,18 @@ class AppPartsManager(customtkinter.CTk):
         self.cert_search_entry.bind('<KeyRelease>', self._filter_cert_list)
         self.cert_search_entry.bind('<Return>', lambda e: self._select_first_cert_match())
 
-        # Frame flotante para dropdown (inicialmente oculto)
-        self.cert_dropdown_frame = customtkinter.CTkFrame(
+        # Botón dropdown ▼
+        self.cert_dropdown_btn = customtkinter.CTkButton(
             search_container_cert,
-            fg_color="#2b2b2b",
-            border_width=1,
-            border_color="gray"
+            text="▼",
+            width=40,
+            command=self._toggle_cert_dropdown
         )
-        self.cert_dropdown_frame.grid_remove()  # Oculto inicialmente
+        self.cert_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
 
-        # Listbox para mostrar resultados filtrados
-        self.cert_listbox = ttk.Treeview(
-            self.cert_dropdown_frame,
-            columns=("partes",),
-            show="tree",
-            selectmode="browse",
-            height=10
-        )
-        self.cert_listbox.pack(fill="both", expand=True)
-        self.cert_listbox.bind("<ButtonRelease-1>", self._on_cert_select)
-        self.cert_listbox.bind("<Return>", self._on_cert_select)
+        # Variables para el Toplevel del dropdown
+        self.cert_dropdown_toplevel = None
+        self.cert_dropdown_visible = False
 
         # Seleccionar primer parte si hay selected_parte_id
         if self.cert_list and self.cert_list[0] != "Sin partes":
@@ -2480,42 +2620,89 @@ class AppPartsManager(customtkinter.CTk):
         if self.cert_list and self.cert_list[0] != "Sin partes":
             self._load_certificaciones_data()
 
+    def _toggle_cert_dropdown(self):
+        """Muestra/oculta el dropdown de partes en certificaciones"""
+        if self.cert_dropdown_visible:
+            self._hide_cert_dropdown()
+        else:
+            self._show_cert_dropdown()
+
+    def _show_cert_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.cert_dropdown_toplevel:
+            self.cert_dropdown_toplevel.destroy()
+
+        # Obtener posición del entry
+        x = self.cert_search_entry.winfo_rootx()
+        y = self.cert_search_entry.winfo_rooty() + self.cert_search_entry.winfo_height()
+        width = self.cert_search_entry.winfo_width() + 45
+
+        # Crear Toplevel
+        self.cert_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.cert_dropdown_toplevel.withdraw()
+        self.cert_dropdown_toplevel.overrideredirect(True)
+        self.cert_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.cert_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.cert_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda i=item: self._select_cert_from_dropdown(i)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más",
+                text_color="gray"
+            ).pack(pady=5)
+
+        self.cert_dropdown_toplevel.deiconify()
+        self.cert_dropdown_visible = True
+
+    def _hide_cert_dropdown(self):
+        """Oculta el dropdown"""
+        if self.cert_dropdown_toplevel:
+            self.cert_dropdown_toplevel.destroy()
+            self.cert_dropdown_toplevel = None
+        self.cert_dropdown_visible = False
+
+    def _select_cert_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown"""
+        self._set_selected_cert(parte_text)
+        self._hide_cert_dropdown()
+        self._load_certificaciones_data()
+
     def _filter_cert_list(self, event=None):
         """Filtra la lista de partes en certificaciones según el texto de búsqueda"""
         search_text = self.cert_search_entry.get().lower()
 
         if not search_text:
             # Si está vacío, ocultar dropdown
-            self.cert_dropdown_frame.grid_remove()
+            self._hide_cert_dropdown()
             return
 
         # Filtrar partes que contengan el texto de búsqueda
         filtered = [p for p in self.cert_list_full if search_text in p.lower()]
 
-        # Limpiar listbox
-        for item in self.cert_listbox.get_children():
-            self.cert_listbox.delete(item)
-
-        # Mostrar dropdown solo si hay resultados
         if filtered:
-            # Limitar a 10 resultados para no sobrecargar
-            for parte in filtered[:10]:
-                self.cert_listbox.insert("", "end", text=parte, values=(parte,))
-
-            # Mostrar dropdown debajo del entry
-            self.cert_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+            self._show_cert_dropdown(filtered)
         else:
-            self.cert_dropdown_frame.grid_remove()
-
-    def _on_cert_select(self, event=None):
-        """Maneja la selección de un parte del dropdown en certificaciones"""
-        selection = self.cert_listbox.selection()
-        if selection:
-            item = selection[0]
-            parte_text = self.cert_listbox.item(item, "text")
-            self._set_selected_cert(parte_text)
-            self.cert_dropdown_frame.grid_remove()
-            self._load_certificaciones_data()
+            self._hide_cert_dropdown()
 
     def _select_first_cert_match(self):
         """Selecciona el primer resultado del filtro en certificaciones"""
@@ -2524,7 +2711,7 @@ class AppPartsManager(customtkinter.CTk):
             filtered = [p for p in self.cert_list_full if search_text in p.lower()]
             if filtered:
                 self._set_selected_cert(filtered[0])
-                self.cert_dropdown_frame.grid_remove()
+                self._hide_cert_dropdown()
                 self._load_certificaciones_data()
 
     def _set_selected_cert(self, parte_text):

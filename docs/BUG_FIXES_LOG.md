@@ -346,3 +346,42 @@ Búsqueda rápida de partidas en capítulos con muchos elementos, mejorando la e
 
 ---
 
+## Mejora #2: Dropdown con filtrado y botón ▼ (Opción A) en todos los selectores
+**Fecha:** 2026-01-10
+**Estado:** ✅ COMPLETADO
+
+### Descripción
+Los selectores de búsqueda tenían problemas:
+1. El dropdown expandía el contenedor padre al aparecer
+2. No había forma de ver todas las opciones (solo se mostraba al escribir)
+
+### Solución implementada: Opción A
+Se creó una ventana de prueba (`test_dropdown_options.py`) para comparar 3 opciones de implementación. La **Opción A** fue seleccionada por el usuario:
+
+- **Entry + Botón ▼ + CTkToplevel flotante**
+- El Entry permite escribir para filtrar
+- El botón ▼ muestra todas las opciones
+- El dropdown es un Toplevel que flota sobre la UI (no expande el contenedor)
+
+### Menús modificados
+1. **Gestión de Partes → Buscar Parte** (`parts_manager_interfaz.py`)
+2. **Presupuesto por Parte → Seleccionar Parte** (`parts_manager_interfaz.py`)
+3. **Añadir Partida al presupuesto → Partida** (`parts_add_budget_item_interfaz.py`)
+4. **Certificaciones por Parte → Buscar Parte** (`parts_manager_interfaz.py`)
+
+### Funciones añadidas por cada selector
+```python
+def _toggle_*_dropdown(self):     # Muestra/oculta dropdown
+def _show_*_dropdown(self, filtered=None):  # Crea Toplevel flotante
+def _hide_*_dropdown(self):       # Destruye el Toplevel
+def _select_*_from_dropdown(self, item):  # Selecciona opción
+```
+
+### Resultado
+- Escribir filtra opciones dinámicamente
+- Botón ▼ muestra todas las opciones disponibles
+- El dropdown flota sin afectar el layout del contenedor padre
+- Máximo 15 resultados visibles con indicador "... y X más"
+
+---
+

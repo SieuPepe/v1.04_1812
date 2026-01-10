@@ -53,7 +53,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(filter_frame, text="Partida:",
                                font=("", 13, "bold")).grid(row=0, column=2, padx=10, pady=10, sticky="e")
 
-        # Frame contenedor para entry + dropdown
+        # Frame contenedor para entry + botón dropdown
         self.item_search_container = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
         self.item_search_container.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
         self.item_search_container.grid_columnconfigure(0, weight=1)
@@ -67,22 +67,18 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.item_search_entry.bind('<KeyRelease>', self._filter_items_list)
         self.item_search_entry.bind('<Return>', lambda e: self._select_first_item_match())
 
-        # Frame flotante para dropdown (inicialmente oculto)
-        self.item_dropdown_frame = customtkinter.CTkFrame(
+        # Botón dropdown ▼
+        self.item_dropdown_btn = customtkinter.CTkButton(
             self.item_search_container,
-            fg_color="#2b2b2b",
-            border_width=1,
-            border_color="gray"
+            text="▼",
+            width=40,
+            command=self._toggle_item_dropdown
         )
-        self.item_dropdown_frame.grid_remove()  # Oculto inicialmente
+        self.item_dropdown_btn.grid(row=0, column=1, padx=(5, 0))
 
-        # Scrollable frame para lista de partidas
-        self.item_listbox_frame = customtkinter.CTkScrollableFrame(
-            self.item_dropdown_frame,
-            height=200,
-            fg_color="transparent"
-        )
-        self.item_listbox_frame.pack(fill="both", expand=True)
+        # Variables para el Toplevel del dropdown
+        self.item_dropdown_toplevel = None
+        self.item_dropdown_visible = False
 
         # Variables para almacenar partida seleccionada y lista completa
         self.selected_item_text = None
@@ -260,13 +256,77 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 icon="cancel"
             )
 
+    def _toggle_item_dropdown(self):
+        """Muestra/oculta el dropdown de partidas"""
+        if self.item_dropdown_visible:
+            self._hide_item_dropdown()
+        else:
+            self._show_item_dropdown()
+
+    def _show_item_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.item_dropdown_toplevel:
+            self.item_dropdown_toplevel.destroy()
+
+        if not self.item_values_full:
+            return
+
+        # Obtener posición del entry
+        x = self.item_search_entry.winfo_rootx()
+        y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
+        width = self.item_search_entry.winfo_width() + 45
+
+        # Crear Toplevel
+        self.item_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.item_dropdown_toplevel.withdraw()
+        self.item_dropdown_toplevel.overrideredirect(True)
+        self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.item_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.item_values_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda i=item: self._select_item_from_dropdown(i)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más",
+                text_color="gray"
+            ).pack(pady=5)
+
+        self.item_dropdown_toplevel.deiconify()
+        self.item_dropdown_visible = True
+
+    def _hide_item_dropdown(self):
+        """Oculta el dropdown"""
+        if self.item_dropdown_toplevel:
+            self.item_dropdown_toplevel.destroy()
+            self.item_dropdown_toplevel = None
+        self.item_dropdown_visible = False
+
     def _filter_items_list(self, event=None):
         """Filtra la lista de partidas según el texto de búsqueda"""
         search_text = self.item_search_entry.get().lower()
 
         if not search_text:
             # Si está vacío, ocultar dropdown
-            self.item_dropdown_frame.grid_remove()
+            self._hide_item_dropdown()
             return
 
         if not self.item_values_full:
@@ -276,43 +336,15 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         # Filtrar partidas que contengan el texto de búsqueda
         filtered = [p for p in self.item_values_full if search_text in p.lower()]
 
-        # Limpiar listbox
-        for widget in self.item_listbox_frame.winfo_children():
-            widget.destroy()
-
         if filtered:
-            # Mostrar dropdown
-            self.item_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
-
-            # Crear botones para cada resultado (máximo 10)
-            for partida in filtered[:10]:
-                btn = customtkinter.CTkButton(
-                    self.item_listbox_frame,
-                    text=partida,
-                    anchor="w",
-                    fg_color="transparent",
-                    hover_color="#1f6aa5",
-                    command=lambda p=partida: self._select_item_from_dropdown(p)
-                )
-                btn.pack(fill="x", padx=2, pady=1)
-
-            # Mostrar contador si hay más resultados
-            if len(filtered) > 10:
-                info_label = customtkinter.CTkLabel(
-                    self.item_listbox_frame,
-                    text=f"... y {len(filtered) - 10} más. Refine su búsqueda.",
-                    text_color="gray",
-                    font=("", 10)
-                )
-                info_label.pack(pady=5)
+            self._show_item_dropdown(filtered)
         else:
-            # Ocultar si no hay resultados
-            self.item_dropdown_frame.grid_remove()
+            self._hide_item_dropdown()
 
     def _select_item_from_dropdown(self, item_text):
         """Selecciona una partida del dropdown"""
         self._set_selected_item(item_text)
-        self.item_dropdown_frame.grid_remove()
+        self._hide_item_dropdown()
         self._update_precio_from_selection()
 
     def _select_first_item_match(self):
@@ -322,7 +354,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             filtered = [p for p in self.item_values_full if search_text in p.lower()]
             if filtered:
                 self._set_selected_item(filtered[0])
-                self.item_dropdown_frame.grid_remove()
+                self._hide_item_dropdown()
                 self._update_precio_from_selection()
 
     def _set_selected_item(self, item_text):
