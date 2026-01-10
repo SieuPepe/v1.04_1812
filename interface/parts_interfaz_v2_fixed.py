@@ -42,7 +42,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
-        self.geometry("1050x850")
+        self.geometry("1050x910")
         self.resizable(False, False)
 
         # Asegurar que la ventana aparezca al frente
