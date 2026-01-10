@@ -8,9 +8,16 @@ Puede consultar manuales, codigo fuente y la base de datos.
 import os
 import subprocess
 import json
-import requests
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+# Intentar importar requests
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+    requests = None
 
 # Ruta base del proyecto
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -508,6 +515,54 @@ Responde siempre en espanol y de forma concisa pero completa."""
         return None  # No se encontro consulta SQL
 
 
+# Funcion alternativa usando urllib (no requiere requests)
+def _check_ollama_urllib() -> Dict[str, Any]:
+    """Verifica Ollama usando urllib (stdlib)."""
+    import urllib.request
+    import urllib.error
+
+    requirements = {
+        'ollama_installed': False,
+        'ollama_running': False,
+        'models_available': [],
+        'recommended_model': None,
+        'message': ''
+    }
+
+    try:
+        req = urllib.request.Request(
+            "http://localhost:11434/api/tags",
+            headers={'Accept': 'application/json'}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                requirements['ollama_installed'] = True
+                requirements['ollama_running'] = True
+                requirements['models_available'] = [m['name'] for m in data.get('models', [])]
+
+                # Recomendar modelo
+                for rec in ['mistral', 'llama3.2', 'llama3.1', 'codellama', 'llama2']:
+                    for available in requirements['models_available']:
+                        if available.startswith(rec):
+                            requirements['recommended_model'] = available
+                            break
+                    if requirements['recommended_model']:
+                        break
+
+                if requirements['models_available']:
+                    requirements['message'] = f"Ollama listo. Modelos: {', '.join(requirements['models_available'])}"
+                else:
+                    requirements['message'] = "Ollama listo pero sin modelos."
+
+    except urllib.error.URLError as e:
+        requirements['message'] = f"No se puede conectar con Ollama: {str(e.reason)}"
+    except Exception as e:
+        requirements['message'] = f"Error: {str(e)}"
+
+    return requirements
+
+
 # Funcion de utilidad para verificar requisitos
 def check_requirements() -> Dict[str, Any]:
     """
@@ -516,6 +571,10 @@ def check_requirements() -> Dict[str, Any]:
     Returns:
         dict: Estado de cada requisito
     """
+    # Si requests no esta disponible, usar urllib
+    if not REQUESTS_AVAILABLE:
+        return _check_ollama_urllib()
+
     requirements = {
         'ollama_installed': False,
         'ollama_running': False,
@@ -541,7 +600,7 @@ def check_requirements() -> Dict[str, Any]:
             requirements['models_available'] = [model['name'] for model in data.get('models', [])]
 
             # Recomendar modelo
-            recommended_models = ['llama3.2', 'mistral', 'llama3.1', 'codellama', 'llama2']
+            recommended_models = ['mistral', 'llama3.2', 'llama3.1', 'codellama', 'llama2']
             for rec in recommended_models:
                 for available in requirements['models_available']:
                     if available.startswith(rec):
@@ -557,15 +616,16 @@ def check_requirements() -> Dict[str, Any]:
         else:
             requirements['message'] = f"Ollama responde con error: {response.status_code}"
 
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as e:
+        requirements['message'] = f"No se puede conectar con Ollama (ConnectionError)"
         # La API no responde - verificar si el comando existe
         try:
             result = subprocess.run(['ollama', '--version'], capture_output=True, text=True, timeout=5)
             requirements['ollama_installed'] = result.returncode == 0
-            requirements['message'] = "Ollama instalado pero no ejecutandose. Abre la aplicacion Ollama."
+            if requirements['ollama_installed']:
+                requirements['message'] = "Ollama instalado pero no ejecutandose. Abre la aplicacion Ollama."
         except (FileNotFoundError, subprocess.TimeoutExpired):
-            requirements['ollama_installed'] = False
-            requirements['message'] = "Ollama no detectado. Instala desde https://ollama.ai"
+            pass
 
     except requests.exceptions.Timeout:
         requirements['message'] = "Ollama no responde (timeout). Reinicia la aplicacion Ollama."
