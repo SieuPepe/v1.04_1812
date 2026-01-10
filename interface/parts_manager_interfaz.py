@@ -765,13 +765,12 @@ class AppPartsManager(customtkinter.CTk):
         self.selected_parte_id = parte_id
         self.select_frame_by_name("partes")
 
-        # Actualizar el selector para mostrar el parte seleccionado
-        if hasattr(self, 'partes_selector'):
-            # Buscar el item en el selector que corresponde a este parte_id
-            values = self.partes_selector.cget("values")
-            for item in values:
+        # Buscar el parte en la lista y establecerlo como seleccionado
+        if hasattr(self, 'partes_list'):
+            for item in self.partes_list:
                 if item.startswith(f"{parte_id} -"):
-                    self.partes_selector.set(item)
+                    # Usar _set_selected_parte para establecer el texto y actualizar el entry
+                    self._set_selected_parte(item)
                     # Cargar las tabs del parte
                     self._load_parte_tabs()
                     break

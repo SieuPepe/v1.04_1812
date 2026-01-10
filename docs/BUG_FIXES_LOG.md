@@ -244,14 +244,21 @@ parte_id = row_data[0]  # ID está en la posición 0
 self.tree_resumen.insert("", "end", iid=str(parte_id), values=row_values)
 ```
 
-2. **En `_view_parte_detail()`**: Obtener el ID del `iid` en lugar de `values[0]`:
+2. **En `_view_parte_detail()`**: Obtener el ID del `iid` y usar `_set_selected_parte()` + `_load_parte_tabs()`:
 ```python
-# ANTES:
-item = self.tree_resumen.item(selected[0])
-parte_id = item['values'][0]
+# ANTES (no funcionaba porque partes_selector ya no existe):
+if hasattr(self, 'partes_selector'):
+    values = self.partes_selector.cget("values")
+    ...
 
-# DESPUÉS:
-parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
+# DESPUÉS (usa partes_list y _set_selected_parte):
+parte_id = selected[0]  # El iid es el ID
+if hasattr(self, 'partes_list'):
+    for item in self.partes_list:
+        if item.startswith(f"{parte_id} -"):
+            self._set_selected_parte(item)  # Establece selected_parte_text
+            self._load_parte_tabs()
+            break
 ```
 
 3. **En `_delete_parte_resumen()`**: Misma corrección para que la eliminación funcione correctamente:
