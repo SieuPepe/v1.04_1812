@@ -25,8 +25,8 @@ class AppConfiguracion(customtkinter.CTkToplevel):
 
         # Configuración de ventana
         self.title("Configuración del Sistema")
-        self.geometry("1000x700")
-        self.minsize(900, 600)
+        self.geometry("1100x750")
+        self.minsize(1000, 650)
 
         # Hacer modal
         self.transient(parent)
@@ -35,6 +35,9 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         # Configurar grid principal
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
+
+        # Diccionario para guardar referencias
+        self.dim_sections = {}
 
         # Crear interfaz
         self._create_header()
@@ -99,143 +102,76 @@ class AppConfiguracion(customtkinter.CTkToplevel):
     # =========================================================================
 
     def _setup_variables_tab(self):
-        """Configura la pestaña de gestión de variables."""
+        """Configura la pestaña de gestión de variables con sub-pestañas."""
         tab = self.tabview.tab("📊 Gestión de Variables")
         tab.grid_columnconfigure(0, weight=1)
         tab.grid_rowconfigure(0, weight=1)
 
-        # Frame scrollable para las secciones
-        scroll_frame = customtkinter.CTkScrollableFrame(tab, fg_color="transparent")
-        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        scroll_frame.grid_columnconfigure(0, weight=1)
+        # Sub-pestañas para cada tabla de dimensiones
+        self.var_subtabs = customtkinter.CTkTabview(tab, corner_radius=5)
+        self.var_subtabs.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
 
-        # Secciones de dimensiones
-        self.dim_sections = {}
+        # Crear sub-pestañas
+        self.var_subtabs.add("🌐 Redes")
+        self.var_subtabs.add("🔧 Tipos Reparación")
+        self.var_subtabs.add("📝 Códigos Trabajo")
 
-        # Sección: Redes
-        self._create_dimension_section(
-            scroll_frame, row=0,
-            title="🌐 Redes",
-            table_name="dim_red",
-            description="Gestiona los tipos de red disponibles (Abastecimiento, Saneamiento, etc.)"
+        # Configurar cada sub-pestaña
+        self._setup_dimension_subtab(
+            self.var_subtabs.tab("🌐 Redes"),
+            "dim_red",
+            "Gestiona los tipos de red (Abastecimiento, Saneamiento, etc.)"
+        )
+        self._setup_dimension_subtab(
+            self.var_subtabs.tab("🔧 Tipos Reparación"),
+            "dim_tipos_rep",
+            "Gestiona los tipos de reparación (Fuga, Atasco, etc.)"
+        )
+        self._setup_dimension_subtab(
+            self.var_subtabs.tab("📝 Códigos Trabajo"),
+            "dim_codigo_trabajo",
+            "Gestiona los códigos de trabajo programado"
         )
 
-        # Sección: Tipos de Reparación
-        self._create_dimension_section(
-            scroll_frame, row=1,
-            title="🔧 Tipos de Reparación",
-            table_name="dim_tipos_rep",
-            description="Gestiona los tipos de reparación (Fuga, Atasco, etc.)"
-        )
-
-        # Sección: Códigos de Trabajo
-        self._create_dimension_section(
-            scroll_frame, row=2,
-            title="📝 Códigos de Trabajo",
-            table_name="dim_codigo_trabajo",
-            description="Gestiona los códigos de trabajo programado"
-        )
-
-    def _create_dimension_section(self, parent, row: int, title: str,
-                                   table_name: str, description: str):
-        """Crea una sección colapsable para una tabla de dimensiones."""
-        # Frame contenedor de la sección
-        section_frame = customtkinter.CTkFrame(parent, corner_radius=10)
-        section_frame.grid(row=row, column=0, sticky="ew", padx=5, pady=10)
-        section_frame.grid_columnconfigure(0, weight=1)
-
-        # Header de la sección (clickeable para expandir/colapsar)
-        header_frame = customtkinter.CTkFrame(section_frame, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
-        header_frame.grid_columnconfigure(1, weight=1)
-
-        # Botón expandir/colapsar
-        expand_btn = customtkinter.CTkButton(
-            header_frame,
-            text="▼",
-            width=30,
-            height=30,
-            fg_color="transparent",
-            hover_color=("gray70", "gray30"),
-            font=customtkinter.CTkFont(size=14)
-        )
-        expand_btn.grid(row=0, column=0, padx=(0, 10))
-
-        # Título
-        title_label = customtkinter.CTkLabel(
-            header_frame,
-            text=title,
-            font=customtkinter.CTkFont(size=16, weight="bold")
-        )
-        title_label.grid(row=0, column=1, sticky="w")
+    def _setup_dimension_subtab(self, tab, table_name: str, description: str):
+        """Configura una sub-pestaña para una tabla de dimensiones."""
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
 
         # Descripción
         desc_label = customtkinter.CTkLabel(
-            header_frame,
+            tab,
             text=description,
-            font=customtkinter.CTkFont(size=11),
+            font=customtkinter.CTkFont(size=12),
             text_color="gray"
         )
-        desc_label.grid(row=1, column=1, sticky="w", pady=(5, 0))
+        desc_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="w")
 
-        # Contenido (inicialmente visible)
-        content_frame = customtkinter.CTkFrame(section_frame, fg_color="transparent")
-        content_frame.grid(row=1, column=0, sticky="ew", padx=10, pady=(0, 10))
-        content_frame.grid_columnconfigure(0, weight=1)
-
-        # Guardar referencia
-        self.dim_sections[table_name] = {
-            'frame': content_frame,
-            'expanded': True,
-            'expand_btn': expand_btn
-        }
-
-        # Configurar toggle
-        expand_btn.configure(command=lambda t=table_name: self._toggle_section(t))
-
-        # Crear contenido de la sección
-        self._create_dimension_content(content_frame, table_name)
-
-    def _toggle_section(self, table_name: str):
-        """Expande o colapsa una sección."""
-        section = self.dim_sections[table_name]
-        if section['expanded']:
-            section['frame'].grid_remove()
-            section['expand_btn'].configure(text="▶")
-            section['expanded'] = False
-        else:
-            section['frame'].grid()
-            section['expand_btn'].configure(text="▼")
-            section['expanded'] = True
-
-    def _create_dimension_content(self, parent, table_name: str):
-        """Crea el contenido de una sección de dimensiones."""
-        # TreeView para mostrar registros
-        tree_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        tree_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+        # Frame para el TreeView
+        tree_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
+        tree_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
         tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.grid_rowconfigure(0, weight=1)
 
         # Configurar estilo del TreeView
         style = ttk.Style()
         style.theme_use('clam')
+        style_name = f"Dim_{table_name}.Treeview"
         style.configure(
-            f"Dim_{table_name}.Treeview",
+            style_name,
             background="#2a2d2e",
             foreground="white",
             fieldbackground="#2a2d2e",
-            rowheight=30,
+            rowheight=28,
             font=('Segoe UI', 11)
         )
         style.configure(
-            f"Dim_{table_name}.Treeview.Heading",
+            f"{style_name}.Heading",
             background="#1f6aa5",
             foreground="white",
             font=('Segoe UI', 11, 'bold')
         )
-        style.map(
-            f"Dim_{table_name}.Treeview",
-            background=[('selected', '#1f6aa5')]
-        )
+        style.map(style_name, background=[('selected', '#1f6aa5')])
 
         # Crear TreeView
         columns = ("id", "codigo", "descripcion", "activo")
@@ -243,8 +179,8 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             tree_frame,
             columns=columns,
             show="headings",
-            height=5,
-            style=f"Dim_{table_name}.Treeview"
+            height=10,
+            style=style_name
         )
 
         # Configurar columnas
@@ -253,54 +189,54 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         tree.heading("descripcion", text="Descripción")
         tree.heading("activo", text="Activo")
 
-        tree.column("id", width=50, anchor="center")
-        tree.column("codigo", width=100, anchor="w")
-        tree.column("descripcion", width=300, anchor="w")
-        tree.column("activo", width=70, anchor="center")
+        tree.column("id", width=60, anchor="center")
+        tree.column("codigo", width=120, anchor="w")
+        tree.column("descripcion", width=400, anchor="w")
+        tree.column("activo", width=80, anchor="center")
 
-        tree.grid(row=0, column=0, sticky="ew")
+        tree.grid(row=0, column=0, sticky="nsew")
 
-        # Scrollbar
+        # Scrollbar vertical
         scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         tree.configure(yscrollcommand=scrollbar.set)
 
         # Guardar referencia al tree
-        self.dim_sections[table_name]['tree'] = tree
+        self.dim_sections[table_name] = {'tree': tree}
 
         # Frame para añadir nuevo registro
-        add_frame = customtkinter.CTkFrame(parent, fg_color=("#e0e0e0", "#333333"))
-        add_frame.grid(row=1, column=0, sticky="ew", pady=5)
-        add_frame.grid_columnconfigure(2, weight=1)
+        add_frame = customtkinter.CTkFrame(tab, fg_color=("#e0e0e0", "#333333"), corner_radius=10)
+        add_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
+        add_frame.grid_columnconfigure(3, weight=1)
 
         # Label
         customtkinter.CTkLabel(
             add_frame,
             text="Añadir nuevo:",
             font=customtkinter.CTkFont(size=12, weight="bold")
-        ).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        ).grid(row=0, column=0, padx=15, pady=12, sticky="w")
 
         # Entry Código
-        customtkinter.CTkLabel(add_frame, text="Código:").grid(row=0, column=1, padx=(10, 5), pady=10)
+        customtkinter.CTkLabel(add_frame, text="Código:").grid(row=0, column=1, padx=(10, 5), pady=12)
         codigo_entry = customtkinter.CTkEntry(
             add_frame,
-            width=100,
+            width=120,
             fg_color="#171717",
             text_color="#FFFFFF",
             placeholder_text="Ej: AB"
         )
-        codigo_entry.grid(row=0, column=2, padx=5, pady=10, sticky="w")
+        codigo_entry.grid(row=0, column=2, padx=5, pady=12)
 
         # Entry Descripción
-        customtkinter.CTkLabel(add_frame, text="Descripción:").grid(row=0, column=3, padx=(20, 5), pady=10)
+        customtkinter.CTkLabel(add_frame, text="Descripción:").grid(row=0, column=3, padx=(20, 5), pady=12, sticky="e")
         desc_entry = customtkinter.CTkEntry(
             add_frame,
-            width=250,
+            width=300,
             fg_color="#171717",
             text_color="#FFFFFF",
             placeholder_text="Ej: Abastecimiento"
         )
-        desc_entry.grid(row=0, column=4, padx=5, pady=10, sticky="ew")
+        desc_entry.grid(row=0, column=4, padx=5, pady=12, sticky="ew")
 
         # Botón Añadir
         add_btn = customtkinter.CTkButton(
@@ -311,66 +247,67 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             hover_color="#006400",
             command=lambda: self._add_dimension_record(table_name, codigo_entry, desc_entry)
         )
-        add_btn.grid(row=0, column=5, padx=10, pady=10)
+        add_btn.grid(row=0, column=5, padx=15, pady=12)
 
-        # Guardar referencias
+        # Guardar referencias a los entries
         self.dim_sections[table_name]['codigo_entry'] = codigo_entry
         self.dim_sections[table_name]['desc_entry'] = desc_entry
 
         # Frame de acciones
-        actions_frame = customtkinter.CTkFrame(parent, fg_color="transparent")
-        actions_frame.grid(row=2, column=0, sticky="ew")
+        actions_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
+        actions_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 10))
 
         # Botón Editar
-        edit_btn = customtkinter.CTkButton(
+        customtkinter.CTkButton(
             actions_frame,
             text="✏️ Editar",
-            width=100,
+            width=110,
             fg_color="#1f6aa5",
             hover_color="#144870",
             command=lambda: self._edit_dimension_record(table_name)
-        )
-        edit_btn.grid(row=0, column=0, padx=(0, 10), pady=5)
+        ).grid(row=0, column=0, padx=(0, 10), pady=5)
 
         # Botón Eliminar
-        delete_btn = customtkinter.CTkButton(
+        customtkinter.CTkButton(
             actions_frame,
             text="🗑️ Eliminar",
-            width=100,
+            width=110,
             fg_color="#8B0000",
             hover_color="#5C0000",
             command=lambda: self._delete_dimension_record(table_name)
-        )
-        delete_btn.grid(row=0, column=1, padx=10, pady=5)
+        ).grid(row=0, column=1, padx=10, pady=5)
 
         # Botón Activar/Desactivar
-        toggle_btn = customtkinter.CTkButton(
+        customtkinter.CTkButton(
             actions_frame,
-            text="🔄 Activar/Desactivar",
-            width=140,
+            text="🔄 Activar/Desact.",
+            width=130,
             fg_color="#8B4513",
             hover_color="#5D2E0C",
             command=lambda: self._toggle_dimension_record(table_name)
-        )
-        toggle_btn.grid(row=0, column=2, padx=10, pady=5)
+        ).grid(row=0, column=2, padx=10, pady=5)
 
         # Botón Actualizar
-        refresh_btn = customtkinter.CTkButton(
+        customtkinter.CTkButton(
             actions_frame,
             text="🔄 Actualizar",
-            width=100,
+            width=110,
             fg_color="transparent",
             hover_color=("gray70", "gray30"),
+            border_width=1,
             command=lambda: self._load_dimension_data(table_name)
-        )
-        refresh_btn.grid(row=0, column=3, padx=10, pady=5)
+        ).grid(row=0, column=3, padx=10, pady=5)
 
         # Cargar datos iniciales
-        self._load_dimension_data(table_name)
+        self.after(100, lambda: self._load_dimension_data(table_name))
 
     def _load_dimension_data(self, table_name: str):
         """Carga los datos de una tabla de dimensiones."""
         from script.db_config_admin import get_dimension_records
+
+        if table_name not in self.dim_sections:
+            print(f"Error: {table_name} no encontrado en dim_sections")
+            return
 
         tree = self.dim_sections[table_name]['tree']
 
@@ -378,13 +315,21 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         for item in tree.get_children():
             tree.delete(item)
 
-        # Obtener datos
-        records = get_dimension_records(self.user, self.password, self.schema, table_name)
+        try:
+            # Obtener datos
+            records = get_dimension_records(self.user, self.password, self.schema, table_name)
 
-        # Insertar en el TreeView
-        for record in records:
-            activo_text = "✓" if record[3] == 1 else "✗"
-            tree.insert("", "end", values=(record[0], record[1], record[2], activo_text))
+            # Insertar en el TreeView
+            for record in records:
+                activo_text = "✓ Sí" if record[3] == 1 else "✗ No"
+                tree.insert("", "end", values=(record[0], record[1], record[2], activo_text))
+
+            if not records:
+                print(f"No se encontraron registros en {table_name}")
+
+        except Exception as e:
+            print(f"Error al cargar datos de {table_name}: {e}")
+            CTkMessagebox(title="Error", message=f"Error al cargar {table_name}:\n{e}", icon="cancel")
 
     def _add_dimension_record(self, table_name: str, codigo_entry, desc_entry):
         """Añade un nuevo registro a una tabla de dimensiones."""
@@ -440,29 +385,37 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         """Muestra el diálogo de edición."""
         dialog = customtkinter.CTkToplevel(self)
         dialog.title("Editar Registro")
-        dialog.geometry("400x200")
+        dialog.geometry("450x220")
         dialog.transient(self)
         dialog.grab_set()
+        dialog.resizable(False, False)
 
         dialog.grid_columnconfigure(1, weight=1)
 
+        # Título
+        customtkinter.CTkLabel(
+            dialog,
+            text="Editar Registro",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 10))
+
         # Código
         customtkinter.CTkLabel(dialog, text="Código:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=20, pady=(20, 10), sticky="e")
-        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF")
-        codigo_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+            row=1, column=0, padx=20, pady=10, sticky="e")
+        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=250)
+        codigo_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
         codigo_entry.insert(0, current_codigo)
 
         # Descripción
         customtkinter.CTkLabel(dialog, text="Descripción:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=20, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF")
-        desc_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+            row=2, column=0, padx=20, pady=10, sticky="e")
+        desc_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=250)
+        desc_entry.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
         desc_entry.insert(0, current_desc)
 
         # Botones
         btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.grid(row=2, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=20)
 
         def save_changes():
             from script.db_config_admin import update_dimension_record, validar_codigo_dimension, validar_descripcion
@@ -487,13 +440,13 @@ class AppConfiguracion(customtkinter.CTkToplevel):
                 CTkMessagebox(title="Error", message=result['message'], icon="cancel")
 
         customtkinter.CTkButton(
-            btn_frame, text="Guardar", fg_color="green", hover_color="#006400",
-            command=save_changes
+            btn_frame, text="💾 Guardar", fg_color="green", hover_color="#006400",
+            width=100, command=save_changes
         ).grid(row=0, column=0, padx=10)
 
         customtkinter.CTkButton(
-            btn_frame, text="Cancelar", fg_color="red", hover_color="#8B0000",
-            command=dialog.destroy
+            btn_frame, text="❌ Cancelar", fg_color="red", hover_color="#8B0000",
+            width=100, command=dialog.destroy
         ).grid(row=0, column=1, padx=10)
 
     def _delete_dimension_record(self, table_name: str):
@@ -564,7 +517,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         # Frame de filtros
         filter_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
         filter_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
-        filter_frame.grid_columnconfigure(2, weight=1)
+        filter_frame.grid_columnconfigure(3, weight=1)
 
         # Filtro por familia
         customtkinter.CTkLabel(filter_frame, text="Familia:", font=("", 12, "bold")).grid(
@@ -617,7 +570,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             background="#2a2d2e",
             foreground="white",
             fieldbackground="#2a2d2e",
-            rowheight=30,
+            rowheight=28,
             font=('Segoe UI', 11)
         )
         style.configure(
@@ -650,7 +603,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         self.catalogo_tree.column("descripcion", width=350, anchor="w")
         self.catalogo_tree.column("precio", width=80, anchor="e")
         self.catalogo_tree.column("familia", width=150, anchor="w")
-        self.catalogo_tree.column("activo", width=60, anchor="center")
+        self.catalogo_tree.column("activo", width=70, anchor="center")
 
         self.catalogo_tree.grid(row=0, column=0, sticky="nsew")
 
@@ -660,33 +613,33 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         self.catalogo_tree.configure(yscrollcommand=scrollbar_y.set)
 
         # Frame para añadir partida
-        add_frame = customtkinter.CTkFrame(tab, fg_color=("#e0e0e0", "#333333"))
+        add_frame = customtkinter.CTkFrame(tab, fg_color=("#e0e0e0", "#333333"), corner_radius=10)
         add_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
         add_frame.grid_columnconfigure(4, weight=1)
 
         customtkinter.CTkLabel(add_frame, text="Nueva partida:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=10, pady=10, sticky="w")
+            row=0, column=0, padx=15, pady=12, sticky="w")
 
         # Código
-        customtkinter.CTkLabel(add_frame, text="Código:").grid(row=0, column=1, padx=5, pady=10)
+        customtkinter.CTkLabel(add_frame, text="Código:").grid(row=0, column=1, padx=5, pady=12)
         self.partida_codigo_entry = customtkinter.CTkEntry(
             add_frame, width=100, fg_color="#171717", text_color="#FFFFFF"
         )
-        self.partida_codigo_entry.grid(row=0, column=2, padx=5, pady=10)
+        self.partida_codigo_entry.grid(row=0, column=2, padx=5, pady=12)
 
         # Descripción
-        customtkinter.CTkLabel(add_frame, text="Descripción:").grid(row=0, column=3, padx=5, pady=10)
+        customtkinter.CTkLabel(add_frame, text="Descripción:").grid(row=0, column=3, padx=5, pady=12)
         self.partida_desc_entry = customtkinter.CTkEntry(
             add_frame, width=300, fg_color="#171717", text_color="#FFFFFF"
         )
-        self.partida_desc_entry.grid(row=0, column=4, padx=5, pady=10, sticky="ew")
+        self.partida_desc_entry.grid(row=0, column=4, padx=5, pady=12, sticky="ew")
 
         # Precio
-        customtkinter.CTkLabel(add_frame, text="Precio:").grid(row=0, column=5, padx=5, pady=10)
+        customtkinter.CTkLabel(add_frame, text="Precio:").grid(row=0, column=5, padx=5, pady=12)
         self.partida_precio_entry = customtkinter.CTkEntry(
             add_frame, width=80, fg_color="#171717", text_color="#FFFFFF", placeholder_text="0.00"
         )
-        self.partida_precio_entry.grid(row=0, column=6, padx=5, pady=10)
+        self.partida_precio_entry.grid(row=0, column=6, padx=5, pady=12)
 
         # Botón Añadir
         customtkinter.CTkButton(
@@ -696,7 +649,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             fg_color="green",
             hover_color="#006400",
             command=self._add_catalogo_partida
-        ).grid(row=0, column=7, padx=10, pady=10)
+        ).grid(row=0, column=7, padx=15, pady=12)
 
         # Frame de acciones
         actions_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
@@ -723,20 +676,24 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         customtkinter.CTkButton(
             actions_frame, text="🔄 Actualizar", width=100,
             fg_color="transparent", hover_color=("gray70", "gray30"),
+            border_width=1,
             command=self._load_catalogo_data
         ).grid(row=0, column=3, padx=10, pady=5)
 
-        # Cargar familias y datos
-        self._load_catalogo_familias()
-        self._load_catalogo_data()
+        # Cargar familias y datos después de que la ventana esté lista
+        self.after(100, self._load_catalogo_familias)
+        self.after(200, self._load_catalogo_data)
 
     def _load_catalogo_familias(self):
         """Carga las familias disponibles."""
         from script.db_config_admin import get_catalogo_familias
 
-        familias = get_catalogo_familias(self.user, self.password, self.schema)
-        valores = ["Todas"] + [f"{f[0]} - {f[1]}" for f in familias]
-        self.familia_menu.configure(values=valores)
+        try:
+            familias = get_catalogo_familias(self.user, self.password, self.schema)
+            valores = ["Todas"] + [f"{f[0]} - {f[1]}" for f in familias]
+            self.familia_menu.configure(values=valores)
+        except Exception as e:
+            print(f"Error al cargar familias: {e}")
 
     def _on_familia_change(self, value):
         """Callback cuando cambia la familia seleccionada."""
@@ -757,31 +714,38 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         for item in self.catalogo_tree.get_children():
             self.catalogo_tree.delete(item)
 
-        # Obtener filtros
-        familia_value = self.familia_var.get()
-        familia_id = None
-        if familia_value != "Todas" and " - " in familia_value:
-            try:
-                familia_id = int(familia_value.split(" - ")[0])
-            except ValueError:
-                pass
+        try:
+            # Obtener filtros
+            familia_value = self.familia_var.get()
+            familia_id = None
+            if familia_value != "Todas" and " - " in familia_value:
+                try:
+                    familia_id = int(familia_value.split(" - ")[0])
+                except ValueError:
+                    pass
 
-        search_text = self.search_entry.get().strip() or None
+            search_text = self.search_entry.get().strip() or None
 
-        # Obtener datos
-        partidas = get_catalogo_partidas(
-            self.user, self.password, self.schema,
-            familia_id=familia_id,
-            search_text=search_text
-        )
+            # Obtener datos
+            partidas = get_catalogo_partidas(
+                self.user, self.password, self.schema,
+                familia_id=familia_id,
+                search_text=search_text
+            )
 
-        # Insertar en TreeView
-        for partida in partidas:
-            activo_text = "✓" if partida[5] == 1 else "✗"
-            precio_text = f"{partida[3]:.2f}" if partida[3] else "0.00"
-            self.catalogo_tree.insert("", "end", values=(
-                partida[0], partida[1], partida[2], precio_text, partida[4] or "", activo_text
-            ))
+            # Insertar en TreeView
+            for partida in partidas:
+                activo_text = "✓ Sí" if partida[5] == 1 else "✗ No"
+                precio_text = f"{partida[3]:.2f}" if partida[3] else "0.00"
+                self.catalogo_tree.insert("", "end", values=(
+                    partida[0], partida[1], partida[2], precio_text, partida[4] or "", activo_text
+                ))
+
+            if not partidas:
+                print("No se encontraron partidas en el catálogo")
+
+        except Exception as e:
+            print(f"Error al cargar catálogo: {e}")
 
     def _add_catalogo_partida(self):
         """Añade una nueva partida al catálogo."""
@@ -837,36 +801,44 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         # Crear diálogo de edición
         dialog = customtkinter.CTkToplevel(self)
         dialog.title("Editar Partida")
-        dialog.geometry("450x250")
+        dialog.geometry("500x280")
         dialog.transient(self)
         dialog.grab_set()
+        dialog.resizable(False, False)
 
         dialog.grid_columnconfigure(1, weight=1)
 
+        # Título
+        customtkinter.CTkLabel(
+            dialog,
+            text="Editar Partida",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 10))
+
         # Código
         customtkinter.CTkLabel(dialog, text="Código:", font=("", 12, "bold")).grid(
-            row=0, column=0, padx=20, pady=(20, 10), sticky="e")
-        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF")
-        codigo_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
+            row=1, column=0, padx=20, pady=10, sticky="e")
+        codigo_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
+        codigo_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
         codigo_entry.insert(0, current_codigo)
 
         # Descripción
         customtkinter.CTkLabel(dialog, text="Descripción:", font=("", 12, "bold")).grid(
-            row=1, column=0, padx=20, pady=10, sticky="e")
-        desc_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF")
-        desc_entry.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+            row=2, column=0, padx=20, pady=10, sticky="e")
+        desc_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
+        desc_entry.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
         desc_entry.insert(0, current_desc)
 
         # Precio
         customtkinter.CTkLabel(dialog, text="Precio:", font=("", 12, "bold")).grid(
-            row=2, column=0, padx=20, pady=10, sticky="e")
-        precio_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF")
-        precio_entry.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
+            row=3, column=0, padx=20, pady=10, sticky="e")
+        precio_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=300)
+        precio_entry.grid(row=3, column=1, padx=20, pady=10, sticky="ew")
         precio_entry.insert(0, current_precio)
 
         # Botones
         btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.grid(row=3, column=0, columnspan=2, pady=20)
+        btn_frame.grid(row=4, column=0, columnspan=2, pady=20)
 
         def save_changes():
             from script.db_config_admin import update_catalogo_partida, validar_precio
@@ -894,13 +866,13 @@ class AppConfiguracion(customtkinter.CTkToplevel):
                 CTkMessagebox(title="Error", message=result['message'], icon="cancel")
 
         customtkinter.CTkButton(
-            btn_frame, text="Guardar", fg_color="green", hover_color="#006400",
-            command=save_changes
+            btn_frame, text="💾 Guardar", fg_color="green", hover_color="#006400",
+            width=100, command=save_changes
         ).grid(row=0, column=0, padx=10)
 
         customtkinter.CTkButton(
-            btn_frame, text="Cancelar", fg_color="red", hover_color="#8B0000",
-            command=dialog.destroy
+            btn_frame, text="❌ Cancelar", fg_color="red", hover_color="#8B0000",
+            width=100, command=dialog.destroy
         ).grid(row=0, column=1, padx=10)
 
     def _delete_catalogo_partida(self):
