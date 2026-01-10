@@ -127,11 +127,11 @@ class AppParts(customtkinter.CTk):
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
 
-            # Get next number with GLOBAL numbering (all prefixes share same sequence)
+            # Get next number for this specific prefix (each type has its own sequence)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Obtener el último número usado de TODOS los códigos (numeración global)
-                # NOTA: Los códigos existentes usan barra / como separador (OT/0001, TP/0002)
+                # Obtener el último número usado para ESTE prefijo específico
+                # Cada tipo (GF, OT, TP) tiene su propia secuencia: GF/0001, OT/0001, TP/0001...
                 cur.execute("""
                     SELECT COALESCE(
                         MAX(
@@ -143,8 +143,8 @@ class AppParts(customtkinter.CTk):
                     ) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
-                      AND codigo LIKE '%/%'
-                """)
+                      AND codigo LIKE %s
+                """, (f"{prefix}/%",))
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
