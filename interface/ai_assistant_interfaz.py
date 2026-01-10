@@ -201,72 +201,85 @@ class AIAssistantWindow(customtkinter.CTkToplevel):
         self.processing_label.grid(row=0, column=1, padx=15, pady=5, sticky="e")
 
     def _check_requirements(self):
-        """Verifica los requisitos del asistente."""
-        from script.ai_assistant import check_requirements, AIAssistant
+        """Verifica los requisitos del asistente en un hilo separado."""
+        self._set_status("Conectando con Ollama...")
 
-        self._set_status("Verificando requisitos...")
+        # Ejecutar verificacion en hilo separado para no bloquear UI
+        thread = threading.Thread(target=self._do_check_requirements)
+        thread.daemon = True
+        thread.start()
+
+    def _do_check_requirements(self):
+        """Ejecuta la verificacion de requisitos (en hilo separado)."""
+        from script.ai_assistant import check_requirements, AIAssistant
 
         try:
             reqs = check_requirements()
-
-            if not reqs['ollama_installed']:
-                self._set_status("Ollama no instalado", error=True)
-                self._add_system_message(
-                    "AVISO: Ollama no esta instalado.\n\n"
-                    "Para usar el asistente IA, necesitas:\n"
-                    "1. Descargar Ollama desde https://ollama.ai\n"
-                    "2. Instalar y ejecutar 'ollama serve'\n"
-                    "3. Descargar un modelo: 'ollama pull llama3.2:3b'\n\n"
-                    "Una vez instalado, reinicia esta ventana."
-                )
-                self.model_selector.configure(values=["No disponible"])
-                self.model_selector.set("No disponible")
-                self.btn_send.configure(state="disabled")
-                return
-
-            if not reqs['ollama_running']:
-                self._set_status("Ollama no esta ejecutandose", error=True)
-                self._add_system_message(
-                    "AVISO: Ollama no esta ejecutandose.\n\n"
-                    "Ejecuta 'ollama serve' en una terminal y reinicia esta ventana."
-                )
-                self.model_selector.configure(values=["No disponible"])
-                self.model_selector.set("No disponible")
-                self.btn_send.configure(state="disabled")
-                return
-
-            if not reqs['models_available']:
-                self._set_status("No hay modelos instalados", error=True)
-                self._add_system_message(
-                    "AVISO: No hay modelos de IA instalados.\n\n"
-                    "Ejecuta en terminal:\n"
-                    "  ollama pull llama3.2:3b\n\n"
-                    "Luego reinicia esta ventana."
-                )
-                self.model_selector.configure(values=["Sin modelos"])
-                self.model_selector.set("Sin modelos")
-                self.btn_send.configure(state="disabled")
-                return
-
-            # Todo OK - configurar modelos
-            self.model_selector.configure(values=reqs['models_available'])
-
-            # Seleccionar modelo recomendado o el primero
-            if reqs['recommended_model']:
-                self.model_selector.set(reqs['recommended_model'])
-            else:
-                self.model_selector.set(reqs['models_available'][0])
-
-            # Crear instancia del asistente
-            self.assistant = AIAssistant(self.user, self.password, self.schema)
-            self.assistant.set_model(self.model_selector.get())
-
-            self._set_status(f"Listo. Modelo: {self.model_selector.get()}")
-            self.btn_send.configure(state="normal")
-
+            # Actualizar UI desde el hilo principal
+            self.after(0, lambda: self._apply_requirements(reqs))
         except Exception as e:
-            self._set_status(f"Error: {str(e)}", error=True)
-            self._add_error_message(f"Error inicializando asistente: {str(e)}")
+            self.after(0, lambda: self._set_status(f"Error: {str(e)}", error=True))
+            self.after(0, lambda: self._add_error_message(f"Error: {str(e)}"))
+
+    def _apply_requirements(self, reqs):
+        """Aplica los resultados de la verificacion a la UI."""
+        from script.ai_assistant import AIAssistant
+
+        if not reqs['ollama_installed']:
+            self._set_status(reqs.get('message', 'Ollama no instalado'), error=True)
+            self._add_system_message(
+                "AVISO: Ollama no detectado.\n\n"
+                "Para usar el asistente IA:\n"
+                "1. Descarga Ollama desde https://ollama.ai\n"
+                "2. Abre la aplicacion Ollama\n"
+                "3. Descarga un modelo: ollama pull mistral:7b\n\n"
+                "Luego haz clic en el boton de actualizar (↻)"
+            )
+            self.model_selector.configure(values=["No disponible"])
+            self.model_selector.set("No disponible")
+            self.btn_send.configure(state="disabled")
+            return
+
+        if not reqs['ollama_running']:
+            self._set_status(reqs.get('message', 'Ollama no ejecutandose'), error=True)
+            self._add_system_message(
+                f"AVISO: {reqs.get('message', 'Ollama no esta ejecutandose')}\n\n"
+                "Abre la aplicacion Ollama y haz clic en actualizar (↻)"
+            )
+            self.model_selector.configure(values=["No disponible"])
+            self.model_selector.set("No disponible")
+            self.btn_send.configure(state="disabled")
+            return
+
+        if not reqs['models_available']:
+            self._set_status("Sin modelos instalados", error=True)
+            self._add_system_message(
+                "AVISO: No hay modelos de IA instalados.\n\n"
+                "Ejecuta en terminal:\n"
+                "  ollama pull mistral:7b\n\n"
+                "Luego haz clic en actualizar (↻)"
+            )
+            self.model_selector.configure(values=["Sin modelos"])
+            self.model_selector.set("Sin modelos")
+            self.btn_send.configure(state="disabled")
+            return
+
+        # Todo OK - configurar modelos
+        self.model_selector.configure(values=reqs['models_available'])
+
+        # Seleccionar modelo recomendado o el primero
+        if reqs['recommended_model']:
+            self.model_selector.set(reqs['recommended_model'])
+        else:
+            self.model_selector.set(reqs['models_available'][0])
+
+        # Crear instancia del asistente
+        self.assistant = AIAssistant(self.user, self.password, self.schema)
+        self.assistant.set_model(self.model_selector.get())
+
+        self._set_status(f"Listo. Modelo: {self.model_selector.get()}")
+        self.btn_send.configure(state="normal")
+        self._add_system_message(f"Asistente listo con modelo: {self.model_selector.get()}")
 
     def _refresh_models(self):
         """Actualiza la lista de modelos disponibles."""
