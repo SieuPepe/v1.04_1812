@@ -404,9 +404,10 @@ def delete_catalogo_partida(user: str, password: str, schema: str, partida_id: i
             cur = cn.cursor()
 
             # Verificar si la partida está siendo usada en presupuestos
+            # La tabla es tbl_part_presupuesto y la FK es precio_id
             cur.execute(f"""
-                SELECT COUNT(*) FROM {schema}.tbl_parte_presupuesto
-                WHERE partida_id = %s
+                SELECT COUNT(*) FROM {schema}.tbl_part_presupuesto
+                WHERE precio_id = %s
             """, (partida_id,))
             count = cur.fetchone()[0]
             if count > 0:
