@@ -24,7 +24,8 @@ from script.modulo_db import (
     get_dim_all,
     get_provincias,
     get_comarcas_by_provincia,
-    get_municipios_by_provincia
+    get_municipios_by_provincia,
+    get_concejos_by_municipio
 )
 # from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
 
@@ -185,8 +186,15 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         # Municipio (se actualiza según comarca seleccionada)
         customtkinter.CTkLabel(self, text="Municipio:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400, state="normal")
+        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400,
+                                                         state="normal", command=self._on_municipio_change)
         self.municipio_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # Concejo (se actualiza según municipio seleccionado) - Solo para municipios de Álava
+        customtkinter.CTkLabel(self, text="Concejo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.concejo_menu = customtkinter.CTkComboBox(self, values=["(Opcional - selecciona municipio)"], width=400, state="normal")
+        self.concejo_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
         row += 1
 
         # ====================================================================
@@ -308,6 +316,38 @@ class AppPartsV2(customtkinter.CTkToplevel):
             print(f"Error actualizando municipios: {e}")
             self.municipio_menu.configure(values=["Error al cargar"])
             self.municipio_menu.set("Error al cargar")
+
+    def _on_municipio_change(self, municipio_value=None):
+        """Actualiza lista de concejos cuando cambia el municipio seleccionado"""
+        try:
+            # Si se llama desde el callback del combobox, municipio_value es el valor actual
+            if municipio_value is None:
+                municipio_value = self.municipio_menu.get()
+
+            # Extraer ID de municipio
+            municipio_id = self._take_id(municipio_value)
+
+            if not municipio_id:
+                self.concejo_menu.configure(values=["(Opcional - selecciona municipio)"])
+                self.concejo_menu.set("(Opcional - selecciona municipio)")
+                return
+
+            # Obtener concejos filtrados por municipio
+            concejos = get_concejos_by_municipio(self.user, self.password, self.schema, municipio_id=municipio_id)
+
+            if concejos:
+                # Añadir opción vacía al inicio para que sea opcional
+                valores = ["(Sin concejo)"] + concejos
+                self.concejo_menu.configure(values=valores)
+                self.concejo_menu.set("(Sin concejo)")
+            else:
+                self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                self.concejo_menu.set("(Sin concejos en este municipio)")
+
+        except Exception as e:
+            print(f"Error actualizando concejos: {e}")
+            self.concejo_menu.configure(values=["Error al cargar"])
+            self.concejo_menu.set("Error al cargar")
 
     @staticmethod
     def _take_id(v: str) -> int|None:
@@ -474,6 +514,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         provincia_id = self._take_id(self.provincia_menu.get())
         comarca_id = self._take_id(self.comarca_menu.get())
         municipio_id = self._take_id(self.municipio_menu.get())
+        concejo_id = self._take_id(self.concejo_menu.get())  # Opcional
 
         if not provincia_id:
             CTkMessagebox(title="Campo obligatorio", message="La Provincia es obligatoria", icon="warning")
@@ -577,6 +618,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 provincia_id=provincia_id,
                 comarca_id=comarca_id,
                 municipio_id=municipio_id,
+                concejo_id=concejo_id,
                 tipo_rep_id=tipo_rep_id,
                 trabajadores=trabajadores,
                 latitud=latitud,

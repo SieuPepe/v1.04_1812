@@ -133,6 +133,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
             },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
             "presupuesto": {
                 "nombre": "Presupuesto",
                 "tipo": "calculado",
@@ -278,6 +286,12 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "concejo": {
+                "campo": "concejo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_concejos"
             },
             "presupuesto": {
                 "campo": "presupuesto",
@@ -1566,6 +1580,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
             },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
             "trabajadores": {
                 "nombre": "Trabajadores",
                 "tipo": "texto",
@@ -1652,6 +1674,12 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "concejo": {
+                "campo": "concejo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_concejos"
             },
             "trabajadores": {
                 "campo": "trabajadores",
@@ -1834,6 +1862,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
             },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
             "localizacion": {
                 "nombre": "Localización",
                 "tipo": "texto",
@@ -1933,6 +1969,12 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "concejo": {
+                "campo": "concejo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_concejos"
             },
             "trabajadores": {
                 "campo": "trabajadores",
@@ -2205,6 +2247,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
             },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
             "trabajadores": {
                 "nombre": "Trabajadores",
                 "tipo": "texto",
@@ -2291,6 +2341,12 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "concejo": {
+                "campo": "concejo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_concejos"
             },
             "trabajadores": {
                 "campo": "trabajadores",
@@ -2474,6 +2530,14 @@ INFORMES_DEFINICIONES = {
                 "campo_nombre": "nombre",
                 "grupo": "Ubicación Geográfica"
             },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
             "localizacion": {
                 "nombre": "Localización",
                 "tipo": "texto",
@@ -2573,6 +2637,12 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "dim_municipios"
+            },
+            "concejo": {
+                "campo": "concejo",
+                "tipo": "select_bd",
+                "operadores": ["Igual a", "Diferente de"],
+                "tabla": "dim_concejos"
             },
             "trabajadores": {
                 "campo": "trabajadores",

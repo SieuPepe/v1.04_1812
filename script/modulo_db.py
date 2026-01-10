@@ -172,6 +172,7 @@ from .db_partes import (
     get_provincias,
     get_comarcas_by_provincia,
     get_municipios_by_provincia,
+    get_concejos_by_municipio,
     _get_tipo_trabajo_prefix,
 )
 
@@ -220,5 +221,6 @@ __all__ = [
     'get_part_cert_pendientes', 'get_part_cert_certificadas', 'add_part_cert_item',
     'cert_part_item', 'delete_part_cert_item', 'cert_parte_completo',
     'add_parte_mejorado', 'get_estados_parte', 'get_provincias',
-    'get_municipios_by_provincia', '_get_tipo_trabajo_prefix',
+    'get_comarcas_by_provincia', 'get_municipios_by_provincia',
+    'get_concejos_by_municipio', '_get_tipo_trabajo_prefix',
 ]

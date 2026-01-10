@@ -370,6 +370,7 @@ class AppPartsManager(customtkinter.CTk):
             "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
             "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
             "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
+            "concejo": {"label": "Concejo", "width": 150, "visible": False, "locked": False},
             "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
             "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
 
@@ -467,7 +468,7 @@ class AppPartsManager(customtkinter.CTk):
             # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
             #      presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
             #      fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
-            #      provincia, latitud, longitud, trabajadores, observaciones
+            #      provincia, concejo, latitud, longitud, trabajadores, observaciones
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -491,10 +492,11 @@ class AppPartsManager(customtkinter.CTk):
                 "municipio": 19,
                 "comarca": 20,
                 "provincia": 21,
-                "latitud": 22,
-                "longitud": 23,
-                "trabajadores": 24,
-                "observaciones": 25,
+                "concejo": 22,
+                "latitud": 23,
+                "longitud": 24,
+                "trabajadores": 25,
+                "observaciones": 26,
             }
 
             # Obtener columnas visibles actuales del tree
@@ -1035,7 +1037,7 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_datos_basicos_tab(self, parte_id):
         """Carga la pestaña de Datos Básicos - Layout optimizado en 2 columnas"""
-        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia
+        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia, get_concejos_by_municipio
         from tkcalendar import DateEntry
 
         # Bandera para evitar marcar como cambiado durante la carga inicial
@@ -1212,12 +1214,24 @@ class AppPartsManager(customtkinter.CTk):
             # Municipio - CREAR ANTES de establecer la provincia
             customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.municipio_menu = customtkinter.CTkOptionMenu(left_frame, values=["Seleccione provincia primero"])
+            self.municipio_menu = customtkinter.CTkOptionMenu(
+                left_frame,
+                values=["Seleccione provincia primero"],
+                command=self._on_municipio_change_edit
+            )
             self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # AHORA establecer provincia y municipio
+            # Concejo (opcional) - Solo para municipios de Álava
+            customtkinter.CTkLabel(left_frame, text="Concejo:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.concejo_menu = customtkinter.CTkOptionMenu(left_frame, values=["(Sin concejo)"])
+            self.concejo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
+
+            # AHORA establecer provincia, municipio y concejo
             current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
+            current_concejo_id = parte_data[23] if len(parte_data) > 23 else None  # concejo_id
             if current_municipio_id:
                 # Obtener provincia del municipio actual
                 try:
@@ -1245,9 +1259,26 @@ class AppPartsManager(customtkinter.CTk):
                                 if item.startswith(f"{current_municipio_id} -"):
                                     self.municipio_menu.set(item)
                                     break
+
+                            # Cargar y establecer concejo (si existe)
+                            concejos_list = get_concejos_by_municipio(self.user, self.password, self.schema, current_municipio_id)
+                            if concejos_list:
+                                valores_concejo = ["(Sin concejo)"] + concejos_list
+                                self.concejo_menu.configure(values=valores_concejo)
+                                if current_concejo_id:
+                                    for item in concejos_list:
+                                        if item.startswith(f"{current_concejo_id} -"):
+                                            self.concejo_menu.set(item)
+                                            break
+                                else:
+                                    self.concejo_menu.set("(Sin concejo)")
+                            else:
+                                self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                                self.concejo_menu.set("(Sin concejos en este municipio)")
+
                         cur.close()
                 except Exception as e:
-                    print(f"Error al cargar provincia/municipio: {e}")
+                    print(f"Error al cargar provincia/municipio/concejo: {e}")
                     import traceback
                     traceback.print_exc()
 
@@ -1422,8 +1453,9 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'tipo_rep_menu'):
             self.tipo_rep_menu.configure(command=lambda _: self._mark_as_changed())
-        if hasattr(self, 'municipio_menu'):
-            self.municipio_menu.configure(command=lambda _: self._mark_as_changed())
+        # Nota: municipio_menu ya tiene command=self._on_municipio_change_edit que marca cambios
+        if hasattr(self, 'concejo_menu'):
+            self.concejo_menu.configure(command=lambda _: self._mark_as_changed())
         # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
 
         # Textbox widgets
@@ -1467,8 +1499,40 @@ class AppPartsManager(customtkinter.CTk):
 
             # Marcar como cambiado
             self._mark_as_changed()
+
+            # También limpiar concejos cuando cambia la provincia
+            if hasattr(self, 'concejo_menu'):
+                self.concejo_menu.configure(values=["(Sin concejo)"])
+                self.concejo_menu.set("(Sin concejo)")
+
         except Exception as e:
             print(f"Error al cambiar provincia: {e}")
+
+    def _on_municipio_change_edit(self, selected_municipio):
+        """Actualiza lista de concejos cuando cambia el municipio"""
+        from script.modulo_db import get_concejos_by_municipio
+
+        # Si estamos cargando datos iniciales, NO hacer nada
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
+        try:
+            municipio_id = int(selected_municipio.split(" - ")[0])
+            concejos_list = get_concejos_by_municipio(self.user, self.password, self.schema, municipio_id)
+
+            if hasattr(self, 'concejo_menu'):
+                if concejos_list:
+                    valores = ["(Sin concejo)"] + concejos_list
+                    self.concejo_menu.configure(values=valores)
+                    self.concejo_menu.set("(Sin concejo)")
+                else:
+                    self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                    self.concejo_menu.set("(Sin concejos en este municipio)")
+
+            # Marcar como cambiado
+            self._mark_as_changed()
+        except Exception as e:
+            print(f"Error al cambiar municipio: {e}")
 
     def _confirm_and_save_parte(self, parte_id):
         """Solicita confirmación antes de guardar"""
@@ -1524,6 +1588,15 @@ class AppPartsManager(customtkinter.CTk):
             except:
                 pass
 
+            # Concejo (opcional)
+            concejo_id = None
+            try:
+                concejo_text = self.concejo_menu.get()
+                if concejo_text and not concejo_text.startswith("(Sin") and " - " in concejo_text:
+                    concejo_id = int(concejo_text.split(" - ")[0])
+            except:
+                pass
+
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
@@ -1565,7 +1638,7 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}, Concejo={concejo_id}")
             print(f"  Título: {titulo}")
             print(f"  Estado: {estado_texto} (ID: {estado_id})")
             print(f"  Fechas: inicio={fecha_inicio}, fin={fecha_fin}")
@@ -1580,6 +1653,7 @@ class AppPartsManager(customtkinter.CTk):
                 estado=estado_id,
                 observaciones=observaciones,
                 municipio_id=municipio_id,
+                concejo_id=concejo_id,
                 tipo_rep_id=tipo_rep_id,
                 titulo=titulo,
                 fecha_fin=fecha_fin,

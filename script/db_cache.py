@@ -39,6 +39,7 @@ class CacheConfig:
         'dim_comarcas': 3600,
         'dim_provincias': 3600,
         'dim_municipios': 3600,
+        'dim_concejos': 3600,
         'dim_ccaa': 3600,
 
         # Catálogos de trabajo (semi-estáticas)
