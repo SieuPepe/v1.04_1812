@@ -217,3 +217,56 @@ Los campos "Fecha Prevista" y "Descripción Larga" ahora son opcionales y se pue
 
 ---
 
+## Bug #9: Ver Detalle desde Resumen de Partes no carga el parte seleccionado
+**Fecha:** 2026-01-10
+**Estado:** ✅ RESUELTO
+
+### Descripción del problema
+Al hacer doble clic en un parte en la ventana "Resumen de Partes" o pulsar el botón "Ver Detalle", se abría la ventana de "Gestión de Partes" pero NO mostraba el parte seleccionado. En su lugar, mostraba el parte que se había buscado anteriormente.
+
+### Causa raíz
+En `_view_parte_detail()` se obtenía `item['values'][0]` pensando que era el ID numérico del parte, pero en realidad era el **código** (ej: "OT/0523") porque la columna "id" no está visible en el TreeView.
+
+Luego, al buscar en el selector con `item.startswith(f"{parte_id} -")`, buscaba items que empezaran con "OT/0523 -", pero los items del selector tienen formato "{ID} - {codigo} | ..." (ej: "123 - OT/0523 | ..."), por lo que nunca encontraba coincidencia.
+
+### Archivo modificado
+- `interface/parts_manager_interfaz.py`
+
+### Solución aplicada
+
+1. **En `_reload_resumen()`**: Guardar el ID numérico como `iid` del item del TreeView:
+```python
+# ANTES:
+self.tree_resumen.insert("", "end", values=row_values)
+
+# DESPUÉS:
+parte_id = row_data[0]  # ID está en la posición 0
+self.tree_resumen.insert("", "end", iid=str(parte_id), values=row_values)
+```
+
+2. **En `_view_parte_detail()`**: Obtener el ID del `iid` en lugar de `values[0]`:
+```python
+# ANTES:
+item = self.tree_resumen.item(selected[0])
+parte_id = item['values'][0]
+
+# DESPUÉS:
+parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
+```
+
+3. **En `_delete_parte_resumen()`**: Misma corrección para que la eliminación funcione correctamente:
+```python
+# ANTES:
+parte_id = values[0]
+codigo = values[1]
+
+# DESPUÉS:
+parte_id = selected[0]  # El iid es el ID
+codigo = values[0]  # La primera columna visible es 'codigo'
+```
+
+### Resultado
+Ahora al hacer doble clic o pulsar "Ver Detalle" en un parte del resumen, se carga correctamente ese parte en la ventana de Gestión de Partes.
+
+---
+

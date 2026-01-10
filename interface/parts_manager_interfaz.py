@@ -521,7 +521,9 @@ class AppPartsManager(customtkinter.CTk):
                     else:
                         row_values.append("")
 
-                self.tree_resumen.insert("", "end", values=row_values)
+                # Usar el ID del parte como iid para poder recuperarlo después
+                parte_id = row_data[0]  # ID está en la posición 0
+                self.tree_resumen.insert("", "end", iid=str(parte_id), values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
@@ -727,10 +729,11 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Aviso", message="Seleccione un parte", icon="info")
             return
 
+        # El iid del item del tree es el ID numérico del parte
+        parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
         item = self.tree_resumen.item(selected[0])
         values = item['values']
-        parte_id = values[0]
-        codigo = values[1]
+        codigo = values[0]  # La primera columna visible es 'codigo'
 
         msg = CTkMessagebox(
             title="Confirmar",
@@ -755,8 +758,8 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Aviso", message="Seleccione un parte", icon="info")
             return
 
-        item = self.tree_resumen.item(selected[0])
-        parte_id = item['values'][0]
+        # El iid del item del tree es el ID numérico del parte
+        parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
 
         # Guardar el ID seleccionado y cambiar a pestaña Partes
         self.selected_parte_id = parte_id
