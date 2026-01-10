@@ -415,7 +415,7 @@ class AIAssistantWindow(customtkinter.CTkToplevel):
 
     def _set_status(self, text: str, error: bool = False):
         """Actualiza el texto de la barra de estado."""
-        color = "#FF6B6B" if error else None
+        color = "#FF6B6B" if error else "gray"
         self.status_label.configure(text=text, text_color=color)
 
 
