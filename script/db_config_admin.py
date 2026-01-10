@@ -3,7 +3,7 @@ Módulo de funciones CRUD para la configuración del sistema.
 Gestiona tablas de dimensiones y catálogo de partidas.
 """
 
-from script.db_connector import get_project_connection
+from script.db_connection import get_project_connection
 
 
 # =============================================================================
