@@ -175,3 +175,45 @@ La pantalla de edición ahora respeta las mismas reglas de negocio que la creaci
 
 ---
 
+## Bug #8: Campos Fecha Prevista y Descripción Larga no deben ser obligatorios
+**Fecha:** 2026-01-10
+**Estado:** ✅ RESUELTO
+
+### Descripción del problema
+En el formulario de creación de partes, los campos "Fecha Prevista" y "Descripción Larga" estaban configurados como obligatorios, pero según los requerimientos del negocio deben ser opcionales.
+
+### Archivo modificado
+- `interface/parts_interfaz_v2_fixed.py` - Función `_save_part()`
+
+### Solución aplicada
+Eliminar las validaciones obligatorias para ambos campos:
+
+```python
+# ANTES (Descripción Larga):
+desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
+if not desc_larga:
+    CTkMessagebox(title="Campo obligatorio", message="La Descripción Larga es obligatoria", icon="warning")
+    return
+
+# DESPUÉS:
+desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
+# Descripción Larga es opcional
+```
+
+```python
+# ANTES (Fecha Prevista):
+fecha_prevista_str = self.fecha_prevista_entry.get()
+if not fecha_prevista_str:
+    CTkMessagebox(title="Campo obligatorio", message="La Fecha Prevista es obligatoria", icon="warning")
+    return
+
+# DESPUÉS:
+fecha_prevista_str = self.fecha_prevista_entry.get()
+# Fecha Prevista es opcional
+```
+
+### Resultado
+Los campos "Fecha Prevista" y "Descripción Larga" ahora son opcionales y se pueden dejar vacíos al crear un parte.
+
+---
+

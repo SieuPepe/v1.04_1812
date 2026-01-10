@@ -456,9 +456,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
-        if not desc_larga:
-            CTkMessagebox(title="Campo obligatorio", message="La Descripción Larga es obligatoria", icon="warning")
-            return
+        # Descripción Larga es opcional
 
         fecha_inicio_str = self.fecha_inicio_entry.get()
         if not fecha_inicio_str:
@@ -466,9 +464,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         fecha_prevista_str = self.fecha_prevista_entry.get()
-        if not fecha_prevista_str:
-            CTkMessagebox(title="Campo obligatorio", message="La Fecha Prevista es obligatoria", icon="warning")
-            return
+        # Fecha Prevista es opcional
 
         localizacion = self.localizacion_entry.get().strip()
         if not localizacion:
