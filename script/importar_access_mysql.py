@@ -1159,6 +1159,18 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], mapeo_access_m
     if errores:
         print(f"⚠ Errores: {errores}")
 
+    # Actualizar precio_unit desde tbl_pres_precios.coste
+    if insertados > 0:
+        print("\n  Actualizando precio_unit desde catálogo de precios...")
+        cursor.execute("""
+            UPDATE tbl_part_presupuesto pp
+            JOIN tbl_pres_precios pr ON pp.precio_id = pr.id
+            SET pp.precio_unit = pr.coste
+            WHERE pp.precio_unit IS NULL
+        """)
+        conn.commit()
+        print(f"  ✓ Actualizados {cursor.rowcount} registros con precio_unit")
+
     return insertados
 
 
