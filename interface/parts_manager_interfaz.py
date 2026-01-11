@@ -1650,23 +1650,52 @@ class AppPartsManager(customtkinter.CTk):
                     pass
             # GF (ID 1): No requiere ninguno de los dos
 
-            # Municipio
+            # Campos geográficos obligatorios
+            provincia_id = None
+            try:
+                provincia_text = self.provincia_menu.get()
+                if provincia_text and " - " in provincia_text:
+                    provincia_id = int(provincia_text.split(" - ")[0])
+            except:
+                pass
+
+            comarca_id = None
+            try:
+                comarca_text = self.comarca_menu.get()
+                if comarca_text and not comarca_text.startswith("(sin") and " - " in comarca_text:
+                    comarca_id = int(comarca_text.split(" - ")[0])
+            except:
+                pass
+
             municipio_id = None
             try:
                 municipio_text = self.municipio_menu.get()
-                if municipio_text and not municipio_text.startswith("Seleccione"):
+                if municipio_text and not municipio_text.startswith("Seleccione") and " - " in municipio_text:
                     municipio_id = int(municipio_text.split(" - ")[0])
             except:
                 pass
 
-            # Concejo (opcional)
             concejo_id = None
             try:
                 concejo_text = self.concejo_menu.get()
-                if concejo_text and not concejo_text.startswith("(Sin") and " - " in concejo_text:
+                if concejo_text and not concejo_text.startswith("(Sin") and not concejo_text.startswith("(Selecciona") and " - " in concejo_text:
                     concejo_id = int(concejo_text.split(" - ")[0])
             except:
                 pass
+
+            # VALIDACIÓN: Campos geográficos obligatorios
+            if not provincia_id:
+                CTkMessagebox(title="Campo obligatorio", message="La Provincia es obligatoria", icon="warning")
+                return
+            if not comarca_id:
+                CTkMessagebox(title="Campo obligatorio", message="La Comarca es obligatoria", icon="warning")
+                return
+            if not municipio_id:
+                CTkMessagebox(title="Campo obligatorio", message="El Municipio es obligatorio", icon="warning")
+                return
+            if not concejo_id:
+                CTkMessagebox(title="Campo obligatorio", message="El Concejo es obligatorio", icon="warning")
+                return
 
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
@@ -1709,7 +1738,8 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}, Concejo={concejo_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}")
+            print(f"  Geografía: Provincia={provincia_id}, Comarca={comarca_id}, Municipio={municipio_id}, Concejo={concejo_id}")
             print(f"  Título: {titulo}")
             print(f"  Estado: {estado_texto} (ID: {estado_id})")
             print(f"  Fechas: inicio={fecha_inicio}, fin={fecha_fin}")
