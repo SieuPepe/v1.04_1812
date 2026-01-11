@@ -51,7 +51,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1; Check: not IsAdminInstallMode
-Name: "installibreoffice"; Description: "Instalar LibreOffice (requerido para exportación a PDF)"; GroupDescription: "Componentes adicionales:"; Flags: checked
+Name: "installibreoffice"; Description: "Instalar LibreOffice (requerido para exportación a PDF)"; GroupDescription: "Componentes adicionales:"
 
 [Files]
 ; Ejecutable principal de HydroFlow
