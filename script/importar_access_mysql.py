@@ -871,8 +871,14 @@ def convertir_fecha(fecha_str: str) -> Optional[str]:
     return None
 
 
-def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> int:
-    """Importa LISTADO OTS → tbl_partes"""
+def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> Tuple[int, Dict]:
+    """
+    Importa LISTADO OTS → tbl_partes
+
+    Retorna: (insertados, mapeo_access_mysql)
+        - insertados: número de registros insertados
+        - mapeo_access_mysql: diccionario {access_id -> mysql_parte_id}
+    """
     print("\n" + "-"*70)
     print("Importando LISTADO OTS → tbl_partes")
     print("-"*70)
@@ -892,6 +898,7 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
     errores = 0
     sin_mapeo = 0
     duplicados = 0
+    mapeo_access_mysql = {}  # {access_id -> mysql_parte_id}
 
     insert_sql = """
         INSERT INTO tbl_partes (
@@ -905,7 +912,9 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
 
     for row in listado_ots:
         try:
-            id_reg = row.get('ID', row.get('Id', ''))
+            # Access usa 'Id' (con mayúscula solo la I)
+            access_id = row.get('Id', row.get('ID', ''))
+            id_reg = access_id
             codigo = row.get('COD TRABAJO', row.get('COD_TRABAJO', '')).strip()
             descripcion = row.get('OT', row.get('DESCRIPCION', '')).strip()
 
@@ -943,6 +952,8 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
                 codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
                 red_id, provincia_id, comarca_id, municipio_id, concejo_id
             ))
+            mysql_id = cursor.lastrowid
+            mapeo_access_mysql[str(access_id)] = mysql_id
             insertados += 1
 
         except Exception as e:
@@ -958,6 +969,7 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
 
     conn.commit()
     print(f"\n✓ Importados: {insertados} partes")
+    print(f"  Mapeo Access→MySQL creado: {len(mapeo_access_mysql)} entradas")
     if sin_mapeo:
         print(f"⚠ Sin mapeo geográfico: {sin_mapeo}")
     if duplicados:
@@ -965,11 +977,19 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
     if errores:
         print(f"⚠ Errores: {errores}")
 
-    return insertados
+    return insertados, mapeo_access_mysql
 
 
-def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
-    """Importa MEDICIONES OTS → tbl_part_presupuesto"""
+def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], mapeo_access_mysql: Dict) -> int:
+    """
+    Importa MEDICIONES OTS → tbl_part_presupuesto
+
+    La tabla MEDICIONES OTS tiene:
+    - id_OT: ID del parte en Access (se mapea a MySQL via mapeo_access_mysql)
+    - CODIGO_MAT: Código del precio/material
+    - CANTIDAD: Cantidad
+    - FECHA: Fecha de medición
+    """
     print("\n" + "-"*70)
     print("Importando MEDICIONES OTS → tbl_part_presupuesto")
     print("-"*70)
@@ -982,21 +1002,15 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
             print(f"    '{campo}' = '{str(valor)[:50]}'")
         print()
 
-    cursor.execute("SELECT id, codigo FROM tbl_partes")
-    partes_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
-
-    # DEBUG: Mostrar algunos códigos de partes disponibles
-    print(f"  DEBUG: Primeros 5 códigos de partes en BD:")
-    for i, cod in enumerate(list(partes_db.keys())[:5]):
-        print(f"    '{cod}'")
-    print()
-
+    # Cargar precios desde MySQL
     cursor.execute("SELECT id, codigo FROM tbl_pres_precios")
     precios_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
+    print(f"  Precios disponibles en BD: {len(precios_db)}")
 
     insertados = 0
     errores = 0
     partes_no_encontrados = set()
+    precios_no_encontrados = set()
 
     insert_sql = """
         INSERT INTO tbl_part_presupuesto (
@@ -1005,29 +1019,48 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
         ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
     """
 
-    # DEBUG: Mostrar primeros códigos de trabajo de mediciones
+    # DEBUG: Mostrar algunos id_OT de ejemplo
     if mediciones:
-        print(f"  DEBUG: Primeros 3 COD TRABAJO en mediciones:")
-        for i, row in enumerate(mediciones[:3]):
-            cod = row.get('COD TRABAJO', row.get('COD_TRABAJO', row.get('COD.TRABAJO', '')))
-            print(f"    '{cod}'")
+        print(f"\n  DEBUG: Primeros 3 id_OT en mediciones:")
+        for row in mediciones[:3]:
+            id_ot = row.get('id_OT', '')
+            cod_mat = row.get('CODIGO_MAT', '')
+            print(f"    id_OT='{id_ot}', CODIGO_MAT='{cod_mat}'")
         print()
+
+    print(f"  DEBUG: Mapeo Access→MySQL tiene {len(mapeo_access_mysql)} entradas")
+    if mapeo_access_mysql:
+        primeras = list(mapeo_access_mysql.items())[:3]
+        print(f"  DEBUG: Primeras entradas del mapeo: {primeras}")
+    print()
 
     for row in mediciones:
         try:
-            cod_trabajo = row.get('COD TRABAJO', row.get('COD_TRABAJO', row.get('COD.TRABAJO', ''))).strip()
-            parte_id = partes_db.get(cod_trabajo)
+            # Usar id_OT para buscar el parte en MySQL via el mapeo
+            id_ot = str(row.get('id_OT', '')).strip()
+            parte_id = mapeo_access_mysql.get(id_ot)
 
             if not parte_id:
-                if cod_trabajo not in partes_no_encontrados:
-                    partes_no_encontrados.add(cod_trabajo)
-                    # DEBUG: Mostrar primeros 5 no encontrados
+                if id_ot not in partes_no_encontrados:
+                    partes_no_encontrados.add(id_ot)
                     if len(partes_no_encontrados) <= 5:
-                        print(f"  DEBUG: Código '{cod_trabajo}' no encontrado en partes")
+                        print(f"  DEBUG: id_OT '{id_ot}' no encontrado en mapeo")
                 continue
 
-            cod_precio = row.get('CODIGO', row.get('CÓDIGO', '')).strip()
+            # CODIGO_MAT es el código del precio - puede tener decimales (.0)
+            cod_precio_raw = row.get('CODIGO_MAT', '').strip()
+            # Limpiar el .0 si existe (20003.0 -> 20003)
+            if cod_precio_raw.endswith('.0'):
+                cod_precio = cod_precio_raw[:-2]
+            else:
+                cod_precio = cod_precio_raw
             precio_id = precios_db.get(cod_precio)
+
+            if not precio_id and cod_precio:
+                if cod_precio not in precios_no_encontrados:
+                    precios_no_encontrados.add(cod_precio)
+                    if len(precios_no_encontrados) <= 5:
+                        print(f"  DEBUG: Código precio '{cod_precio}' no encontrado")
 
             cantidad_str = row.get('CANTIDAD', '0').replace(',', '.')
             try:
@@ -1058,7 +1091,9 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
     conn.commit()
     print(f"\n✓ Importadas: {insertados} mediciones")
     if partes_no_encontrados:
-        print(f"⚠ Partes no encontrados: {len(partes_no_encontrados)}")
+        print(f"⚠ id_OT no encontrados en mapeo: {len(partes_no_encontrados)}")
+    if precios_no_encontrados:
+        print(f"⚠ Códigos de precio no encontrados: {len(precios_no_encontrados)}")
     if errores:
         print(f"⚠ Errores: {errores}")
 
@@ -1168,8 +1203,8 @@ Ejemplo de uso:
     print("FASE 4: IMPORTACIÓN DE DATOS")
     print("="*70)
 
-    partes_importados = importar_listado_ots(cursor, conn, listado_ots, mapeo)
-    mediciones_importadas = importar_mediciones_ots(cursor, conn, mediciones_ots)
+    partes_importados, mapeo_access_mysql = importar_listado_ots(cursor, conn, listado_ots, mapeo)
+    mediciones_importadas = importar_mediciones_ots(cursor, conn, mediciones_ots, mapeo_access_mysql)
 
     # Mostrar tabla de correcciones
     mostrar_tabla_correcciones(correcciones)
