@@ -16,9 +16,9 @@ USO:
   python importar_access_mysql.py --access /ruta/al/archivo.accdb --host localhost --user root --password xxx --database hydroflow
 
 FASES:
-  1. Verificación de dimensiones (dim_tipo_trabajo, dim_codigo_trabajo, dim_red)
-  2. Mapeo geográfico (COMARCA → municipio, LOCALIZACIÓN → concejo)
-  3. Limpieza de tablas de hechos (tbl_partes, tbl_part_presupuesto, tbl_part_certificacion)
+  1. Limpieza de tablas de hechos (libera FK hacia dimensiones)
+  2. Verificación/sincronización de dimensiones (dim_tipo_trabajo, dim_codigo_trabajo, dim_red)
+  3. Mapeo geográfico (COMARCA → municipio, LOCALIZACIÓN → concejo)
   4. Importación de datos (LISTADO OTS → tbl_partes, MEDICIONES OTS → tbl_part_presupuesto)
 
 AUTOR: Script generado automáticamente para HydroFlow Manager
@@ -164,7 +164,7 @@ def conectar_mysql(host: str, user: str, password: str, database: str):
 
 
 # ============================================================================
-# FASE 1: VERIFICACIÓN DE DIMENSIONES
+# FASE 2: VERIFICACIÓN DE DIMENSIONES
 # ============================================================================
 
 def verificar_dim_tipo_trabajo(cursor, datos_access: List[Dict]) -> Tuple[bool, List[str]]:
@@ -305,7 +305,7 @@ def verificar_dim_red(cursor) -> Tuple[bool, List[str]]:
 
 
 # ============================================================================
-# FASE 2: MAPEO GEOGRÁFICO
+# FASE 3: MAPEO GEOGRÁFICO
 # ============================================================================
 
 def cargar_municipios(cursor) -> Dict[str, Dict]:
@@ -458,7 +458,7 @@ def generar_mapeo_geografico(listado_ots: List[Dict], municipios: Dict, concejos
     Retorna diccionario con mapeos y estadísticas.
     """
     print("\n" + "="*70)
-    print("FASE 2: MAPEO GEOGRÁFICO")
+    print("FASE 3: MAPEO GEOGRÁFICO")
     print("="*70)
 
     # Extraer valores únicos
@@ -681,13 +681,13 @@ def resolver_mapeos_interactivo(mapeo: Dict, municipios: Dict, concejos: Dict) -
 
 
 # ============================================================================
-# FASE 3: LIMPIEZA DE TABLAS
+# FASE 1: LIMPIEZA DE TABLAS
 # ============================================================================
 
 def limpiar_tablas_hechos(cursor, conn) -> bool:
     """Elimina todos los datos de las tablas de hechos."""
     print("\n" + "="*70)
-    print("FASE 3: LIMPIEZA DE TABLAS DE HECHOS")
+    print("FASE 1: LIMPIEZA DE TABLAS DE HECHOS")
     print("="*70)
 
     # Contar registros antes
@@ -993,8 +993,30 @@ Ejemplo de uso:
     print(f"  MEDICIONES OTS: {len(mediciones_ots)} registros")
 
     # =========================================================================
-    # FASE 1: Verificar dimensiones
+    # FASE 1: Limpiar tablas de hechos
     # =========================================================================
+    # IMPORTANTE: Limpiar PRIMERO las tablas de hechos para liberar las FK
+    # hacia las dimensiones. Esto permite modificar las dimensiones después.
+
+    if args.solo_verificar:
+        print("\n[Modo solo-verificar: saltando limpieza de tablas]")
+    elif not args.no_interactivo:
+        if not limpiar_tablas_hechos(cursor, conn):
+            sys.exit(1)
+    else:
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+        for tabla in ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']:
+            cursor.execute(f"DELETE FROM {tabla}")
+            cursor.execute(f"ALTER TABLE {tabla} AUTO_INCREMENT = 1")
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+        conn.commit()
+        print("\n✓ Tablas de hechos limpiadas (modo no-interactivo)")
+
+    # =========================================================================
+    # FASE 2: Verificar/sincronizar dimensiones
+    # =========================================================================
+    # Ahora que las tablas de hechos están vacías, se pueden modificar
+    # las dimensiones sin problemas de FK.
 
     ok_tipo, _ = verificar_dim_tipo_trabajo(cursor, [])
     ok_codigo, _ = verificar_dim_codigo_trabajo(cursor, trabajos_prog)
@@ -1004,7 +1026,7 @@ Ejemplo de uso:
         print("\n" + "="*70)
         print("⚠ HAY PROBLEMAS CON LAS DIMENSIONES")
         print("="*70)
-        print("Ejecuta primero el script de sincronización:")
+        print("Las tablas de hechos ya están limpias, puedes sincronizar ahora:")
         print("  mysql -u [user] -p [database] < script/sql/sincronizar_dimensiones_access.sql")
 
         if not args.no_interactivo:
@@ -1017,7 +1039,7 @@ Ejemplo de uso:
         sys.exit(0)
 
     # =========================================================================
-    # FASE 2: Mapeo geográfico
+    # FASE 3: Mapeo geográfico
     # =========================================================================
 
     municipios = cargar_municipios(cursor)
@@ -1040,22 +1062,6 @@ Ejemplo de uso:
         resp = input("\n¿Resolver mapeos problemáticos interactivamente? (s/n): ").strip().lower()
         if resp == 's':
             mapeo = resolver_mapeos_interactivo(mapeo, municipios, concejos)
-
-    # =========================================================================
-    # FASE 3: Limpiar tablas
-    # =========================================================================
-
-    if not args.no_interactivo:
-        if not limpiar_tablas_hechos(cursor, conn):
-            sys.exit(1)
-    else:
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-        for tabla in ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']:
-            cursor.execute(f"DELETE FROM {tabla}")
-            cursor.execute(f"ALTER TABLE {tabla} AUTO_INCREMENT = 1")
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-        conn.commit()
-        print("\n✓ Tablas limpiadas (modo no-interactivo)")
 
     # =========================================================================
     # FASE 4: Importar datos
