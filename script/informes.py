@@ -1608,6 +1608,19 @@ def _build_query_ordenes(definicion, filtros, ordenaciones, agrupaciones, schema
             alias_tabla = campo_key + '_dim'
             joins.append(f'LEFT JOIN {tabla_dim} {alias_tabla} ON p.{columna_bd} = {alias_tabla}.id')
 
+    # Agregar JOINs para campos de dimensión usados en filtros
+    if filtros:
+        for filtro in filtros:
+            campo_key = filtro.get('campo')
+            campo_def = campos.get(campo_key)
+            if campo_def and campo_def.get('tipo') == 'dimension':
+                tabla_dim = campo_def.get('tabla_dimension')
+                columna_bd = campo_def.get('columna_bd')
+                alias_tabla = campo_key + '_dim'
+                join_str = f'LEFT JOIN {tabla_dim} {alias_tabla} ON p.{columna_bd} = {alias_tabla}.id'
+                if join_str not in joins:  # Evitar duplicados
+                    joins.append(join_str)
+
     # Construir WHERE (filtros)
     where_clauses = []
     if filtros:
