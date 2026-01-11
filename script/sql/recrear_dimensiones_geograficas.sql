@@ -21,11 +21,13 @@ SELECT '=== INICIO: Recrear dimensiones geográficas ===' AS info;
 SELECT NOW() AS fecha_ejecucion;
 
 -- ============================================================================
--- FASE 0: DESACTIVAR FK Y LIMPIAR REFERENCIAS
+-- FASE 0: DESACTIVAR FK Y MODO SEGURO, LIMPIAR REFERENCIAS
 -- ============================================================================
 
-SELECT '>>> FASE 0: Desactivando FK y limpiando referencias...' AS paso;
+SELECT '>>> FASE 0: Desactivando FK, modo seguro y limpiando referencias...' AS paso;
 
+-- Desactivar modo seguro de MySQL Workbench
+SET SQL_SAFE_UPDATES = 0;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Limpiar TODAS las referencias geográficas en tablas de hechos
@@ -709,6 +711,34 @@ SELECT
     (SELECT COUNT(*) FROM dim_concejos WHERE nombre LIKE 'Todo %') AS concejos_todo;
 
 SELECT '=== FIN: Dimensiones geográficas recreadas ===' AS resultado;
+
+-- ============================================================================
+-- FASE 7: TABLA DE TODAS LAS COMBINACIONES PARA REVISIÓN
+-- ============================================================================
+
+SELECT '>>> FASE 7: Mostrando todas las combinaciones posibles...' AS paso;
+
+SELECT '--- TODAS LAS COMBINACIONES: Comarca → Municipio → Concejo ---' AS seccion;
+
+SELECT
+    c.id AS comarca_id,
+    c.comarca_nombre AS comarca,
+    m.id AS municipio_id,
+    m.municipio_nombre AS municipio,
+    co.id AS concejo_id,
+    co.nombre AS concejo
+FROM dim_comarcas c
+LEFT JOIN dim_municipios m ON m.comarca_id = c.id OR (c.id = 1 AND m.id = 1)
+LEFT JOIN dim_concejos co ON co.municipio_id = m.id
+ORDER BY
+    c.id,
+    CASE WHEN m.municipio_nombre LIKE 'Todo %' THEN 0 ELSE 1 END,
+    m.id,
+    CASE WHEN co.nombre LIKE 'Todo %' THEN 0 ELSE 1 END,
+    co.id;
+
+-- Restaurar modo seguro
+SET SQL_SAFE_UPDATES = 1;
 
 -- ============================================================================
 -- LÓGICA PARA DROPDOWNS EN LA APLICACIÓN
