@@ -4,7 +4,7 @@
 -- Fuente: Lista oficial de concejos de Álava (Wikipedia)
 --
 -- TOTALES ESPERADOS:
---   - dim_comarcas:   7 comarcas + 1 "Todo Álava" = 8 registros
+--   - dim_comarcas:   7 comarcas + 2 "Todo/Varios Álava" = 9 registros
 --   - dim_municipios: 51 reales + 14 (Todo/Varios comarca) + 2 (Álava) = 67 registros
 --   - dim_concejos:   335 reales + 102 (Todo/Varios municipio) + 14 (comarca) + 4 (Álava) = 455 registros
 --
@@ -36,7 +36,7 @@ TRUNCATE TABLE dim_municipios;
 TRUNCATE TABLE dim_comarcas;
 
 -- ============================================================================
--- FASE 1: COMARCAS (8 registros)
+-- FASE 1: COMARCAS (9 registros)
 -- ============================================================================
 
 INSERT INTO dim_comarcas (id, provincia_id, comarca_codigo, comarca_nombre) VALUES
@@ -47,16 +47,19 @@ INSERT INTO dim_comarcas (id, provincia_id, comarca_codigo, comarca_nombre) VALU
 (5, 1, 'AÑAN', 'Añana'),
 (6, 1, 'MONT', 'Montaña Alavesa'),
 (7, 1, 'GORB', 'Estribaciones del Gorbea'),
-(8, 1, 'CANT', 'Cantábrica Alavesa');
+(8, 1, 'CANT', 'Cantábrica Alavesa'),
+(9, 1, 'VARI', 'Varios Álava');
 
 -- ============================================================================
 -- FASE 2: MUNICIPIOS (67 registros)
 -- ============================================================================
 
 -- 2.1 TODO Y VARIOS ÁLAVA (IDs 1-2)
+-- "Todo Álava" pertenece a comarca "Todo Álava" (ID=1)
+-- "Varios Álava" pertenece a comarca "Varios Álava" (ID=9)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
 (1, '00001', 'Todo Álava', 1, 1, 1),
-(2, '00002', 'Varios Álava', 1, 1, 1);
+(2, '00002', 'Varios Álava', 1, 9, 1);
 
 -- 2.2 TODO Y VARIOS POR COMARCA (IDs 3-16)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
