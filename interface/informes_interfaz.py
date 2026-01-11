@@ -3687,7 +3687,7 @@ class InformesFrame(customtkinter.CTkFrame):
             self.update_idletasks()
             self.update()
 
-            # Mostrar confirmacion con topmost para forzar que esté al frente
+            # Mostrar confirmacion
             respuesta = CTkMessagebox(
                 master=self,
                 title="Confirmar Eliminacion",
@@ -3699,7 +3699,11 @@ class InformesFrame(customtkinter.CTkFrame):
             )
 
             if respuesta.get() == "Eliminar":
-                if self.storage.eliminar_configuracion(filename):
+                exito = self.storage.eliminar_configuracion(filename)
+                self.update_idletasks()
+                self.update()
+
+                if exito:
                     CTkMessagebox(
                         master=self,
                         title="Exito",
@@ -3715,9 +3719,7 @@ class InformesFrame(customtkinter.CTkFrame):
                         icon="cancel",
                         topmost=True
                     )
-
-            # Reabrir el dialogo de configuraciones actualizado
-            self.after(100, self._cargar_configuracion)
+            # No reabrir automaticamente - el usuario puede volver a abrir si lo necesita
         
         # Botón cerrar
         cancelar_btn = customtkinter.CTkButton(
