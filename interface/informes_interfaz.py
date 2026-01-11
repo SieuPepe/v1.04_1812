@@ -2590,6 +2590,9 @@ class InformesFrame(customtkinter.CTkFrame):
                     valor = valor_widget.get()
                 elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
+                elif hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    # Widget mes_anio personalizado
+                    valor = f"{valor_widget.combo_year.get()}-{valor_widget.combo_month.get()}"
                 else:
                     valor = ""
 
@@ -2881,6 +2884,9 @@ class InformesFrame(customtkinter.CTkFrame):
                     valor = valor_widget.get()
                 elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
+                elif hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    # Widget mes_anio personalizado
+                    valor = f"{valor_widget.combo_year.get()}-{valor_widget.combo_month.get()}"
                 else:
                     valor = ""
 
@@ -3171,6 +3177,9 @@ class InformesFrame(customtkinter.CTkFrame):
                     valor = valor_widget.get()
                 elif isinstance(valor_widget, (customtkinter.CTkEntry, DateEntry)):
                     valor = valor_widget.get()
+                elif hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    # Widget mes_anio personalizado
+                    valor = f"{valor_widget.combo_year.get()}-{valor_widget.combo_month.get()}"
                 else:
                     valor = ""
 

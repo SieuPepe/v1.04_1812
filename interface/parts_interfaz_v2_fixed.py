@@ -193,7 +193,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         # Concejo (se actualiza según municipio seleccionado) - Solo para municipios de Álava
         customtkinter.CTkLabel(self, text="Concejo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.concejo_menu = customtkinter.CTkComboBox(self, values=["(Opcional - selecciona municipio)"], width=400, state="normal")
+        self.concejo_menu = customtkinter.CTkComboBox(self, values=["(Selecciona municipio primero)"], width=400, state="normal")
         self.concejo_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -328,8 +328,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
             municipio_id = self._take_id(municipio_value)
 
             if not municipio_id:
-                self.concejo_menu.configure(values=["(Opcional - selecciona municipio)"])
-                self.concejo_menu.set("(Opcional - selecciona municipio)")
+                self.concejo_menu.configure(values=["(Selecciona municipio primero)"])
+                self.concejo_menu.set("(Selecciona municipio primero)")
                 return
 
             # Obtener concejos filtrados por municipio
@@ -514,7 +514,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         provincia_id = self._take_id(self.provincia_menu.get())
         comarca_id = self._take_id(self.comarca_menu.get())
         municipio_id = self._take_id(self.municipio_menu.get())
-        concejo_id = self._take_id(self.concejo_menu.get())  # Opcional
+        concejo_id = self._take_id(self.concejo_menu.get())
 
         if not provincia_id:
             CTkMessagebox(title="Campo obligatorio", message="La Provincia es obligatoria", icon="warning")
@@ -526,6 +526,10 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         if not municipio_id:
             CTkMessagebox(title="Campo obligatorio", message="El Municipio es obligatorio", icon="warning")
+            return
+
+        if not concejo_id:
+            CTkMessagebox(title="Campo obligatorio", message="El Concejo es obligatorio", icon="warning")
             return
 
         # VALIDACIÓN ESPECIAL: Si estado es "Finalizado", Fecha Fin es obligatoria
