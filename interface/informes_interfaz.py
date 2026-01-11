@@ -3681,13 +3681,16 @@ class InformesFrame(customtkinter.CTkFrame):
             dialog.destroy()
 
         def eliminar_config(filename, nombre_mostrar):
-            # Destruir el diálogo de configuraciones primero para evitar bloqueos
+            # Liberar el grab y destruir el dialogo primero
+            dialog.grab_release()
             dialog.destroy()
+            self.update()  # Procesar eventos pendientes
 
-            # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
+            # Mostrar confirmacion
             respuesta = CTkMessagebox(
-                title="Confirmar Eliminación",
-                message=f"¿Está seguro de eliminar la configuración '{nombre_mostrar}'?",
+                master=self,
+                title="Confirmar Eliminacion",
+                message=f"Esta seguro de eliminar la configuracion '{nombre_mostrar}'?",
                 icon="question",
                 option_1="Cancelar",
                 option_2="Eliminar"
@@ -3695,21 +3698,21 @@ class InformesFrame(customtkinter.CTkFrame):
 
             if respuesta.get() == "Eliminar":
                 if self.storage.eliminar_configuracion(filename):
-                    # Mostrar mensaje de éxito
                     CTkMessagebox(
-                        title="Éxito",
-                        message=f"Configuración '{nombre_mostrar}' eliminada correctamente.",
+                        master=self,
+                        title="Exito",
+                        message=f"Configuracion '{nombre_mostrar}' eliminada correctamente.",
                         icon="check"
                     )
                 else:
-                    # Mostrar error
                     CTkMessagebox(
+                        master=self,
                         title="Error",
-                        message=f"No se pudo eliminar la configuración '{nombre_mostrar}'.",
+                        message=f"No se pudo eliminar la configuracion '{nombre_mostrar}'.",
                         icon="cancel"
                     )
 
-            # Reabrir el diálogo de configuraciones actualizado
+            # Reabrir el dialogo de configuraciones actualizado
             self.after(100, self._cargar_configuracion)
         
         # Botón cerrar
