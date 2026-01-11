@@ -14,7 +14,6 @@ a = Analysis(
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
         ('informes_guardados', 'informes_guardados'),  # Directorio para configs de informes
-        ('plantillas/*.docx', 'plantillas'),  # Plantillas Word para generación de PDFs
         ('.env.example', '.'),  # Incluir plantilla de configuración (NO incluir .env real)
         ('INSTALACION.md', '.'),  # Guía de instalación
         ('docs/manual/*.md', 'docs/manual'),  # Manuales de usuario
