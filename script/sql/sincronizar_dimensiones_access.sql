@@ -28,37 +28,32 @@ SELECT '=== INICIO SINCRONIZACIÓN DIMENSIONES ===' AS info;
 --   ID 1 = ORDEN DE TRABAJO (OT/)
 --   ID 2 = TRABAJOS PROGRAMADOS (TP/)
 --   ID 3 = GASTOS FIJOS DE LA EXPLOTACIÓN (GF/)
+--
+-- MySQL actual tiene (INCORRECTO):
+--   ID 1 = GF (Gastos Fijos)
+--   ID 2 = OT (Orden de Trabajo)
+--   ID 3 = TP (Trabajos Programados)
+--
+-- CORRECCIÓN: Actualizar para que coincidan los IDs con Access
 -- ============================================================================
 
 SELECT '>>> Actualizando dim_tipo_trabajo...' AS paso;
 
--- Verificar si la columna tipo_codigo existe
-SET @tiene_tipo_codigo = (
-    SELECT COUNT(*)
-    FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME = 'dim_tipo_trabajo'
-    AND COLUMN_NAME = 'tipo_codigo'
-);
+-- Mostrar estado ANTES
+SELECT 'ANTES de actualizar:' AS info;
+SELECT * FROM dim_tipo_trabajo ORDER BY id;
 
--- Agregar columna tipo_codigo si no existe
-SET @sql = IF(@tiene_tipo_codigo = 0,
-    'ALTER TABLE dim_tipo_trabajo ADD COLUMN tipo_codigo VARCHAR(10) AFTER codigo',
-    'SELECT "Columna tipo_codigo ya existe" AS info'
-);
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
--- Limpiar tabla y reinsertar con IDs correctos del Access
 SET FOREIGN_KEY_CHECKS = 0;
 
-DELETE FROM dim_tipo_trabajo;
+-- Actualizar cada registro para que coincida con Access
+-- ID 1: Debe ser OT (Orden de Trabajo) - Access ID 1
+UPDATE dim_tipo_trabajo SET tipo_codigo = 'OT', descripcion = 'ORDEN DE TRABAJO' WHERE id = 1;
 
-INSERT INTO dim_tipo_trabajo (id, codigo, tipo_codigo, descripcion, activo) VALUES
-(1, '1', 'OT', 'ORDEN DE TRABAJO', 1),
-(2, '2', 'TP', 'TRABAJOS PROGRAMADOS', 1),
-(3, '3', 'GF', 'GASTOS FIJOS DE LA EXPLOTACIÓN', 1);
+-- ID 2: Debe ser TP (Trabajos Programados) - Access ID 2
+UPDATE dim_tipo_trabajo SET tipo_codigo = 'TP', descripcion = 'TRABAJOS PROGRAMADOS' WHERE id = 2;
+
+-- ID 3: Debe ser GF (Gastos Fijos) - Access ID 3
+UPDATE dim_tipo_trabajo SET tipo_codigo = 'GF', descripcion = 'GASTOS FIJOS DE LA EXPLOTACIÓN' WHERE id = 3;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -66,30 +61,41 @@ SELECT 'dim_tipo_trabajo actualizada:' AS resultado;
 SELECT * FROM dim_tipo_trabajo ORDER BY id;
 
 -- ============================================================================
--- 2. ACTUALIZAR dim_red
+-- 2. VERIFICAR dim_red
 -- ============================================================================
 -- Access tiene estos valores únicos en el campo RED:
 --   DISTRIBUCIÓN, SANEAMIENTO, ADUCCIÓN, DEPURACIÓN, OTROS
+--
+-- MySQL actual (YA CORRECTO):
+--   ID 1 = ADU (Aducción)
+--   ID 2 = DEP (Depuración)
+--   ID 3 = DIS (Distribución)
+--   ID 4 = OTR (Otros)
+--   ID 5 = SAN (Saneamiento)
+--
+-- MAPEO Access texto → MySQL ID:
+--   'ADUCCIÓN'     → 1
+--   'DEPURACIÓN'   → 2
+--   'DISTRIBUCIÓN' → 3
+--   'OTROS'        → 4
+--   'SANEAMIENTO'  → 5
 -- ============================================================================
 
-SELECT '>>> Actualizando dim_red...' AS paso;
-
-SET FOREIGN_KEY_CHECKS = 0;
-
-DELETE FROM dim_red;
-ALTER TABLE dim_red AUTO_INCREMENT = 1;
-
-INSERT INTO dim_red (id, codigo, descripcion, activo) VALUES
-(1, 'DIST', 'DISTRIBUCIÓN', 1),
-(2, 'SAN', 'SANEAMIENTO', 1),
-(3, 'ADUC', 'ADUCCIÓN', 1),
-(4, 'DEP', 'DEPURACIÓN', 1),
-(5, 'OTROS', 'OTROS', 1);
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-SELECT 'dim_red actualizada:' AS resultado;
+SELECT '>>> Verificando dim_red...' AS paso;
+SELECT 'dim_red ya tiene los valores correctos:' AS resultado;
 SELECT * FROM dim_red ORDER BY id;
+
+-- ============================================================================
+-- 2b. LIMPIAR dim_codigo_trabajo (eliminar registros de prueba)
+-- ============================================================================
+-- Eliminar registros de prueba (id > 22)
+
+SELECT '>>> Limpiando dim_codigo_trabajo (registros de prueba)...' AS paso;
+
+DELETE FROM dim_codigo_trabajo WHERE id > 22;
+
+SELECT 'dim_codigo_trabajo limpiada (eliminados registros id > 22):' AS resultado;
+SELECT COUNT(*) AS total_registros FROM dim_codigo_trabajo;
 
 -- ============================================================================
 -- 3. ACTUALIZAR tbl_pres_unidades
@@ -222,23 +228,50 @@ SELECT '=== SINCRONIZACIÓN COMPLETADA ===' AS resultado;
 -- ============================================================================
 /*
 MAPEO DE TIPO DE TRABAJOS (LISTADO OTS.TIPO DE TRABAJOS → tbl_partes.tipo_trabajo_id):
-  Access ID 1 (OT/) → MySQL ID 1
-  Access ID 2 (TP/) → MySQL ID 2
-  Access ID 3 (GF/) → MySQL ID 3
+  ┌─────────────┬─────────────────────────────────┬───────────┐
+  │ Access ID   │ Access Valor                    │ MySQL ID  │
+  ├─────────────┼─────────────────────────────────┼───────────┤
+  │ 1           │ ORDEN DE TRABAJO (OT/)          │ 1         │
+  │ 2           │ TRABAJOS PROGRAMADOS (TP/)      │ 2         │
+  │ 3           │ GASTOS FIJOS DE LA EXPLOT. (GF/)│ 3         │
+  └─────────────┴─────────────────────────────────┴───────────┘
+  Los IDs coinciden directamente tras ejecutar este script.
 
 MAPEO DE RED (LISTADO OTS.RED → tbl_partes.red_id):
-  'DISTRIBUCIÓN' → 1
-  'SANEAMIENTO'  → 2
-  'ADUCCIÓN'     → 3
-  'DEPURACIÓN'   → 4
-  'OTROS'        → 5
+  ┌─────────────────┬───────────┐
+  │ Access Texto    │ MySQL ID  │
+  ├─────────────────┼───────────┤
+  │ 'ADUCCIÓN'      │ 1         │
+  │ 'DEPURACIÓN'    │ 2         │
+  │ 'DISTRIBUCIÓN'  │ 3         │
+  │ 'OTROS'         │ 4         │
+  │ 'SANEAMIENTO'   │ 5         │
+  └─────────────────┴───────────┘
+  Usar CASE o tabla de lookup para convertir texto a ID.
 
 MAPEO DE TRABAJOS PROGRAMADOS (LISTADO OTS.TRABAJOS PROGRAMADOS → tbl_partes.cod_trabajo_id):
-  Los IDs coinciden directamente (1-22)
+  Los IDs coinciden directamente (1-22).
+  NULL en Access = NULL en MySQL (solo aplica a OT y GF, no a TP).
 
 MAPEO DE UNIDADES (PRECIOS UNITARIOS.UNIDAD → tbl_pres_precios.id_unidades):
   Usar: SELECT id FROM tbl_pres_unidades WHERE unidad = '[valor]'
 
 MAPEO DE CAPITULOS (PRECIOS UNITARIOS.CAPITULO → tbl_pres_precios.id_capitulo):
   Usar: SELECT id FROM tbl_pres_capitulos WHERE capitulo = '[valor]'
+
+EJEMPLO DE IMPORTACIÓN DE LISTADO OTS:
+  INSERT INTO tbl_partes (codigo, tipo_trabajo_id, cod_trabajo_id, red_id, ...)
+  SELECT
+    COD_TRABAJO,
+    `TIPO DE TRABAJOS`,  -- ID coincide directamente
+    `TRABAJOS PROGRAMADOS`,  -- ID coincide directamente (puede ser NULL)
+    CASE RED
+      WHEN 'ADUCCIÓN' THEN 1
+      WHEN 'DEPURACIÓN' THEN 2
+      WHEN 'DISTRIBUCIÓN' THEN 3
+      WHEN 'OTROS' THEN 4
+      WHEN 'SANEAMIENTO' THEN 5
+    END,
+    ...
+  FROM access_listado_ots;
 */
