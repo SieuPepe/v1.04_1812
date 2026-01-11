@@ -914,6 +914,11 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "tbl_pres_capitulos"
+            },
+            "mes": {
+                "campo": "mes",
+                "tipo": "mes_anio",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
             }
         },
 
@@ -1146,6 +1151,11 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "tbl_pres_capitulos"
+            },
+            "mes": {
+                "campo": "mes",
+                "tipo": "mes_anio",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
             }
         },
 
@@ -1377,6 +1387,11 @@ INFORMES_DEFINICIONES = {
                 "tipo": "select_bd",
                 "operadores": ["Igual a", "Diferente de"],
                 "tabla": "tbl_pres_capitulos"
+            },
+            "mes": {
+                "campo": "mes",
+                "tipo": "mes_anio",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
             }
         },
 
