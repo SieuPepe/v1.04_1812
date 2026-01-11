@@ -172,11 +172,9 @@ INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, coma
 (1065, '01056', 'Harana/Valle de Arana', 1, 6, 1);
 
 -- Comarca: Estribaciones del Gorbea (comarca_id = 7)
-INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1070, '01018', 'Zigoitia', 1, 7, 1),
-(1071, '01063', 'Zuia', 1, 7, 1),
-(1072, '01058', 'Legutio', 1, 7, 1),
-(1073, '01054', 'Urkabustaiz', 1, 7, 1);
+-- NOTA: Esta comarca comparte municipios con Llanada Alavesa (Zigoitia, Zuia, Legutio, Urkabustaiz)
+-- En este esquema, esos municipios están asignados a Llanada Alavesa (comarca_id = 3)
+-- La comarca "Estribaciones del Gorbea" solo tendrá la opción "Todo Estribaciones Gorbea"
 
 SELECT CONCAT('  ✓ Municipios creados: ', (SELECT COUNT(*) FROM dim_municipios)) AS resultado;
 
@@ -621,54 +619,9 @@ INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
 (1065, 'Ullibarri Arana', 1);
 
 -- Estribaciones del Gorbea
--- Zigoitia (1070)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1070, 'Acosta', 1),
-(1070, 'Berrikano', 1),
-(1070, 'Buruaga', 1),
-(1070, 'Eribe', 1),
-(1070, 'Etxabarri-Ibiña', 1),
-(1070, 'Gopegui', 1),
-(1070, 'Larrinoa', 1),
-(1070, 'Letona', 1),
-(1070, 'Manurga', 1),
-(1070, 'Murua', 1),
-(1070, 'Olano', 1),
-(1070, 'Ondategi', 1),
-(1070, 'Zaitegi', 1);
-
--- Zuia (1071)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1071, 'Altube', 1),
-(1071, 'Ametzaga de Zuia', 1),
-(1071, 'Aperregi', 1),
-(1071, 'Domaikia', 1),
-(1071, 'Guillerna', 1),
-(1071, 'Jugo', 1),
-(1071, 'Lukiano', 1),
-(1071, 'Markina de Zuia', 1),
-(1071, 'Murgia', 1),
-(1071, 'Sarria', 1),
-(1071, 'Vitoriano', 1),
-(1071, 'Zarate', 1);
-
--- Legutio (1072)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1072, 'Elosu', 1),
-(1072, 'Legutio/Villarreal de Álava', 1),
-(1072, 'Nafarrate', 1),
-(1072, 'Urbina', 1),
-(1072, 'Urrunaga', 1);
-
--- Urkabustaiz (1073)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1073, 'Abecia', 1),
-(1073, 'Abornikano', 1),
-(1073, 'Belunza', 1),
-(1073, 'Goiuri-Ondona', 1),
-(1073, 'Izarra', 1),
-(1073, 'Oiardo', 1),
-(1073, 'Unzá', 1);
+-- NOTA: Los municipios de esta comarca (Zigoitia, Zuia, Legutio, Urkabustaiz) están
+-- asignados a Llanada Alavesa en este esquema, por lo que sus concejos ya están
+-- insertados arriba con los IDs de municipio 1020, 1021, 1022, 1023
 
 SELECT CONCAT('  ✓ Concejos creados (total): ', (SELECT COUNT(*) FROM dim_concejos)) AS resultado;
 
