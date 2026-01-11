@@ -6,7 +6,12 @@
 -- TOTALES ESPERADOS:
 --   - dim_comarcas:   7 comarcas + 1 "Todo Álava" = 8 registros
 --   - dim_municipios: 51 reales + 14 (Todo/Varios comarca) + 2 (Álava) = 67 registros
---   - dim_concejos:   333 reales + 102 (Todo/Varios municipio) + 2 (Álava) = 437 registros
+--   - dim_concejos:   335 reales + 102 (Todo/Varios municipio) + 14 (comarca) + 4 (Álava) = 455 registros
+--
+-- CORRECCIONES v1.1:
+--   - Añadido Elvillar/Bilar (01023) que faltaba
+--   - Corregido código INE de Ribera Alta (01023 → 01046)
+--   - Corregido concejos Álava: ahora cada municipio especial tiene Todo+Varios
 --
 -- USO:
 --   mysql -h localhost -P 3307 -u root -p [esquema] < recrear_dimensiones_geograficas.sql
@@ -71,6 +76,7 @@ INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, coma
 (16, '00016', 'Varios Cantábrica Alavesa', 1, 8, 1);
 
 -- 2.3 MUNICIPIOS REALES (51 municipios, IDs 101-151)
+-- Nota: Elvillar/Bilar tiene ID 151 (añadido en corrección)
 
 -- AYALA/AIARALDEA (comarca_id = 2)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
@@ -109,7 +115,8 @@ INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, coma
 (127, '01041', 'Navaridas', 1, 4, 1),
 (128, '01052', 'Samaniego', 1, 4, 1),
 (129, '01057', 'Villabuena de Álava', 1, 4, 1),
-(130, '01060', 'Yécora/Iekora', 1, 4, 1);
+(130, '01060', 'Yécora/Iekora', 1, 4, 1),
+(151, '01023', 'Elvillar/Bilar', 1, 4, 1);
 
 -- AÑANA (comarca_id = 5)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
@@ -119,7 +126,7 @@ INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, coma
 (134, '01020', 'Kuartango', 1, 5, 1),
 (135, '01901', 'Iruña Oka', 1, 5, 1),
 (136, '01902', 'Lantarón', 1, 5, 1),
-(137, '01023', 'Ribera Alta', 1, 5, 1),
+(137, '01046', 'Ribera Alta', 1, 5, 1),
 (138, '01047', 'Ribera Baja', 1, 5, 1),
 (139, '01055', 'Valdegovía/Gaubea', 1, 5, 1),
 (140, '01062', 'Zambrana', 1, 5, 1);
@@ -149,10 +156,13 @@ SELECT CONCAT('Municipios insertados: ', (SELECT COUNT(*) FROM dim_municipios)) 
 -- FASE 3: CONCEJOS (437 registros)
 -- ============================================================================
 
--- 3.1 TODO Y VARIOS ÁLAVA (IDs 1-2)
+-- 3.1 TODO Y VARIOS ÁLAVA (IDs 1-4)
+-- Cada municipio especial de Álava tiene ambos concejos: Todo y Varios
 INSERT INTO dim_concejos (id, municipio_id, nombre, activo) VALUES
 (1, 1, 'Todo Álava', 1),
-(2, 2, 'Varios Álava', 1);
+(2, 1, 'Varios Álava', 1),
+(3, 2, 'Todo Álava', 1),
+(4, 2, 'Varios Álava', 1);
 
 -- 3.2 TODO Y VARIOS POR MUNICIPIO (102 registros)
 -- Para los municipios especiales de comarca (IDs 3-16)
@@ -180,7 +190,7 @@ INSERT INTO dim_concejos (municipio_id, nombre, activo)
 SELECT id, CONCAT('Varios ', municipio_nombre), 1 FROM dim_municipios WHERE id >= 101;
 
 -- ============================================================================
--- 3.3 CONCEJOS REALES (333 registros)
+-- 3.3 CONCEJOS REALES (335 registros)
 -- ============================================================================
 
 -- ALEGRÍA-DULANTZI (107) - 2 concejos
@@ -401,6 +411,10 @@ INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
 -- LAGUARDIA (118) - 1 concejo
 INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
 (118, 'Páganos', 1);
+
+-- ELVILLAR/BILAR (151) - 1 concejo (el propio municipio)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(151, 'Elvillar/Bilar', 1);
 
 -- LANTARÓN (136) - 12 concejos
 INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
