@@ -60,9 +60,7 @@ Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createal
 ; NOTA: No use "Flags: ignoreversion" en archivos compartidos del sistema
 
 ; Archivos de recursos
-Source: "source\*"; DestDir: "{app}\source"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "informes_guardados\*"; DestDir: "{app}\informes_guardados"; Flags: ignoreversion recursesubdirs createallsubdirs; AfterInstall: CreateInformesDir
-Source: "output\*"; DestDir: "{app}\output"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Archivos de configuración y documentación
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
@@ -70,8 +68,6 @@ Source: ".env.example"; DestDir: "{app}"; Flags: ignoreversion; DestName: ".env"
 
 [Dirs]
 Name: "{app}\informes_guardados"; Permissions: users-full
-Name: "{app}\output"; Permissions: users-full
-Name: "{app}\source"; Permissions: users-full
 Name: "{userappdata}\{#MyAppName}"; Permissions: users-full
 Name: "{userappdata}\{#MyAppName}\configs"; Permissions: users-full
 Name: "{userappdata}\{#MyAppName}\exports"; Permissions: users-full
