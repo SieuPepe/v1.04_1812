@@ -9,8 +9,14 @@ a la base de datos MySQL de HydroFlow Manager.
 
 REQUISITOS:
   - Python 3.8+
-  - mdb-tools instalado: sudo apt install mdb-tools
   - mysql-connector-python: pip install mysql-connector-python
+
+  Windows:
+    - pyodbc: pip install pyodbc
+    - Microsoft Access Database Engine (normalmente ya instalado)
+
+  Linux:
+    - mdb-tools: sudo apt install mdb-tools
 
 USO:
   python importar_access_mysql.py --access /ruta/al/archivo.accdb --host localhost --user root --password xxx --database hydroflow
@@ -112,14 +118,69 @@ def es_direccion(texto: str) -> bool:
 
 
 def leer_tabla_access(accdb_path: str, tabla: str) -> List[Dict]:
-    """Lee una tabla de Access y devuelve lista de diccionarios."""
-    try:
-        # Obtener esquema de la tabla
-        result = subprocess.run(
-            ['mdb-schema', accdb_path, tabla],
-            capture_output=True, text=True, check=True
-        )
+    """
+    Lee una tabla de Access y devuelve lista de diccionarios.
+    Detecta automáticamente el SO y usa el método apropiado:
+    - Windows: pyodbc con driver de Access
+    - Linux: mdb-tools
+    """
+    import platform
 
+    if platform.system() == 'Windows':
+        return _leer_tabla_access_windows(accdb_path, tabla)
+    else:
+        return _leer_tabla_access_linux(accdb_path, tabla)
+
+
+def _leer_tabla_access_windows(accdb_path: str, tabla: str) -> List[Dict]:
+    """Lee tabla de Access usando pyodbc (Windows)."""
+    try:
+        import pyodbc
+    except ImportError:
+        print("ERROR: pyodbc no está instalado.")
+        print("Instálalo con: pip install pyodbc")
+        sys.exit(1)
+
+    try:
+        # Construir connection string para Access
+        conn_str = (
+            r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
+            f'DBQ={accdb_path};'
+        )
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        # Leer todos los registros
+        cursor.execute(f'SELECT * FROM [{tabla}]')
+
+        # Obtener nombres de columnas
+        columns = [column[0] for column in cursor.description]
+
+        # Convertir a lista de diccionarios
+        rows = []
+        for row in cursor.fetchall():
+            row_dict = {}
+            for i, col in enumerate(columns):
+                value = row[i]
+                # Convertir a string si no es None
+                row_dict[col] = str(value) if value is not None else ''
+            rows.append(row_dict)
+
+        cursor.close()
+        conn.close()
+        return rows
+
+    except pyodbc.Error as e:
+        print(f"Error leyendo tabla {tabla}: {e}")
+        return []
+    except Exception as e:
+        print(f"Error procesando tabla {tabla}: {e}")
+        return []
+
+
+def _leer_tabla_access_linux(accdb_path: str, tabla: str) -> List[Dict]:
+    """Lee tabla de Access usando mdb-tools (Linux)."""
+    try:
         # Exportar datos como CSV
         result = subprocess.run(
             ['mdb-export', accdb_path, tabla],
@@ -137,6 +198,10 @@ def leer_tabla_access(accdb_path: str, tabla: str) -> List[Dict]:
         reader = csv.DictReader(StringIO(result.stdout))
         return list(reader)
 
+    except FileNotFoundError:
+        print("ERROR: mdb-tools no está instalado.")
+        print("Instálalo con: sudo apt install mdb-tools")
+        sys.exit(1)
     except subprocess.CalledProcessError as e:
         print(f"Error leyendo tabla {tabla}: {e}")
         return []
@@ -957,16 +1022,32 @@ Ejemplo de uso:
         print(f"ERROR: No se encuentra el archivo: {args.access}")
         sys.exit(1)
 
-    # Verificar mdb-tools
-    try:
-        subprocess.run(['mdb-ver', args.access], capture_output=True, check=True)
-    except FileNotFoundError:
-        print("ERROR: mdb-tools no está instalado.")
-        print("Instálalo con: sudo apt install mdb-tools")
-        sys.exit(1)
-    except subprocess.CalledProcessError:
-        print(f"ERROR: No se puede leer el archivo Access: {args.access}")
-        sys.exit(1)
+    # Verificar dependencias según el SO
+    import platform
+    if platform.system() == 'Windows':
+        try:
+            import pyodbc
+            # Verificar que el driver de Access está disponible
+            drivers = [d for d in pyodbc.drivers() if 'Access' in d]
+            if not drivers:
+                print("ERROR: No se encontró el driver de Microsoft Access.")
+                print("Instala Microsoft Access Database Engine desde:")
+                print("  https://www.microsoft.com/en-us/download/details.aspx?id=54920")
+                sys.exit(1)
+        except ImportError:
+            print("ERROR: pyodbc no está instalado.")
+            print("Instálalo con: pip install pyodbc")
+            sys.exit(1)
+    else:
+        try:
+            subprocess.run(['mdb-ver', args.access], capture_output=True, check=True)
+        except FileNotFoundError:
+            print("ERROR: mdb-tools no está instalado.")
+            print("Instálalo con: sudo apt install mdb-tools")
+            sys.exit(1)
+        except subprocess.CalledProcessError:
+            print(f"ERROR: No se puede leer el archivo Access: {args.access}")
+            sys.exit(1)
 
     print("="*70)
     print("IMPORTACIÓN ACCESS → MySQL")
