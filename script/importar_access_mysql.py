@@ -879,19 +879,19 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
 
     # DEBUG: Verificar el mapeo
     print(f"\n  DEBUG: mapeo tiene {len(mapeo)} entradas")
-    if mapeo:
-        primeras_claves = list(mapeo.keys())[:3]
-        print(f"  DEBUG: Primeras claves del mapeo: {primeras_claves}")
-        print(f"  DEBUG: Tipo de claves: {type(primeras_claves[0]) if primeras_claves else 'N/A'}")
 
+    # DEBUG: Mostrar TODOS los campos disponibles en Access
     if listado_ots:
-        primeros_ids = [row.get('ID', row.get('Id', '')) for row in listado_ots[:3]]
-        print(f"  DEBUG: Primeros IDs del listado: {primeros_ids}")
-        print(f"  DEBUG: Tipo de IDs: {type(primeros_ids[0]) if primeros_ids else 'N/A'}")
+        print(f"\n  DEBUG: Campos disponibles en Access:")
+        for campo in listado_ots[0].keys():
+            valor = listado_ots[0].get(campo, '')
+            print(f"    '{campo}' = '{str(valor)[:50]}'")
+        print()
 
     insertados = 0
     errores = 0
     sin_mapeo = 0
+    duplicados = 0
 
     insert_sql = """
         INSERT INTO tbl_partes (
@@ -946,14 +946,22 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             insertados += 1
 
         except Exception as e:
-            errores += 1
-            if errores <= 5:
-                print(f"  Error en registro: {row.get('ID', '?')}: {e}")
+            error_str = str(e)
+            if 'Duplicate entry' in error_str:
+                duplicados += 1
+                if duplicados <= 3:
+                    print(f"  ⚠ Duplicado: {codigo}")
+            else:
+                errores += 1
+                if errores <= 5:
+                    print(f"  Error en registro: {row.get('ID', '?')}: {e}")
 
     conn.commit()
     print(f"\n✓ Importados: {insertados} partes")
     if sin_mapeo:
         print(f"⚠ Sin mapeo geográfico: {sin_mapeo}")
+    if duplicados:
+        print(f"⚠ Duplicados ignorados: {duplicados}")
     if errores:
         print(f"⚠ Errores: {errores}")
 
@@ -966,8 +974,22 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
     print("Importando MEDICIONES OTS → tbl_part_presupuesto")
     print("-"*70)
 
+    # DEBUG: Mostrar campos disponibles en MEDICIONES OTS
+    if mediciones:
+        print(f"\n  DEBUG: Campos disponibles en MEDICIONES OTS:")
+        for campo in mediciones[0].keys():
+            valor = mediciones[0].get(campo, '')
+            print(f"    '{campo}' = '{str(valor)[:50]}'")
+        print()
+
     cursor.execute("SELECT id, codigo FROM tbl_partes")
     partes_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
+
+    # DEBUG: Mostrar algunos códigos de partes disponibles
+    print(f"  DEBUG: Primeros 5 códigos de partes en BD:")
+    for i, cod in enumerate(list(partes_db.keys())[:5]):
+        print(f"    '{cod}'")
+    print()
 
     cursor.execute("SELECT id, codigo FROM tbl_pres_precios")
     precios_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
@@ -983,14 +1005,25 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
         ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
     """
 
+    # DEBUG: Mostrar primeros códigos de trabajo de mediciones
+    if mediciones:
+        print(f"  DEBUG: Primeros 3 COD TRABAJO en mediciones:")
+        for i, row in enumerate(mediciones[:3]):
+            cod = row.get('COD TRABAJO', row.get('COD_TRABAJO', row.get('COD.TRABAJO', '')))
+            print(f"    '{cod}'")
+        print()
+
     for row in mediciones:
         try:
-            cod_trabajo = row.get('COD TRABAJO', row.get('COD_TRABAJO', '')).strip()
+            cod_trabajo = row.get('COD TRABAJO', row.get('COD_TRABAJO', row.get('COD.TRABAJO', ''))).strip()
             parte_id = partes_db.get(cod_trabajo)
 
             if not parte_id:
                 if cod_trabajo not in partes_no_encontrados:
                     partes_no_encontrados.add(cod_trabajo)
+                    # DEBUG: Mostrar primeros 5 no encontrados
+                    if len(partes_no_encontrados) <= 5:
+                        print(f"  DEBUG: Código '{cod_trabajo}' no encontrado en partes")
                 continue
 
             cod_precio = row.get('CODIGO', row.get('CÓDIGO', '')).strip()
