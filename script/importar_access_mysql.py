@@ -22,9 +22,9 @@ USO:
   python importar_access_mysql.py --access /ruta/al/archivo.accdb --host localhost --user root --password xxx --database hydroflow
 
 MAPEO GEOGRÁFICO:
-  - LOCALIZACIÓN (Access) → Comarca (MySQL dim_comarcas)
   - COMARCA (Access) → Municipio (MySQL dim_municipios)
-  - Concejo: Se determina automáticamente o se usa "Todo [municipio]"
+  - LOCALIZACIÓN (Access) → Concejo (MySQL dim_concejos)
+  - Comarca MySQL: Se deriva automáticamente del municipio encontrado
 
 AUTOR: Script generado automáticamente para HydroFlow Manager
 FECHA: 2026-01-11
@@ -324,65 +324,74 @@ def seleccionar_de_lista(lista: List[Dict], campo_nombre: str, titulo: str, filt
 
 
 def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Optional[Dict]:
-    """Procesa un registro de forma interactiva y devuelve el mapeo geográfico."""
+    """
+    Procesa un registro de forma interactiva y devuelve el mapeo geográfico.
 
+    Lógica de mapeo:
+    - COMARCA (Access) → Municipio (MySQL)
+    - LOCALIZACIÓN (Access) → Concejo (MySQL)
+    - Comarca MySQL se deriva del municipio
+    """
     localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', '')).strip()
     comarca_access = registro.get('COMARCA', '').strip()
 
     mostrar_registro_access(registro)
 
-    # Buscar sugerencias para comarca (desde LOCALIZACIÓN)
-    sug_comarcas = buscar_mejor_coincidencia(localizacion, comarcas, 'comarca_nombre')
-
-    # Buscar sugerencias para municipio (desde COMARCA)
+    # Buscar sugerencias para municipio (desde COMARCA del Access)
     sug_municipios = buscar_mejor_coincidencia(comarca_access, municipios, 'municipio_nombre')
 
-    print("\n  SUGERENCIAS BASADAS EN LOS DATOS:")
+    # Buscar sugerencias para concejo (desde LOCALIZACIÓN del Access)
+    sug_concejos = buscar_mejor_coincidencia(localizacion, concejos, 'nombre')
 
-    # Mostrar cómo quedaría con cada sugerencia
-    print("\n  Opción | Comarca (de LOCALIZACIÓN) | Municipio (de COMARCA) | Concejo")
-    print("  " + "-"*75)
+    print("\n  SUGERENCIAS BASADAS EN LOS DATOS:")
+    print("\n  Opción | Municipio (de COMARCA) | Concejo (de LOCALIZACIÓN) | Comarca MySQL")
+    print("  " + "-"*80)
 
     opciones = []
     num_opcion = 1
 
-    # Generar opciones combinando sugerencias
-    for sim_c, comarca in sug_comarcas[:3]:
-        for sim_m, municipio in sug_municipios[:3]:
-            if municipio['comarca_id'] == comarca['id']:
-                # Buscar concejo "Todo" para este municipio
-                concejo_todo = None
-                for c in concejos:
-                    if c['municipio_id'] == municipio['id'] and c['nombre'].startswith('Todo '):
-                        concejo_todo = c
-                        break
-
-                if not concejo_todo:
-                    # Usar el primer concejo del municipio
-                    for c in concejos:
-                        if c['municipio_id'] == municipio['id']:
-                            concejo_todo = c
-                            break
-
-                concejo_nombre = concejo_todo['nombre'] if concejo_todo else f"Todo {municipio['municipio_nombre']}"
-                concejo_id = concejo_todo['id'] if concejo_todo else None
-
-                print(f"  {num_opcion:^6} | {comarca['comarca_nombre'][:25]:<25} | {municipio['municipio_nombre'][:22]:<22} | {concejo_nombre[:20]}")
+    # Generar opciones combinando municipio + concejo
+    for sim_m, municipio in sug_municipios[:5]:
+        # Buscar concejos que coincidan y pertenezcan a este municipio
+        for sim_c, concejo in sug_concejos[:5]:
+            if concejo['municipio_id'] == municipio['id']:
+                # ¡Match perfecto! Municipio y concejo coinciden
+                print(f"  {num_opcion:^6} | {municipio['municipio_nombre'][:22]:<22} | {concejo['nombre'][:25]:<25} | {municipio['comarca_nombre'][:15]}")
                 opciones.append({
-                    'comarca': comarca,
                     'municipio': municipio,
-                    'concejo': concejo_todo,
-                    'concejo_nombre': concejo_nombre
+                    'concejo': concejo
                 })
                 num_opcion += 1
 
+    # Si no hay match municipio-concejo, mostrar solo opciones de municipio con "Todo X"
     if not opciones:
-        # Si no hay opciones combinadas válidas, mostrar sugerencias por separado
-        print("\n  No se encontraron combinaciones válidas comarca-municipio.")
-        mostrar_sugerencias(sug_comarcas, 'comarca_nombre', "Sugerencias de Comarca (desde LOCALIZACIÓN)")
-        mostrar_sugerencias(sug_municipios, 'municipio_nombre', "Sugerencias de Municipio (desde COMARCA)")
+        print("\n  (No hay coincidencia directa municipio-concejo, mostrando municipios)")
+        for sim_m, municipio in sug_municipios[:5]:
+            # Buscar concejo "Todo X" para este municipio
+            concejo_todo = None
+            for c in concejos:
+                if c['municipio_id'] == municipio['id'] and c['nombre'].startswith('Todo '):
+                    concejo_todo = c
+                    break
 
-    print(f"\n  {num_opcion}. Ninguna de las anteriores (selección manual)")
+            concejo_nombre = concejo_todo['nombre'] if concejo_todo else f"Todo {municipio['municipio_nombre']}"
+            print(f"  {num_opcion:^6} | {municipio['municipio_nombre'][:22]:<22} | {concejo_nombre[:25]:<25} | {municipio['comarca_nombre'][:15]}")
+            opciones.append({
+                'municipio': municipio,
+                'concejo': concejo_todo,
+                'concejo_nombre': concejo_nombre
+            })
+            num_opcion += 1
+
+    # Mostrar sugerencias adicionales si no hay opciones
+    if not opciones:
+        print("\n  No se encontraron coincidencias.")
+        mostrar_sugerencias(sug_municipios, 'municipio_nombre', "Sugerencias de Municipio (desde COMARCA)")
+        mostrar_sugerencias(sug_concejos, 'nombre', "Sugerencias de Concejo (desde LOCALIZACIÓN)")
+
+    # Opción de selección manual (siguiente número después de las opciones)
+    opcion_manual = num_opcion
+    print(f"\n  {opcion_manual}. Ninguna de las anteriores (selección manual)")
     print(f"  0. Saltar este registro")
 
     while True:
@@ -394,22 +403,27 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
 
             num = int(resp)
 
-            if 1 <= num <= len(opciones):
+            if 1 <= num < opcion_manual and num <= len(opciones):
                 opcion = opciones[num - 1]
+                municipio = opcion['municipio']
+                concejo = opcion.get('concejo')
+                concejo_nombre = opcion.get('concejo_nombre') or (concejo['nombre'] if concejo else f"Todo {municipio['municipio_nombre']}")
+
                 print(f"\n  ✓ Seleccionado:")
-                print(f"    Comarca: {opcion['comarca']['comarca_nombre']}")
-                print(f"    Municipio: {opcion['municipio']['municipio_nombre']}")
-                print(f"    Concejo: {opcion['concejo_nombre']}")
+                print(f"    Comarca: {municipio['comarca_nombre']}")
+                print(f"    Municipio: {municipio['municipio_nombre']}")
+                print(f"    Concejo: {concejo_nombre}")
+
                 return {
-                    'comarca_id': opcion['comarca']['id'],
-                    'comarca_nombre': opcion['comarca']['comarca_nombre'],
-                    'municipio_id': opcion['municipio']['id'],
-                    'municipio_nombre': opcion['municipio']['municipio_nombre'],
-                    'concejo_id': opcion['concejo']['id'] if opcion['concejo'] else None,
-                    'concejo_nombre': opcion['concejo_nombre']
+                    'comarca_id': municipio['comarca_id'],
+                    'comarca_nombre': municipio['comarca_nombre'],
+                    'municipio_id': municipio['id'],
+                    'municipio_nombre': municipio['municipio_nombre'],
+                    'concejo_id': concejo['id'] if concejo else None,
+                    'concejo_nombre': concejo_nombre
                 }
 
-            elif num == num_opcion:  # Selección manual
+            elif num == opcion_manual:  # Selección manual
                 print("\n  === SELECCIÓN MANUAL ===")
 
                 # 1. Seleccionar Comarca
@@ -428,25 +442,21 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
                 # 3. Seleccionar Concejo (filtrado por municipio)
                 concejos_municipio = [c for c in concejos if c['municipio_id'] == municipio_sel['id']]
 
+                concejo_id = None
+                concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
+
                 if concejos_municipio:
-                    concejo_sel = seleccionar_de_lista(
-                        concejos_municipio, 'nombre', 'CONCEJO'
-                    )
+                    concejo_sel = seleccionar_de_lista(concejos_municipio, 'nombre', 'CONCEJO')
                     if concejo_sel:
                         concejo_nombre = concejo_sel['nombre']
                         concejo_id = concejo_sel['id']
                     else:
-                        concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
-                        concejo_id = None
-                else:
-                    concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
-                    concejo_id = None
-                    # Buscar el concejo "Todo X" en la base de datos
-                    for c in concejos:
-                        if c['municipio_id'] == municipio_sel['id'] and c['nombre'].startswith('Todo '):
-                            concejo_id = c['id']
-                            concejo_nombre = c['nombre']
-                            break
+                        # Buscar "Todo X"
+                        for c in concejos_municipio:
+                            if c['nombre'].startswith('Todo '):
+                                concejo_id = c['id']
+                                concejo_nombre = c['nombre']
+                                break
 
                 print(f"\n  ✓ Selección manual completada:")
                 print(f"    Comarca: {comarca_sel['comarca_nombre']}")
@@ -461,6 +471,8 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
                     'concejo_id': concejo_id,
                     'concejo_nombre': concejo_nombre
                 }
+            else:
+                print("  Opción inválida.")
 
         except ValueError:
             print("  Entrada inválida.")
@@ -469,6 +481,12 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
 def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Tuple[Dict, List[Dict]]:
     """
     Procesa el mapeo geográfico de todos los registros.
+
+    Lógica de mapeo:
+    - COMARCA (Access) → Municipio (MySQL)
+    - LOCALIZACIÓN (Access) → Concejo (MySQL)
+    - Comarca MySQL se deriva del municipio encontrado
+
     Retorna: (mapeo_por_registro, correcciones_realizadas)
     """
     print("\n" + "="*80)
@@ -480,16 +498,7 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
     problematicos = []
     correcciones = []  # Lista de correcciones para mostrar al final
 
-    # Crear índices para búsqueda rápida
-    comarcas_por_nombre = {}
-    for c in comarcas:
-        nombre_norm = normalizar_texto(c['comarca_nombre'])
-        comarcas_por_nombre[nombre_norm] = c
-        # También indexar partes del nombre
-        if '/' in c['comarca_nombre']:
-            for parte in c['comarca_nombre'].split('/'):
-                comarcas_por_nombre[normalizar_texto(parte.strip())] = c
-
+    # Crear índices para búsqueda rápida de municipios por nombre
     municipios_por_nombre = {}
     for m in municipios:
         nombre_norm = normalizar_texto(m['municipio_nombre'])
@@ -498,8 +507,23 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
             for parte in m['municipio_nombre'].split('/'):
                 municipios_por_nombre[normalizar_texto(parte.strip())] = m
 
+    # Crear índices para búsqueda rápida de concejos por nombre y por municipio
+    concejos_por_nombre = {}
     concejos_por_municipio = {}
     for c in concejos:
+        # Índice por nombre
+        nombre_norm = normalizar_texto(c['nombre'])
+        if nombre_norm not in concejos_por_nombre:
+            concejos_por_nombre[nombre_norm] = []
+        concejos_por_nombre[nombre_norm].append(c)
+        if '/' in c['nombre']:
+            for parte in c['nombre'].split('/'):
+                parte_norm = normalizar_texto(parte.strip())
+                if parte_norm not in concejos_por_nombre:
+                    concejos_por_nombre[parte_norm] = []
+                concejos_por_nombre[parte_norm].append(c)
+
+        # Índice por municipio
         muni_id = c['municipio_id']
         if muni_id not in concejos_por_municipio:
             concejos_por_municipio[muni_id] = []
@@ -513,19 +537,7 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
         localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', '')).strip()
         comarca_access = registro.get('COMARCA', '').strip()
 
-        # Buscar comarca por LOCALIZACIÓN
-        comarca_encontrada = None
-        loc_norm = normalizar_texto(localizacion)
-        if loc_norm in comarcas_por_nombre:
-            comarca_encontrada = comarcas_por_nombre[loc_norm]
-        else:
-            # Buscar por similitud alta
-            for nombre, com in comarcas_por_nombre.items():
-                if similitud(loc_norm, nombre) > 0.85:
-                    comarca_encontrada = com
-                    break
-
-        # Buscar municipio por COMARCA
+        # 1. Buscar MUNICIPIO por COMARCA (Access)
         municipio_encontrado = None
         com_norm = normalizar_texto(comarca_access)
         if com_norm in municipios_por_nombre:
@@ -537,35 +549,78 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
                     municipio_encontrado = muni
                     break
 
-        # Verificar consistencia comarca-municipio
-        if comarca_encontrada and municipio_encontrado:
-            if municipio_encontrado['comarca_id'] == comarca_encontrada['id']:
-                # ¡Coincidencia perfecta!
-                # Buscar concejo "Todo X" para este municipio
-                concejo_id = None
-                concejo_nombre = f"Todo {municipio_encontrado['municipio_nombre']}"
+        # 2. Buscar CONCEJO por LOCALIZACIÓN (Access)
+        concejo_encontrado = None
+        loc_norm = normalizar_texto(localizacion)
 
-                if municipio_encontrado['id'] in concejos_por_municipio:
-                    for c in concejos_por_municipio[municipio_encontrado['id']]:
-                        if c['nombre'].startswith('Todo '):
-                            concejo_id = c['id']
-                            concejo_nombre = c['nombre']
-                            break
+        # Buscar coincidencia exacta primero
+        if loc_norm in concejos_por_nombre:
+            candidatos = concejos_por_nombre[loc_norm]
+            # Si hay municipio encontrado, priorizar concejos de ese municipio
+            if municipio_encontrado:
+                for c in candidatos:
+                    if c['municipio_id'] == municipio_encontrado['id']:
+                        concejo_encontrado = c
+                        break
+            # Si no hay match con municipio, tomar el primer candidato
+            if not concejo_encontrado and candidatos:
+                concejo_encontrado = candidatos[0]
+        else:
+            # Buscar por similitud alta
+            mejor_sim = 0.0
+            for nombre, lista_concejos in concejos_por_nombre.items():
+                sim = similitud(loc_norm, nombre)
+                if sim > 0.85 and sim > mejor_sim:
+                    # Priorizar concejos del municipio encontrado
+                    if municipio_encontrado:
+                        for c in lista_concejos:
+                            if c['municipio_id'] == municipio_encontrado['id']:
+                                concejo_encontrado = c
+                                mejor_sim = sim
+                                break
+                    if not concejo_encontrado and lista_concejos:
+                        concejo_encontrado = lista_concejos[0]
+                        mejor_sim = sim
 
+        # 3. Verificar coincidencia: ¿El concejo pertenece al municipio?
+        if municipio_encontrado and concejo_encontrado:
+            if concejo_encontrado['municipio_id'] == municipio_encontrado['id']:
+                # ¡Coincidencia perfecta! El concejo pertenece al municipio
                 mapeo[id_reg] = {
-                    'comarca_id': comarca_encontrada['id'],
-                    'comarca_nombre': comarca_encontrada['comarca_nombre'],
+                    'comarca_id': municipio_encontrado['comarca_id'],
+                    'comarca_nombre': municipio_encontrado['comarca_nombre'],
                     'municipio_id': municipio_encontrado['id'],
                     'municipio_nombre': municipio_encontrado['municipio_nombre'],
-                    'concejo_id': concejo_id,
-                    'concejo_nombre': concejo_nombre
+                    'concejo_id': concejo_encontrado['id'],
+                    'concejo_nombre': concejo_encontrado['nombre']
                 }
                 correctos.append(registro)
             else:
-                # Comarca y municipio no coinciden
+                # Concejo y municipio no coinciden - requiere revisión
                 problematicos.append(registro)
+        elif municipio_encontrado:
+            # Solo encontramos municipio, buscar concejo "Todo X"
+            concejo_id = None
+            concejo_nombre = f"Todo {municipio_encontrado['municipio_nombre']}"
+
+            if municipio_encontrado['id'] in concejos_por_municipio:
+                for c in concejos_por_municipio[municipio_encontrado['id']]:
+                    if c['nombre'].startswith('Todo '):
+                        concejo_id = c['id']
+                        concejo_nombre = c['nombre']
+                        break
+
+            mapeo[id_reg] = {
+                'comarca_id': municipio_encontrado['comarca_id'],
+                'comarca_nombre': municipio_encontrado['comarca_nombre'],
+                'municipio_id': municipio_encontrado['id'],
+                'municipio_nombre': municipio_encontrado['municipio_nombre'],
+                'concejo_id': concejo_id,
+                'concejo_nombre': concejo_nombre
+            }
+            correctos.append(registro)
         else:
-            # No se encontró algo
+            # No se encontró municipio - requiere revisión manual
             problematicos.append(registro)
 
     # Mostrar resumen de coincidencias automáticas
