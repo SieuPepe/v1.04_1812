@@ -210,12 +210,13 @@ def _leer_tabla_access_linux(accdb_path: str, tabla: str) -> List[Dict]:
         return []
 
 
-def conectar_mysql(host: str, user: str, password: str, database: str):
+def conectar_mysql(host: str, port: int, user: str, password: str, database: str):
     """Conecta a MySQL y devuelve conexión y cursor."""
     try:
         import mysql.connector
         conn = mysql.connector.connect(
             host=host,
+            port=port,
             user=user,
             password=password,
             database=database,
@@ -1009,6 +1010,7 @@ Ejemplo de uso:
 
     parser.add_argument('--access', required=True, help='Ruta al archivo .accdb de Access')
     parser.add_argument('--host', default='localhost', help='Host MySQL (default: localhost)')
+    parser.add_argument('--port', type=int, default=3306, help='Puerto MySQL (default: 3306)')
     parser.add_argument('--user', required=True, help='Usuario MySQL')
     parser.add_argument('--password', required=True, help='Contraseña MySQL')
     parser.add_argument('--database', required=True, help='Nombre de la base de datos MySQL')
@@ -1053,12 +1055,12 @@ Ejemplo de uso:
     print("IMPORTACIÓN ACCESS → MySQL")
     print("="*70)
     print(f"Archivo Access: {args.access}")
-    print(f"Base de datos MySQL: {args.database}@{args.host}")
+    print(f"Base de datos MySQL: {args.database}@{args.host}:{args.port}")
     print(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Conectar a MySQL
     print("\nConectando a MySQL...")
-    conn, cursor = conectar_mysql(args.host, args.user, args.password, args.database)
+    conn, cursor = conectar_mysql(args.host, args.port, args.user, args.password, args.database)
     print("✓ Conexión establecida")
 
     # Leer tablas de Access
