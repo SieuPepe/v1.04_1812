@@ -27,7 +27,6 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 LicenseFile=LICENSE.txt
-InfoBeforeFile=README.md
 OutputDir=dist
 OutputBaseFilename=HydroFlowManager_Setup_v{#MyAppVersion}
 SetupIconFile={#MyAppIcon}
@@ -68,7 +67,6 @@ Source: "informes_guardados\*"; DestDir: "{app}\informes_guardados"; Flags: igno
 Source: "output\*"; DestDir: "{app}\output"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Archivos de configuración y documentación
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion isreadme
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: ".env.example"; DestDir: "{app}"; Flags: ignoreversion; DestName: ".env"
 
