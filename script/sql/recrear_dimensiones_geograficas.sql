@@ -1,72 +1,51 @@
 -- ============================================================================
--- RECREAR DIMENSIONES GEOGRÁFICAS - VERSIÓN CORREGIDA
+-- RECREAR DIMENSIONES GEOGRÁFICAS - ÁLAVA COMPLETA
 -- ============================================================================
--- Este script ELIMINA y RECREA todas las tablas de dimensiones geográficas
--- con la estructura correcta para dropdowns en cascada.
---
--- JERARQUÍA: Provincia → Comarca → Municipio → Concejo
---
--- REGLA FUNDAMENTAL:
---   - CADA nivel tiene opción "Todo {nombre}" para seleccionar toda la zona
---   - NINGÚN dropdown debe quedar vacío
---   - Si un municipio no tiene concejos reales, tendrá "Todo {Municipio}"
+-- Basado en la lista oficial de concejos de Álava
+-- https://es.wikipedia.org/wiki/Anexo:Concejos_de_Álava
 --
 -- USO:
 --   mysql -h localhost -P 3307 -u root -p [esquema] < recrear_dimensiones_geograficas.sql
 -- ============================================================================
 
--- Mostrar esquema actual
 SELECT DATABASE() AS esquema_actual;
 SELECT '=== INICIO: Recrear dimensiones geográficas ===' AS info;
 SELECT NOW() AS fecha_ejecucion;
 
 -- ============================================================================
--- FASE 0: DESACTIVAR FK Y MODO SEGURO, LIMPIAR REFERENCIAS
+-- FASE 0: DESACTIVAR RESTRICCIONES Y LIMPIAR
 -- ============================================================================
 
-SELECT '>>> FASE 0: Desactivando FK, modo seguro y limpiando referencias...' AS paso;
+SELECT '>>> FASE 0: Preparando...' AS paso;
 
--- Desactivar modo seguro de MySQL Workbench
 SET SQL_SAFE_UPDATES = 0;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Limpiar TODAS las referencias geográficas en tablas de hechos
-UPDATE tbl_partes SET municipio_id = NULL, concejo_id = NULL WHERE municipio_id IS NOT NULL OR concejo_id IS NOT NULL;
-SELECT CONCAT('  ✓ tbl_partes: ', ROW_COUNT(), ' registros limpiados') AS resultado;
-
--- Si hay otras tablas con FK a estas dimensiones, limpiarlas aquí también
--- UPDATE tbl_certificaciones SET municipio_id = NULL WHERE municipio_id IS NOT NULL;
+-- Limpiar referencias en tablas de hechos
+UPDATE tbl_partes SET municipio_id = NULL, concejo_id = NULL
+WHERE municipio_id IS NOT NULL OR concejo_id IS NOT NULL;
+SELECT CONCAT('  ✓ tbl_partes limpiada: ', ROW_COUNT(), ' registros') AS resultado;
 
 -- ============================================================================
--- FASE 1: VACIAR TABLAS DE DIMENSIONES
+-- FASE 1: VACIAR TABLAS
 -- ============================================================================
 
-SELECT '>>> FASE 1: Vaciando tablas de dimensiones...' AS paso;
+SELECT '>>> FASE 1: Vaciando tablas...' AS paso;
 
--- Eliminar en orden de dependencia
 TRUNCATE TABLE dim_concejos;
-SELECT '  ✓ dim_concejos vaciada' AS resultado;
-
 TRUNCATE TABLE dim_municipios;
-SELECT '  ✓ dim_municipios vaciada' AS resultado;
-
 TRUNCATE TABLE dim_comarcas;
-SELECT '  ✓ dim_comarcas vaciada' AS resultado;
+
+SELECT '  ✓ Tablas vaciadas' AS resultado;
 
 -- ============================================================================
 -- FASE 2: CREAR COMARCAS
--- ============================================================================
--- Estructura:
---   ID 1 = "Todo Álava" (representa TODAS las comarcas)
---   IDs 2-7 = Comarcas reales (Cuadrillas de Álava)
 -- ============================================================================
 
 SELECT '>>> FASE 2: Creando comarcas...' AS paso;
 
 INSERT INTO dim_comarcas (id, provincia_id, comarca_codigo, comarca_nombre) VALUES
--- Opción para seleccionar TODA la provincia
 (1, 1, 'TODO', 'Todo Álava'),
--- Comarcas reales
 (2, 1, 'AIAR', 'Ayala / Aiaraldea'),
 (3, 1, 'LLAN', 'Llanada Alavesa'),
 (4, 1, 'RIOJ', 'Rioja Alavesa'),
@@ -74,27 +53,17 @@ INSERT INTO dim_comarcas (id, provincia_id, comarca_codigo, comarca_nombre) VALU
 (6, 1, 'MONT', 'Montaña Alavesa'),
 (7, 1, 'GORB', 'Estribaciones del Gorbea');
 
-SELECT CONCAT('  ✓ Comarcas creadas: ', ROW_COUNT()) AS resultado;
+SELECT CONCAT('  ✓ Comarcas: ', ROW_COUNT()) AS resultado;
 
 -- ============================================================================
 -- FASE 3: CREAR MUNICIPIOS
 -- ============================================================================
--- Estructura de IDs:
---   ID 1 = "Todo Álava" (para comarca "Todo Álava")
---   IDs 2-7 = "Todo {Comarca}" (uno por cada comarca real)
---   IDs 1001+ = Municipios reales
--- ============================================================================
 
 SELECT '>>> FASE 3: Creando municipios...' AS paso;
 
--- -----------------------------------------------------------------------------
--- 3.1 MUNICIPIOS "TODO" (para seleccionar todos los municipios de una zona)
--- -----------------------------------------------------------------------------
-
+-- 3.1 MUNICIPIOS "TODO" (IDs 1-7)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
--- Para comarca "Todo Álava" → solo puede elegir "Todo Álava" como municipio
 (1, '00001', 'Todo Álava', 1, 1, 1),
--- Para cada comarca real → puede elegir "Todo {Comarca}" + municipios reales
 (2, '00002', 'Todo Aiaraldea', 1, 2, 1),
 (3, '00003', 'Todo Llanada Alavesa', 1, 3, 1),
 (4, '00004', 'Todo Rioja Alavesa', 1, 4, 1),
@@ -102,95 +71,85 @@ INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, coma
 (6, '00006', 'Todo Montaña Alavesa', 1, 6, 1),
 (7, '00007', 'Todo Estribaciones Gorbea', 1, 7, 1);
 
--- -----------------------------------------------------------------------------
 -- 3.2 MUNICIPIOS REALES
--- -----------------------------------------------------------------------------
 
--- Comarca: Ayala / Aiaraldea (comarca_id = 2)
+-- COMARCA: Ayala / Aiaraldea (comarca_id = 2)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1001, '01002', 'Amurrio', 1, 2, 1),
-(1002, '01010', 'Ayala/Aiara', 1, 2, 1),
-(1003, '01004', 'Artziniega', 1, 2, 1),
-(1004, '01036', 'Laudio/Llodio', 1, 2, 1),
-(1005, '01042', 'Okondo', 1, 2, 1),
-(1006, '01003', 'Aramaio', 1, 2, 1);
+(101, '01002', 'Amurrio', 1, 2, 1),
+(102, '01010', 'Ayala/Aiara', 1, 2, 1),
+(103, '01003', 'Aramaio', 1, 2, 1),
+(104, '01004', 'Artziniega', 1, 2, 1),
+(105, '01036', 'Laudio/Llodio', 1, 2, 1),
+(106, '01042', 'Okondo', 1, 2, 1);
 
--- Comarca: Llanada Alavesa (comarca_id = 3)
+-- COMARCA: Llanada Alavesa (comarca_id = 3)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1010, '01059', 'Vitoria-Gasteiz', 1, 3, 1),
-(1011, '01001', 'Alegría-Dulantzi', 1, 3, 1),
-(1012, '01051', 'Agurain/Salvatierra', 1, 3, 1),
-(1013, '01008', 'Arratzua-Ubarrundia', 1, 3, 1),
-(1014, '01009', 'Asparrena', 1, 3, 1),
-(1015, '01013', 'Barrundia', 1, 3, 1),
-(1016, '01021', 'Elburgo/Burgelu', 1, 3, 1),
-(1017, '01027', 'Iruraiz-Gauna', 1, 3, 1),
-(1018, '01053', 'San Millán/Donemiliaga', 1, 3, 1),
-(1019, '01061', 'Zalduondo', 1, 3, 1),
-(1020, '01018', 'Zigoitia', 1, 3, 1),
-(1021, '01063', 'Zuia', 1, 3, 1),
-(1022, '01058', 'Legutio', 1, 3, 1),
-(1023, '01054', 'Urkabustaiz', 1, 3, 1);
+(201, '01001', 'Alegría-Dulantzi', 1, 3, 1),
+(202, '01008', 'Arrazua-Ubarrundia', 1, 3, 1),
+(203, '01009', 'Asparrena', 1, 3, 1),
+(204, '01013', 'Barrundia', 1, 3, 1),
+(205, '01021', 'Elburgo/Burgelu', 1, 3, 1),
+(206, '01027', 'Iruraiz-Gauna', 1, 3, 1),
+(207, '01053', 'San Millán/Donemiliaga', 1, 3, 1),
+(208, '01059', 'Vitoria-Gasteiz', 1, 3, 1),
+(209, '01051', 'Agurain/Salvatierra', 1, 3, 1),
+(210, '01061', 'Zalduondo', 1, 3, 1);
 
--- Comarca: Rioja Alavesa (comarca_id = 4)
+-- COMARCA: Rioja Alavesa (comarca_id = 4)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1030, '01011', 'Baños de Ebro/Mañueta', 1, 4, 1),
-(1031, '01019', 'Kripan', 1, 4, 1),
-(1032, '01022', 'Elciego', 1, 4, 1),
-(1033, '01028', 'Labastida/Bastida', 1, 4, 1),
-(1034, '01031', 'Laguardia', 1, 4, 1),
-(1035, '01032', 'Lanciego/Lantziego', 1, 4, 1),
-(1036, '01033', 'Lapuebla de Labarca', 1, 4, 1),
-(1037, '01034', 'Leza', 1, 4, 1),
-(1038, '01039', 'Moreda de Álava/Moreda Araba', 1, 4, 1),
-(1039, '01041', 'Navaridas', 1, 4, 1),
-(1040, '01043', 'Oyón-Oion', 1, 4, 1),
-(1041, '01052', 'Samaniego', 1, 4, 1),
-(1042, '01057', 'Villabuena de Álava/Eskuernaga', 1, 4, 1),
-(1043, '01060', 'Yécora/Iekora', 1, 4, 1);
+(301, '01028', 'Labastida/Bastida', 1, 4, 1),
+(302, '01031', 'Laguardia', 1, 4, 1),
+(303, '01043', 'Oyón-Oion', 1, 4, 1),
+(304, '01011', 'Baños de Ebro/Mañueta', 1, 4, 1),
+(305, '01019', 'Kripan', 1, 4, 1),
+(306, '01022', 'Elciego', 1, 4, 1),
+(307, '01032', 'Lanciego/Lantziego', 1, 4, 1),
+(308, '01033', 'Lapuebla de Labarca', 1, 4, 1),
+(309, '01034', 'Leza', 1, 4, 1),
+(310, '01039', 'Moreda de Álava', 1, 4, 1),
+(311, '01041', 'Navaridas', 1, 4, 1),
+(312, '01052', 'Samaniego', 1, 4, 1),
+(313, '01057', 'Villabuena de Álava', 1, 4, 1),
+(314, '01060', 'Yécora/Iekora', 1, 4, 1);
 
--- Comarca: Añana (comarca_id = 5)
+-- COMARCA: Añana (comarca_id = 5)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1050, '01049', 'Añana', 1, 5, 1),
-(1051, '01006', 'Armiñón', 1, 5, 1),
-(1052, '01014', 'Berantevilla', 1, 5, 1),
-(1053, '01020', 'Kuartango', 1, 5, 1),
-(1054, '01901', 'Iruña Oka/Iruña de Oca', 1, 5, 1),
-(1055, '01902', 'Lantarón', 1, 5, 1),
-(1056, '01023', 'Erriberagoitia/Ribera Alta', 1, 5, 1),
-(1057, '01047', 'Ribera Baja/Erribera Beitia', 1, 5, 1),
-(1058, '01055', 'Valdegovía/Gaubea', 1, 5, 1),
-(1059, '01062', 'Zambrana', 1, 5, 1);
+(401, '01049', 'Añana', 1, 5, 1),
+(402, '01006', 'Armiñón', 1, 5, 1),
+(403, '01014', 'Berantevilla', 1, 5, 1),
+(404, '01020', 'Kuartango', 1, 5, 1),
+(405, '01901', 'Iruña Oka', 1, 5, 1),
+(406, '01902', 'Lantarón', 1, 5, 1),
+(407, '01023', 'Ribera Alta', 1, 5, 1),
+(408, '01047', 'Ribera Baja', 1, 5, 1),
+(409, '01055', 'Valdegovía/Gaubea', 1, 5, 1),
+(410, '01062', 'Zambrana', 1, 5, 1);
 
--- Comarca: Montaña Alavesa (comarca_id = 6)
+-- COMARCA: Montaña Alavesa (comarca_id = 6)
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
-(1060, '01037', 'Arraia-Maeztu', 1, 6, 1),
-(1061, '01016', 'Bernedo', 1, 6, 1),
-(1062, '01017', 'Campezo/Kanpezu', 1, 6, 1),
-(1063, '01030', 'Lagrán', 1, 6, 1),
-(1064, '01044', 'Peñacerrada-Urizaharra', 1, 6, 1),
-(1065, '01056', 'Harana/Valle de Arana', 1, 6, 1);
+(501, '01037', 'Arraia-Maeztu', 1, 6, 1),
+(502, '01016', 'Bernedo', 1, 6, 1),
+(503, '01017', 'Campezo/Kanpezu', 1, 6, 1),
+(504, '01030', 'Lagrán', 1, 6, 1),
+(505, '01044', 'Peñacerrada-Urizaharra', 1, 6, 1),
+(506, '01056', 'Harana/Valle de Arana', 1, 6, 1);
 
--- Comarca: Estribaciones del Gorbea (comarca_id = 7)
--- NOTA: Esta comarca comparte municipios con Llanada Alavesa (Zigoitia, Zuia, Legutio, Urkabustaiz)
--- En este esquema, esos municipios están asignados a Llanada Alavesa (comarca_id = 3)
--- La comarca "Estribaciones del Gorbea" solo tendrá la opción "Todo Estribaciones Gorbea"
+-- COMARCA: Estribaciones del Gorbea (comarca_id = 7)
+INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
+(601, '01018', 'Zigoitia', 1, 7, 1),
+(602, '01063', 'Zuia', 1, 7, 1),
+(603, '01058', 'Legutio', 1, 7, 1),
+(604, '01054', 'Urkabustaiz', 1, 7, 1);
 
-SELECT CONCAT('  ✓ Municipios creados: ', (SELECT COUNT(*) FROM dim_municipios)) AS resultado;
+SELECT CONCAT('  ✓ Municipios: ', (SELECT COUNT(*) FROM dim_municipios)) AS resultado;
 
 -- ============================================================================
 -- FASE 4: CREAR CONCEJOS
 -- ============================================================================
--- REGLA: CADA municipio DEBE tener al menos un concejo "Todo {Municipio}"
--- ============================================================================
 
 SELECT '>>> FASE 4: Creando concejos...' AS paso;
 
--- -----------------------------------------------------------------------------
--- 4.1 CONCEJOS "TODO" - Uno por CADA municipio (incluyendo los "Todo X")
--- -----------------------------------------------------------------------------
-
--- Concejos "Todo" para municipios especiales (IDs 1-7)
+-- 4.1 CONCEJOS "TODO" para municipios especiales (IDs 1-7)
 INSERT INTO dim_concejos (id, municipio_id, nombre, activo) VALUES
 (1, 1, 'Todo Álava', 1),
 (2, 2, 'Todo Aiaraldea', 1),
@@ -200,478 +159,486 @@ INSERT INTO dim_concejos (id, municipio_id, nombre, activo) VALUES
 (6, 6, 'Todo Montaña Alavesa', 1),
 (7, 7, 'Todo Estribaciones Gorbea', 1);
 
--- Concejos "Todo" para TODOS los municipios reales
--- Usamos IDs que coinciden con el municipio_id para facilitar la relación
-INSERT INTO dim_concejos (id, municipio_id, nombre, activo)
-SELECT
-    m.id AS id,  -- mismo ID que el municipio
-    m.id AS municipio_id,
-    CONCAT('Todo ', m.municipio_nombre) AS nombre,
-    1 AS activo
-FROM dim_municipios m
-WHERE m.id >= 1001;
-
-SELECT CONCAT('  ✓ Concejos "Todo" creados: ', (SELECT COUNT(*) FROM dim_concejos)) AS resultado;
-
--- -----------------------------------------------------------------------------
--- 4.2 CONCEJOS REALES (IDs 10000+)
--- -----------------------------------------------------------------------------
-
--- Amurrio (municipio_id = 1001)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1001, 'Aloria', 1),
-(1001, 'Amurrio', 1),
-(1001, 'Artomaña', 1),
-(1001, 'Baranbio', 1),
-(1001, 'Delika', 1),
-(1001, 'Larrinbe', 1),
-(1001, 'Lekamaña', 1),
-(1001, 'Lezama', 1),
-(1001, 'Saratxo', 1),
-(1001, 'Tertanga', 1);
-
--- Ayala/Aiara (municipio_id = 1002)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1002, 'Agiñaga', 1),
-(1002, 'Añes', 1),
-(1002, 'Arespalditza/Respaldiza', 1),
-(1002, 'Costera/Opellora', 1),
-(1002, 'Erbi', 1),
-(1002, 'Etxegoien', 1),
-(1002, 'Izoria', 1),
-(1002, 'Lejarzo/Lexartzu', 1),
-(1002, 'Llanteno', 1),
-(1002, 'Luxo/Lujo', 1),
-(1002, 'Luiaondo', 1),
-(1002, 'Madaria', 1),
-(1002, 'Maroño', 1),
-(1002, 'Menagarai-Beotegi', 1),
-(1002, 'Menoio', 1),
-(1002, 'Murga', 1),
-(1002, 'Olabezar', 1),
-(1002, 'Ozeka', 1),
-(1002, 'Quejana/Kexaa', 1),
-(1002, 'Retes de Llanteno', 1),
-(1002, 'Salmantón', 1),
-(1002, 'Soxo/Sojo', 1),
-(1002, 'Zuaza/Zuhatza', 1);
-
--- Artziniega (municipio_id = 1003)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1003, 'Artziniega', 1);
-
--- Laudio/Llodio (municipio_id = 1004)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1004, 'Laudio/Llodio', 1);
-
--- Okondo (municipio_id = 1005)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1005, 'Okondo', 1);
-
--- Aramaio (municipio_id = 1006)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1006, 'Aramaio', 1),
-(1006, 'Arexola', 1),
-(1006, 'Azkoaga', 1),
-(1006, 'Barajuen', 1),
-(1006, 'Etura', 1),
-(1006, 'Gantzaga', 1),
-(1006, 'Ibarra', 1),
-(1006, 'Olaeta', 1),
-(1006, 'Uribarri', 1),
-(1006, 'Untzilla', 1);
-
--- Vitoria-Gasteiz (municipio_id = 1010)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1010, 'Vitoria-Gasteiz', 1);
-
--- Alegría-Dulantzi (municipio_id = 1011)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1011, 'Alegría-Dulantzi', 1);
-
--- Agurain/Salvatierra (municipio_id = 1012)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1012, 'Agurain/Salvatierra', 1);
-
--- Arratzua-Ubarrundia (municipio_id = 1013)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1013, 'Arzubiaga', 1),
-(1013, 'Betolaza', 1),
-(1013, 'Durana', 1),
-(1013, 'Elosu', 1),
-(1013, 'Garayo/Garaio', 1),
-(1013, 'Gopegi', 1),
-(1013, 'Luko', 1),
-(1013, 'Marieta', 1),
-(1013, 'Mendixur', 1),
-(1013, 'Ullibarri-Ganboa', 1);
-
--- Asparrena (municipio_id = 1014)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1014, 'Albeniz', 1),
-(1014, 'Ametzaga', 1),
-(1014, 'Andoin', 1),
-(1014, 'Araia', 1),
-(1014, 'Arriola', 1),
-(1014, 'Egino', 1),
-(1014, 'Gordoa', 1),
-(1014, 'Ilarduia', 1),
-(1014, 'Luzuriaga', 1),
-(1014, 'Narvaja', 1),
-(1014, 'Okariz', 1),
-(1014, 'San Vicente de Arana', 1),
-(1014, 'Urabain', 1);
-
--- Barrundia (municipio_id = 1015)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1015, 'Audikana', 1),
-(1015, 'Dallo', 1),
-(1015, 'Etura', 1),
-(1015, 'Gebara', 1),
-(1015, 'Hermua', 1),
-(1015, 'Larrea', 1),
-(1015, 'Maturana', 1),
-(1015, 'Ozaeta', 1);
-
--- Elburgo/Burgelu (municipio_id = 1016)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1016, 'Añua', 1),
-(1016, 'Arbulu', 1),
-(1016, 'Argomaniz', 1),
-(1016, 'Elburgo/Burgelu', 1),
-(1016, 'Gazeta', 1),
-(1016, 'Hijona/Ixona', 1);
-
--- Iruraiz-Gauna (municipio_id = 1017)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1017, 'Alaitza', 1),
-(1017, 'Arrieta', 1),
-(1017, 'Azilu', 1),
-(1017, 'Erentxun', 1),
-(1017, 'Ezkerekotxa', 1),
-(1017, 'Gazeo', 1),
-(1017, 'Gauna', 1),
-(1017, 'Gereñu', 1),
-(1017, 'Jauregi', 1),
-(1017, 'Langarika', 1),
-(1017, 'Trokoniz', 1);
-
--- San Millán/Donemiliaga (municipio_id = 1018)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1018, 'Adana', 1),
-(1018, 'Aspuru', 1),
-(1018, 'Chinchetru', 1),
-(1018, 'Eguilaz', 1),
-(1018, 'Galarreta', 1),
-(1018, 'Mezquía', 1),
-(1018, 'Munain', 1),
-(1018, 'Narbaiza', 1),
-(1018, 'Ordoñana', 1);
-
--- Zalduondo (municipio_id = 1019)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1019, 'Zalduondo', 1);
-
--- Zigoitia (municipio_id = 1020) - este está en Llanada Alavesa
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1020, 'Acosta', 1),
-(1020, 'Berrikano', 1),
-(1020, 'Buruaga', 1),
-(1020, 'Eribe', 1),
-(1020, 'Etxabarri-Ibiña', 1),
-(1020, 'Gopegui', 1),
-(1020, 'Larrinoa', 1),
-(1020, 'Letona', 1),
-(1020, 'Manurga', 1),
-(1020, 'Murua', 1),
-(1020, 'Olano', 1),
-(1020, 'Ondategi', 1),
-(1020, 'Zaitegi', 1);
-
--- Zuia (municipio_id = 1021)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1021, 'Altube', 1),
-(1021, 'Ametzaga de Zuia', 1),
-(1021, 'Aperregi', 1),
-(1021, 'Domaikia', 1),
-(1021, 'Guillerna', 1),
-(1021, 'Jugo', 1),
-(1021, 'Lukiano', 1),
-(1021, 'Markina de Zuia', 1),
-(1021, 'Murgia', 1),
-(1021, 'Sarria', 1),
-(1021, 'Vitoriano', 1),
-(1021, 'Zarate', 1);
-
--- Legutio (municipio_id = 1022)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1022, 'Elosu', 1),
-(1022, 'Legutio/Villarreal de Álava', 1),
-(1022, 'Nafarrate', 1),
-(1022, 'Urbina', 1),
-(1022, 'Urrunaga', 1);
-
--- Urkabustaiz (municipio_id = 1023)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1023, 'Abecia', 1),
-(1023, 'Abornikano', 1),
-(1023, 'Belunza', 1),
-(1023, 'Goiuri-Ondona', 1),
-(1023, 'Izarra', 1),
-(1023, 'Oiardo', 1),
-(1023, 'Unzá', 1);
-
--- Rioja Alavesa - Municipios con concejos simples (un solo núcleo)
--- Baños de Ebro (1030), Kripan (1031), Elciego (1032), etc.
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1030, 'Baños de Ebro/Mañueta', 1),
-(1031, 'Kripan', 1),
-(1032, 'Elciego', 1),
-(1033, 'Labastida/Bastida', 1),
-(1034, 'Laguardia', 1),
-(1035, 'Lanciego/Lantziego', 1),
-(1036, 'Lapuebla de Labarca', 1),
-(1037, 'Leza', 1),
-(1038, 'Moreda de Álava', 1),
-(1039, 'Navaridas', 1),
-(1040, 'Oyón-Oion', 1),
-(1041, 'Samaniego', 1),
-(1042, 'Villabuena de Álava', 1),
-(1043, 'Yécora/Iekora', 1);
-
--- Comarca Añana - Municipios
--- Añana (1050)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1050, 'Salinas de Añana', 1);
-
--- Armiñón (1051)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1051, 'Armiñón', 1),
-(1051, 'Estavillo', 1);
-
--- Berantevilla (1052)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1052, 'Berantevilla', 1),
-(1052, 'Lacervilla', 1),
-(1052, 'Mijancas', 1),
-(1052, 'Santa Cruz del Fierro', 1),
-(1052, 'Santurde', 1),
-(1052, 'Tobera', 1);
-
--- Kuartango (1053)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1053, 'Anda', 1),
-(1053, 'Andagoia', 1),
-(1053, 'Apodaka', 1),
-(1053, 'Archua', 1),
-(1053, 'Catadiano', 1),
-(1053, 'Guinea', 1),
-(1053, 'Jócano', 1),
-(1053, 'Luna', 1),
-(1053, 'Marinda', 1),
-(1053, 'Sendadiano', 1),
-(1053, 'Tortura', 1),
-(1053, 'Urbina de Eza', 1),
-(1053, 'Zuazo de Cuartango', 1);
-
--- Iruña Oka (1054)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1054, 'Iruña Oka', 1),
-(1054, 'Nanclares de Oca/Langara', 1),
-(1054, 'Ollávarre/Olabarri', 1),
-(1054, 'Trespuentes', 1),
-(1054, 'Víllodas', 1);
-
--- Lantarón (1055)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1055, 'Alcedo', 1),
-(1055, 'Bergüenda', 1),
-(1055, 'Caicedo de Yuso', 1),
-(1055, 'Comunión', 1),
-(1055, 'Fontecha', 1),
-(1055, 'Leciñana del Camino', 1),
-(1055, 'Molinilla', 1),
-(1055, 'Puentelarrá', 1),
-(1055, 'Salcedo', 1),
-(1055, 'Sobrón', 1),
-(1055, 'Turiso', 1),
-(1055, 'Zubillaga', 1);
-
--- Ribera Alta (1056)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1056, 'Antezana de la Ribera', 1),
-(1056, 'Anuntzeta/Anúcita', 1),
-(1056, 'Arreo', 1),
-(1056, 'Artaza-Escota', 1),
-(1056, 'Barrón', 1),
-(1056, 'Basquiñuelas', 1),
-(1056, 'Caicedo-Sopeña', 1),
-(1056, 'Hereña', 1),
-(1056, 'Lasierra', 1),
-(1056, 'Leciñana de la Oca', 1),
-(1056, 'Morillas', 1),
-(1056, 'Ormijana', 1),
-(1056, 'Paúl', 1),
-(1056, 'Pobes', 1),
-(1056, 'Subijana-Morillas', 1),
-(1056, 'Tuyo', 1),
-(1056, 'Villabezana', 1),
-(1056, 'Villaluenga', 1),
-(1056, 'Villambrosa', 1),
-(1056, 'Viloria', 1);
-
--- Ribera Baja (1057)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1057, 'Igay', 1),
-(1057, 'Manzanos', 1),
-(1057, 'Melledes', 1),
-(1057, 'Quintanilla de la Ribera', 1),
-(1057, 'Rivabellosa', 1);
-
--- Valdegovía/Gaubea (1058)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1058, 'Acebedo', 1),
-(1058, 'Bachicabo', 1),
-(1058, 'Barrio', 1),
-(1058, 'Basabe', 1),
-(1058, 'Bóveda', 1),
-(1058, 'Caranca y Mioma', 1),
-(1058, 'Karkamu', 1),
-(1058, 'Corro', 1),
-(1058, 'Espejo', 1),
-(1058, 'Fresneda', 1),
-(1058, 'Gurendes-Quejo', 1),
-(1058, 'Nograro', 1),
-(1058, 'Osma', 1),
-(1058, 'Pinedo', 1),
-(1058, 'Quintanilla', 1),
-(1058, 'Tobillas', 1),
-(1058, 'Tuesta', 1),
-(1058, 'Valderejo', 1),
-(1058, 'Valluerca', 1),
-(1058, 'Villamaderne-Bellojín', 1),
-(1058, 'Villanañe', 1),
-(1058, 'Villanueva de Valdegovía', 1);
-
--- Zambrana (1059)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1059, 'Berganzo', 1),
-(1059, 'Ocio', 1),
-(1059, 'Portilla/Zabalate', 1),
-(1059, 'Zambrana', 1);
-
--- Montaña Alavesa
--- Arraia-Maeztu (1060)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1060, 'Apellániz/Apinaiz', 1),
-(1060, 'Atauri', 1),
-(1060, 'Azazeta', 1),
-(1060, 'Korres', 1),
-(1060, 'Maeztu/Maestu', 1),
-(1060, 'Onraita/Erroeta', 1),
-(1060, 'Róitegui/Erroitegi', 1),
-(1060, 'Sabando', 1),
-(1060, 'Vírgala Mayor/Birgara Goien', 1);
-
--- Bernedo (1061)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1061, 'Angostina', 1),
-(1061, 'Arluzea', 1),
-(1061, 'Bernedo', 1),
-(1061, 'Markinez', 1),
-(1061, 'Navarrete', 1),
-(1061, 'Okina', 1),
-(1061, 'Quintana', 1),
-(1061, 'San Román de Campezo', 1),
-(1061, 'Urarte', 1),
-(1061, 'Urturi', 1),
-(1061, 'Villafría', 1);
-
--- Campezo/Kanpezu (1062)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1062, 'Antoñana', 1),
-(1062, 'Bujanda', 1),
-(1062, 'Orbiso', 1),
-(1062, 'Oteo', 1),
-(1062, 'Santa Cruz de Campezo', 1);
-
--- Lagrán (1063)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1063, 'Lagrán', 1),
-(1063, 'Pipaón', 1),
-(1063, 'Villaverde', 1);
-
--- Peñacerrada-Urizaharra (1064)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1064, 'Baroja', 1),
-(1064, 'Faido', 1),
-(1064, 'Loza', 1),
-(1064, 'Montoria', 1),
-(1064, 'Payueta', 1),
-(1064, 'Peñacerrada-Urizaharra', 1);
-
--- Harana/Valle de Arana (1065)
-INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
-(1065, 'Alda', 1),
-(1065, 'Arenaza', 1),
-(1065, 'Kontrasta', 1),
-(1065, 'San Vicente de Arana', 1),
-(1065, 'Ullibarri Arana', 1);
-
--- Estribaciones del Gorbea
--- NOTA: Los municipios de esta comarca (Zigoitia, Zuia, Legutio, Urkabustaiz) están
--- asignados a Llanada Alavesa en este esquema, por lo que sus concejos ya están
--- insertados arriba con los IDs de municipio 1020, 1021, 1022, 1023
-
-SELECT CONCAT('  ✓ Concejos creados (total): ', (SELECT COUNT(*) FROM dim_concejos)) AS resultado;
+-- 4.2 CONCEJOS "TODO" para cada municipio real
+INSERT INTO dim_concejos (municipio_id, nombre, activo)
+SELECT id, CONCAT('Todo ', municipio_nombre), 1
+FROM dim_municipios WHERE id > 7;
 
 -- ============================================================================
--- FASE 5: REACTIVAR FK
+-- 4.3 CONCEJOS REALES POR MUNICIPIO
+-- ============================================================================
+
+-- AMURRIO (101)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(101, 'Aloria', 1),
+(101, 'Amurrio', 1),
+(101, 'Artomaña', 1),
+(101, 'Baranbio', 1),
+(101, 'Delika', 1),
+(101, 'Larrinbe', 1),
+(101, 'Lekamaña', 1),
+(101, 'Lezama', 1),
+(101, 'Saratxo', 1),
+(101, 'Tertanga', 1);
+
+-- AYALA/AIARA (102)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(102, 'Agiñaga', 1),
+(102, 'Añes', 1),
+(102, 'Arespalditza/Respaldiza', 1),
+(102, 'Costera/Opellora', 1),
+(102, 'Etxegoien', 1),
+(102, 'Erbi', 1),
+(102, 'Izoria', 1),
+(102, 'Lejarzo/Lexartzu', 1),
+(102, 'Llanteno', 1),
+(102, 'Luxo/Lujo', 1),
+(102, 'Luiaondo', 1),
+(102, 'Madaria', 1),
+(102, 'Maroño', 1),
+(102, 'Menagarai-Beotegi', 1),
+(102, 'Menoio', 1),
+(102, 'Murga', 1),
+(102, 'Olabezar', 1),
+(102, 'Ozeka', 1),
+(102, 'Quejana/Kexaa', 1),
+(102, 'Retes de Llanteno', 1),
+(102, 'Salmantón', 1),
+(102, 'Soxo/Sojo', 1),
+(102, 'Zuaza/Zuhatza', 1);
+
+-- ARAMAIO (103)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(103, 'Oleta', 1);
+
+-- ALEGRÍA-DULANTZI (201)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(201, 'Alegría-Dulantzi', 1),
+(201, 'Egileta', 1);
+
+-- ARRAZUA-UBARRUNDIA (202)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(202, 'Arroiabe', 1),
+(202, 'Arzubiaga', 1),
+(202, 'Betolaza', 1),
+(202, 'Ziriano', 1),
+(202, 'Durana', 1),
+(202, 'Landa', 1),
+(202, 'Luko', 1),
+(202, 'Mendibil', 1),
+(202, 'Ullíbarri-Gamboa', 1),
+(202, 'Zurbano/Zurbao', 1);
+
+-- ASPARRENA (203)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(203, 'Albeiz/Albéniz', 1),
+(203, 'Ametzaga Asparrena', 1),
+(203, 'Andoin', 1),
+(203, 'Arriola', 1),
+(203, 'Egino', 1),
+(203, 'Gordoa', 1),
+(203, 'Ibarguren', 1),
+(203, 'Ilarduia', 1),
+(203, 'Urabain', 1);
+
+-- BARRUNDIA (204)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(204, 'Audikana', 1),
+(204, 'Dallo', 1),
+(204, 'Elgea', 1),
+(204, 'Etura', 1),
+(204, 'Etxabarri Urtupiña', 1),
+(204, 'Gebara', 1),
+(204, 'Heredia', 1),
+(204, 'Hermua', 1),
+(204, 'Larrea', 1),
+(204, 'Marieta-Larrintzar', 1),
+(204, 'Maturana', 1),
+(204, 'Mendixur/Mendíjur', 1),
+(204, 'Ozaeta', 1);
+
+-- ELBURGO/BURGELU (205)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(205, 'Añua', 1),
+(205, 'Arbulu', 1),
+(205, 'Argomaniz', 1),
+(205, 'Elburgo/Burgelu', 1),
+(205, 'Gazeta', 1),
+(205, 'Hijona/Ixona', 1);
+
+-- IRURAIZ-GAUNA (206)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(206, 'Alaitza', 1),
+(206, 'Arrieta', 1),
+(206, 'Azilu', 1),
+(206, 'Erentxun', 1),
+(206, 'Ezkerekotxa', 1),
+(206, 'Gazeo', 1),
+(206, 'Gauna', 1),
+(206, 'Gereñu', 1),
+(206, 'Jauregi', 1),
+(206, 'Langarika', 1),
+(206, 'Trokoniz', 1);
+
+-- SAN MILLÁN/DONEMILIAGA (207)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(207, 'Adana', 1),
+(207, 'Axpuru', 1),
+(207, 'Bikuña/Vicuña', 1),
+(207, 'Eguílaz/Egilatz', 1),
+(207, 'Galarreta', 1),
+(207, 'Luzuriaga', 1),
+(207, 'Mezkia', 1),
+(207, 'Munain', 1),
+(207, 'Narbaiza', 1),
+(207, 'Okariz', 1),
+(207, 'Ordoñana/Erdoñana', 1),
+(207, 'Durruma/San Román de San Millán', 1),
+(207, 'Txintxetru', 1),
+(207, 'Ullibarri-Jauregi/Uribarri-Jauregi', 1),
+(207, 'Zuazo de San Millán/Zuhatzu Donemiliaga', 1);
+
+-- VITORIA-GASTEIZ (208) - 60+ concejos
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(208, 'Abetxuko', 1),
+(208, 'Aberasturi', 1),
+(208, 'Ehari/Ali', 1),
+(208, 'Amarita', 1),
+(208, 'Andollu', 1),
+(208, 'Antezana/Andetxa', 1),
+(208, 'Arangiz', 1),
+(208, 'Arkauti/Arcaute', 1),
+(208, 'Arkaia', 1),
+(208, 'Aretxabaleta', 1),
+(208, 'Argandoña', 1),
+(208, 'Ariñiz/Aríñez', 1),
+(208, 'Armentia', 1),
+(208, 'Askartza', 1),
+(208, 'Astegieta', 1),
+(208, 'Berrostegieta', 1),
+(208, 'Betoño', 1),
+(208, 'Bolívar', 1),
+(208, 'Castillo/Gaztelu', 1),
+(208, 'Zerio', 1),
+(208, 'Krispiña/Crispijana', 1),
+(208, 'Elorriaga', 1),
+(208, 'Eskibel', 1),
+(208, 'Estarrona', 1),
+(208, 'Foronda', 1),
+(208, 'Gamarra Mayor/Gamarra Nagusia', 1),
+(208, 'Gamarra Menor', 1),
+(208, 'Gamiz', 1),
+(208, 'Gardelegi', 1),
+(208, 'Gobeo', 1),
+(208, 'Gometxa', 1),
+(208, 'Gereña', 1),
+(208, 'Hueto Abajo/Otobarren', 1),
+(208, 'Otogoien/Hueto Arriba', 1),
+(208, 'Ilarratza', 1),
+(208, 'Jungitu', 1),
+(208, 'Lasarte', 1),
+(208, 'Legarda', 1),
+(208, 'Lermanda', 1),
+(208, 'Lopidana', 1),
+(208, 'Lubiano', 1),
+(208, 'Margarita', 1),
+(208, 'Martioda', 1),
+(208, 'Matauko', 1),
+(208, 'Mendiguren', 1),
+(208, 'Mendiola', 1),
+(208, 'Mendoza', 1),
+(208, 'Miñao/Miñano Mayor', 1),
+(208, 'Miñano Menor/Miñano Gutxia', 1),
+(208, 'Monasterioguren', 1),
+(208, 'Oreitia', 1),
+(208, 'Otazu', 1),
+(208, 'Retana', 1),
+(208, 'Subijana de Álava/Subillana-Gasteiz', 1),
+(208, 'Ullíbarri de los Olleros/Uribarri Nagusia', 1),
+(208, 'Ullíbarri-Arrazua', 1),
+(208, 'Ullíbarri-Viña/Uribarri-Dibiña', 1),
+(208, 'Villafranca', 1),
+(208, 'Yurre/Ihurre', 1),
+(208, 'Zuazo de Vitoria/Zuhatzu', 1),
+(208, 'Zumeltzu', 1);
+
+-- LABASTIDA (301)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(301, 'Salinillas de Buradón/Gatzaga Buradon', 1);
+
+-- LAGUARDIA (302)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(302, 'Páganos', 1);
+
+-- OYÓN-OION (303)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(303, 'Barriobusto/Gorrebusto', 1),
+(303, 'Labraza', 1);
+
+-- AÑANA (401)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(401, 'Atiega', 1);
+
+-- ARMIÑÓN (402)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(402, 'Armiñón', 1),
+(402, 'Estavillo', 1);
+
+-- BERANTEVILLA (403)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(403, 'Berantevilla', 1),
+(403, 'Lacervilla', 1),
+(403, 'Mijancas', 1),
+(403, 'Santa Cruz del Fierro', 1),
+(403, 'Santurde', 1),
+(403, 'Tobera', 1);
+
+-- KUARTANGO (404)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(404, 'Anda', 1),
+(404, 'Aprikano', 1),
+(404, 'Etxabarri Kuartango', 1),
+(404, 'Jokano', 1),
+(404, 'Luna', 1),
+(404, 'Marinda', 1),
+(404, 'Sendadiano', 1),
+(404, 'Uribarri Kuartango', 1),
+(404, 'Urbina Eza', 1),
+(404, 'Zuhatzu Kuartango', 1);
+
+-- IRUÑA OKA (405)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(405, 'Montevite/Mandaita', 1),
+(405, 'Nanclares de la Oca/Langraiz Oka', 1),
+(405, 'Ollávarre/Olabarri', 1),
+(405, 'Trespuentes', 1),
+(405, 'Víllodas/Billoda', 1);
+
+-- LANTARÓN (406)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(406, 'Alcedo', 1),
+(406, 'Bergonda/Bergüenda', 1),
+(406, 'Caicedo de Yuso', 1),
+(406, 'Comunión/Komunioi', 1),
+(406, 'Fontecha', 1),
+(406, 'Leciñana del Camino/Leziñana', 1),
+(406, 'Molinilla', 1),
+(406, 'Puentelarrá/Larrazubi', 1),
+(406, 'Salcedo', 1),
+(406, 'Sobrón', 1),
+(406, 'Turiso', 1),
+(406, 'Zubillaga', 1);
+
+-- RIBERA ALTA (407)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(407, 'Antezana de la Ribera', 1),
+(407, 'Anuntzeta/Anúcita', 1),
+(407, 'Arreo', 1),
+(407, 'Artaza-Escota/Artatza-Axkoeta', 1),
+(407, 'Barrón', 1),
+(407, 'Basquiñuelas', 1),
+(407, 'Caicedo-Sopeña', 1),
+(407, 'Hereña', 1),
+(407, 'Lasierra', 1),
+(407, 'Leciñana de la Oca', 1),
+(407, 'Morillas', 1),
+(407, 'Ormijana', 1),
+(407, 'Paúl', 1),
+(407, 'Pobes', 1),
+(407, 'Subijana-Morillas', 1),
+(407, 'Tuyo', 1),
+(407, 'Villabezana', 1),
+(407, 'Villaluenga', 1),
+(407, 'Villambrosa', 1),
+(407, 'Viloria', 1);
+
+-- RIBERA BAJA (408)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(408, 'Igay', 1),
+(408, 'Manzanos', 1),
+(408, 'Melledes', 1),
+(408, 'Quintanilla de la Ribera', 1),
+(408, 'Rivabellosa', 1),
+(408, 'Rivaguda', 1);
+
+-- VALDEGOVÍA (409)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(409, 'Acebedo', 1),
+(409, 'Bachicabo', 1),
+(409, 'Barrio', 1),
+(409, 'Basabe', 1),
+(409, 'Bóveda', 1),
+(409, 'Caranca y Mioma', 1),
+(409, 'Karkamu', 1),
+(409, 'Corro', 1),
+(409, 'Espejo', 1),
+(409, 'Fresneda', 1),
+(409, 'Gurendes-Quejo', 1),
+(409, 'Nograro', 1),
+(409, 'Osma', 1),
+(409, 'Pinedo', 1),
+(409, 'Quintanilla', 1),
+(409, 'Tobillas', 1),
+(409, 'Tuesta', 1),
+(409, 'Valderejo', 1),
+(409, 'Valluerca', 1),
+(409, 'Villamaderne-Bellojín', 1),
+(409, 'Villanañe', 1),
+(409, 'Villanueva de Valdegovía', 1);
+
+-- ZAMBRANA (410)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(410, 'Berganzo', 1),
+(410, 'Ocio', 1),
+(410, 'Portilla/Zabalate', 1),
+(410, 'Zambrana', 1);
+
+-- ARRAIA-MAEZTU (501)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(501, 'Apellániz/Apinaiz', 1),
+(501, 'Atauri', 1),
+(501, 'Azazeta', 1),
+(501, 'Korres', 1),
+(501, 'Maeztu/Maestu', 1),
+(501, 'Onraita/Erroeta', 1),
+(501, 'Real Valle de Laminoria/Laminoriako Erret Harana', 1),
+(501, 'Róitegui/Erroitegi', 1),
+(501, 'Sabando', 1),
+(501, 'Vírgala Mayor/Birgara Goien', 1);
+
+-- BERNEDO (502)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(502, 'Angostina', 1),
+(502, 'Arluzea', 1),
+(502, 'Bernedo', 1),
+(502, 'Markinez', 1),
+(502, 'Navarrete', 1),
+(502, 'Okina', 1),
+(502, 'Quintana', 1),
+(502, 'San Román de Campezo/Durruma Kanpezu', 1),
+(502, 'Urarte', 1),
+(502, 'Urturi', 1),
+(502, 'Villafría', 1);
+
+-- CAMPEZO (503)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(503, 'Antoñana', 1),
+(503, 'Bujanda', 1),
+(503, 'Orbiso', 1),
+(503, 'Oteo', 1),
+(503, 'Santa Cruz de Campezo/Santikurutze Kanpezu', 1);
+
+-- LAGRÁN (504)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(504, 'Lagran', 1),
+(504, 'Pipaon', 1),
+(504, 'Villaverde', 1);
+
+-- PEÑACERRADA (505)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(505, 'Baroja-Zumentu', 1),
+(505, 'Faido/Faidu', 1),
+(505, 'Loza', 1),
+(505, 'Montoria', 1),
+(505, 'Payueta/Pagoeta', 1),
+(505, 'Peñacerrada-Urizaharra', 1);
+
+-- HARANA/VALLE DE ARANA (506)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(506, 'Alda', 1),
+(506, 'Kontrasta', 1),
+(506, 'San Vicente de Arana/Done Bikendi Harana', 1),
+(506, 'Ullíbarri-Arana/Uribarri Harana', 1);
+
+-- ZIGOITIA (601)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(601, 'Acosta/Okoizta', 1),
+(601, 'Apodaka', 1),
+(601, 'Berrikano', 1),
+(601, 'Buruaga', 1),
+(601, 'Zestafe', 1),
+(601, 'Etxaguen', 1),
+(601, 'Etxabarri Ibiña', 1),
+(601, 'Eribe', 1),
+(601, 'Gopegi', 1),
+(601, 'Letona', 1),
+(601, 'Manurga', 1),
+(601, 'Mendarozketa', 1),
+(601, 'Murua', 1),
+(601, 'Olano', 1),
+(601, 'Ondategi', 1),
+(601, 'Zaitegi', 1);
+
+-- ZUIA (602)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(602, 'Ametzaga Zuia', 1),
+(602, 'Aperregi', 1),
+(602, 'Domaikia', 1),
+(602, 'Gillerna', 1),
+(602, 'Jugo', 1),
+(602, 'Lukiano', 1),
+(602, 'Markina', 1),
+(602, 'Murgia', 1),
+(602, 'Sarria', 1),
+(602, 'Bitoriano', 1),
+(602, 'Zarate', 1);
+
+-- LEGUTIO (603)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(603, 'Elosu', 1),
+(603, 'Goiain', 1),
+(603, 'Legutio', 1),
+(603, 'Urbina', 1),
+(603, 'Urrunaga', 1);
+
+-- URKABUSTAIZ (604)
+INSERT INTO dim_concejos (municipio_id, nombre, activo) VALUES
+(604, 'Abezia', 1),
+(604, 'Abornikano', 1),
+(604, 'Beluntza', 1),
+(604, 'Goiuri-Ondona', 1),
+(604, 'Inoso', 1),
+(604, 'Izarra', 1),
+(604, 'Larrazkueta', 1),
+(604, 'Oiardo', 1),
+(604, 'Untza-Apregindana', 1),
+(604, 'Uzkiano', 1);
+
+SELECT CONCAT('  ✓ Concejos: ', (SELECT COUNT(*) FROM dim_concejos)) AS resultado;
+
+-- ============================================================================
+-- FASE 5: REACTIVAR RESTRICCIONES
 -- ============================================================================
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================================
--- FASE 6: VERIFICACIÓN FINAL
+-- FASE 6: VERIFICACIÓN
 -- ============================================================================
 
-SELECT '>>> FASE 6: Verificación final...' AS paso;
+SELECT '>>> FASE 6: Verificación...' AS paso;
 
-SELECT '--- COMARCAS ---' AS seccion;
-SELECT id, comarca_nombre FROM dim_comarcas ORDER BY id;
+SELECT '--- TOTALES ---' AS seccion;
+SELECT
+    (SELECT COUNT(*) FROM dim_comarcas) AS comarcas,
+    (SELECT COUNT(*) FROM dim_municipios) AS municipios,
+    (SELECT COUNT(*) FROM dim_concejos) AS concejos,
+    (SELECT COUNT(*) FROM dim_municipios WHERE municipio_nombre LIKE 'Todo %') AS municipios_todo,
+    (SELECT COUNT(*) FROM dim_concejos WHERE nombre LIKE 'Todo %') AS concejos_todo;
 
-SELECT '--- MUNICIPIOS "Todo" ---' AS seccion;
-SELECT id, municipio_nombre, comarca_id FROM dim_municipios WHERE id <= 7 ORDER BY id;
-
-SELECT '--- MUNICIPIOS por comarca (muestra) ---' AS seccion;
-SELECT id, municipio_nombre, comarca_id FROM dim_municipios WHERE id >= 1001 ORDER BY comarca_id, id LIMIT 20;
-
-SELECT '--- CONCEJOS "Todo" ---' AS seccion;
-SELECT id, nombre, municipio_id FROM dim_concejos WHERE nombre LIKE 'Todo %' ORDER BY id LIMIT 15;
-
-SELECT '--- VERIFICAR: Municipios SIN concejos (NO debe haber ninguno) ---' AS seccion;
+SELECT '--- Municipios SIN concejos (no debería haber) ---' AS seccion;
 SELECT m.id, m.municipio_nombre, 'SIN CONCEJOS!' AS problema
 FROM dim_municipios m
 LEFT JOIN dim_concejos c ON c.municipio_id = m.id
 WHERE c.id IS NULL;
 
-SELECT '--- TOTALES ---' AS seccion;
-SELECT
-    (SELECT COUNT(*) FROM dim_comarcas) AS total_comarcas,
-    (SELECT COUNT(*) FROM dim_municipios) AS total_municipios,
-    (SELECT COUNT(*) FROM dim_concejos) AS total_concejos,
-    (SELECT COUNT(*) FROM dim_municipios WHERE municipio_nombre LIKE 'Todo %') AS municipios_todo,
-    (SELECT COUNT(*) FROM dim_concejos WHERE nombre LIKE 'Todo %') AS concejos_todo;
-
-SELECT '=== FIN: Dimensiones geográficas recreadas ===' AS resultado;
+SELECT '=== FIN ===' AS resultado;
 
 -- ============================================================================
--- FASE 7: TABLA DE TODAS LAS COMBINACIONES PARA REVISIÓN
+-- FASE 7: TABLA DE COMBINACIONES
 -- ============================================================================
 
-SELECT '>>> FASE 7: Mostrando todas las combinaciones posibles...' AS paso;
-
-SELECT '--- TODAS LAS COMBINACIONES: Comarca → Municipio → Concejo ---' AS seccion;
+SELECT '>>> FASE 7: Todas las combinaciones...' AS paso;
 
 SELECT
     c.id AS comarca_id,
@@ -690,31 +657,4 @@ ORDER BY
     CASE WHEN co.nombre LIKE 'Todo %' THEN 0 ELSE 1 END,
     co.id;
 
--- Restaurar modo seguro
 SET SQL_SAFE_UPDATES = 1;
-
--- ============================================================================
--- LÓGICA PARA DROPDOWNS EN LA APLICACIÓN
--- ============================================================================
---
--- 1. CARGAR COMARCAS:
---    SELECT id, comarca_nombre FROM dim_comarcas
---    WHERE provincia_id = 1 ORDER BY id
---    → Muestra: "Todo Álava" + comarcas reales
---
--- 2. CARGAR MUNICIPIOS según comarca seleccionada:
---    - Si comarca_id = 1 (Todo Álava):
---        SELECT * FROM dim_municipios WHERE id = 1
---        → Solo "Todo Álava"
---    - Si comarca_id > 1:
---        SELECT * FROM dim_municipios
---        WHERE id = {comarca_id} OR comarca_id = {comarca_id}
---        ORDER BY id
---        → "Todo {Comarca}" + municipios de esa comarca
---
--- 3. CARGAR CONCEJOS según municipio seleccionado:
---    SELECT * FROM dim_concejos WHERE municipio_id = {municipio_id} ORDER BY id
---    → Siempre devuelve al menos "Todo {Municipio}"
---    → Si hay concejos reales, también los incluye
---
--- ============================================================================
