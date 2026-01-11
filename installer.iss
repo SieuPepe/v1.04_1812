@@ -7,7 +7,7 @@
 #define MyAppPublisher "URBIDE"
 #define MyAppURL "https://www.urbide.com/"
 #define MyAppExeName "HidroFlowManager.exe"
-#define MyAppIcon "source\logo.ico"
+#define MyAppIcon "resources\images\logo.ico"
 
 ; Versión de LibreOffice a instalar
 #define LibreOfficeVersion "24.2.0"
