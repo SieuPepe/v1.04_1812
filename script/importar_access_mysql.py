@@ -691,6 +691,8 @@ def limpiar_tablas_hechos(cursor, conn) -> bool:
     print("="*70)
 
     # Contar registros antes
+    # Orden: primero hijos (certificacion, presupuesto), luego padre (partes)
+    # para respetar las FK incluso con FK_CHECKS deshabilitado
     tablas = ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']
 
     print("\nRegistros actuales:")
