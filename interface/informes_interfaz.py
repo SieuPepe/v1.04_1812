@@ -3684,16 +3684,18 @@ class InformesFrame(customtkinter.CTkFrame):
             # Liberar el grab y destruir el dialogo primero
             dialog.grab_release()
             dialog.destroy()
-            self.update()  # Procesar eventos pendientes
+            self.update_idletasks()
+            self.update()
 
-            # Mostrar confirmacion
+            # Mostrar confirmacion con topmost para forzar que esté al frente
             respuesta = CTkMessagebox(
                 master=self,
                 title="Confirmar Eliminacion",
                 message=f"Esta seguro de eliminar la configuracion '{nombre_mostrar}'?",
                 icon="question",
                 option_1="Cancelar",
-                option_2="Eliminar"
+                option_2="Eliminar",
+                topmost=True
             )
 
             if respuesta.get() == "Eliminar":
@@ -3702,14 +3704,16 @@ class InformesFrame(customtkinter.CTkFrame):
                         master=self,
                         title="Exito",
                         message=f"Configuracion '{nombre_mostrar}' eliminada correctamente.",
-                        icon="check"
+                        icon="check",
+                        topmost=True
                     )
                 else:
                     CTkMessagebox(
                         master=self,
                         title="Error",
                         message=f"No se pudo eliminar la configuracion '{nombre_mostrar}'.",
-                        icon="cancel"
+                        icon="cancel",
+                        topmost=True
                     )
 
             # Reabrir el dialogo de configuraciones actualizado
