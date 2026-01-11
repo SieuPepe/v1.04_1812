@@ -585,6 +585,19 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
 
     print(f"\nProcesando {len(listado_ots)} registros...")
 
+    # DEBUG: Mostrar algunos valores de ejemplo del Access
+    if listado_ots:
+        print("\n  DEBUG - Ejemplos de datos del Access:")
+        for reg in listado_ots[:3]:
+            loc = reg.get('LOCALIZACIÓN', reg.get('LOCALIZACION', '')).strip()
+            com = reg.get('COMARCA', '').strip()
+            print(f"    ID={reg.get('ID', '?')}: COMARCA='{com}', LOCALIZACIÓN='{loc}'")
+
+    # DEBUG: Mostrar algunos municipios disponibles
+    print("\n  DEBUG - Algunos municipios en MySQL:")
+    for nombre in list(municipios_por_nombre.keys())[:5]:
+        print(f"    '{nombre}'")
+
     # Primera pasada: intentar mapeo automático
     for registro in listado_ots:
         id_reg = registro.get('ID', registro.get('Id', ''))
@@ -598,10 +611,21 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
             municipio_encontrado = municipios_por_nombre[com_norm]
         else:
             # Buscar por similitud alta
+            mejor_sim_muni = 0.0
+            mejor_nombre_muni = ""
             for nombre, muni in municipios_por_nombre.items():
-                if similitud(com_norm, nombre) > 0.85:
+                sim = similitud(com_norm, nombre)
+                if sim > mejor_sim_muni:
+                    mejor_sim_muni = sim
+                    mejor_nombre_muni = nombre
+                if sim > 0.85:
                     municipio_encontrado = muni
                     break
+
+            # DEBUG: Si no encontró, mostrar la mejor aproximación
+            if not municipio_encontrado and len(correctos) + len(problematicos) < 3:
+                print(f"    DEBUG ID {id_reg}: COMARCA '{comarca_access}' (norm: '{com_norm}')")
+                print(f"           Mejor match: '{mejor_nombre_muni}' con {mejor_sim_muni:.0%} similitud")
 
         # 2. Buscar CONCEJO por LOCALIZACIÓN (Access)
         concejo_encontrado = None
