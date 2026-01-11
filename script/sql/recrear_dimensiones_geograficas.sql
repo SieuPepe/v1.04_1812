@@ -63,16 +63,16 @@ SELECT '  ✓ dim_comarcas vaciada' AS resultado;
 
 SELECT '>>> FASE 2: Creando comarcas...' AS paso;
 
-INSERT INTO dim_comarcas (id, comarca_nombre, provincia_id, activo) VALUES
+INSERT INTO dim_comarcas (id, provincia_id, comarca_codigo, comarca_nombre) VALUES
 -- Opción para seleccionar TODA la provincia
-(1, 'Todo Álava', 1, 1),
+(1, 1, 'TODO', 'Todo Álava'),
 -- Comarcas reales
-(2, 'Ayala / Aiaraldea', 1, 1),
-(3, 'Llanada Alavesa', 1, 1),
-(4, 'Rioja Alavesa', 1, 1),
-(5, 'Añana', 1, 1),
-(6, 'Montaña Alavesa', 1, 1),
-(7, 'Estribaciones del Gorbea', 1, 1);
+(2, 1, 'AIAR', 'Ayala / Aiaraldea'),
+(3, 1, 'LLAN', 'Llanada Alavesa'),
+(4, 1, 'RIOJ', 'Rioja Alavesa'),
+(5, 1, 'AÑAN', 'Añana'),
+(6, 1, 'MONT', 'Montaña Alavesa'),
+(7, 1, 'GORB', 'Estribaciones del Gorbea');
 
 SELECT CONCAT('  ✓ Comarcas creadas: ', ROW_COUNT()) AS resultado;
 
