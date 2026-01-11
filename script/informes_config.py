@@ -957,7 +957,11 @@ INFORMES_DEFINICIONES = {
             "resumen",
             "coste",
             "coste_total"
-        ]
+        ],
+
+        "calcular_resumen_economico": True,
+        "porcentaje_gastos_generales": 8,
+        "porcentaje_beneficio": 3
     },
 
     "Recursos Certificados": {
@@ -1194,7 +1198,11 @@ INFORMES_DEFINICIONES = {
             "resumen",
             "coste",
             "coste_total"
-        ]
+        ],
+
+        "calcular_resumen_economico": True,
+        "porcentaje_gastos_generales": 8,
+        "porcentaje_beneficio": 3
     },
 
     "Recursos Pendientes": {
@@ -1430,7 +1438,11 @@ INFORMES_DEFINICIONES = {
             "resumen",
             "coste",
             "coste_total"
-        ]
+        ],
+
+        "calcular_resumen_economico": True,
+        "porcentaje_gastos_generales": 8,
+        "porcentaje_beneficio": 3
     },
 
     # ============================================================

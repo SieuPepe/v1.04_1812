@@ -1286,61 +1286,113 @@ def ejecutar_informe_con_agrupacion(user, password, schema, informe_nombre, filt
             grupos = []
             totales_generales = {}
 
-            # Agrupar datos por el primer campo de agrupación
+            # Agrupar datos por los campos de agrupación (soporte para múltiples niveles)
             if columnas_agrupacion:
-                col_agrup = columnas_agrupacion[0]  # Por ahora solo primer nivel
-                idx_agrup = columnas.index(col_agrup)
-
-                # Indices de columnas de datos
-                indices_datos = [columnas.index(col) for col in columnas_datos]
-
-                # Agrupar filas por valor de agrupación
                 from collections import defaultdict
-                grupos_dict = defaultdict(list)
 
-                for fila in datos:
-                    clave_grupo = fila[idx_agrup]
-                    # Extraer solo datos (sin columna de agrupación)
-                    fila_datos = tuple(fila[i] for i in indices_datos)
-                    grupos_dict[clave_grupo].append(fila_datos)
-
-                # Crear estructura de grupos
-                # Ordenar grupos manejando valores None (los ponemos al final)
+                # Función para ordenar claves manejando None
                 def ordenar_clave(item):
                     clave = item[0]
                     if clave is None:
-                        return (1, '')  # None va al final
-                    return (0, str(clave))  # Los demás se ordenan alfabéticamente
+                        return (1, '')
+                    return (0, str(clave))
 
-                for clave, filas_grupo in sorted(grupos_dict.items(), key=ordenar_clave):
-                    # Calcular subtotales del grupo
+                # Función para calcular subtotales de un conjunto de filas
+                def calcular_subtotales(filas, columnas_datos_list, formatos):
                     subtotales = {}
-                    for i, col_nombre in enumerate(columnas_datos):
-                        formato = formatos_columnas.get(col_nombre, 'ninguno')
-                        # Solo calcular subtotales de campos tipo moneda que sean importes/costes totales
-                        # NO calcular subtotales de Cantidad ni Precio unitario
+                    for i, col_nombre in enumerate(columnas_datos_list):
+                        formato = formatos.get(col_nombre, 'ninguno')
                         es_campo_subtotalizable = (
                             formato == 'moneda' and
                             ('importe' in col_nombre.lower() or 'coste_total' in col_nombre.lower() or 'total' in col_nombre.lower())
                         )
-
                         if es_campo_subtotalizable:
                             try:
-                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in filas_grupo)
+                                total = sum(float(fila[i]) if fila[i] is not None else 0 for fila in filas)
                                 subtotales[col_nombre] = total
-                                # Acumular en totales generales
-                                totales_generales[col_nombre] = totales_generales.get(col_nombre, 0) + total
                             except (ValueError, TypeError):
                                 pass
+                    return subtotales
 
-                    # Agregar grupo
-                    grupos.append({
-                        'campo': col_agrup,
-                        'clave': str(clave) if clave is not None else 'Sin especificar',
-                        'datos': filas_grupo,
-                        'subtotales': subtotales,
-                        'subgrupos': None
-                    })
+                # Obtener índices de columnas de agrupación
+                indices_agrupacion = [columnas.index(col) for col in columnas_agrupacion]
+                indices_datos = [columnas.index(col) for col in columnas_datos]
+
+                if len(columnas_agrupacion) == 1:
+                    # Un solo nivel de agrupación
+                    col_agrup = columnas_agrupacion[0]
+                    idx_agrup = indices_agrupacion[0]
+
+                    grupos_dict = defaultdict(list)
+                    for fila in datos:
+                        clave_grupo = fila[idx_agrup]
+                        fila_datos = tuple(fila[i] for i in indices_datos)
+                        grupos_dict[clave_grupo].append(fila_datos)
+
+                    for clave, filas_grupo in sorted(grupos_dict.items(), key=ordenar_clave):
+                        subtotales = calcular_subtotales(filas_grupo, columnas_datos, formatos_columnas)
+                        for col, val in subtotales.items():
+                            totales_generales[col] = totales_generales.get(col, 0) + val
+
+                        grupos.append({
+                            'campo': col_agrup,
+                            'clave': str(clave) if clave is not None else 'Sin especificar',
+                            'datos': filas_grupo,
+                            'subtotales': subtotales,
+                            'subgrupos': None
+                        })
+
+                elif len(columnas_agrupacion) >= 2:
+                    # Dos niveles de agrupación
+                    col_agrup1 = columnas_agrupacion[0]
+                    col_agrup2 = columnas_agrupacion[1]
+                    idx_agrup1 = indices_agrupacion[0]
+                    idx_agrup2 = indices_agrupacion[1]
+
+                    # Agrupar por primer nivel
+                    grupos_nivel1 = defaultdict(list)
+                    for fila in datos:
+                        clave1 = fila[idx_agrup1]
+                        grupos_nivel1[clave1].append(fila)
+
+                    for clave1, filas_nivel1 in sorted(grupos_nivel1.items(), key=ordenar_clave):
+                        # Agrupar por segundo nivel dentro del primer nivel
+                        grupos_nivel2 = defaultdict(list)
+                        for fila in filas_nivel1:
+                            clave2 = fila[idx_agrup2]
+                            fila_datos = tuple(fila[i] for i in indices_datos)
+                            grupos_nivel2[clave2].append(fila_datos)
+
+                        # Crear subgrupos
+                        subgrupos = []
+                        subtotales_nivel1 = {}
+
+                        for clave2, filas_nivel2 in sorted(grupos_nivel2.items(), key=ordenar_clave):
+                            subtotales_nivel2 = calcular_subtotales(filas_nivel2, columnas_datos, formatos_columnas)
+
+                            # Acumular en subtotales del nivel 1
+                            for col, val in subtotales_nivel2.items():
+                                subtotales_nivel1[col] = subtotales_nivel1.get(col, 0) + val
+
+                            subgrupos.append({
+                                'campo': col_agrup2,
+                                'clave': str(clave2) if clave2 is not None else 'Sin especificar',
+                                'datos': filas_nivel2,
+                                'subtotales': subtotales_nivel2,
+                                'subgrupos': None
+                            })
+
+                        # Acumular en totales generales
+                        for col, val in subtotales_nivel1.items():
+                            totales_generales[col] = totales_generales.get(col, 0) + val
+
+                        grupos.append({
+                            'campo': col_agrup1,
+                            'clave': str(clave1) if clave1 is not None else 'Sin especificar',
+                            'datos': [],  # Los datos están en los subgrupos
+                            'subtotales': subtotales_nivel1,
+                            'subgrupos': subgrupos
+                        })
 
             resultado_agrupacion = {
                 "grupos": grupos,
