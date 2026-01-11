@@ -3086,6 +3086,24 @@ class InformesFrame(customtkinter.CTkFrame):
                                 campo_idx_agrupacion = i
                                 break
 
+            # Extraer período del filtro mes_anio si existe
+            periodo = ""
+            for filtro_obj in self.filtros:
+                valor_widget = filtro_obj.get('valor_widget')
+                if valor_widget and hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    mes = valor_widget.combo_month.get()
+                    anio = valor_widget.combo_year.get()
+                    if mes and anio:
+                        # Convertir número de mes a nombre
+                        meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+                        try:
+                            mes_nombre = meses[int(mes) - 1]
+                            periodo = f"{mes_nombre} {anio}"
+                        except (ValueError, IndexError):
+                            periodo = f"{mes}/{anio}"
+                    break
+
             exito = exportador.exportar_a_excel(
                 filepath=archivo,
                 informe_nombre=titulo_informe,
@@ -3096,7 +3114,8 @@ class InformesFrame(customtkinter.CTkFrame):
                 proyecto_codigo="",
                 fecha_informe=fecha_generacion,
                 agrupar_export_por=agrupar_export_por,
-                campo_idx_agrupacion=campo_idx_agrupacion
+                campo_idx_agrupacion=campo_idx_agrupacion,
+                periodo=periodo
             )
 
             if exito:

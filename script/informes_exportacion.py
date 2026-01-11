@@ -151,7 +151,8 @@ class InformesExportador:
         proyecto_codigo: str = "",
         fecha_informe: str = "",
         agrupar_export_por: str = None,
-        campo_idx_agrupacion: int = None
+        campo_idx_agrupacion: int = None,
+        periodo: str = ""
     ) -> bool:
         """
         Exporta el informe a Excel con formato profesional
@@ -175,7 +176,7 @@ class InformesExportador:
             return self._exportar_excel_agrupado_por_campo(
                 filepath, informe_nombre, columnas, datos,
                 agrupar_export_por, campo_idx_agrupacion,
-                proyecto_nombre, proyecto_codigo, fecha_informe
+                proyecto_nombre, proyecto_codigo, fecha_informe, periodo
             )
 
         try:
@@ -635,7 +636,8 @@ class InformesExportador:
         campo_idx: int,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        periodo: str = ""
     ) -> bool:
         """
         Exporta a Excel creando una pestaña por cada valor único del campo de agrupación.
@@ -735,8 +737,10 @@ class InformesExportador:
                 if proyecto_nombre:
                     worksheet.write(row, 0, proyecto_nombre, formato_subtitulo)
                     row += 1
-                if fecha_informe:
-                    worksheet.write(row, 0, f"Período: {fecha_informe}", formato_subtitulo)
+                # Mostrar período (del filtro) o fecha del informe
+                periodo_mostrar = periodo if periodo else fecha_informe
+                if periodo_mostrar:
+                    worksheet.write(row, 0, f"Período: {periodo_mostrar}", formato_subtitulo)
                     row += 1
 
                 row += 1
