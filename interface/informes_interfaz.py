@@ -102,7 +102,7 @@ class InformesFrame(customtkinter.CTkFrame):
             print(f"Error al mostrar mensaje: {e}")
 
     def _create_compact_header(self):
-        """Crea el header compacto en una sola línea con título y botón configuración"""
+        """Crea el header compacto con el titulo"""
         # Frame del header (altura fija ~40px)
         header_frame = customtkinter.CTkFrame(self, fg_color="transparent", height=40)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=15, pady=(8, 5))
@@ -112,22 +112,11 @@ class InformesFrame(customtkinter.CTkFrame):
         # Título a la izquierda
         title = customtkinter.CTkLabel(
             header_frame,
-            text="GENERACIÓN DE INFORMES",
+            text="GENERACION DE INFORMES",
             font=customtkinter.CTkFont(size=16, weight="bold"),
             anchor="w"
         )
         title.grid(row=0, column=0, sticky="w")
-
-        # Botón configuración a la derecha
-        config_button = customtkinter.CTkButton(
-            header_frame,
-            text="⚙️ Configuración",
-            width=120,
-            height=30,
-            font=customtkinter.CTkFont(size=11),
-            command=self._open_config_dialog
-        )
-        config_button.grid(row=0, column=1, sticky="e")
 
         # Separador visual debajo del header
         separator = customtkinter.CTkFrame(self, height=1, fg_color="gray30")
@@ -1813,21 +1802,6 @@ class InformesFrame(customtkinter.CTkFrame):
         for idx, campo_key in enumerate(self.campos_orden):
             if campo_key in self.campos_seleccionados:
                 self.campos_seleccionados[campo_key]['frame'].grid(row=idx, column=0, sticky="ew", pady=1)
-
-    def _open_config_dialog(self):
-        """Abre el diálogo de configuración de cabecera"""
-        from CTkMessagebox import CTkMessagebox
-
-        CTkMessagebox(
-            title="Configuración",
-            message="Funcionalidad de configuración de cabecera en desarrollo.\n\n"
-                    "Próximamente podrás configurar:\n"
-                    "• Datos de la empresa\n"
-                    "• Logo corporativo\n"
-                    "• Datos del proyecto\n"
-                    "• Pie de página personalizado",
-            icon="info"
-        )
 
     def _mostrar_dialogo_configuracion_informe(self):
         """Muestra diálogo para configurar título y fecha del informe antes de exportar"""
