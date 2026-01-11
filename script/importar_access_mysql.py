@@ -902,11 +902,12 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
 
     insert_sql = """
         INSERT INTO tbl_partes (
-            codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
+            codigo, titulo, descripcion, tipo_trabajo_id, cod_trabajo_id,
             red_id, provincia_id, comarca_id, municipio_id, concejo_id,
-            creado_en
+            fecha_inicio, fecha_fin, latitud, longitud, finalizada,
+            localizacion, trabajadores, creado_en
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
         )
     """
 
@@ -915,8 +916,11 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             # Access usa 'Id' (con mayúscula solo la I)
             access_id = row.get('Id', row.get('ID', ''))
             id_reg = access_id
-            codigo = row.get('COD TRABAJO', row.get('COD_TRABAJO', '')).strip()
-            descripcion = row.get('OT', row.get('DESCRIPCION', '')).strip()
+
+            # Campos básicos
+            codigo = row.get('COD_TRABAJO', row.get('COD TRABAJO', '')).strip()
+            titulo = row.get('TITULO OT', '').strip()
+            descripcion = row.get('DESCRIPCIÓN OT', row.get('DESCRIPCION OT', '')).strip()
 
             # Tipo de trabajo
             tipo_trabajo_raw = row.get('TIPO DE TRABAJOS', row.get('TIPO_DE_TRABAJOS', ''))
@@ -926,7 +930,7 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             except (ValueError, TypeError):
                 tipo_trabajo_id = None
 
-            # Código de trabajo
+            # Código de trabajo programado
             cod_trabajo_raw = row.get('TRABAJOS PROGRAMADOS', row.get('TRABAJOS_PROGRAMADOS', ''))
             try:
                 cod_trabajo_id = int(cod_trabajo_raw) if cod_trabajo_raw else None
@@ -944,13 +948,31 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             municipio_id = geo.get('municipio_id')
             concejo_id = geo.get('concejo_id')
 
+            # Fechas
+            fecha_inicio = convertir_fecha(row.get('FECHA INICIO', ''))
+            fecha_fin = convertir_fecha(row.get('FECHA FIN', ''))
+
+            # Coordenadas
+            latitud = row.get('LATITUD', '').strip() or None
+            longitud = row.get('LONGITUD', '').strip() or None
+
+            # Finalizada (convertir 'True'/'False' a 1/0)
+            finalizada_raw = row.get('FINALIZADA', '').strip().lower()
+            finalizada = 1 if finalizada_raw == 'true' else 0
+
+            # Localización y trabajadores
+            localizacion = row.get('LOCALIZACIÓN', row.get('LOCALIZACION', '')).strip() or None
+            trabajadores = row.get('TRABAJADORES', '').strip() or None
+
             if not municipio_id:
                 sin_mapeo += 1
                 continue
 
             cursor.execute(insert_sql, (
-                codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
-                red_id, provincia_id, comarca_id, municipio_id, concejo_id
+                codigo, titulo, descripcion, tipo_trabajo_id, cod_trabajo_id,
+                red_id, provincia_id, comarca_id, municipio_id, concejo_id,
+                fecha_inicio, fecha_fin, latitud, longitud, finalizada,
+                localizacion, trabajadores
             ))
             mysql_id = cursor.lastrowid
             mapeo_access_mysql[str(access_id)] = mysql_id
