@@ -11,7 +11,6 @@ a = Analysis(
         ('resources/images/*.png', 'resources/images'),
         ('resources/images/*.ico', 'resources/images'),
         ('resources/images/*.jpg', 'resources/images'),
-        ('output/*.xlsx', 'output'),
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
         ('informes_guardados', 'informes_guardados'),  # Directorio para configs de informes
