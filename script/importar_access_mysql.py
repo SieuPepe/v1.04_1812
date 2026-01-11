@@ -877,6 +877,18 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
     print("Importando LISTADO OTS → tbl_partes")
     print("-"*70)
 
+    # DEBUG: Verificar el mapeo
+    print(f"\n  DEBUG: mapeo tiene {len(mapeo)} entradas")
+    if mapeo:
+        primeras_claves = list(mapeo.keys())[:3]
+        print(f"  DEBUG: Primeras claves del mapeo: {primeras_claves}")
+        print(f"  DEBUG: Tipo de claves: {type(primeras_claves[0]) if primeras_claves else 'N/A'}")
+
+    if listado_ots:
+        primeros_ids = [row.get('ID', row.get('Id', '')) for row in listado_ots[:3]]
+        print(f"  DEBUG: Primeros IDs del listado: {primeros_ids}")
+        print(f"  DEBUG: Tipo de IDs: {type(primeros_ids[0]) if primeros_ids else 'N/A'}")
+
     insertados = 0
     errores = 0
     sin_mapeo = 0
