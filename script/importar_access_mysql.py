@@ -63,6 +63,47 @@ MAPEO_RED = {
 # UTILIDADES
 # ============================================================================
 
+def convertir_dms_a_decimal(dms: str) -> Optional[float]:
+    """
+    Convierte coordenadas de formato DMS (grados°minutos'segundos"dirección)
+    a formato decimal.
+
+    Ejemplo: 42°58'33.9"N → 42.9760833...
+             2°40'44.0"W → -2.6788889...
+    """
+    if not dms or not dms.strip():
+        return None
+
+    dms = dms.strip()
+
+    # Intentar parsear formato: 42°58'33.9"N
+    import re
+    # Patrón para capturar grados, minutos, segundos y dirección
+    patron = r"(\d+)[°](\d+)['\'](\d+\.?\d*)[\"\"]['\"]*\s*([NSEW]?)"
+    match = re.match(patron, dms, re.IGNORECASE)
+
+    if not match:
+        # Si no coincide, intentar devolver como número si ya es decimal
+        try:
+            return float(dms.replace(',', '.'))
+        except ValueError:
+            return None
+
+    grados = float(match.group(1))
+    minutos = float(match.group(2))
+    segundos = float(match.group(3))
+    direccion = match.group(4).upper() if match.group(4) else ''
+
+    # Convertir a decimal
+    decimal = grados + (minutos / 60) + (segundos / 3600)
+
+    # Sur y Oeste son negativos
+    if direccion in ('S', 'W'):
+        decimal = -decimal
+
+    return round(decimal, 8)
+
+
 def normalizar_texto(texto: str) -> str:
     """Normaliza texto para comparación: sin acentos, minúsculas, sin espacios extra."""
     if not texto:
@@ -952,9 +993,11 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             fecha_inicio = convertir_fecha(row.get('FECHA INICIO', ''))
             fecha_fin = convertir_fecha(row.get('FECHA FIN', ''))
 
-            # Coordenadas
-            latitud = row.get('LATITUD', '').strip() or None
-            longitud = row.get('LONGITUD', '').strip() or None
+            # Coordenadas (convertir de DMS a decimal)
+            latitud_raw = row.get('LATITUD', '').strip()
+            longitud_raw = row.get('LONGITUD', '').strip()
+            latitud = convertir_dms_a_decimal(latitud_raw)
+            longitud = convertir_dms_a_decimal(longitud_raw)
 
             # Finalizada (convertir 'True'/'False' a 1/0)
             finalizada_raw = row.get('FINALIZADA', '').strip().lower()
