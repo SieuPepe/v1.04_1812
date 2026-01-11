@@ -93,14 +93,14 @@ SELECT '>>> FASE 3: Creando municipios...' AS paso;
 
 INSERT INTO dim_municipios (id, codigo_ine, municipio_nombre, provincia_id, comarca_id, activo) VALUES
 -- Para comarca "Todo Álava" → solo puede elegir "Todo Álava" como municipio
-(1, '00000', 'Todo Álava', 1, 1, 1),
+(1, '00001', 'Todo Álava', 1, 1, 1),
 -- Para cada comarca real → puede elegir "Todo {Comarca}" + municipios reales
-(2, '00000', 'Todo Aiaraldea', 1, 2, 1),
-(3, '00000', 'Todo Llanada Alavesa', 1, 3, 1),
-(4, '00000', 'Todo Rioja Alavesa', 1, 4, 1),
-(5, '00000', 'Todo Añana', 1, 5, 1),
-(6, '00000', 'Todo Montaña Alavesa', 1, 6, 1),
-(7, '00000', 'Todo Estribaciones Gorbea', 1, 7, 1);
+(2, '00002', 'Todo Aiaraldea', 1, 2, 1),
+(3, '00003', 'Todo Llanada Alavesa', 1, 3, 1),
+(4, '00004', 'Todo Rioja Alavesa', 1, 4, 1),
+(5, '00005', 'Todo Añana', 1, 5, 1),
+(6, '00006', 'Todo Montaña Alavesa', 1, 6, 1),
+(7, '00007', 'Todo Estribaciones Gorbea', 1, 7, 1);
 
 -- -----------------------------------------------------------------------------
 -- 3.2 MUNICIPIOS REALES
