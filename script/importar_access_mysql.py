@@ -21,11 +21,10 @@ REQUISITOS:
 USO:
   python importar_access_mysql.py --access /ruta/al/archivo.accdb --host localhost --user root --password xxx --database hydroflow
 
-FASES:
-  1. Limpieza de tablas de hechos (libera FK hacia dimensiones)
-  2. Verificación/sincronización de dimensiones (dim_tipo_trabajo, dim_codigo_trabajo, dim_red)
-  3. Mapeo geográfico (COMARCA → municipio, LOCALIZACIÓN → concejo)
-  4. Importación de datos (LISTADO OTS → tbl_partes, MEDICIONES OTS → tbl_part_presupuesto)
+MAPEO GEOGRÁFICO:
+  - LOCALIZACIÓN (Access) → Comarca (MySQL dim_comarcas)
+  - COMARCA (Access) → Municipio (MySQL dim_municipios)
+  - Concejo: Se determina automáticamente o se usa "Todo [municipio]"
 
 AUTOR: Script generado automáticamente para HydroFlow Manager
 FECHA: 2026-01-11
@@ -46,36 +45,18 @@ import unicodedata
 # CONFIGURACIÓN
 # ============================================================================
 
-# Mapeo de tipo de trabajo: Access ID → MySQL ID
-# Después de sincronizar dimensiones, los IDs coinciden directamente:
-#   Access 1 (ORDEN DE TRABAJO) = MySQL 1 (OT)
-#   Access 2 (TRABAJOS PROGRAMADOS) = MySQL 2 (TP)
-#   Access 3 (GASTOS FIJOS) = MySQL 3 (GF)
 MAPEO_TIPO_TRABAJO = {
     1: 1,  # ORDEN DE TRABAJO → OT
     2: 2,  # TRABAJOS PROGRAMADOS → TP
     3: 3,  # GASTOS FIJOS → GF
 }
 
-# Mapeo de RED: Texto Access → MySQL ID
 MAPEO_RED = {
-    'ADUCCIÓN': 1,
-    'ADUCCION': 1,
-    'DEPURACIÓN': 2,
-    'DEPURACION': 2,
-    'DISTRIBUCIÓN': 3,
-    'DISTRIBUCION': 3,
+    'ADUCCIÓN': 1, 'ADUCCION': 1,
+    'DEPURACIÓN': 2, 'DEPURACION': 2,
+    'DISTRIBUCIÓN': 3, 'DISTRIBUCION': 3,
     'OTROS': 4,
     'SANEAMIENTO': 5,
-}
-
-# Valores problemáticos de COMARCA que deben mapearse manualmente
-MAPEO_COMARCA_ESPECIAL = {
-    'AIARA': 'Ayala/Aiara',
-    'AIARALDEA': 'Ayala/Aiara',  # Zona de Ayala
-    'VITORIA': 'Vitoria-Gasteiz',
-    'ALAVA': None,  # Demasiado genérico, requerirá intervención manual
-    'ÁLAVA': None,
 }
 
 # ============================================================================
@@ -86,10 +67,8 @@ def normalizar_texto(texto: str) -> str:
     """Normaliza texto para comparación: sin acentos, minúsculas, sin espacios extra."""
     if not texto:
         return ''
-    # Eliminar acentos
     texto = unicodedata.normalize('NFD', texto)
     texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
-    # Minúsculas y limpiar espacios
     texto = texto.lower().strip()
     texto = re.sub(r'\s+', ' ', texto)
     return texto
@@ -100,32 +79,9 @@ def similitud(a: str, b: str) -> float:
     return SequenceMatcher(None, normalizar_texto(a), normalizar_texto(b)).ratio()
 
 
-def es_coordenada(texto: str) -> bool:
-    """Detecta si un texto parece ser una coordenada GPS."""
-    if not texto:
-        return False
-    # Patrón de coordenadas: números con decimales
-    return bool(re.match(r'^-?\d+\.\d+$', texto.strip()))
-
-
-def es_direccion(texto: str) -> bool:
-    """Detecta si un texto parece ser una dirección."""
-    if not texto:
-        return False
-    texto_lower = texto.lower()
-    indicadores = ['kalea', 'calle', 'plaza', 'avenida', 'paseo', 'camino', 'nº', 'número']
-    return any(ind in texto_lower for ind in indicadores)
-
-
 def leer_tabla_access(accdb_path: str, tabla: str) -> List[Dict]:
-    """
-    Lee una tabla de Access y devuelve lista de diccionarios.
-    Detecta automáticamente el SO y usa el método apropiado:
-    - Windows: pyodbc con driver de Access
-    - Linux: mdb-tools
-    """
+    """Lee una tabla de Access y devuelve lista de diccionarios."""
     import platform
-
     if platform.system() == 'Windows':
         return _leer_tabla_access_windows(accdb_path, tabla)
     else:
@@ -137,76 +93,49 @@ def _leer_tabla_access_windows(accdb_path: str, tabla: str) -> List[Dict]:
     try:
         import pyodbc
     except ImportError:
-        print("ERROR: pyodbc no está instalado.")
-        print("Instálalo con: pip install pyodbc")
+        print("ERROR: pyodbc no está instalado. Instálalo con: pip install pyodbc")
         sys.exit(1)
 
     try:
-        # Construir connection string para Access
         conn_str = (
             r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};'
             f'DBQ={accdb_path};'
         )
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
-
-        # Leer todos los registros
         cursor.execute(f'SELECT * FROM [{tabla}]')
-
-        # Obtener nombres de columnas
         columns = [column[0] for column in cursor.description]
-
-        # Convertir a lista de diccionarios
         rows = []
         for row in cursor.fetchall():
             row_dict = {}
             for i, col in enumerate(columns):
                 value = row[i]
-                # Convertir a string si no es None
                 row_dict[col] = str(value) if value is not None else ''
             rows.append(row_dict)
-
         cursor.close()
         conn.close()
         return rows
-
-    except pyodbc.Error as e:
-        print(f"Error leyendo tabla {tabla}: {e}")
-        return []
     except Exception as e:
-        print(f"Error procesando tabla {tabla}: {e}")
+        print(f"Error leyendo tabla {tabla}: {e}")
         return []
 
 
 def _leer_tabla_access_linux(accdb_path: str, tabla: str) -> List[Dict]:
     """Lee tabla de Access usando mdb-tools (Linux)."""
     try:
-        # Exportar datos como CSV
         result = subprocess.run(
             ['mdb-export', accdb_path, tabla],
             capture_output=True, text=True, check=True
         )
-
-        lines = result.stdout.strip().split('\n')
-        if len(lines) < 1:
-            return []
-
-        # Parsear CSV manualmente para manejar campos con comas
         import csv
         from io import StringIO
-
         reader = csv.DictReader(StringIO(result.stdout))
         return list(reader)
-
     except FileNotFoundError:
-        print("ERROR: mdb-tools no está instalado.")
-        print("Instálalo con: sudo apt install mdb-tools")
+        print("ERROR: mdb-tools no está instalado. Instálalo con: sudo apt install mdb-tools")
         sys.exit(1)
-    except subprocess.CalledProcessError as e:
-        print(f"Error leyendo tabla {tabla}: {e}")
-        return []
     except Exception as e:
-        print(f"Error procesando tabla {tabla}: {e}")
+        print(f"Error leyendo tabla {tabla}: {e}")
         return []
 
 
@@ -215,658 +144,494 @@ def conectar_mysql(host: str, port: int, user: str, password: str, database: str
     try:
         import mysql.connector
         conn = mysql.connector.connect(
-            host=host,
-            port=port,
-            user=user,
-            password=password,
-            database=database,
-            charset='utf8mb4'
+            host=host, port=port, user=user, password=password,
+            database=database, charset='utf8mb4'
         )
         return conn, conn.cursor(dictionary=True)
     except ImportError:
         print("ERROR: mysql-connector-python no está instalado.")
-        print("Instálalo con: pip install mysql-connector-python")
         sys.exit(1)
 
 
 # ============================================================================
-# FASE 2: VERIFICACIÓN DE DIMENSIONES
+# CARGA DE DATOS GEOGRÁFICOS
 # ============================================================================
 
-def verificar_dim_tipo_trabajo(cursor, datos_access: List[Dict]) -> Tuple[bool, List[str]]:
-    """Verifica que dim_tipo_trabajo coincide con Access."""
-    errores = []
+def cargar_comarcas(cursor) -> List[Dict]:
+    """Carga todas las comarcas de MySQL."""
+    cursor.execute("""
+        SELECT id, comarca_codigo, comarca_nombre
+        FROM dim_comarcas
+        WHERE comarca_nombre NOT LIKE 'Todo%'
+        ORDER BY comarca_nombre
+    """)
+    return cursor.fetchall()
 
-    print("\n" + "="*70)
-    print("VERIFICACIÓN: dim_tipo_trabajo")
-    print("="*70)
 
-    # Obtener datos de MySQL
-    cursor.execute("SELECT id, tipo_codigo, descripcion FROM dim_tipo_trabajo ORDER BY id")
-    mysql_data = {row['id']: row for row in cursor.fetchall()}
+def cargar_municipios(cursor) -> List[Dict]:
+    """Carga todos los municipios de MySQL con su comarca."""
+    cursor.execute("""
+        SELECT m.id, m.codigo_ine, m.municipio_nombre, m.comarca_id, c.comarca_nombre
+        FROM dim_municipios m
+        JOIN dim_comarcas c ON m.comarca_id = c.id
+        WHERE m.activo = 1
+          AND m.municipio_nombre NOT LIKE 'Todo%'
+          AND m.municipio_nombre NOT LIKE 'Varios%'
+        ORDER BY m.municipio_nombre
+    """)
+    return cursor.fetchall()
 
-    # Mapeo esperado después de sincronización
-    esperado = {
-        1: {'tipo_codigo': 'OT', 'descripcion': 'ORDEN DE TRABAJO'},
-        2: {'tipo_codigo': 'TP', 'descripcion': 'TRABAJOS PROGRAMADOS'},
-        3: {'tipo_codigo': 'GF', 'descripcion': 'GASTOS FIJOS DE LA EXPLOTACIÓN'},
-    }
 
-    print(f"\n{'ID':<5} {'MySQL Código':<10} {'MySQL Descripción':<35} {'Esperado':<10} {'Estado':<10}")
-    print("-"*70)
+def cargar_concejos(cursor) -> List[Dict]:
+    """Carga todos los concejos de MySQL con su municipio."""
+    cursor.execute("""
+        SELECT c.id, c.municipio_id, c.nombre, m.municipio_nombre
+        FROM dim_concejos c
+        JOIN dim_municipios m ON c.municipio_id = m.id
+        WHERE c.activo = 1
+          AND c.nombre NOT LIKE 'Varios%'
+        ORDER BY c.nombre
+    """)
+    return cursor.fetchall()
 
-    for id_val, exp in esperado.items():
-        if id_val in mysql_data:
-            mysql_row = mysql_data[id_val]
-            codigo_ok = mysql_row['tipo_codigo'] == exp['tipo_codigo']
-            estado = "✓ OK" if codigo_ok else "✗ ERROR"
-            print(f"{id_val:<5} {mysql_row['tipo_codigo']:<10} {mysql_row['descripcion'][:33]:<35} {exp['tipo_codigo']:<10} {estado:<10}")
-            if not codigo_ok:
-                errores.append(f"ID {id_val}: tiene '{mysql_row['tipo_codigo']}' pero debería ser '{exp['tipo_codigo']}'")
+
+def buscar_mejor_coincidencia(texto: str, lista: List[Dict], campo_nombre: str) -> List[Tuple[float, Dict]]:
+    """Busca las mejores coincidencias por similitud."""
+    if not texto:
+        return []
+
+    texto_norm = normalizar_texto(texto)
+    resultados = []
+
+    for item in lista:
+        nombre = item.get(campo_nombre, '')
+        if not nombre:
+            continue
+
+        # Calcular similitud
+        nombre_norm = normalizar_texto(nombre)
+        sim = similitud(texto_norm, nombre_norm)
+
+        # También buscar coincidencia parcial
+        if texto_norm in nombre_norm or nombre_norm in texto_norm:
+            sim = max(sim, 0.8)
+
+        # Buscar en variantes (si tiene /)
+        if '/' in nombre:
+            for parte in nombre.split('/'):
+                sim_parte = similitud(texto_norm, normalizar_texto(parte.strip()))
+                sim = max(sim, sim_parte)
+
+        if sim > 0.5:
+            resultados.append((sim, item))
+
+    resultados.sort(key=lambda x: x[0], reverse=True)
+    return resultados[:5]
+
+
+# ============================================================================
+# FASE 3: MAPEO GEOGRÁFICO INTERACTIVO
+# ============================================================================
+
+def mostrar_registro_access(registro: Dict):
+    """Muestra información del registro de Access."""
+    print("\n" + "="*80)
+    print("REGISTRO DE ACCESS SIN COINCIDENCIA")
+    print("="*80)
+
+    id_val = registro.get('ID', registro.get('Id', '?'))
+    titulo = registro.get('TITULO OT', registro.get('OT', ''))[:60]
+    descripcion = registro.get('DESCRIPCION OT', registro.get('DESCRIPCION', ''))[:80]
+    localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', ''))
+    comarca = registro.get('COMARCA', '')
+
+    print(f"  [ID]: {id_val}")
+    print(f"  [TITULO OT]: {titulo}")
+    print(f"  [DESCRIPCION OT]: {descripcion}")
+    print(f"  [LOCALIZACIÓN]: {localizacion}")
+    print(f"  [COMARCA]: {comarca}")
+
+
+def mostrar_sugerencias(sugerencias: List[Tuple[float, Dict]], campo_nombre: str, titulo: str):
+    """Muestra sugerencias numeradas."""
+    print(f"\n  {titulo}:")
+    if not sugerencias:
+        print("    (Sin sugerencias)")
+        return
+
+    for i, (sim, item) in enumerate(sugerencias, 1):
+        nombre = item.get(campo_nombre, '?')
+        id_val = item.get('id', '?')
+        extra = ""
+        if 'comarca_nombre' in item and campo_nombre != 'comarca_nombre':
+            extra = f" (Comarca: {item['comarca_nombre']})"
+        elif 'municipio_nombre' in item and campo_nombre != 'municipio_nombre':
+            extra = f" (Municipio: {item['municipio_nombre']})"
+        print(f"    {i}. {nombre} [ID: {id_val}]{extra} - Similitud: {sim:.0%}")
+
+
+def seleccionar_de_lista(lista: List[Dict], campo_nombre: str, titulo: str, filtro_campo: str = None, filtro_valor: int = None) -> Optional[Dict]:
+    """Permite al usuario seleccionar un elemento de la lista completa."""
+    # Filtrar si es necesario
+    if filtro_campo and filtro_valor:
+        lista_filtrada = [item for item in lista if item.get(filtro_campo) == filtro_valor]
+    else:
+        lista_filtrada = lista
+
+    if not lista_filtrada:
+        print(f"    No hay {titulo} disponibles con el filtro actual.")
+        return None
+
+    print(f"\n  Selecciona {titulo}:")
+    print("-" * 60)
+
+    # Mostrar en páginas de 20
+    pagina = 0
+    items_por_pagina = 20
+    total_paginas = (len(lista_filtrada) - 1) // items_por_pagina + 1
+
+    while True:
+        inicio = pagina * items_por_pagina
+        fin = min(inicio + items_por_pagina, len(lista_filtrada))
+
+        for i, item in enumerate(lista_filtrada[inicio:fin], inicio + 1):
+            nombre = item.get(campo_nombre, '?')
+            id_val = item.get('id', '?')
+            extra = ""
+            if 'comarca_nombre' in item and campo_nombre != 'comarca_nombre':
+                extra = f" ({item['comarca_nombre']})"
+            print(f"    {i}. {nombre} [ID: {id_val}]{extra}")
+
+        print(f"\n  Página {pagina + 1}/{total_paginas}")
+        print("  Opciones: [número] seleccionar | [n] siguiente | [p] anterior | [q] cancelar")
+
+        resp = input("  > ").strip().lower()
+
+        if resp == 'q':
+            return None
+        elif resp == 'n' and pagina < total_paginas - 1:
+            pagina += 1
+        elif resp == 'p' and pagina > 0:
+            pagina -= 1
         else:
-            print(f"{id_val:<5} {'FALTA':<10} {'-':<35} {exp['tipo_codigo']:<10} {'✗ FALTA':<10}")
-            errores.append(f"Falta registro con ID {id_val}")
-
-    if errores:
-        print("\n⚠ ERRORES DETECTADOS:")
-        for e in errores:
-            print(f"  - {e}")
-        print("\n  Ejecuta primero: script/sql/sincronizar_dimensiones_access.sql")
-    else:
-        print("\n✓ dim_tipo_trabajo está correctamente sincronizada")
-
-    return len(errores) == 0, errores
+            try:
+                num = int(resp)
+                if 1 <= num <= len(lista_filtrada):
+                    return lista_filtrada[num - 1]
+            except ValueError:
+                pass
+            print("  Opción inválida.")
 
 
-def verificar_dim_codigo_trabajo(cursor, datos_access: List[Dict]) -> Tuple[bool, List[str]]:
-    """Verifica que dim_codigo_trabajo coincide con Access."""
-    errores = []
+def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Optional[Dict]:
+    """Procesa un registro de forma interactiva y devuelve el mapeo geográfico."""
 
-    print("\n" + "="*70)
-    print("VERIFICACIÓN: dim_codigo_trabajo (TRABAJOS PROGRAMADOS)")
-    print("="*70)
+    localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', '')).strip()
+    comarca_access = registro.get('COMARCA', '').strip()
 
-    # Detectar columnas disponibles en la tabla
-    cursor.execute("SHOW COLUMNS FROM dim_codigo_trabajo")
-    columnas_db = [row['Field'] for row in cursor.fetchall()]
+    mostrar_registro_access(registro)
 
-    # Determinar qué columna usar para el código
-    codigo_col = None
-    for posible in ['codigo', 'cod', 'cod_trabajo']:
-        if posible in columnas_db:
-            codigo_col = posible
-            break
+    # Buscar sugerencias para comarca (desde LOCALIZACIÓN)
+    sug_comarcas = buscar_mejor_coincidencia(localizacion, comarcas, 'comarca_nombre')
 
-    # Construir query según columnas disponibles
-    where_clause = "WHERE activo = 1" if 'activo' in columnas_db else ""
+    # Buscar sugerencias para municipio (desde COMARCA)
+    sug_municipios = buscar_mejor_coincidencia(comarca_access, municipios, 'municipio_nombre')
 
-    if codigo_col and 'descripcion' in columnas_db:
-        query = f"SELECT id, {codigo_col} as codigo, descripcion FROM dim_codigo_trabajo {where_clause} ORDER BY id"
-    elif 'descripcion' in columnas_db:
-        query = f"SELECT id, id as codigo, descripcion FROM dim_codigo_trabajo {where_clause} ORDER BY id"
-    else:
-        print("⚠ No se puede verificar: estructura de tabla desconocida")
-        print(f"  Columnas encontradas: {columnas_db}")
-        return True, []  # Saltar verificación
+    print("\n  SUGERENCIAS BASADAS EN LOS DATOS:")
 
-    # Obtener datos de MySQL
-    cursor.execute(query)
-    mysql_data = {row['id']: row for row in cursor.fetchall()}
+    # Mostrar cómo quedaría con cada sugerencia
+    print("\n  Opción | Comarca (de LOCALIZACIÓN) | Municipio (de COMARCA) | Concejo")
+    print("  " + "-"*75)
 
-    # Leer datos de Access
-    access_data = {}
-    for row in datos_access:
+    opciones = []
+    num_opcion = 1
+
+    # Generar opciones combinando sugerencias
+    for sim_c, comarca in sug_comarcas[:3]:
+        for sim_m, municipio in sug_municipios[:3]:
+            if municipio['comarca_id'] == comarca['id']:
+                # Buscar concejo "Todo" para este municipio
+                concejo_todo = None
+                for c in concejos:
+                    if c['municipio_id'] == municipio['id'] and c['nombre'].startswith('Todo '):
+                        concejo_todo = c
+                        break
+
+                if not concejo_todo:
+                    # Usar el primer concejo del municipio
+                    for c in concejos:
+                        if c['municipio_id'] == municipio['id']:
+                            concejo_todo = c
+                            break
+
+                concejo_nombre = concejo_todo['nombre'] if concejo_todo else f"Todo {municipio['municipio_nombre']}"
+                concejo_id = concejo_todo['id'] if concejo_todo else None
+
+                print(f"  {num_opcion:^6} | {comarca['comarca_nombre'][:25]:<25} | {municipio['municipio_nombre'][:22]:<22} | {concejo_nombre[:20]}")
+                opciones.append({
+                    'comarca': comarca,
+                    'municipio': municipio,
+                    'concejo': concejo_todo,
+                    'concejo_nombre': concejo_nombre
+                })
+                num_opcion += 1
+
+    if not opciones:
+        # Si no hay opciones combinadas válidas, mostrar sugerencias por separado
+        print("\n  No se encontraron combinaciones válidas comarca-municipio.")
+        mostrar_sugerencias(sug_comarcas, 'comarca_nombre', "Sugerencias de Comarca (desde LOCALIZACIÓN)")
+        mostrar_sugerencias(sug_municipios, 'municipio_nombre', "Sugerencias de Municipio (desde COMARCA)")
+
+    print(f"\n  {num_opcion}. Ninguna de las anteriores (selección manual)")
+    print(f"  0. Saltar este registro")
+
+    while True:
         try:
-            id_val = int(row.get('ID', 0))
-            if id_val > 0:
-                access_data[id_val] = row.get('NOMBRE', '')
-        except (ValueError, TypeError):
-            continue
+            resp = input("\n  Selecciona opción: ").strip()
 
-    print(f"\n{'ID':<5} {'MySQL Descripción':<40} {'Access':<40}")
-    print("-"*85)
+            if resp == '0':
+                return None
 
-    # Comparar
-    todos_ids = sorted(set(mysql_data.keys()) | set(access_data.keys()))
-    for id_val in todos_ids[:22]:  # Solo los primeros 22
-        mysql_desc = mysql_data.get(id_val, {}).get('descripcion', 'FALTA')[:38]
-        access_desc = access_data.get(id_val, 'FALTA')[:38]
+            num = int(resp)
 
-        if id_val in mysql_data and id_val in access_data:
-            print(f"{id_val:<5} {mysql_desc:<40} {access_desc:<40}")
-        elif id_val not in mysql_data:
-            print(f"{id_val:<5} {'FALTA EN MYSQL':<40} {access_desc:<40}")
-            errores.append(f"Falta en MySQL: ID {id_val}")
-        else:
-            print(f"{id_val:<5} {mysql_desc:<40} {'FALTA EN ACCESS':<40}")
+            if 1 <= num <= len(opciones):
+                opcion = opciones[num - 1]
+                print(f"\n  ✓ Seleccionado:")
+                print(f"    Comarca: {opcion['comarca']['comarca_nombre']}")
+                print(f"    Municipio: {opcion['municipio']['municipio_nombre']}")
+                print(f"    Concejo: {opcion['concejo_nombre']}")
+                return {
+                    'comarca_id': opcion['comarca']['id'],
+                    'comarca_nombre': opcion['comarca']['comarca_nombre'],
+                    'municipio_id': opcion['municipio']['id'],
+                    'municipio_nombre': opcion['municipio']['municipio_nombre'],
+                    'concejo_id': opcion['concejo']['id'] if opcion['concejo'] else None,
+                    'concejo_nombre': opcion['concejo_nombre']
+                }
 
-    print(f"\nMySQL tiene {len(mysql_data)} registros activos, Access tiene {len(access_data)} registros")
+            elif num == num_opcion:  # Selección manual
+                print("\n  === SELECCIÓN MANUAL ===")
 
-    if errores:
-        print("\n⚠ ERRORES DETECTADOS:")
-        for e in errores:
-            print(f"  - {e}")
-    else:
-        print("\n✓ dim_codigo_trabajo está correctamente sincronizada")
+                # 1. Seleccionar Comarca
+                comarca_sel = seleccionar_de_lista(comarcas, 'comarca_nombre', 'COMARCA')
+                if not comarca_sel:
+                    continue
 
-    return len(errores) == 0, errores
+                # 2. Seleccionar Municipio (filtrado por comarca)
+                municipio_sel = seleccionar_de_lista(
+                    municipios, 'municipio_nombre', 'MUNICIPIO',
+                    filtro_campo='comarca_id', filtro_valor=comarca_sel['id']
+                )
+                if not municipio_sel:
+                    continue
 
+                # 3. Seleccionar Concejo (filtrado por municipio)
+                concejos_municipio = [c for c in concejos if c['municipio_id'] == municipio_sel['id']]
 
-def verificar_dim_red(cursor) -> Tuple[bool, List[str]]:
-    """Verifica que dim_red tiene los valores correctos."""
-    errores = []
+                if concejos_municipio:
+                    concejo_sel = seleccionar_de_lista(
+                        concejos_municipio, 'nombre', 'CONCEJO'
+                    )
+                    if concejo_sel:
+                        concejo_nombre = concejo_sel['nombre']
+                        concejo_id = concejo_sel['id']
+                    else:
+                        concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
+                        concejo_id = None
+                else:
+                    concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
+                    concejo_id = None
+                    # Buscar el concejo "Todo X" en la base de datos
+                    for c in concejos:
+                        if c['municipio_id'] == municipio_sel['id'] and c['nombre'].startswith('Todo '):
+                            concejo_id = c['id']
+                            concejo_nombre = c['nombre']
+                            break
 
-    print("\n" + "="*70)
-    print("VERIFICACIÓN: dim_red")
-    print("="*70)
+                print(f"\n  ✓ Selección manual completada:")
+                print(f"    Comarca: {comarca_sel['comarca_nombre']}")
+                print(f"    Municipio: {municipio_sel['municipio_nombre']}")
+                print(f"    Concejo: {concejo_nombre}")
 
-    # Detectar columnas disponibles
-    cursor.execute("SHOW COLUMNS FROM dim_red")
-    columnas_db = [row['Field'] for row in cursor.fetchall()]
+                return {
+                    'comarca_id': comarca_sel['id'],
+                    'comarca_nombre': comarca_sel['comarca_nombre'],
+                    'municipio_id': municipio_sel['id'],
+                    'municipio_nombre': municipio_sel['municipio_nombre'],
+                    'concejo_id': concejo_id,
+                    'concejo_nombre': concejo_nombre
+                }
 
-    # Determinar columna de código
-    codigo_col = None
-    for posible in ['codigo_red', 'codigo', 'cod', 'red']:
-        if posible in columnas_db:
-            codigo_col = posible
-            break
-
-    # Determinar columna de descripción
-    desc_col = None
-    for posible in ['descripcion', 'nombre', 'desc']:
-        if posible in columnas_db:
-            desc_col = posible
-            break
-
-    if not desc_col:
-        print("⚠ No se puede verificar: estructura de tabla desconocida")
-        print(f"  Columnas encontradas: {columnas_db}")
-        return True, []
-
-    # Construir query
-    if codigo_col:
-        query = f"SELECT id, {codigo_col} as codigo, {desc_col} as descripcion FROM dim_red ORDER BY id"
-    else:
-        query = f"SELECT id, id as codigo, {desc_col} as descripcion FROM dim_red ORDER BY id"
-
-    cursor.execute(query)
-    mysql_data = cursor.fetchall()
-
-    esperado_desc = {
-        1: 'Aducción',
-        2: 'Depuración',
-        3: 'Distribución',
-        4: 'Otros',
-        5: 'Saneamiento',
-    }
-
-    print(f"\n{'ID':<5} {'Descripción':<30} {'Estado':<10}")
-    print("-"*45)
-
-    for row in mysql_data:
-        id_val = row['id']
-        desc = row['descripcion'] or ''
-        if id_val in esperado_desc:
-            # Comparar descripción (ignorando mayúsculas/acentos)
-            desc_norm = desc.lower().replace('ó', 'o').replace('á', 'a')
-            exp_norm = esperado_desc[id_val].lower().replace('ó', 'o').replace('á', 'a')
-            estado = "✓ OK" if desc_norm == exp_norm else "~ SIMILAR"
-            print(f"{id_val:<5} {desc[:28]:<30} {estado:<10}")
-        else:
-            print(f"{id_val:<5} {desc[:28]:<30} {'? EXTRA':<10}")
-
-    print(f"\nMySQL tiene {len(mysql_data)} registros")
-    print("\n✓ dim_red verificada")
-
-    return True, errores  # Siempre OK, solo informativo
+        except ValueError:
+            print("  Entrada inválida.")
 
 
-# ============================================================================
-# FASE 3: MAPEO GEOGRÁFICO
-# ============================================================================
-
-def cargar_municipios(cursor) -> Dict[str, Dict]:
-    """Carga municipios de MySQL y crea índices para búsqueda."""
-    # Detectar columnas disponibles
-    cursor.execute("SHOW COLUMNS FROM dim_municipios")
-    columnas = [row['Field'] for row in cursor.fetchall()]
-
-    # Detectar columna de nombre
-    nombre_col = None
-    for posible in ['nombre', 'municipio_nombre', 'descripcion', 'municipio']:
-        if posible in columnas:
-            nombre_col = posible
-            break
-
-    if not nombre_col:
-        print(f"⚠ No se encontró columna de nombre en dim_municipios")
-        print(f"  Columnas: {columnas}")
-        return {}
-
-    # Construir query dinámicamente
-    select_cols = ['id']
-    if 'codigo_ine' in columnas:
-        select_cols.append('codigo_ine')
-    select_cols.append(f"{nombre_col} as nombre")
-    if 'provincia_id' in columnas:
-        select_cols.append('provincia_id')
-    if 'comarca_id' in columnas:
-        select_cols.append('comarca_id')
-
-    where_clause = "WHERE activo = 1" if 'activo' in columnas else ""
-
-    query = f"SELECT {', '.join(select_cols)} FROM dim_municipios {where_clause} ORDER BY {nombre_col}"
-    cursor.execute(query)
-
-    municipios = {}
-    for row in cursor.fetchall():
-        nombre = row.get('nombre', '')
-        if not nombre:
-            continue
-
-        # Indexar por nombre normalizado
-        nombre_norm = normalizar_texto(nombre)
-        municipios[nombre_norm] = row
-
-        # También indexar por variantes comunes
-        if '/' in nombre:
-            partes = nombre.split('/')
-            for parte in partes:
-                municipios[normalizar_texto(parte.strip())] = row
-
-    return municipios
-
-
-def cargar_concejos(cursor) -> Dict[str, Dict]:
-    """Carga concejos de MySQL y crea índices para búsqueda."""
-    # Verificar si existe la tabla dim_concejos
-    try:
-        cursor.execute("SHOW COLUMNS FROM dim_concejos")
-        columnas_c = [row['Field'] for row in cursor.fetchall()]
-    except Exception:
-        print("⚠ Tabla dim_concejos no existe, saltando carga de concejos")
-        return {}
-
-    cursor.execute("SHOW COLUMNS FROM dim_municipios")
-    columnas_m = [row['Field'] for row in cursor.fetchall()]
-
-    # Detectar columnas de nombre
-    nombre_col_c = None
-    for posible in ['nombre', 'concejo_nombre', 'descripcion']:
-        if posible in columnas_c:
-            nombre_col_c = posible
-            break
-
-    nombre_col_m = None
-    for posible in ['nombre', 'municipio_nombre', 'descripcion']:
-        if posible in columnas_m:
-            nombre_col_m = posible
-            break
-
-    if not nombre_col_c:
-        print("⚠ No se encontró columna de nombre en dim_concejos")
-        return {}
-
-    # Construir query
-    where_c = "WHERE c.activo = 1" if 'activo' in columnas_c else ""
-
-    if nombre_col_m:
-        query = f"""
-            SELECT c.id, c.municipio_id, c.{nombre_col_c} as nombre, m.{nombre_col_m} as municipio_nombre
-            FROM dim_concejos c
-            JOIN dim_municipios m ON c.municipio_id = m.id
-            {where_c}
-            ORDER BY c.{nombre_col_c}
-        """
-    else:
-        query = f"""
-            SELECT c.id, c.municipio_id, c.{nombre_col_c} as nombre, c.municipio_id as municipio_nombre
-            FROM dim_concejos c
-            {where_c}
-            ORDER BY c.{nombre_col_c}
-        """
-
-    cursor.execute(query)
-
-    concejos = {}
-    for row in cursor.fetchall():
-        nombre = row.get('nombre', '')
-        if not nombre:
-            continue
-
-        nombre_norm = normalizar_texto(nombre)
-        concejos[nombre_norm] = row
-
-        # Indexar variantes
-        if '/' in nombre:
-            partes = nombre.split('/')
-            for parte in partes:
-                concejos[normalizar_texto(parte.strip())] = row
-
-    return concejos
-
-
-def buscar_municipio(comarca: str, municipios: Dict[str, Dict]) -> Tuple[Optional[Dict], str, List[Dict]]:
+def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Tuple[Dict, List[Dict]]:
     """
-    Busca un municipio por nombre de comarca.
-    Retorna: (municipio_encontrado, tipo_match, sugerencias)
-    tipo_match: 'exacto', 'parcial', 'especial', 'no_encontrado'
+    Procesa el mapeo geográfico de todos los registros.
+    Retorna: (mapeo_por_registro, correcciones_realizadas)
     """
-    if not comarca or comarca.strip() == '':
-        return None, 'vacio', []
-
-    comarca = comarca.strip()
-    comarca_norm = normalizar_texto(comarca)
-
-    # Detectar valores problemáticos
-    if es_coordenada(comarca):
-        return None, 'coordenada', []
-    if es_direccion(comarca):
-        return None, 'direccion', []
-
-    # Buscar mapeo especial primero
-    comarca_upper = comarca.upper()
-    if comarca_upper in MAPEO_COMARCA_ESPECIAL:
-        valor_especial = MAPEO_COMARCA_ESPECIAL[comarca_upper]
-        if valor_especial is None:
-            return None, 'generico', []
-        comarca_norm = normalizar_texto(valor_especial)
-
-    # Búsqueda exacta
-    if comarca_norm in municipios:
-        return municipios[comarca_norm], 'exacto', []
-
-    # Búsqueda parcial (similitud > 0.8)
-    sugerencias = []
-    for nombre_norm, muni in municipios.items():
-        sim = similitud(comarca_norm, nombre_norm)
-        if sim > 0.7:
-            sugerencias.append((sim, muni))
-
-    sugerencias.sort(key=lambda x: x[0], reverse=True)
-    sugerencias_top = [s[1] for s in sugerencias[:5]]
-
-    if sugerencias and sugerencias[0][0] > 0.85:
-        return sugerencias[0][1], 'parcial_alto', sugerencias_top
-    elif sugerencias:
-        return None, 'parcial', sugerencias_top
-
-    return None, 'no_encontrado', []
-
-
-def buscar_concejo(localizacion: str, concejos: Dict[str, Dict], municipio_id: Optional[int] = None) -> Tuple[Optional[Dict], str, List[Dict]]:
-    """
-    Busca un concejo por nombre de localización.
-    Si se proporciona municipio_id, prioriza concejos de ese municipio.
-    """
-    if not localizacion or localizacion.strip() == '':
-        return None, 'vacio', []
-
-    localizacion = localizacion.strip()
-    loc_norm = normalizar_texto(localizacion)
-
-    # Detectar valores problemáticos
-    if es_coordenada(localizacion):
-        return None, 'coordenada', []
-    if es_direccion(localizacion):
-        return None, 'direccion', []
-
-    # Búsqueda exacta
-    if loc_norm in concejos:
-        concejo = concejos[loc_norm]
-        # Si hay municipio_id, verificar que coincide
-        if municipio_id and concejo['municipio_id'] != municipio_id:
-            # Buscar en el municipio correcto
-            pass
-        return concejo, 'exacto', []
-
-    # Búsqueda por similitud
-    sugerencias = []
-    for nombre_norm, conc in concejos.items():
-        sim = similitud(loc_norm, nombre_norm)
-        # Priorizar si es del mismo municipio
-        if municipio_id and conc['municipio_id'] == municipio_id:
-            sim += 0.1
-        if sim > 0.6:
-            sugerencias.append((sim, conc))
-
-    sugerencias.sort(key=lambda x: x[0], reverse=True)
-    sugerencias_top = [s[1] for s in sugerencias[:5]]
-
-    if sugerencias and sugerencias[0][0] > 0.85:
-        return sugerencias[0][1], 'parcial_alto', sugerencias_top
-    elif sugerencias:
-        return None, 'parcial', sugerencias_top
-
-    return None, 'no_encontrado', []
-
-
-def generar_mapeo_geografico(listado_ots: List[Dict], municipios: Dict, concejos: Dict) -> Dict:
-    """
-    Genera mapeo geográfico analizando todos los registros de LISTADO OTS.
-    Retorna diccionario con mapeos y estadísticas.
-    """
-    print("\n" + "="*70)
+    print("\n" + "="*80)
     print("FASE 3: MAPEO GEOGRÁFICO")
-    print("="*70)
+    print("="*80)
 
-    # Extraer valores únicos
-    comarcas_unicas = set()
-    localizaciones_unicas = set()
+    mapeo = {}  # id_registro -> {comarca_id, municipio_id, concejo_id}
+    correctos = []
+    problematicos = []
+    correcciones = []  # Lista de correcciones para mostrar al final
 
-    for row in listado_ots:
-        comarca = row.get('COMARCA', '').strip()
-        localizacion = row.get('LOCALIZACIÓN', row.get('LOCALIZACION', '')).strip()
-        if comarca:
-            comarcas_unicas.add(comarca)
-        if localizacion:
-            localizaciones_unicas.add(localizacion)
+    # Crear índices para búsqueda rápida
+    comarcas_por_nombre = {}
+    for c in comarcas:
+        nombre_norm = normalizar_texto(c['comarca_nombre'])
+        comarcas_por_nombre[nombre_norm] = c
+        # También indexar partes del nombre
+        if '/' in c['comarca_nombre']:
+            for parte in c['comarca_nombre'].split('/'):
+                comarcas_por_nombre[normalizar_texto(parte.strip())] = c
 
-    print(f"\nValores únicos encontrados:")
-    print(f"  - COMARCA: {len(comarcas_unicas)} valores")
-    print(f"  - LOCALIZACIÓN: {len(localizaciones_unicas)} valores")
+    municipios_por_nombre = {}
+    for m in municipios:
+        nombre_norm = normalizar_texto(m['municipio_nombre'])
+        municipios_por_nombre[nombre_norm] = m
+        if '/' in m['municipio_nombre']:
+            for parte in m['municipio_nombre'].split('/'):
+                municipios_por_nombre[normalizar_texto(parte.strip())] = m
 
-    # Mapear comarcas
-    print("\n" + "-"*70)
-    print("MAPEO DE COMARCAS → MUNICIPIOS")
-    print("-"*70)
+    concejos_por_municipio = {}
+    for c in concejos:
+        muni_id = c['municipio_id']
+        if muni_id not in concejos_por_municipio:
+            concejos_por_municipio[muni_id] = []
+        concejos_por_municipio[muni_id].append(c)
 
-    mapeo_comarcas = {}
-    comarcas_exactas = []
-    comarcas_parciales = []
-    comarcas_problemas = []
+    print(f"\nProcesando {len(listado_ots)} registros...")
 
-    for comarca in sorted(comarcas_unicas):
-        muni, tipo, sugerencias = buscar_municipio(comarca, municipios)
+    # Primera pasada: intentar mapeo automático
+    for registro in listado_ots:
+        id_reg = registro.get('ID', registro.get('Id', ''))
+        localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', '')).strip()
+        comarca_access = registro.get('COMARCA', '').strip()
 
-        if tipo == 'exacto':
-            mapeo_comarcas[comarca] = muni['id']
-            comarcas_exactas.append((comarca, muni['nombre']))
-        elif tipo == 'parcial_alto':
-            mapeo_comarcas[comarca] = muni['id']
-            comarcas_parciales.append((comarca, muni['nombre'], 'auto'))
-        elif tipo in ('coordenada', 'direccion', 'generico'):
-            mapeo_comarcas[comarca] = None
-            comarcas_problemas.append((comarca, tipo, []))
-        elif tipo == 'parcial':
-            comarcas_problemas.append((comarca, tipo, sugerencias))
+        # Buscar comarca por LOCALIZACIÓN
+        comarca_encontrada = None
+        loc_norm = normalizar_texto(localizacion)
+        if loc_norm in comarcas_por_nombre:
+            comarca_encontrada = comarcas_por_nombre[loc_norm]
         else:
-            comarcas_problemas.append((comarca, 'no_encontrado', sugerencias))
-
-    print(f"\n✓ Coincidencias exactas: {len(comarcas_exactas)}")
-    for comarca, muni in comarcas_exactas:
-        print(f"    '{comarca}' → {muni}")
-
-    if comarcas_parciales:
-        print(f"\n~ Coincidencias parciales (auto-asignadas): {len(comarcas_parciales)}")
-        for comarca, muni, _ in comarcas_parciales:
-            print(f"    '{comarca}' → {muni}")
-
-    if comarcas_problemas:
-        print(f"\n⚠ Requieren revisión manual: {len(comarcas_problemas)}")
-        for comarca, tipo, sugerencias in comarcas_problemas:
-            print(f"\n    '{comarca}' [{tipo}]")
-            if sugerencias:
-                print("      Sugerencias:")
-                for i, sug in enumerate(sugerencias[:3], 1):
-                    print(f"        {i}. {sug['nombre']} (ID: {sug['id']})")
-
-    # Mapear localizaciones
-    print("\n" + "-"*70)
-    print("MAPEO DE LOCALIZACIONES → CONCEJOS")
-    print("-"*70)
-
-    mapeo_localizaciones = {}
-    loc_exactas = []
-    loc_parciales = []
-    loc_problemas = []
-
-    for localizacion in sorted(localizaciones_unicas):
-        conc, tipo, sugerencias = buscar_concejo(localizacion, concejos)
-
-        if tipo == 'exacto':
-            mapeo_localizaciones[localizacion] = conc['id']
-            loc_exactas.append((localizacion, conc['nombre'], conc['municipio_nombre']))
-        elif tipo == 'parcial_alto':
-            mapeo_localizaciones[localizacion] = conc['id']
-            loc_parciales.append((localizacion, conc['nombre'], conc['municipio_nombre']))
-        elif tipo in ('coordenada', 'direccion', 'vacio'):
-            mapeo_localizaciones[localizacion] = None
-            loc_problemas.append((localizacion, tipo, []))
-        elif tipo == 'parcial':
-            loc_problemas.append((localizacion, tipo, sugerencias))
-        else:
-            loc_problemas.append((localizacion, 'no_encontrado', sugerencias))
-
-    print(f"\n✓ Coincidencias exactas: {len(loc_exactas)}")
-    for loc, conc, muni in loc_exactas[:20]:  # Mostrar solo primeros 20
-        print(f"    '{loc}' → {conc} ({muni})")
-    if len(loc_exactas) > 20:
-        print(f"    ... y {len(loc_exactas) - 20} más")
-
-    if loc_parciales:
-        print(f"\n~ Coincidencias parciales (auto-asignadas): {len(loc_parciales)}")
-        for loc, conc, muni in loc_parciales[:10]:
-            print(f"    '{loc}' → {conc} ({muni})")
-        if len(loc_parciales) > 10:
-            print(f"    ... y {len(loc_parciales) - 10} más")
-
-    if loc_problemas:
-        print(f"\n⚠ Requieren revisión manual: {len(loc_problemas)}")
-        for loc, tipo, sugerencias in loc_problemas[:15]:
-            print(f"\n    '{loc}' [{tipo}]")
-            if sugerencias:
-                print("      Sugerencias:")
-                for i, sug in enumerate(sugerencias[:3], 1):
-                    print(f"        {i}. {sug['nombre']} ({sug['municipio_nombre']}, ID: {sug['id']})")
-        if len(loc_problemas) > 15:
-            print(f"\n    ... y {len(loc_problemas) - 15} más con problemas")
-
-    return {
-        'comarcas': mapeo_comarcas,
-        'localizaciones': mapeo_localizaciones,
-        'stats': {
-            'comarcas_total': len(comarcas_unicas),
-            'comarcas_mapeadas': len([v for v in mapeo_comarcas.values() if v]),
-            'comarcas_problemas': len(comarcas_problemas),
-            'loc_total': len(localizaciones_unicas),
-            'loc_mapeadas': len([v for v in mapeo_localizaciones.values() if v]),
-            'loc_problemas': len(loc_problemas),
-        },
-        'problemas_comarcas': comarcas_problemas,
-        'problemas_loc': loc_problemas,
-    }
-
-
-def resolver_mapeos_interactivo(mapeo: Dict, municipios: Dict, concejos: Dict) -> Dict:
-    """
-    Permite al usuario resolver mapeos problemáticos de forma interactiva.
-    """
-    print("\n" + "="*70)
-    print("RESOLUCIÓN INTERACTIVA DE MAPEOS")
-    print("="*70)
-
-    # Resolver comarcas problemáticas
-    if mapeo['problemas_comarcas']:
-        print("\n--- COMARCAS SIN MAPEAR ---")
-        print("Para cada comarca, ingresa el ID del municipio o 'skip' para omitir:\n")
-
-        for comarca, tipo, sugerencias in mapeo['problemas_comarcas']:
-            if comarca in mapeo['comarcas'] and mapeo['comarcas'][comarca]:
-                continue  # Ya mapeada
-
-            print(f"\nCOMARCA: '{comarca}' [{tipo}]")
-            if sugerencias:
-                print("Sugerencias:")
-                for i, sug in enumerate(sugerencias, 1):
-                    print(f"  {i}. {sug['nombre']} (ID: {sug['id']})")
-
-            while True:
-                resp = input("Ingresa ID municipio, número de sugerencia (1-5), o 'skip': ").strip()
-
-                if resp.lower() == 'skip':
-                    mapeo['comarcas'][comarca] = None
+            # Buscar por similitud alta
+            for nombre, com in comarcas_por_nombre.items():
+                if similitud(loc_norm, nombre) > 0.85:
+                    comarca_encontrada = com
                     break
 
-                try:
-                    num = int(resp)
-                    if 1 <= num <= len(sugerencias):
-                        mapeo['comarcas'][comarca] = sugerencias[num-1]['id']
-                        print(f"  → Asignado a: {sugerencias[num-1]['nombre']}")
-                        break
-                    else:
-                        # Asumir que es un ID directo
-                        mapeo['comarcas'][comarca] = num
-                        print(f"  → Asignado a ID: {num}")
-                        break
-                except ValueError:
-                    print("  Entrada inválida. Usa número o 'skip'.")
+        # Buscar municipio por COMARCA
+        municipio_encontrado = None
+        com_norm = normalizar_texto(comarca_access)
+        if com_norm in municipios_por_nombre:
+            municipio_encontrado = municipios_por_nombre[com_norm]
+        else:
+            # Buscar por similitud alta
+            for nombre, muni in municipios_por_nombre.items():
+                if similitud(com_norm, nombre) > 0.85:
+                    municipio_encontrado = muni
+                    break
 
-    # Resolver localizaciones problemáticas
-    if mapeo['problemas_loc']:
-        print("\n--- LOCALIZACIONES SIN MAPEAR ---")
-        print("Para cada localización, ingresa el ID del concejo o 'skip' para omitir:\n")
+        # Verificar consistencia comarca-municipio
+        if comarca_encontrada and municipio_encontrado:
+            if municipio_encontrado['comarca_id'] == comarca_encontrada['id']:
+                # ¡Coincidencia perfecta!
+                # Buscar concejo "Todo X" para este municipio
+                concejo_id = None
+                concejo_nombre = f"Todo {municipio_encontrado['municipio_nombre']}"
 
-        count = 0
-        for loc, tipo, sugerencias in mapeo['problemas_loc']:
-            if loc in mapeo['localizaciones'] and mapeo['localizaciones'][loc]:
-                continue
+                if municipio_encontrado['id'] in concejos_por_municipio:
+                    for c in concejos_por_municipio[municipio_encontrado['id']]:
+                        if c['nombre'].startswith('Todo '):
+                            concejo_id = c['id']
+                            concejo_nombre = c['nombre']
+                            break
 
-            count += 1
-            if count > 20:
-                print(f"\n... Hay {len(mapeo['problemas_loc']) - 20} localizaciones más sin mapear.")
-                resp = input("¿Continuar resolviendo? (s/n): ").strip().lower()
+                mapeo[id_reg] = {
+                    'comarca_id': comarca_encontrada['id'],
+                    'comarca_nombre': comarca_encontrada['comarca_nombre'],
+                    'municipio_id': municipio_encontrado['id'],
+                    'municipio_nombre': municipio_encontrado['municipio_nombre'],
+                    'concejo_id': concejo_id,
+                    'concejo_nombre': concejo_nombre
+                }
+                correctos.append(registro)
+            else:
+                # Comarca y municipio no coinciden
+                problematicos.append(registro)
+        else:
+            # No se encontró algo
+            problematicos.append(registro)
+
+    # Mostrar resumen de coincidencias automáticas
+    print(f"\n✓ Coincidencias automáticas: {len(correctos)} registros")
+
+    if correctos:
+        print("\n  Ejemplos de coincidencias correctas:")
+        for reg in correctos[:10]:
+            id_reg = reg.get('ID', reg.get('Id', ''))
+            if id_reg in mapeo:
+                m = mapeo[id_reg]
+                print(f"    ID {id_reg}: {m['comarca_nombre']} > {m['municipio_nombre']} > {m['concejo_nombre']}")
+        if len(correctos) > 10:
+            print(f"    ... y {len(correctos) - 10} más")
+
+    # Procesar problemáticos interactivamente
+    if problematicos:
+        print(f"\n⚠ Registros que requieren revisión: {len(problematicos)}")
+
+        for i, registro in enumerate(problematicos, 1):
+            print(f"\n--- Registro {i}/{len(problematicos)} ---")
+
+            resultado = procesar_registro_interactivo(registro, comarcas, municipios, concejos)
+
+            if resultado:
+                id_reg = registro.get('ID', registro.get('Id', ''))
+                mapeo[id_reg] = resultado
+
+                # Guardar corrección para tabla final
+                correcciones.append({
+                    'id': id_reg,
+                    'titulo': registro.get('TITULO OT', registro.get('OT', ''))[:40],
+                    'descripcion': registro.get('DESCRIPCION OT', registro.get('DESCRIPCION', ''))[:50],
+                    'comarca': resultado['comarca_nombre'],
+                    'municipio': resultado['municipio_nombre'],
+                    'concejo': resultado['concejo_nombre']
+                })
+
+            # Preguntar si continuar después de cada 10
+            if i % 10 == 0 and i < len(problematicos):
+                resp = input(f"\n¿Continuar con los siguientes? ({len(problematicos) - i} restantes) [s/n]: ").strip().lower()
                 if resp != 's':
-                    break
-                count = 0
-
-            print(f"\nLOCALIZACIÓN: '{loc}' [{tipo}]")
-            if sugerencias:
-                print("Sugerencias:")
-                for i, sug in enumerate(sugerencias, 1):
-                    print(f"  {i}. {sug['nombre']} - {sug['municipio_nombre']} (ID: {sug['id']})")
-
-            while True:
-                resp = input("Ingresa ID concejo, número (1-5), o 'skip': ").strip()
-
-                if resp.lower() == 'skip':
-                    mapeo['localizaciones'][loc] = None
+                    print(f"  Saltando {len(problematicos) - i} registros restantes.")
                     break
 
-                try:
-                    num = int(resp)
-                    if 1 <= num <= len(sugerencias):
-                        mapeo['localizaciones'][loc] = sugerencias[num-1]['id']
-                        print(f"  → Asignado a: {sugerencias[num-1]['nombre']}")
-                        break
-                    else:
-                        mapeo['localizaciones'][loc] = num
-                        print(f"  → Asignado a ID: {num}")
-                        break
-                except ValueError:
-                    print("  Entrada inválida. Usa número o 'skip'.")
+    return mapeo, correcciones
 
-    return mapeo
+
+def mostrar_tabla_correcciones(correcciones: List[Dict]):
+    """Muestra tabla resumen de todas las correcciones realizadas."""
+    if not correcciones:
+        print("\n✓ No hubo correcciones manuales.")
+        return
+
+    print("\n" + "="*120)
+    print("TABLA DE CORRECCIONES REALIZADAS")
+    print("="*120)
+
+    print(f"\n{'ID':<8} {'Título OT':<40} {'Comarca':<20} {'Municipio':<25} {'Concejo':<25}")
+    print("-"*120)
+
+    for corr in correcciones:
+        print(f"{corr['id']:<8} {corr['titulo']:<40} {corr['comarca']:<20} {corr['municipio']:<25} {corr['concejo']:<25}")
+
+    print("-"*120)
+    print(f"Total correcciones: {len(correcciones)}")
 
 
 # ============================================================================
@@ -879,9 +644,6 @@ def limpiar_tablas_hechos(cursor, conn) -> bool:
     print("FASE 1: LIMPIEZA DE TABLAS DE HECHOS")
     print("="*70)
 
-    # Contar registros antes
-    # Orden: primero hijos (certificacion, presupuesto), luego padre (partes)
-    # para respetar las FK incluso con FK_CHECKS deshabilitado
     tablas = ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']
 
     print("\nRegistros actuales:")
@@ -901,15 +663,52 @@ def limpiar_tablas_hechos(cursor, conn) -> bool:
     for tabla in tablas:
         cursor.execute(f"DELETE FROM {tabla}")
         print(f"  ✓ {tabla} limpiada ({cursor.rowcount} registros eliminados)")
-
-    # Reiniciar auto_increment
-    for tabla in tablas:
         cursor.execute(f"ALTER TABLE {tabla} AUTO_INCREMENT = 1")
 
     cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-
     conn.commit()
     print("\n✓ Tablas de hechos limpiadas correctamente")
+    return True
+
+
+# ============================================================================
+# FASE 2: VERIFICACIÓN DE DIMENSIONES
+# ============================================================================
+
+def verificar_dimensiones(cursor) -> bool:
+    """Verifica que las dimensiones básicas existen."""
+    print("\n" + "="*70)
+    print("FASE 2: VERIFICACIÓN DE DIMENSIONES")
+    print("="*70)
+
+    # Verificar dim_tipo_trabajo
+    cursor.execute("SELECT COUNT(*) as c FROM dim_tipo_trabajo")
+    count = cursor.fetchone()['c']
+    print(f"  dim_tipo_trabajo: {count} registros")
+
+    # Verificar dim_red
+    cursor.execute("SELECT COUNT(*) as c FROM dim_red")
+    count = cursor.fetchone()['c']
+    print(f"  dim_red: {count} registros")
+
+    # Verificar geografía
+    cursor.execute("SELECT COUNT(*) as c FROM dim_comarcas")
+    count_com = cursor.fetchone()['c']
+    cursor.execute("SELECT COUNT(*) as c FROM dim_municipios")
+    count_mun = cursor.fetchone()['c']
+    cursor.execute("SELECT COUNT(*) as c FROM dim_concejos")
+    count_con = cursor.fetchone()['c']
+
+    print(f"  dim_comarcas: {count_com} registros")
+    print(f"  dim_municipios: {count_mun} registros")
+    print(f"  dim_concejos: {count_con} registros")
+
+    if count_com < 5 or count_mun < 50 or count_con < 100:
+        print("\n⚠ Las dimensiones geográficas parecen incompletas.")
+        print("  Ejecuta primero: script/sql/recrear_dimensiones_geograficas.sql")
+        return False
+
+    print("\n✓ Dimensiones verificadas")
     return True
 
 
@@ -922,14 +721,9 @@ def convertir_fecha(fecha_str: str) -> Optional[str]:
     if not fecha_str or fecha_str.strip() == '':
         return None
 
-    # Intentar varios formatos
     formatos = [
-        '%m/%d/%y %H:%M:%S',
-        '%d/%m/%Y %H:%M:%S',
-        '%Y-%m-%d %H:%M:%S',
-        '%m/%d/%y',
-        '%d/%m/%Y',
-        '%Y-%m-%d',
+        '%m/%d/%y %H:%M:%S', '%d/%m/%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S',
+        '%m/%d/%y', '%d/%m/%Y', '%Y-%m-%d',
     ]
 
     for fmt in formatos:
@@ -938,35 +732,32 @@ def convertir_fecha(fecha_str: str) -> Optional[str]:
             return dt.strftime('%Y-%m-%d %H:%M:%S')
         except ValueError:
             continue
-
     return None
 
 
 def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> int:
-    """
-    Importa LISTADO OTS → tbl_partes
-    """
+    """Importa LISTADO OTS → tbl_partes"""
     print("\n" + "-"*70)
     print("Importando LISTADO OTS → tbl_partes")
     print("-"*70)
 
     insertados = 0
     errores = 0
+    sin_mapeo = 0
 
-    # Preparar query de inserción
     insert_sql = """
         INSERT INTO tbl_partes (
             codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
-            red_id, municipio_id, concejo_id, estado_id,
-            fecha_encargo, fecha_finalizacion, creado_en
+            red_id, provincia_id, comarca_id, municipio_id, concejo_id,
+            estado_id, fecha_encargo, fecha_finalizacion, creado_en
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
         )
     """
 
     for row in listado_ots:
         try:
-            # Extraer campos
+            id_reg = row.get('ID', row.get('Id', ''))
             codigo = row.get('COD TRABAJO', row.get('COD_TRABAJO', '')).strip()
             descripcion = row.get('OT', row.get('DESCRIPCION', '')).strip()
 
@@ -978,7 +769,7 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             except (ValueError, TypeError):
                 tipo_trabajo_id = None
 
-            # Código de trabajo (trabajos programados)
+            # Código de trabajo
             cod_trabajo_raw = row.get('TRABAJOS PROGRAMADOS', row.get('TRABAJOS_PROGRAMADOS', ''))
             try:
                 cod_trabajo_id = int(cod_trabajo_raw) if cod_trabajo_raw else None
@@ -989,55 +780,53 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
             red_texto = row.get('RED', '').strip().upper()
             red_id = MAPEO_RED.get(red_texto)
 
-            # Municipio (desde COMARCA)
-            comarca = row.get('COMARCA', '').strip()
-            municipio_id = mapeo['comarcas'].get(comarca)
+            # Datos geográficos del mapeo
+            geo = mapeo.get(id_reg, {})
+            provincia_id = 1  # Álava por defecto
+            comarca_id = geo.get('comarca_id')
+            municipio_id = geo.get('municipio_id')
+            concejo_id = geo.get('concejo_id')
 
-            # Concejo (desde LOCALIZACIÓN)
-            localizacion = row.get('LOCALIZACIÓN', row.get('LOCALIZACION', '')).strip()
-            concejo_id = mapeo['localizaciones'].get(localizacion)
+            if not municipio_id:
+                sin_mapeo += 1
+                continue
 
-            # Estado (por defecto = 1, pendiente)
+            # Estado y fechas
             estado_id = 1
-
-            # Fechas
             fecha_encargo = convertir_fecha(row.get('FECHA_ENCARGO', row.get('FECHA ENCARGO', '')))
             fecha_finalizacion = convertir_fecha(row.get('FECHA_FINALIZACION', row.get('FECHA FINALIZACION', '')))
 
-            # Insertar
             cursor.execute(insert_sql, (
                 codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
-                red_id, municipio_id, concejo_id, estado_id,
-                fecha_encargo, fecha_finalizacion
+                red_id, provincia_id, comarca_id, municipio_id, concejo_id,
+                estado_id, fecha_encargo, fecha_finalizacion
             ))
             insertados += 1
 
         except Exception as e:
             errores += 1
             if errores <= 5:
-                print(f"  Error en registro: {row.get('COD TRABAJO', '?')}: {e}")
+                print(f"  Error en registro: {row.get('ID', '?')}: {e}")
 
     conn.commit()
     print(f"\n✓ Importados: {insertados} partes")
+    if sin_mapeo:
+        print(f"⚠ Sin mapeo geográfico: {sin_mapeo}")
     if errores:
         print(f"⚠ Errores: {errores}")
 
     return insertados
 
 
-def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], partes_map: Dict[str, int]) -> int:
-    """
-    Importa MEDICIONES OTS → tbl_part_presupuesto
-    """
+def importar_mediciones_ots(cursor, conn, mediciones: List[Dict]) -> int:
+    """Importa MEDICIONES OTS → tbl_part_presupuesto"""
     print("\n" + "-"*70)
     print("Importando MEDICIONES OTS → tbl_part_presupuesto")
     print("-"*70)
 
-    # Primero, construir mapeo de código parte → id
     cursor.execute("SELECT id, codigo FROM tbl_partes")
     partes_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
 
-    # Cargar precios para buscar por código
     cursor.execute("SELECT id, codigo FROM tbl_pres_precios")
     precios_db = {row['codigo']: row['id'] for row in cursor.fetchall()}
 
@@ -1049,14 +838,11 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], partes_map: Di
         INSERT INTO tbl_part_presupuesto (
             parte_id, precio_id, cantidad, precio_unitario,
             precio_total, fecha_medicion, creado_en
-        ) VALUES (
-            %s, %s, %s, %s, %s, %s, NOW()
-        )
+        ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
     """
 
     for row in mediciones:
         try:
-            # Buscar parte por código
             cod_trabajo = row.get('COD TRABAJO', row.get('COD_TRABAJO', '')).strip()
             parte_id = partes_db.get(cod_trabajo)
 
@@ -1065,11 +851,9 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], partes_map: Di
                     partes_no_encontrados.add(cod_trabajo)
                 continue
 
-            # Buscar precio por código
             cod_precio = row.get('CODIGO', row.get('CÓDIGO', '')).strip()
             precio_id = precios_db.get(cod_precio)
 
-            # Cantidad y precios
             cantidad_str = row.get('CANTIDAD', '0').replace(',', '.')
             try:
                 cantidad = float(cantidad_str) if cantidad_str else 0.0
@@ -1083,8 +867,6 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], partes_map: Di
                 precio_unitario = 0.0
 
             precio_total = cantidad * precio_unitario
-
-            # Fecha
             fecha_medicion = convertir_fecha(row.get('FECHA', ''))
 
             cursor.execute(insert_sql, (
@@ -1099,13 +881,9 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], partes_map: Di
                 print(f"  Error en medición: {e}")
 
     conn.commit()
-
     print(f"\n✓ Importadas: {insertados} mediciones")
     if partes_no_encontrados:
         print(f"⚠ Partes no encontrados: {len(partes_no_encontrados)}")
-        if len(partes_no_encontrados) <= 10:
-            for cod in sorted(partes_no_encontrados):
-                print(f"    - {cod}")
     if errores:
         print(f"⚠ Errores: {errores}")
 
@@ -1123,60 +901,31 @@ def main():
         epilog="""
 Ejemplo de uso:
   python importar_access_mysql.py \\
-    --access "./INFORME TIPO/APLICACION CERTIFICACIONES UTE REDES URBIDE.accdb" \\
-    --host localhost \\
-    --user root \\
-    --password mipassword \\
+    --access "./CERTIFICACIONES.accdb" \\
+    --host localhost --port 3306 \\
+    --user root --password mipassword \\
     --database hydroflow_urbide
         """
     )
 
     parser.add_argument('--access', required=True, help='Ruta al archivo .accdb de Access')
-    parser.add_argument('--host', default='localhost', help='Host MySQL (default: localhost)')
-    parser.add_argument('--port', type=int, default=3306, help='Puerto MySQL (default: 3306)')
+    parser.add_argument('--host', default='localhost', help='Host MySQL')
+    parser.add_argument('--port', type=int, default=3306, help='Puerto MySQL')
     parser.add_argument('--user', required=True, help='Usuario MySQL')
     parser.add_argument('--password', required=True, help='Contraseña MySQL')
-    parser.add_argument('--database', required=True, help='Nombre de la base de datos MySQL')
+    parser.add_argument('--database', required=True, help='Base de datos MySQL')
     parser.add_argument('--solo-verificar', action='store_true', help='Solo verificar, no importar')
     parser.add_argument('--no-interactivo', action='store_true', help='No pedir confirmaciones')
 
     args = parser.parse_args()
 
-    # Verificar que el archivo existe
     if not os.path.exists(args.access):
         print(f"ERROR: No se encuentra el archivo: {args.access}")
         sys.exit(1)
 
-    # Verificar dependencias según el SO
-    import platform
-    if platform.system() == 'Windows':
-        try:
-            import pyodbc
-            # Verificar que el driver de Access está disponible
-            drivers = [d for d in pyodbc.drivers() if 'Access' in d]
-            if not drivers:
-                print("ERROR: No se encontró el driver de Microsoft Access.")
-                print("Instala Microsoft Access Database Engine desde:")
-                print("  https://www.microsoft.com/en-us/download/details.aspx?id=54920")
-                sys.exit(1)
-        except ImportError:
-            print("ERROR: pyodbc no está instalado.")
-            print("Instálalo con: pip install pyodbc")
-            sys.exit(1)
-    else:
-        try:
-            subprocess.run(['mdb-ver', args.access], capture_output=True, check=True)
-        except FileNotFoundError:
-            print("ERROR: mdb-tools no está instalado.")
-            print("Instálalo con: sudo apt install mdb-tools")
-            sys.exit(1)
-        except subprocess.CalledProcessError:
-            print(f"ERROR: No se puede leer el archivo Access: {args.access}")
-            sys.exit(1)
-
-    print("="*70)
+    print("="*80)
     print("IMPORTACIÓN ACCESS → MySQL")
-    print("="*70)
+    print("="*80)
     print(f"Archivo Access: {args.access}")
     print(f"Base de datos MySQL: {args.database}@{args.host}:{args.port}")
     print(f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -1188,121 +937,69 @@ Ejemplo de uso:
 
     # Leer tablas de Access
     print("\nLeyendo tablas de Access...")
-
-    trabajos_prog = leer_tabla_access(args.access, 'TRABAJOS PROGRAMADOS')
-    print(f"  TRABAJOS PROGRAMADOS: {len(trabajos_prog)} registros")
-
     listado_ots = leer_tabla_access(args.access, 'LISTADO OTS')
     print(f"  LISTADO OTS: {len(listado_ots)} registros")
 
     mediciones_ots = leer_tabla_access(args.access, 'MEDICIONES OTS')
     print(f"  MEDICIONES OTS: {len(mediciones_ots)} registros")
 
-    # =========================================================================
-    # FASE 1: Limpiar tablas de hechos
-    # =========================================================================
-    # IMPORTANTE: Limpiar PRIMERO las tablas de hechos para liberar las FK
-    # hacia las dimensiones. Esto permite modificar las dimensiones después.
+    # FASE 1: Limpiar tablas
+    if not args.solo_verificar:
+        if not args.no_interactivo:
+            if not limpiar_tablas_hechos(cursor, conn):
+                sys.exit(1)
+        else:
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+            for tabla in ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']:
+                cursor.execute(f"DELETE FROM {tabla}")
+                cursor.execute(f"ALTER TABLE {tabla} AUTO_INCREMENT = 1")
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+            conn.commit()
 
-    if args.solo_verificar:
-        print("\n[Modo solo-verificar: saltando limpieza de tablas]")
-    elif not args.no_interactivo:
-        if not limpiar_tablas_hechos(cursor, conn):
-            sys.exit(1)
-    else:
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-        for tabla in ['tbl_part_certificacion', 'tbl_part_presupuesto', 'tbl_partes']:
-            cursor.execute(f"DELETE FROM {tabla}")
-            cursor.execute(f"ALTER TABLE {tabla} AUTO_INCREMENT = 1")
-        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-        conn.commit()
-        print("\n✓ Tablas de hechos limpiadas (modo no-interactivo)")
-
-    # =========================================================================
-    # FASE 2: Verificar/sincronizar dimensiones
-    # =========================================================================
-    # Ahora que las tablas de hechos están vacías, se pueden modificar
-    # las dimensiones sin problemas de FK.
-
-    ok_tipo, _ = verificar_dim_tipo_trabajo(cursor, [])
-    ok_codigo, _ = verificar_dim_codigo_trabajo(cursor, trabajos_prog)
-    ok_red, _ = verificar_dim_red(cursor)
-
-    if not (ok_tipo and ok_codigo and ok_red):
-        print("\n" + "="*70)
-        print("⚠ HAY PROBLEMAS CON LAS DIMENSIONES")
-        print("="*70)
-        print("Las tablas de hechos ya están limpias, puedes sincronizar ahora:")
-        print("  mysql -u [user] -p [database] < script/sql/sincronizar_dimensiones_access.sql")
-
+    # FASE 2: Verificar dimensiones
+    if not verificar_dimensiones(cursor):
         if not args.no_interactivo:
             resp = input("\n¿Continuar de todos modos? (s/n): ").strip().lower()
             if resp != 's':
                 sys.exit(1)
 
     if args.solo_verificar:
-        print("\n✓ Verificación completada (modo solo-verificar)")
+        print("\n✓ Verificación completada")
         sys.exit(0)
 
-    # =========================================================================
     # FASE 3: Mapeo geográfico
-    # =========================================================================
-
+    comarcas = cargar_comarcas(cursor)
     municipios = cargar_municipios(cursor)
-    print(f"\nMunicipios cargados: {len(municipios)} (con variantes)")
-
     concejos = cargar_concejos(cursor)
-    print(f"Concejos cargados: {len(concejos)} (con variantes)")
 
-    mapeo = generar_mapeo_geografico(listado_ots, municipios, concejos)
+    print(f"\nDatos geográficos cargados:")
+    print(f"  Comarcas: {len(comarcas)}")
+    print(f"  Municipios: {len(municipios)}")
+    print(f"  Concejos: {len(concejos)}")
 
-    # Mostrar resumen
-    print("\n" + "-"*70)
-    print("RESUMEN DE MAPEO GEOGRÁFICO")
-    print("-"*70)
-    print(f"Comarcas: {mapeo['stats']['comarcas_mapeadas']}/{mapeo['stats']['comarcas_total']} mapeadas")
-    print(f"Localizaciones: {mapeo['stats']['loc_mapeadas']}/{mapeo['stats']['loc_total']} mapeadas")
+    mapeo, correcciones = procesar_mapeo_geografico(listado_ots, comarcas, municipios, concejos)
 
-    # Resolver interactivamente si hay problemas
-    if not args.no_interactivo and (mapeo['stats']['comarcas_problemas'] > 0 or mapeo['stats']['loc_problemas'] > 0):
-        resp = input("\n¿Resolver mapeos problemáticos interactivamente? (s/n): ").strip().lower()
-        if resp == 's':
-            mapeo = resolver_mapeos_interactivo(mapeo, municipios, concejos)
-
-    # =========================================================================
     # FASE 4: Importar datos
-    # =========================================================================
-
     print("\n" + "="*70)
     print("FASE 4: IMPORTACIÓN DE DATOS")
     print("="*70)
 
     partes_importados = importar_listado_ots(cursor, conn, listado_ots, mapeo)
-    mediciones_importadas = importar_mediciones_ots(cursor, conn, mediciones_ots, {})
+    mediciones_importadas = importar_mediciones_ots(cursor, conn, mediciones_ots)
 
-    # =========================================================================
+    # Mostrar tabla de correcciones
+    mostrar_tabla_correcciones(correcciones)
+
     # RESUMEN FINAL
-    # =========================================================================
-
-    print("\n" + "="*70)
+    print("\n" + "="*80)
     print("IMPORTACIÓN COMPLETADA")
-    print("="*70)
+    print("="*80)
     print(f"  Partes importados: {partes_importados}")
     print(f"  Mediciones importadas: {mediciones_importadas}")
-    print(f"\nMapeo geográfico:")
-    print(f"  Comarcas mapeadas: {mapeo['stats']['comarcas_mapeadas']}/{mapeo['stats']['comarcas_total']}")
-    print(f"  Localizaciones mapeadas: {mapeo['stats']['loc_mapeadas']}/{mapeo['stats']['loc_total']}")
-
-    # Verificación final
-    print("\nVerificación final:")
-    cursor.execute("SELECT COUNT(*) as c FROM tbl_partes")
-    print(f"  tbl_partes: {cursor.fetchone()['c']} registros")
-    cursor.execute("SELECT COUNT(*) as c FROM tbl_part_presupuesto")
-    print(f"  tbl_part_presupuesto: {cursor.fetchone()['c']} registros")
+    print(f"  Correcciones manuales: {len(correcciones)}")
 
     cursor.close()
     conn.close()
-
     print("\n✓ Proceso finalizado correctamente")
 
 
