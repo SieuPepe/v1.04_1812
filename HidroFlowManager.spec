@@ -11,11 +11,9 @@ a = Analysis(
         ('resources/images/*.png', 'resources/images'),
         ('resources/images/*.ico', 'resources/images'),
         ('resources/images/*.jpg', 'resources/images'),
-        ('output/*.xlsx', 'output'),
         ('interface/*.py', 'interface'),
         ('script/*.py', 'script'),
         ('informes_guardados', 'informes_guardados'),  # Directorio para configs de informes
-        ('plantillas/*.docx', 'plantillas'),  # Plantillas Word para generación de PDFs
         ('.env.example', '.'),  # Incluir plantilla de configuración (NO incluir .env real)
         ('INSTALACION.md', '.'),  # Guía de instalación
         ('docs/manual/*.md', 'docs/manual'),  # Manuales de usuario
