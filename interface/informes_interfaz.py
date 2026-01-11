@@ -3865,7 +3865,12 @@ class InformesFrame(customtkinter.CTkFrame):
         self._update_campos_disponibles()
 
         # Restaurar orden personalizado si existe en la configuración
+        # Primero intentar con campos_orden explícito, si no usar campos_seleccionados (que ya viene ordenado)
         campos_orden_config = config.get('campos_orden', [])
+        if not campos_orden_config:
+            # Si no hay campos_orden guardado, usar el orden de campos_seleccionados
+            campos_orden_config = config.get('campos_seleccionados', [])
+
         if campos_orden_config:
             # Validar que todos los campos del orden guardado existen
             campos_validos = [c for c in campos_orden_config if c in self.campos_seleccionados]
