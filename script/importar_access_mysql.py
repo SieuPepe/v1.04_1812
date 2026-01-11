@@ -427,23 +427,50 @@ def verificar_dim_red(cursor) -> Tuple[bool, List[str]]:
 
 def cargar_municipios(cursor) -> Dict[str, Dict]:
     """Carga municipios de MySQL y crea índices para búsqueda."""
-    cursor.execute("""
-        SELECT id, codigo_ine, nombre, provincia_id, comarca_id
-        FROM dim_municipios
-        WHERE activo = 1
-        ORDER BY nombre
-    """)
+    # Detectar columnas disponibles
+    cursor.execute("SHOW COLUMNS FROM dim_municipios")
+    columnas = [row['Field'] for row in cursor.fetchall()]
+
+    # Detectar columna de nombre
+    nombre_col = None
+    for posible in ['nombre', 'municipio_nombre', 'descripcion', 'municipio']:
+        if posible in columnas:
+            nombre_col = posible
+            break
+
+    if not nombre_col:
+        print(f"⚠ No se encontró columna de nombre en dim_municipios")
+        print(f"  Columnas: {columnas}")
+        return {}
+
+    # Construir query dinámicamente
+    select_cols = ['id']
+    if 'codigo_ine' in columnas:
+        select_cols.append('codigo_ine')
+    select_cols.append(f"{nombre_col} as nombre")
+    if 'provincia_id' in columnas:
+        select_cols.append('provincia_id')
+    if 'comarca_id' in columnas:
+        select_cols.append('comarca_id')
+
+    where_clause = "WHERE activo = 1" if 'activo' in columnas else ""
+
+    query = f"SELECT {', '.join(select_cols)} FROM dim_municipios {where_clause} ORDER BY {nombre_col}"
+    cursor.execute(query)
 
     municipios = {}
     for row in cursor.fetchall():
+        nombre = row.get('nombre', '')
+        if not nombre:
+            continue
+
         # Indexar por nombre normalizado
-        nombre_norm = normalizar_texto(row['nombre'])
+        nombre_norm = normalizar_texto(nombre)
         municipios[nombre_norm] = row
 
         # También indexar por variantes comunes
-        # Ej: "Ayala/Aiara" también indexar como "Ayala" y "Aiara"
-        if '/' in row['nombre']:
-            partes = row['nombre'].split('/')
+        if '/' in nombre:
+            partes = nombre.split('/')
             for parte in partes:
                 municipios[normalizar_texto(parte.strip())] = row
 
@@ -452,22 +479,67 @@ def cargar_municipios(cursor) -> Dict[str, Dict]:
 
 def cargar_concejos(cursor) -> Dict[str, Dict]:
     """Carga concejos de MySQL y crea índices para búsqueda."""
-    cursor.execute("""
-        SELECT c.id, c.municipio_id, c.nombre, m.nombre as municipio_nombre
-        FROM dim_concejos c
-        JOIN dim_municipios m ON c.municipio_id = m.id
-        WHERE c.activo = 1
-        ORDER BY c.nombre
-    """)
+    # Verificar si existe la tabla dim_concejos
+    try:
+        cursor.execute("SHOW COLUMNS FROM dim_concejos")
+        columnas_c = [row['Field'] for row in cursor.fetchall()]
+    except Exception:
+        print("⚠ Tabla dim_concejos no existe, saltando carga de concejos")
+        return {}
+
+    cursor.execute("SHOW COLUMNS FROM dim_municipios")
+    columnas_m = [row['Field'] for row in cursor.fetchall()]
+
+    # Detectar columnas de nombre
+    nombre_col_c = None
+    for posible in ['nombre', 'concejo_nombre', 'descripcion']:
+        if posible in columnas_c:
+            nombre_col_c = posible
+            break
+
+    nombre_col_m = None
+    for posible in ['nombre', 'municipio_nombre', 'descripcion']:
+        if posible in columnas_m:
+            nombre_col_m = posible
+            break
+
+    if not nombre_col_c:
+        print("⚠ No se encontró columna de nombre en dim_concejos")
+        return {}
+
+    # Construir query
+    where_c = "WHERE c.activo = 1" if 'activo' in columnas_c else ""
+
+    if nombre_col_m:
+        query = f"""
+            SELECT c.id, c.municipio_id, c.{nombre_col_c} as nombre, m.{nombre_col_m} as municipio_nombre
+            FROM dim_concejos c
+            JOIN dim_municipios m ON c.municipio_id = m.id
+            {where_c}
+            ORDER BY c.{nombre_col_c}
+        """
+    else:
+        query = f"""
+            SELECT c.id, c.municipio_id, c.{nombre_col_c} as nombre, c.municipio_id as municipio_nombre
+            FROM dim_concejos c
+            {where_c}
+            ORDER BY c.{nombre_col_c}
+        """
+
+    cursor.execute(query)
 
     concejos = {}
     for row in cursor.fetchall():
-        nombre_norm = normalizar_texto(row['nombre'])
+        nombre = row.get('nombre', '')
+        if not nombre:
+            continue
+
+        nombre_norm = normalizar_texto(nombre)
         concejos[nombre_norm] = row
 
         # Indexar variantes
-        if '/' in row['nombre']:
-            partes = row['nombre'].split('/')
+        if '/' in nombre:
+            partes = nombre.split('/')
             for parte in partes:
                 concejos[normalizar_texto(parte.strip())] = row
 
