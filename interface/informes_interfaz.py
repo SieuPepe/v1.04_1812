@@ -3070,6 +3070,40 @@ class InformesFrame(customtkinter.CTkFrame):
         try:
             exportador = InformesExportador(self.schema)
 
+            # Verificar si el informe requiere agrupación por campo en pestañas
+            agrupar_export_por = None
+            campo_idx_agrupacion = None
+            if self.definicion_actual:
+                agrupar_export_por = self.definicion_actual.get('agrupar_export_por')
+                if agrupar_export_por and agrupar_export_por in columnas:
+                    campo_idx_agrupacion = columnas.index(agrupar_export_por)
+                elif agrupar_export_por:
+                    # Buscar por nombre del campo en los campos definidos
+                    campos_def = self.definicion_actual.get('campos', {})
+                    for i, col in enumerate(columnas):
+                        for key, campo in campos_def.items():
+                            if key == agrupar_export_por and campo.get('nombre') == col:
+                                campo_idx_agrupacion = i
+                                break
+
+            # Extraer período del filtro mes_anio si existe
+            periodo = ""
+            for filtro_obj in self.filtros:
+                valor_widget = filtro_obj.get('valor_widget')
+                if valor_widget and hasattr(valor_widget, 'combo_year') and hasattr(valor_widget, 'combo_month'):
+                    mes = valor_widget.combo_month.get()
+                    anio = valor_widget.combo_year.get()
+                    if mes and anio:
+                        # Convertir número de mes a nombre
+                        meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+                        try:
+                            mes_nombre = meses[int(mes) - 1]
+                            periodo = f"{mes_nombre} {anio}"
+                        except (ValueError, IndexError):
+                            periodo = f"{mes}/{anio}"
+                    break
+
             exito = exportador.exportar_a_excel(
                 filepath=archivo,
                 informe_nombre=titulo_informe,
@@ -3078,7 +3112,10 @@ class InformesFrame(customtkinter.CTkFrame):
                 resultado_agrupacion=resultado_agrupacion,
                 proyecto_nombre="",
                 proyecto_codigo="",
-                fecha_informe=fecha_generacion
+                fecha_informe=fecha_generacion,
+                agrupar_export_por=agrupar_export_por,
+                campo_idx_agrupacion=campo_idx_agrupacion,
+                periodo=periodo
             )
 
             if exito:
@@ -3363,6 +3400,22 @@ class InformesFrame(customtkinter.CTkFrame):
         try:
             exportador = InformesExportador(self.schema)
 
+            # Verificar si el informe requiere agrupación por campo (salto de página por grupo)
+            agrupar_export_por = None
+            campo_idx_agrupacion = None
+            if self.definicion_actual:
+                agrupar_export_por = self.definicion_actual.get('agrupar_export_por')
+                if agrupar_export_por and agrupar_export_por in columnas:
+                    campo_idx_agrupacion = columnas.index(agrupar_export_por)
+                elif agrupar_export_por:
+                    # Buscar por nombre del campo en los campos definidos
+                    campos_def = self.definicion_actual.get('campos', {})
+                    for i, col in enumerate(columnas):
+                        for key, campo in campos_def.items():
+                            if key == agrupar_export_por and campo.get('nombre') == col:
+                                campo_idx_agrupacion = i
+                                break
+
             exito = exportador.exportar_a_pdf(
                 filepath=archivo,
                 informe_nombre=titulo_informe,
@@ -3372,7 +3425,9 @@ class InformesFrame(customtkinter.CTkFrame):
                 proyecto_nombre="",
                 proyecto_codigo="",
                 fecha_informe=fecha_generacion,
-                tipo_informe=self.informe_seleccionado  # Tipo de informe para seleccionar plantilla
+                tipo_informe=self.informe_seleccionado,  # Tipo de informe para seleccionar plantilla
+                agrupar_export_por=agrupar_export_por,
+                campo_idx_agrupacion=campo_idx_agrupacion
             )
 
             if exito:
@@ -3865,7 +3920,12 @@ class InformesFrame(customtkinter.CTkFrame):
         self._update_campos_disponibles()
 
         # Restaurar orden personalizado si existe en la configuración
+        # Primero intentar con campos_orden explícito, si no usar campos_seleccionados (que ya viene ordenado)
         campos_orden_config = config.get('campos_orden', [])
+        if not campos_orden_config:
+            # Si no hay campos_orden guardado, usar el orden de campos_seleccionados
+            campos_orden_config = config.get('campos_seleccionados', [])
+
         if campos_orden_config:
             # Validar que todos los campos del orden guardado existen
             campos_validos = [c for c in campos_orden_config if c in self.campos_seleccionados]

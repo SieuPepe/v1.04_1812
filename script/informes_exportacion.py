@@ -149,7 +149,10 @@ class InformesExportador:
         resultado_agrupacion: Optional[Dict] = None,
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
-        fecha_informe: str = ""
+        fecha_informe: str = "",
+        agrupar_export_por: str = None,
+        campo_idx_agrupacion: int = None,
+        periodo: str = ""
     ) -> bool:
         """
         Exporta el informe a Excel con formato profesional
@@ -162,10 +165,20 @@ class InformesExportador:
             resultado_agrupacion: Estructura de agrupaciones y totales (opcional)
             proyecto_nombre: Nombre del proyecto
             proyecto_codigo: Código del proyecto
+            agrupar_export_por: Campo por el cual agrupar en pestañas separadas (opcional)
+            campo_idx_agrupacion: Índice de la columna de agrupación en los datos
 
         Returns:
             True si la exportación fue exitosa
         """
+        # Si se especifica agrupar por campo, usar exportación con múltiples pestañas
+        if agrupar_export_por and campo_idx_agrupacion is not None:
+            return self._exportar_excel_agrupado_por_campo(
+                filepath, informe_nombre, columnas, datos,
+                agrupar_export_por, campo_idx_agrupacion,
+                proyecto_nombre, proyecto_codigo, fecha_informe, periodo
+            )
+
         try:
             workbook = xlsxwriter.Workbook(filepath)
             worksheet = workbook.add_worksheet(informe_nombre[:31])  # Excel limit 31 chars
@@ -609,6 +622,161 @@ class InformesExportador:
 
         except Exception as e:
             print(f"Error al exportar a Excel: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _exportar_excel_agrupado_por_campo(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        campo_agrupacion: str,
+        campo_idx: int,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = "",
+        fecha_informe: str = "",
+        periodo: str = ""
+    ) -> bool:
+        """
+        Exporta a Excel creando una pestaña por cada valor único del campo de agrupación.
+
+        Args:
+            filepath: Ruta del archivo Excel
+            informe_nombre: Nombre del informe
+            columnas: Lista de columnas
+            datos: Datos del informe
+            campo_agrupacion: Nombre del campo por el que agrupar
+            campo_idx: Índice de la columna de agrupación
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            from collections import defaultdict
+            from datetime import datetime as dt, date
+            import re
+
+            # Agrupar datos por el campo especificado
+            grupos = defaultdict(list)
+            for fila in datos:
+                valor_grupo = fila[campo_idx] if campo_idx < len(fila) else "Sin clasificar"
+                if valor_grupo is None or str(valor_grupo).strip() == "":
+                    valor_grupo = "Sin clasificar"
+                grupos[str(valor_grupo)].append(fila)
+
+            # Ordenar grupos alfabéticamente
+            grupos_ordenados = sorted(grupos.items(), key=lambda x: x[0])
+
+            print(f"Exportando {len(grupos_ordenados)} pestañas por '{campo_agrupacion}'")
+
+            workbook = xlsxwriter.Workbook(filepath)
+
+            # Definir formatos (reutilizados para todas las pestañas)
+            formato_titulo = workbook.add_format({
+                'bold': True, 'font_size': 16, 'font_name': 'Calibri',
+                'align': 'center', 'valign': 'vcenter'
+            })
+            formato_subtitulo = workbook.add_format({
+                'font_size': 10, 'font_name': 'Tahoma', 'italic': True,
+                'font_color': '#7C7C7C', 'align': 'left'
+            })
+            formato_header = workbook.add_format({
+                'bold': True, 'font_size': 10, 'font_name': 'Tahoma',
+                'bg_color': '#4A6FA5', 'font_color': 'white',
+                'border': 1, 'align': 'left', 'valign': 'vcenter'
+            })
+            formato_datos = workbook.add_format({
+                'font_size': 9, 'font_name': 'Tahoma',
+                'border': 1, 'align': 'left', 'valign': 'vcenter'
+            })
+            formato_fecha = workbook.add_format({
+                'font_size': 9, 'font_name': 'Tahoma', 'border': 1,
+                'num_format': 'dd/mm/yyyy', 'align': 'left', 'valign': 'vcenter'
+            })
+
+            # Función helper para detectar fechas
+            def detectar_fecha(valor):
+                if isinstance(valor, (dt, date)):
+                    return valor if isinstance(valor, dt) else dt.combine(valor, dt.min.time())
+                if not isinstance(valor, str):
+                    return None
+                patrones = [
+                    (r'^\d{2}/\d{2}/\d{4}$', '%d/%m/%Y'),
+                    (r'^\d{4}-\d{2}-\d{2}$', '%Y-%m-%d'),
+                ]
+                for patron, fmt in patrones:
+                    if re.match(patron, valor.strip()):
+                        try:
+                            return dt.strptime(valor.strip(), fmt)
+                        except ValueError:
+                            continue
+                return None
+
+            # Crear una pestaña por cada grupo
+            for nombre_grupo, filas_grupo in grupos_ordenados:
+                # Limpiar nombre para que sea válido como nombre de hoja Excel
+                nombre_hoja = re.sub(r'[\\/*?:\[\]]', '', nombre_grupo)[:31]
+                if not nombre_hoja.strip():
+                    nombre_hoja = "Sin nombre"
+
+                worksheet = workbook.add_worksheet(nombre_hoja)
+                row = 0
+
+                # Título de la pestaña
+                worksheet.set_row(row, 30)
+                worksheet.merge_range(row, 0, row, len(columnas) - 1,
+                                      f"{informe_nombre} - {nombre_grupo}", formato_titulo)
+                row += 2
+
+                # Info del proyecto
+                if proyecto_nombre:
+                    worksheet.write(row, 0, proyecto_nombre, formato_subtitulo)
+                    row += 1
+                # Mostrar período (del filtro) o fecha del informe
+                periodo_mostrar = periodo if periodo else fecha_informe
+                if periodo_mostrar:
+                    worksheet.write(row, 0, f"Período: {periodo_mostrar}", formato_subtitulo)
+                    row += 1
+
+                row += 1
+
+                # Encabezados (excluyendo la columna de agrupación ya que está en el título)
+                columnas_sin_agrupacion = [c for i, c in enumerate(columnas) if i != campo_idx]
+                for col_idx, col_name in enumerate(columnas_sin_agrupacion):
+                    worksheet.write(row, col_idx, col_name, formato_header)
+                    worksheet.set_column(col_idx, col_idx, 18)
+                row += 1
+
+                # Datos (excluyendo la columna de agrupación)
+                for fila in filas_grupo:
+                    fila_sin_agrupacion = [v for i, v in enumerate(fila) if i != campo_idx]
+                    for col_idx, valor in enumerate(fila_sin_agrupacion):
+                        fecha_dt = detectar_fecha(valor)
+                        if fecha_dt:
+                            worksheet.write_datetime(row, col_idx, fecha_dt, formato_fecha)
+                        elif isinstance(valor, (int, float, Decimal)):
+                            worksheet.write_number(row, col_idx, float(valor) if isinstance(valor, Decimal) else valor, formato_datos)
+                        else:
+                            worksheet.write(row, col_idx, valor, formato_datos)
+                    row += 1
+
+                # Pie de página
+                row += 2
+                worksheet.write(row, 0, f"Total registros: {len(filas_grupo)}", formato_subtitulo)
+                row += 1
+                worksheet.write(row, 0, f"Generado el {dt.now().strftime('%d/%m/%Y a las %H:%M')}", formato_subtitulo)
+
+            workbook.close()
+            print(f"✓ Excel exportado con {len(grupos_ordenados)} pestañas: {filepath}")
+            return True
+
+        except Exception as e:
+            print(f"Error al exportar Excel agrupado: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -1476,7 +1644,9 @@ class InformesExportador:
         proyecto_nombre: str = "",
         proyecto_codigo: str = "",
         fecha_informe: str = "",
-        tipo_informe: Optional[str] = None
+        tipo_informe: Optional[str] = None,
+        agrupar_export_por: str = None,
+        campo_idx_agrupacion: int = None
     ) -> bool:
         """
         Exporta el informe a PDF usando ReportLab con control total del diseño
@@ -1491,10 +1661,20 @@ class InformesExportador:
             proyecto_codigo: Código del proyecto
             fecha_informe: Fecha del informe
             tipo_informe: Tipo de informe para seleccionar plantilla específica
+            agrupar_export_por: Campo por el cual agrupar con saltos de página (opcional)
+            campo_idx_agrupacion: Índice de la columna de agrupación en los datos
 
         Returns:
             True si la exportación fue exitosa
         """
+        # Si se especifica agrupar por campo, usar exportación con saltos de página
+        if agrupar_export_por and campo_idx_agrupacion is not None:
+            return self._exportar_pdf_agrupado_por_campo(
+                filepath, informe_nombre, columnas, datos,
+                agrupar_export_por, campo_idx_agrupacion,
+                proyecto_nombre, proyecto_codigo, fecha_informe, tipo_informe
+            )
+
         try:
             from script.pdf_agrupaciones import PDFAgrupaciones
             from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
@@ -1635,6 +1815,144 @@ class InformesExportador:
 
         except Exception as e:
             print(f"Error al exportar a PDF: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _exportar_pdf_agrupado_por_campo(
+        self,
+        filepath: str,
+        informe_nombre: str,
+        columnas: List[str],
+        datos: List[tuple],
+        campo_agrupacion: str,
+        campo_idx: int,
+        proyecto_nombre: str = "",
+        proyecto_codigo: str = "",
+        fecha_informe: str = "",
+        tipo_informe: str = None
+    ) -> bool:
+        """
+        Exporta a PDF con una sección/página por cada valor único del campo de agrupación.
+
+        Args:
+            filepath: Ruta del archivo PDF
+            informe_nombre: Nombre del informe
+            columnas: Lista de columnas
+            datos: Datos del informe
+            campo_agrupacion: Nombre del campo por el que agrupar
+            campo_idx: Índice de la columna de agrupación
+            proyecto_nombre: Nombre del proyecto
+            proyecto_codigo: Código del proyecto
+            fecha_informe: Fecha del informe
+            tipo_informe: Tipo de informe
+
+        Returns:
+            True si la exportación fue exitosa
+        """
+        try:
+            from collections import defaultdict
+            from script.pdf_agrupaciones import PDFAgrupaciones
+            from script.pdf_config import obtener_configuracion_pdf, aplicar_configuracion_a_plantilla
+            from reportlab.lib.units import cm
+            from reportlab.platypus import PageBreak, Spacer
+
+            print(f"Generando PDF agrupado por '{campo_agrupacion}': {filepath}")
+
+            # Agrupar datos por el campo especificado
+            grupos = defaultdict(list)
+            for fila in datos:
+                valor_grupo = fila[campo_idx] if campo_idx < len(fila) else "Sin clasificar"
+                if valor_grupo is None or str(valor_grupo).strip() == "":
+                    valor_grupo = "Sin clasificar"
+                grupos[str(valor_grupo)].append(fila)
+
+            # Ordenar grupos alfabéticamente
+            grupos_ordenados = sorted(grupos.items(), key=lambda x: x[0])
+
+            print(f"Exportando {len(grupos_ordenados)} secciones por '{campo_agrupacion}'")
+
+            # Obtener configuración específica del tipo de informe
+            config = obtener_configuracion_pdf(tipo_informe or informe_nombre)
+
+            # Columnas sin la columna de agrupación
+            columnas_sin_agrupacion = [c for i, c in enumerate(columnas) if i != campo_idx]
+
+            # Crear plantilla PDF
+            pdf = PDFAgrupaciones(
+                schema=self.schema,
+                orientacion=config.get('orientacion', 'horizontal'),
+                titulo=informe_nombre,
+                proyecto_nombre=proyecto_nombre,
+                proyecto_codigo=proyecto_codigo,
+                fecha=fecha_informe,
+                anchos_columnas=config.get('anchos_columnas', None)
+            )
+
+            # Aplicar configuración de colores y estilos
+            pdf = aplicar_configuracion_a_plantilla(pdf, config)
+
+            es_primera_pagina = True
+
+            # Crear una sección por cada grupo
+            for nombre_grupo, filas_grupo in grupos_ordenados:
+                # Salto de página entre grupos (excepto el primero)
+                if not es_primera_pagina:
+                    pdf.elements.append(PageBreak())
+                es_primera_pagina = False
+
+                # Agregar encabezado con logos
+                if config.get('mostrar_logos', True):
+                    pdf.agregar_encabezado()
+
+                # Título de la sección (nombre del grupo)
+                titulo_seccion = f"{informe_nombre}\n{nombre_grupo}"
+                pdf.agregar_titulo_seccion(titulo_seccion)
+
+                # Agregar información del proyecto
+                if config.get('mostrar_proyecto', True) and proyecto_nombre:
+                    pdf.agregar_info_proyecto(mostrar_fecha=config.get('mostrar_fecha', True))
+
+                pdf.elements.append(Spacer(1, 0.5 * cm))
+
+                # Datos sin la columna de agrupación
+                datos_sin_agrupacion = [
+                    tuple(v for i, v in enumerate(fila) if i != campo_idx)
+                    for fila in filas_grupo
+                ]
+
+                # Crear tabla de datos para este grupo
+                tabla = pdf.crear_tabla(
+                    columnas=columnas_sin_agrupacion,
+                    datos=datos_sin_agrupacion,
+                    formatos_columnas={}
+                )
+                pdf.elements.append(tabla)
+
+                # Mostrar total de registros del grupo
+                pdf.elements.append(Spacer(1, 0.3 * cm))
+                from reportlab.platypus import Paragraph
+                from reportlab.lib.styles import ParagraphStyle
+                estilo_subtotal = ParagraphStyle(
+                    'Subtotal', fontName='Helvetica-Bold', fontSize=9
+                )
+                pdf.elements.append(Paragraph(f"Total registros: {len(filas_grupo)}", estilo_subtotal))
+
+            # Agregar pie de página
+            pdf.agregar_pie_pagina()
+
+            # Generar PDF
+            exito = pdf.generar_pdf(filepath)
+
+            if exito:
+                print(f"✓ PDF generado con {len(grupos_ordenados)} secciones: {filepath}")
+                return True
+            else:
+                print("✗ Error al generar PDF")
+                return False
+
+        except Exception as e:
+            print(f"Error al exportar PDF agrupado: {e}")
             import traceback
             traceback.print_exc()
             return False
