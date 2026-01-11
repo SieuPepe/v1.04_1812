@@ -1014,9 +1014,8 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], mapeo_access_m
 
     insert_sql = """
         INSERT INTO tbl_part_presupuesto (
-            parte_id, precio_id, cantidad, precio_unitario,
-            precio_total, fecha_medicion, creado_en
-        ) VALUES (%s, %s, %s, %s, %s, %s, NOW())
+            parte_id, precio_id, cantidad, fecha, precio_unit
+        ) VALUES (%s, %s, %s, %s, %s)
     """
 
     # DEBUG: Mostrar algunos id_OT de ejemplo
@@ -1068,18 +1067,15 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], mapeo_access_m
             except ValueError:
                 cantidad = 0.0
 
-            precio_unit_str = row.get('PRECIO UNITARIO', row.get('PRECIO_UNITARIO', '0')).replace(',', '.')
-            try:
-                precio_unitario = float(precio_unit_str) if precio_unit_str else 0.0
-            except ValueError:
-                precio_unitario = 0.0
+            # Fecha de la medición
+            fecha = convertir_fecha(row.get('FECHA', ''))
 
-            precio_total = cantidad * precio_unitario
-            fecha_medicion = convertir_fecha(row.get('FECHA', ''))
+            # precio_unit: Access no tiene este campo, lo dejamos como NULL
+            # (se puede calcular después desde tbl_pres_precios)
+            precio_unit = None
 
             cursor.execute(insert_sql, (
-                parte_id, precio_id, cantidad, precio_unitario,
-                precio_total, fecha_medicion
+                parte_id, precio_id, cantidad, fecha, precio_unit
             ))
             insertados += 1
 
