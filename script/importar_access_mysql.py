@@ -885,9 +885,9 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
         INSERT INTO tbl_partes (
             codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
             red_id, provincia_id, comarca_id, municipio_id, concejo_id,
-            estado_id, fecha_encargo, fecha_finalizacion, creado_en
+            fecha_encargo, fecha_finalizacion, creado_en
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
         )
     """
 
@@ -927,15 +927,14 @@ def importar_listado_ots(cursor, conn, listado_ots: List[Dict], mapeo: Dict) -> 
                 sin_mapeo += 1
                 continue
 
-            # Estado y fechas
-            estado_id = 1
+            # Fechas
             fecha_encargo = convertir_fecha(row.get('FECHA_ENCARGO', row.get('FECHA ENCARGO', '')))
             fecha_finalizacion = convertir_fecha(row.get('FECHA_FINALIZACION', row.get('FECHA FINALIZACION', '')))
 
             cursor.execute(insert_sql, (
                 codigo, descripcion, tipo_trabajo_id, cod_trabajo_id,
                 red_id, provincia_id, comarca_id, municipio_id, concejo_id,
-                estado_id, fecha_encargo, fecha_finalizacion
+                fecha_encargo, fecha_finalizacion
             ))
             insertados += 1
 
