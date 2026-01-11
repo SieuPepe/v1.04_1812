@@ -298,10 +298,12 @@ def verificar_dim_codigo_trabajo(cursor, datos_access: List[Dict]) -> Tuple[bool
             break
 
     # Construir query según columnas disponibles
+    where_clause = "WHERE activo = 1" if 'activo' in columnas_db else ""
+
     if codigo_col and 'descripcion' in columnas_db:
-        query = f"SELECT id, {codigo_col} as codigo, descripcion FROM dim_codigo_trabajo WHERE activo = 1 ORDER BY id"
+        query = f"SELECT id, {codigo_col} as codigo, descripcion FROM dim_codigo_trabajo {where_clause} ORDER BY id"
     elif 'descripcion' in columnas_db:
-        query = "SELECT id, id as codigo, descripcion FROM dim_codigo_trabajo WHERE activo = 1 ORDER BY id"
+        query = f"SELECT id, id as codigo, descripcion FROM dim_codigo_trabajo {where_clause} ORDER BY id"
     else:
         print("⚠ No se puede verificar: estructura de tabla desconocida")
         print(f"  Columnas encontradas: {columnas_db}")
