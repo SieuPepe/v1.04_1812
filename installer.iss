@@ -38,8 +38,6 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 
 ; Configuración de interfaz
-WizardImageFile=source\wizard_large.bmp
-WizardSmallImageFile=source\wizard_small.bmp
 DisableWelcomePage=no
 
 ; Directorio de salida del instalador
