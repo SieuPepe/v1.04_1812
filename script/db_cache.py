@@ -39,6 +39,7 @@ class CacheConfig:
         'dim_comarcas': 3600,
         'dim_provincias': 3600,
         'dim_municipios': 3600,
+        'dim_concejos': 3600,
         'dim_ccaa': 3600,
 
         # Catálogos de trabajo (semi-estáticas)
@@ -46,7 +47,6 @@ class CacheConfig:
         'dim_tipo_trabajo': 1800,
         'dim_codigo_trabajo': 1800,
         'dim_tipos_rep': 1800,
-        'dim_ot': 1800,
 
         # Estados (pueden cambiar ocasionalmente)
         'tbl_parte_estados': 900,

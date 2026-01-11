@@ -53,7 +53,8 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self._create_table()
         self._create_buttons()
 
-        # Cargar datos iniciales
+        # Cargar filtros y datos iniciales
+        self._load_filters()
         self._load_data()
 
     def _create_header(self):
@@ -82,48 +83,86 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         warning.pack(padx=15, pady=12)
 
     def _create_filters(self):
-        """Crea la barra de filtros y calendario"""
+        """Crea la barra de filtros completa (como Listado de Partes)"""
+        # Frame principal de filtros
         filter_frame = customtkinter.CTkFrame(self)
         filter_frame.grid(row=2, column=0, padx=20, pady=(0, 10), sticky="ew")
+        filter_frame.grid_columnconfigure(1, weight=1)
+        filter_frame.grid_columnconfigure(3, weight=1)
+        filter_frame.grid_columnconfigure(5, weight=1)
 
-        # Fecha de certificación
-        customtkinter.CTkLabel(
-            filter_frame,
-            text="Fecha de Certificación:",
-            font=customtkinter.CTkFont(size=14, weight="bold")
-        ).grid(row=0, column=0, padx=(10, 5), pady=10, sticky="w")
+        # Fila 1: Red, Tipo, Tipo Reparación
+        customtkinter.CTkLabel(filter_frame, text="Red:",
+                               font=("", 12, "bold")).grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        self.filter_red = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=150)
+        self.filter_red.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.filter_red.set("Todos")
+
+        customtkinter.CTkLabel(filter_frame, text="Tipo:",
+                               font=("", 12, "bold")).grid(row=0, column=2, padx=5, pady=5, sticky="e")
+        self.filter_tipo = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=150)
+        self.filter_tipo.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        self.filter_tipo.set("Todos")
+
+        customtkinter.CTkLabel(filter_frame, text="Tipo Rep.:",
+                               font=("", 12, "bold")).grid(row=0, column=4, padx=5, pady=5, sticky="e")
+        self.filter_tipo_rep = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=150)
+        self.filter_tipo_rep.grid(row=0, column=5, padx=5, pady=5, sticky="w")
+        self.filter_tipo_rep.set("Todos")
+
+        # Fila 2: Código trabajo, Búsqueda
+        customtkinter.CTkLabel(filter_frame, text="Cód. Trabajo:",
+                               font=("", 12, "bold")).grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        self.filter_cod = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=150)
+        self.filter_cod.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        self.filter_cod.set("Todos")
+
+        # Búsqueda por campo
+        customtkinter.CTkLabel(filter_frame, text="Buscar en:",
+                               font=("", 12, "bold")).grid(row=1, column=2, padx=5, pady=5, sticky="e")
+
+        search_fields = ["Código", "Descripción", "Red", "Municipio", "Localización"]
+        self.search_field_map = {
+            "Código": "codigo", "Descripción": "descripcion", "Red": "red",
+            "Municipio": "municipio", "Localización": "localizacion"
+        }
+        self.search_field_selector = customtkinter.CTkOptionMenu(filter_frame, values=search_fields, width=120)
+        self.search_field_selector.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+        self.search_field_selector.set("Código")
+
+        self.search_entry = customtkinter.CTkEntry(filter_frame, width=200, placeholder_text="Escriba el valor...")
+        self.search_entry.grid(row=1, column=4, padx=5, pady=5, sticky="w")
+        self.search_entry.bind("<KeyRelease>", lambda e: self._apply_search())
+
+        # Botón Aplicar Filtros
+        btn_apply = customtkinter.CTkButton(filter_frame, text="🔍 Aplicar", width=100, command=self._apply_filters)
+        btn_apply.grid(row=1, column=5, padx=5, pady=5, sticky="w")
+
+        # Fila 3: Fecha de certificación y opciones
+        customtkinter.CTkLabel(filter_frame, text="Fecha Cert.:",
+                               font=("", 12, "bold")).grid(row=2, column=0, padx=5, pady=5, sticky="e")
 
         self.fecha_cert = DateEntry(
-            filter_frame,
-            width=20,
-            background='#1f6aa5',
-            foreground='white',
-            borderwidth=2,
-            date_pattern='yyyy-mm-dd',
-            locale='es_ES'
+            filter_frame, width=15, background='#1f6aa5', foreground='white',
+            borderwidth=2, date_pattern='yyyy-mm-dd', locale='es_ES'
         )
         self.fecha_cert.set_date(date.today())
-        self.fecha_cert.grid(row=0, column=1, padx=(0, 20), pady=10, sticky="w")
+        self.fecha_cert.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
-        # Botón de búsqueda
-        customtkinter.CTkLabel(
-            filter_frame,
-            text="Buscar:",
-            font=customtkinter.CTkFont(size=14, weight="bold")
-        ).grid(row=0, column=2, padx=(20, 5), pady=10, sticky="w")
-
-        self.search_entry = customtkinter.CTkEntry(filter_frame, width=300, placeholder_text="Buscar por código, red, descripción...")
-        self.search_entry.grid(row=0, column=3, padx=(0, 10), pady=10, sticky="w")
-        self.search_entry.bind("<KeyRelease>", lambda e: self._apply_search())
+        # Checkbox: Solo sin certificar
+        self.solo_sin_cert_var = customtkinter.BooleanVar(value=True)
+        self.solo_sin_cert_cb = customtkinter.CTkCheckBox(
+            filter_frame, text="Solo partes SIN certificar",
+            variable=self.solo_sin_cert_var, command=self._apply_filters,
+            font=("", 12, "bold"), text_color="#FFD700"
+        )
+        self.solo_sin_cert_cb.grid(row=2, column=2, columnspan=2, padx=10, pady=5, sticky="w")
 
         # Botón selector de columnas
         btn_columns = customtkinter.CTkButton(
-            filter_frame,
-            text="📋 Columnas",
-            width=120,
-            command=self._open_column_selector
+            filter_frame, text="📋 Columnas", width=100, command=self._open_column_selector
         )
-        btn_columns.grid(row=0, column=4, padx=(20, 10), pady=10)
+        btn_columns.grid(row=2, column=5, padx=5, pady=5, sticky="w")
 
     def _create_table(self):
         """Crea la tabla con los partes (selección por filas)"""
@@ -205,6 +244,38 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         )
         btn_close.pack(side="right", padx=5)
 
+    def _load_filters(self):
+        """Carga los valores para los filtros desde la base de datos"""
+        from script.modulo_db import get_dim_all
+
+        try:
+            # Cargar Redes
+            redes = get_dim_all(self.user, self.password, self.schema, "dim_red")
+            red_values = ["Todos"] + [r[1] if r[1] else r[2] for r in redes]  # codigo o descripcion
+            self.filter_red.configure(values=red_values)
+
+            # Cargar Tipos
+            tipos = get_dim_all(self.user, self.password, self.schema, "dim_tipo_trabajo")
+            tipo_values = ["Todos"] + [t[1] if t[1] else t[2] for t in tipos]
+            self.filter_tipo.configure(values=tipo_values)
+
+            # Cargar Tipos de Reparación
+            tipos_rep = get_dim_all(self.user, self.password, self.schema, "dim_tipos_rep")
+            rep_values = ["Todos"] + [t[1] if t[1] else t[2] for t in tipos_rep]
+            self.filter_tipo_rep.configure(values=rep_values)
+
+            # Cargar Códigos de Trabajo
+            cod_trabajo = get_dim_all(self.user, self.password, self.schema, "dim_codigo_trabajo")
+            cod_values = ["Todos"] + [f"{c[1]} - {c[2]}" for c in cod_trabajo if c[1] and c[2]]
+            self.filter_cod.configure(values=cod_values)
+
+        except Exception as e:
+            print(f"Error cargando filtros: {e}")
+
+    def _apply_filters(self):
+        """Aplica todos los filtros y actualiza la tabla"""
+        self._update_table()
+
     def _load_data(self):
         """Carga los datos de partes desde la base de datos"""
         from script.modulo_db import get_partes_resumen
@@ -214,10 +285,11 @@ class CertLotesWindow(customtkinter.CTkToplevel):
             data = get_partes_resumen(self.user, self.password, self.schema)
 
             # Procesar datos
+            # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
+            #      presupuesto, certificado, pendiente, titulo, desc_corta, desc_larga,
+            #      fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, ...
             self.partes_data = []
             for row in data:
-                # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
-                #      presupuesto, certificado, pendiente, + otros campos
                 parte = {
                     'id': row[0],
                     'codigo': row[1] or '',
@@ -229,7 +301,9 @@ class CertLotesWindow(customtkinter.CTkToplevel):
                     'tipo_rep': row[7] or '',
                     'presupuesto': float(row[8]) if row[8] else 0.0,
                     'certificado': float(row[9]) if row[9] else 0.0,
-                    'pendiente': float(row[10]) if row[10] else 0.0
+                    'pendiente': float(row[10]) if row[10] else 0.0,
+                    'localizacion': row[18] if len(row) > 18 and row[18] else '',
+                    'municipio': row[19] if len(row) > 19 and row[19] else '',
                 }
                 self.partes_data.append(parte)
 
@@ -287,18 +361,41 @@ class CertLotesWindow(customtkinter.CTkToplevel):
         self.stats_label.configure(text=f"Total de partes: {len(filtered_data)}")
 
     def _filter_data(self, data):
-        """Aplica búsqueda de texto a los datos"""
+        """Aplica todos los filtros a los datos"""
         filtered = data
 
-        # Búsqueda por texto (código, red, descripción)
-        search_text = self.search_entry.get().lower()
+        # Filtro: Solo sin certificar (por defecto activado)
+        if self.solo_sin_cert_var.get():
+            filtered = [p for p in filtered if p['certificado'] == 0]
+
+        # Filtro Red
+        red_filter = self.filter_red.get()
+        if red_filter != "Todos":
+            filtered = [p for p in filtered if red_filter.lower() in p['red'].lower()]
+
+        # Filtro Tipo
+        tipo_filter = self.filter_tipo.get()
+        if tipo_filter != "Todos":
+            filtered = [p for p in filtered if tipo_filter.lower() in p['tipo'].lower()]
+
+        # Filtro Tipo Reparación
+        tipo_rep_filter = self.filter_tipo_rep.get()
+        if tipo_rep_filter != "Todos":
+            filtered = [p for p in filtered if tipo_rep_filter.lower() in p['tipo_rep'].lower()]
+
+        # Filtro Código Trabajo
+        cod_filter = self.filter_cod.get()
+        if cod_filter != "Todos":
+            # El formato es "codigo - descripcion", extraemos el código
+            cod_value = cod_filter.split(" - ")[0] if " - " in cod_filter else cod_filter
+            filtered = [p for p in filtered if cod_value.lower() in p['cod_trabajo'].lower()]
+
+        # Búsqueda por campo específico
+        search_text = self.search_entry.get().strip().lower()
         if search_text:
-            filtered = [
-                p for p in filtered
-                if search_text in p['codigo'].lower()
-                or search_text in p['red'].lower()
-                or search_text in p['descripcion'].lower()
-            ]
+            field_name = self.search_field_selector.get()
+            field_key = self.search_field_map.get(field_name, "codigo")
+            filtered = [p for p in filtered if search_text in str(p.get(field_key, '')).lower()]
 
         return filtered
 

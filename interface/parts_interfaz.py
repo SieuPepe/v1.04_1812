@@ -127,16 +127,16 @@ class AppParts(customtkinter.CTk):
             # Get prefix based on tipo_trabajo
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
 
-            # Get next number for this specific prefix (independent numbering per prefix)
+            # Get next number for this specific prefix (each type has its own sequence)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Extract the numeric part from existing codes with this prefix
-                # Más robusto: maneja NULLs y códigos vacíos
+                # Obtener el último número usado para ESTE prefijo específico
+                # Cada tipo (GF, OT, TP) tiene su propia secuencia: GF/0001, OT/0001, TP/0001...
                 cur.execute("""
                     SELECT COALESCE(
                         MAX(
                             CAST(
-                                REPLACE(codigo, %s, '') AS UNSIGNED
+                                SUBSTRING_INDEX(codigo, '/', -1) AS UNSIGNED
                             )
                         ),
                         0
@@ -144,11 +144,11 @@ class AppParts(customtkinter.CTk):
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
                       AND codigo LIKE %s
-                """, (prefix + '-', prefix + '-%'))
+                """, (f"{prefix}/%",))
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:05d}"
+            codigo = f"{prefix}/{next_id:04d}"
 
             # Update readonly entry
             self.codigo_ot_entry.configure(state="normal")

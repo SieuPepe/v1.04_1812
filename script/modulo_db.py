@@ -142,9 +142,6 @@ from .db_partes import (
     get_dim_all,
     _guess_text_column,
     _fetch_dim_list_guess,
-    add_dim_ot,
-    get_all_dim_ot,
-    delete_dim_ot,
 
     # Gestión de partes
     add_parte_with_code,
@@ -175,6 +172,7 @@ from .db_partes import (
     get_provincias,
     get_comarcas_by_provincia,
     get_municipios_by_provincia,
+    get_concejos_by_municipio,
     _get_tipo_trabajo_prefix,
 )
 
@@ -216,7 +214,6 @@ __all__ = [
 
     # db_partes
     'get_dim_all', '_guess_text_column', '_fetch_dim_list_guess',
-    'add_dim_ot', 'get_all_dim_ot', 'delete_dim_ot',
     'add_parte_with_code', 'list_partes', 'get_parts_list',
     'delete_parte', 'get_partes_resumen', 'get_parte_detail',
     'mod_parte_item', 'get_part_presupuesto', 'add_part_presupuesto_item',
@@ -224,5 +221,6 @@ __all__ = [
     'get_part_cert_pendientes', 'get_part_cert_certificadas', 'add_part_cert_item',
     'cert_part_item', 'delete_part_cert_item', 'cert_parte_completo',
     'add_parte_mejorado', 'get_estados_parte', 'get_provincias',
-    'get_municipios_by_provincia', '_get_tipo_trabajo_prefix',
+    'get_comarcas_by_provincia', 'get_municipios_by_provincia',
+    'get_concejos_by_municipio', '_get_tipo_trabajo_prefix',
 ]

@@ -49,16 +49,54 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         )
         self.chapter_option.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-        # Partida
+        # Partida - Campo de búsqueda con filtrado
         customtkinter.CTkLabel(filter_frame, text="Partida:",
                                font=("", 13, "bold")).grid(row=0, column=2, padx=10, pady=10, sticky="e")
 
-        self.item_option = customtkinter.CTkOptionMenu(
-            filter_frame,
-            values=["Seleccione capítulo y presione Filtrar"],
-            command=self._on_item_changed
+        # Frame contenedor para entry + botones
+        self.item_search_container = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
+        self.item_search_container.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+        self.item_search_container.grid_columnconfigure(0, weight=1)
+
+        # Entry de búsqueda
+        self.item_search_entry = customtkinter.CTkEntry(
+            self.item_search_container,
+            placeholder_text="Filtre capítulo y escriba para buscar..."
         )
-        self.item_option.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+        self.item_search_entry.grid(row=0, column=0, sticky="ew")
+        self.item_search_entry.bind('<KeyRelease>', self._filter_items_list)
+        self.item_search_entry.bind('<Return>', lambda e: self._select_first_item_match())
+
+        # Botón X para limpiar
+        self.item_clear_btn = customtkinter.CTkButton(
+            self.item_search_container,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_item_search
+        )
+        self.item_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
+        # Botón dropdown ▼
+        self.item_dropdown_btn = customtkinter.CTkButton(
+            self.item_search_container,
+            text="▼",
+            width=30,
+            command=self._toggle_item_dropdown
+        )
+        self.item_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
+
+        # Variables para el Toplevel del dropdown
+        self.item_dropdown_toplevel = None
+        self.item_dropdown_visible = False
+
+        # Vincular movimiento de ventana para reposicionar dropdown
+        self.bind('<Configure>', self._on_window_move)
+
+        # Variables para almacenar partida seleccionada y lista completa
+        self.selected_item_text = None
+        self.item_values_full = []  # Lista completa de partidas para filtrar
 
         # Botón filtrar
         btn_filter = customtkinter.CTkButton(
@@ -177,32 +215,33 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                     resumen = item[4]  # resumen
                     item_values.append(f"{codigo} - {resumen}")
 
+                # Guardar lista completa para filtrado
+                self.item_values_full = item_values.copy()
+
                 print(f"DEBUG - Primera partida: {item_values[0] if item_values else 'ninguna'}")
 
-                # Actualizar dropdown
-                self.item_option.configure(values=item_values)
-                self.item_option.set(item_values[0])
+                # Limpiar entry de búsqueda y establecer placeholder
+                self.item_search_entry.delete(0, 'end')
+                self.item_search_entry.configure(placeholder_text="Escriba para buscar partida...")
+                self.selected_item_text = None
 
-                # Autocompletar precio del catálogo de la primera partida
-                precio_catalogo = float(items[0][6])  # coste
+                # Limpiar precio
                 self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
-                self.precio_entry.insert(0, f"{precio_catalogo:.2f}")
                 self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
-
-                self.precio_catalogo_label.configure(
-                    text=f"📋 Precio catálogo: {precio_catalogo:.2f}€",
-                    text_color="gray"
-                )
+                self.precio_catalogo_label.configure(text="")
 
                 CTkMessagebox(
                     title="Éxito",
-                    message=f"✅ Se cargaron {len(items)} partidas del capítulo",
+                    message=f"✅ Se cargaron {len(items)} partidas del capítulo.\n\nEscriba en el campo Partida para buscar.",
                     icon="check"
                 )
             else:
-                self.item_option.configure(values=["Sin partidas en este capítulo"])
-                self.item_option.set("Sin partidas en este capítulo")
+                self.item_values_full = []
+                self.current_items = []
+                self.selected_item_text = None
+                self.item_search_entry.delete(0, 'end')
+                self.item_search_entry.configure(placeholder_text="Sin partidas en este capítulo")
                 self.precio_entry.configure(state="normal")
                 self.precio_entry.delete(0, 'end')
                 self.precio_entry.configure(state="readonly", fg_color="gray20", text_color="gray60")
@@ -219,8 +258,11 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             error_detail = traceback.format_exc()
             print(f"ERROR en _update_items:\n{error_detail}")
 
-            self.item_option.configure(values=["Error cargando partidas"])
-            self.item_option.set("Error cargando partidas")
+            self.item_values_full = []
+            self.current_items = []
+            self.selected_item_text = None
+            self.item_search_entry.delete(0, 'end')
+            self.item_search_entry.configure(placeholder_text="Error cargando partidas")
 
             CTkMessagebox(
                 title="Error",
@@ -228,14 +270,142 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 icon="cancel"
             )
 
-    def _on_item_changed(self, selected_item):
-        """Actualiza el precio unitario cuando cambia la selección de partida"""
+    def _toggle_item_dropdown(self):
+        """Muestra/oculta el dropdown de partidas"""
+        if self.item_dropdown_visible:
+            self._hide_item_dropdown()
+        else:
+            self._show_item_dropdown()
+
+    def _clear_item_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.item_search_entry.delete(0, 'end')
+        self.selected_item_text = None
+        self._hide_item_dropdown()
+        # Limpiar precio también
+        self.precio_entry.configure(state="normal")
+        self.precio_entry.delete(0, 'end')
+        self.precio_entry.configure(state="readonly")
+        self.precio_catalogo_label.configure(text="")
+
+    def _on_window_move(self, event=None):
+        """Reposiciona el dropdown cuando la ventana se mueve"""
+        if self.item_dropdown_visible and self.item_dropdown_toplevel:
+            x = self.item_search_entry.winfo_rootx()
+            y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
+            width = self.item_search_entry.winfo_width() + 65
+            self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+    def _show_item_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.item_dropdown_toplevel:
+            self.item_dropdown_toplevel.destroy()
+
+        if not self.item_values_full:
+            return
+
+        # Obtener posición del entry
+        x = self.item_search_entry.winfo_rootx()
+        y = self.item_search_entry.winfo_rooty() + self.item_search_entry.winfo_height()
+        width = self.item_search_entry.winfo_width() + 65
+
+        # Crear Toplevel
+        self.item_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.item_dropdown_toplevel.withdraw()
+        self.item_dropdown_toplevel.overrideredirect(True)
+        self.item_dropdown_toplevel.attributes('-topmost', True)
+        self.item_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.item_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.item_values_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda i=item: self._select_item_from_dropdown(i)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más",
+                text_color="gray"
+            ).pack(pady=5)
+
+        self.item_dropdown_toplevel.deiconify()
+        self.item_dropdown_toplevel.lift()
+        self.item_dropdown_visible = True
+
+    def _hide_item_dropdown(self):
+        """Oculta el dropdown"""
+        if self.item_dropdown_toplevel:
+            self.item_dropdown_toplevel.destroy()
+            self.item_dropdown_toplevel = None
+        self.item_dropdown_visible = False
+
+    def _filter_items_list(self, event=None):
+        """Filtra la lista de partidas según el texto de búsqueda"""
+        search_text = self.item_search_entry.get().lower()
+
+        if not search_text:
+            # Si está vacío, ocultar dropdown
+            self._hide_item_dropdown()
+            return
+
+        if not self.item_values_full:
+            # No hay partidas cargadas
+            return
+
+        # Filtrar partidas que contengan el texto de búsqueda
+        filtered = [p for p in self.item_values_full if search_text in p.lower()]
+
+        if filtered:
+            self._show_item_dropdown(filtered)
+        else:
+            self._hide_item_dropdown()
+
+    def _select_item_from_dropdown(self, item_text):
+        """Selecciona una partida del dropdown"""
+        self._set_selected_item(item_text)
+        self._hide_item_dropdown()
+        self._update_precio_from_selection()
+
+    def _select_first_item_match(self):
+        """Selecciona el primer resultado cuando se presiona Enter"""
+        search_text = self.item_search_entry.get().lower()
+        if search_text and self.item_values_full:
+            filtered = [p for p in self.item_values_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_item(filtered[0])
+                self._hide_item_dropdown()
+                self._update_precio_from_selection()
+
+    def _set_selected_item(self, item_text):
+        """Establece la partida seleccionada"""
+        self.selected_item_text = item_text
+        self.item_search_entry.delete(0, 'end')
+        self.item_search_entry.insert(0, item_text)
+
+    def _update_precio_from_selection(self):
+        """Actualiza el precio unitario cuando se selecciona una partida"""
         try:
-            if not self.current_items:
+            if not self.current_items or not self.selected_item_text:
                 return
 
             # Extraer código de la partida seleccionada
-            codigo_seleccionado = selected_item.split(" - ")[0].strip()
+            codigo_seleccionado = self.selected_item_text.split(" - ")[0].strip()
 
             # Buscar la partida en los datos actuales
             for item in self.current_items:
@@ -272,10 +442,9 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 return
 
             # Obtener partida seleccionada
-            item_select = self.item_option.get()
+            item_select = self.selected_item_text
 
-            if item_select in ["Sin partidas en este capítulo", "Error cargando partidas",
-                               "Seleccione capítulo y presione Filtrar"]:
+            if not item_select:
                 CTkMessagebox(title="Error", message="Seleccione una partida válida", icon="warning")
                 return
 

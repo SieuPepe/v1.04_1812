@@ -123,6 +123,9 @@ class AppPartsManager(customtkinter.CTk):
         ayuda_path = os.path.join(parent_path, "resources/images/ayuda.png")
         self.ayuda_image = customtkinter.CTkImage(Image.open(ayuda_path), size=(30, 30))
 
+        config_path = os.path.join(parent_path, "resources/images/permisos.png")
+        self.config_image = customtkinter.CTkImage(Image.open(config_path), size=(30, 30))
+
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0, width=200)
@@ -206,6 +209,16 @@ class AppPartsManager(customtkinter.CTk):
         )
         self.informes_button.grid(row=7, column=0, sticky="ew")
 
+        # Botón Configuración
+        self.config_button = customtkinter.CTkButton(
+            self.navigation_frame, corner_radius=0, height=40,
+            border_spacing=10, text="Configuración", fg_color="transparent",
+            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
+            image=self.config_image, font=customtkinter.CTkFont(size=15, weight="bold"),
+            anchor="w", command=self._open_config_window
+        )
+        self.config_button.grid(row=8, column=0, sticky="ew")
+
         # Botón Ayuda
         self.ayuda_button = customtkinter.CTkButton(
             self.navigation_frame, corner_radius=0, height=40,
@@ -214,10 +227,10 @@ class AppPartsManager(customtkinter.CTk):
             image=self.ayuda_image, font=customtkinter.CTkFont(size=15, weight="bold"),
             anchor="w", command=lambda: self.select_frame_by_name("ayuda")
         )
-        self.ayuda_button.grid(row=8, column=0, sticky="ew")
+        self.ayuda_button.grid(row=9, column=0, sticky="ew")
 
         # Espaciador
-        self.navigation_frame.grid_rowconfigure(9, weight=1)
+        self.navigation_frame.grid_rowconfigure(10, weight=1)
 
         # Botón Volver
         self.back_button = customtkinter.CTkButton(
@@ -227,7 +240,7 @@ class AppPartsManager(customtkinter.CTk):
             font=("default", 14, "bold"), anchor="center",
             command=self.back_to_selector
         )
-        self.back_button.grid(row=10, padx=30, pady=(15, 15), sticky="nsew")
+        self.back_button.grid(row=11, padx=30, pady=(15, 15), sticky="nsew")
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
@@ -370,6 +383,7 @@ class AppPartsManager(customtkinter.CTk):
             "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
             "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
             "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
+            "concejo": {"label": "Concejo", "width": 150, "visible": False, "locked": False},
             "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
             "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
 
@@ -467,7 +481,7 @@ class AppPartsManager(customtkinter.CTk):
             # row: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
             #      presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
             #      fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
-            #      provincia, latitud, longitud, trabajadores, observaciones
+            #      provincia, concejo, latitud, longitud, trabajadores, observaciones
             field_map = {
                 "id": 0,
                 "codigo": 1,
@@ -491,10 +505,11 @@ class AppPartsManager(customtkinter.CTk):
                 "municipio": 19,
                 "comarca": 20,
                 "provincia": 21,
-                "latitud": 22,
-                "longitud": 23,
-                "trabajadores": 24,
-                "observaciones": 25,
+                "concejo": 22,
+                "latitud": 23,
+                "longitud": 24,
+                "trabajadores": 25,
+                "observaciones": 26,
             }
 
             # Obtener columnas visibles actuales del tree
@@ -521,7 +536,9 @@ class AppPartsManager(customtkinter.CTk):
                     else:
                         row_values.append("")
 
-                self.tree_resumen.insert("", "end", values=row_values)
+                # Usar el ID del parte como iid para poder recuperarlo después
+                parte_id = row_data[0]  # ID está en la posición 0
+                self.tree_resumen.insert("", "end", iid=str(parte_id), values=row_values)
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
@@ -727,10 +744,11 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Aviso", message="Seleccione un parte", icon="info")
             return
 
+        # El iid del item del tree es el ID numérico del parte
+        parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
         item = self.tree_resumen.item(selected[0])
         values = item['values']
-        parte_id = values[0]
-        codigo = values[1]
+        codigo = values[0]  # La primera columna visible es 'codigo'
 
         msg = CTkMessagebox(
             title="Confirmar",
@@ -755,20 +773,19 @@ class AppPartsManager(customtkinter.CTk):
             CTkMessagebox(title="Aviso", message="Seleccione un parte", icon="info")
             return
 
-        item = self.tree_resumen.item(selected[0])
-        parte_id = item['values'][0]
+        # El iid del item del tree es el ID numérico del parte
+        parte_id = selected[0]  # El iid fue establecido como el ID en _reload_resumen
 
         # Guardar el ID seleccionado y cambiar a pestaña Partes
         self.selected_parte_id = parte_id
         self.select_frame_by_name("partes")
 
-        # Actualizar el selector para mostrar el parte seleccionado
-        if hasattr(self, 'partes_selector'):
-            # Buscar el item en el selector que corresponde a este parte_id
-            values = self.partes_selector.cget("values")
-            for item in values:
+        # Buscar el parte en la lista y establecerlo como seleccionado
+        if hasattr(self, 'partes_list'):
+            for item in self.partes_list:
                 if item.startswith(f"{parte_id} -"):
-                    self.partes_selector.set(item)
+                    # Usar _set_selected_parte para establecer el texto y actualizar el entry
+                    self._set_selected_parte(item)
                     # Cargar las tabs del parte
                     self._load_parte_tabs()
                     break
@@ -806,7 +823,7 @@ class AppPartsManager(customtkinter.CTk):
             self.partes_list = ["Sin partes"]
             self.partes_list_full = ["Sin partes"]
 
-        # Frame contenedor para entry + dropdown
+        # Frame contenedor para entry + botones
         search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container.grid_columnconfigure(0, weight=1)
@@ -820,22 +837,29 @@ class AppPartsManager(customtkinter.CTk):
         self.partes_search_entry.bind('<KeyRelease>', self._filter_partes_list)
         self.partes_search_entry.bind('<Return>', lambda e: self._select_first_match())
 
-        # Frame flotante para dropdown (inicialmente oculto)
-        self.partes_dropdown_frame = customtkinter.CTkFrame(
+        # Botón X para limpiar
+        self.partes_clear_btn = customtkinter.CTkButton(
             search_container,
-            fg_color="#2b2b2b",
-            border_width=1,
-            border_color="gray"
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_partes_search
         )
-        self.partes_dropdown_frame.grid_remove()  # Oculto inicialmente
+        self.partes_clear_btn.grid(row=0, column=1, padx=(2, 0))
 
-        # Scrollable frame para lista de partes
-        self.partes_listbox_frame = customtkinter.CTkScrollableFrame(
-            self.partes_dropdown_frame,
-            height=200,
-            fg_color="transparent"
+        # Botón dropdown ▼
+        self.partes_dropdown_btn = customtkinter.CTkButton(
+            search_container,
+            text="▼",
+            width=30,
+            command=self._toggle_partes_dropdown
         )
-        self.partes_listbox_frame.pack(fill="both", expand=True)
+        self.partes_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
+
+        # Variable para el Toplevel del dropdown
+        self.partes_dropdown_toplevel = None
+        self.partes_dropdown_visible = False
 
         # Variable para almacenar el parte seleccionado
         self.selected_parte_text = None
@@ -878,55 +902,96 @@ class AppPartsManager(customtkinter.CTk):
         if self.partes_list and self.partes_list[0] != "Sin partes":
             self._load_parte_tabs()
 
+    def _toggle_partes_dropdown(self):
+        """Muestra/oculta el dropdown de partes"""
+        if self.partes_dropdown_visible:
+            self._hide_partes_dropdown()
+        else:
+            self._show_partes_dropdown()
+
+    def _clear_partes_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.partes_search_entry.delete(0, 'end')
+        self.selected_parte_text = None
+        self._hide_partes_dropdown()
+
+    def _show_partes_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.partes_dropdown_toplevel:
+            self.partes_dropdown_toplevel.destroy()
+
+        # Obtener posición del entry
+        x = self.partes_search_entry.winfo_rootx()
+        y = self.partes_search_entry.winfo_rooty() + self.partes_search_entry.winfo_height()
+        width = self.partes_search_entry.winfo_width() + 65
+
+        # Crear Toplevel
+        self.partes_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.partes_dropdown_toplevel.withdraw()
+        self.partes_dropdown_toplevel.overrideredirect(True)
+        self.partes_dropdown_toplevel.attributes('-topmost', True)
+        self.partes_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.partes_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.partes_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda p=item: self._select_parte_from_dropdown(p)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más. Refine su búsqueda.",
+                text_color="gray",
+                font=("", 10)
+            ).pack(pady=5)
+
+        self.partes_dropdown_toplevel.deiconify()
+        self.partes_dropdown_toplevel.lift()
+        self.partes_dropdown_visible = True
+
+    def _hide_partes_dropdown(self):
+        """Oculta el dropdown"""
+        if self.partes_dropdown_toplevel:
+            self.partes_dropdown_toplevel.destroy()
+            self.partes_dropdown_toplevel = None
+        self.partes_dropdown_visible = False
+
     def _filter_partes_list(self, event=None):
         """Filtra la lista de partes según el texto de búsqueda"""
         search_text = self.partes_search_entry.get().lower()
 
         if not search_text:
-            # Si está vacío, ocultar dropdown
-            self.partes_dropdown_frame.grid_remove()
+            self._hide_partes_dropdown()
             return
 
         # Filtrar partes que contengan el texto de búsqueda
         filtered = [p for p in self.partes_list_full if search_text in p.lower()]
 
-        # Limpiar listbox
-        for widget in self.partes_listbox_frame.winfo_children():
-            widget.destroy()
-
         if filtered:
-            # Mostrar dropdown
-            self.partes_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
-
-            # Crear botones para cada resultado (máximo 10)
-            for parte in filtered[:10]:
-                btn = customtkinter.CTkButton(
-                    self.partes_listbox_frame,
-                    text=parte,
-                    anchor="w",
-                    fg_color="transparent",
-                    hover_color="#1f6aa5",
-                    command=lambda p=parte: self._select_parte_from_dropdown(p)
-                )
-                btn.pack(fill="x", padx=2, pady=1)
-
-            # Mostrar contador si hay más resultados
-            if len(filtered) > 10:
-                info_label = customtkinter.CTkLabel(
-                    self.partes_listbox_frame,
-                    text=f"... y {len(filtered) - 10} más. Refine su búsqueda.",
-                    text_color="gray",
-                    font=("", 10)
-                )
-                info_label.pack(pady=5)
+            self._show_partes_dropdown(filtered)
         else:
-            # Ocultar si no hay resultados
-            self.partes_dropdown_frame.grid_remove()
+            self._hide_partes_dropdown()
 
     def _select_parte_from_dropdown(self, parte_text):
         """Selecciona un parte del dropdown"""
         self._set_selected_parte(parte_text)
-        self.partes_dropdown_frame.grid_remove()
+        self._hide_partes_dropdown()
         self._load_parte_tabs()
 
     def _select_first_match(self):
@@ -936,7 +1001,7 @@ class AppPartsManager(customtkinter.CTk):
             filtered = [p for p in self.partes_list_full if search_text in p.lower()]
             if filtered:
                 self._set_selected_parte(filtered[0])
-                self.partes_dropdown_frame.grid_remove()
+                self._hide_partes_dropdown()
                 self._load_parte_tabs()
 
     def _set_selected_parte(self, parte_text):
@@ -985,7 +1050,7 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_datos_basicos_tab(self, parte_id):
         """Carga la pestaña de Datos Básicos - Layout optimizado en 2 columnas"""
-        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_municipios_by_provincia
+        from script.modulo_db import get_parte_detail, get_dim_all, get_provincias, get_comarcas_by_provincia, get_municipios_by_provincia, get_concejos_by_municipio
         from tkcalendar import DateEntry
 
         # Bandera para evitar marcar como cambiado durante la carga inicial
@@ -1039,11 +1104,25 @@ class AppPartsManager(customtkinter.CTk):
                 row=row_left, column=1, padx=5, pady=8, sticky="w")
             row_left += 1
 
-            # Código (solo lectura)
+            # Código (solo lectura) - en la misma fila que ID
             customtkinter.CTkLabel(left_frame, text="Código:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             customtkinter.CTkLabel(
                 left_frame, text=parte_data[1], font=("", 14, "bold"), text_color="#4CAF50"
+            ).grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
+            row_left += 1
+
+            # Tipo Trabajo (solo lectura) - en zona superior
+            tipo_trabajo_id = parte_data[5]
+            customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            tipo_trabajo_texto = ""
+            for item in dims.get("TIPO_TRABAJO", []):
+                if item.startswith(f"{tipo_trabajo_id} -"):
+                    tipo_trabajo_texto = item.split(" - ", 1)[1] if " - " in item else item
+                    break
+            customtkinter.CTkLabel(
+                left_frame, text=tipo_trabajo_texto, font=("", 12), text_color="#2196F3"
             ).grid(row=row_left, column=1, padx=5, pady=8, sticky="w")
             row_left += 1
 
@@ -1102,21 +1181,21 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Tipo Trabajo
-            customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
-                row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.tipo_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPO_TRABAJO", []))
-            self.tipo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
-            for item in dims.get("TIPO_TRABAJO", []):
-                if item.startswith(f"{parte_data[5]} -"):  # Actualizado: era 6, ahora 5
-                    self.tipo_menu.set(item)
-                    break
-            row_left += 1
+            # Determinar qué campos habilitar según tipo de trabajo (tipo_trabajo_id ya se obtuvo arriba):
+            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
+            cod_menu_state = "disabled"
+            tipo_rep_menu_state = "disabled"
+            if tipo_trabajo_id == 2:  # OT - Orden de Trabajo
+                tipo_rep_menu_state = "normal"
+            elif tipo_trabajo_id == 3:  # TP - Trabajos Programados
+                cod_menu_state = "normal"
 
             # Código trabajo
             customtkinter.CTkLabel(left_frame, text="Código Trabajo:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []))
+            self.cod_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("COD_TRABAJO", []), state=cod_menu_state)
             self.cod_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("COD_TRABAJO", []):
                 if item.startswith(f"{parte_data[6]} -"):  # Actualizado: era 7, ahora 6
@@ -1127,7 +1206,7 @@ class AppPartsManager(customtkinter.CTk):
             # Tipo de Reparación
             customtkinter.CTkLabel(left_frame, text="Tipo Reparación:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []))
+            self.tipo_rep_menu = customtkinter.CTkOptionMenu(left_frame, values=dims.get("TIPOS_REP", []), state=tipo_rep_menu_state)
             self.tipo_rep_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             for item in dims.get("TIPOS_REP", []):
                 if parte_data[7] and item.startswith(f"{parte_data[7]} -"):  # Actualizado: era 8, ahora 7
@@ -1142,50 +1221,102 @@ class AppPartsManager(customtkinter.CTk):
             self.provincia_menu = customtkinter.CTkOptionMenu(
                 left_frame,
                 values=provincias_list,
-                command=self._on_provincia_change
+                command=self._on_provincia_change_edit
             )
             self.provincia_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # Municipio - CREAR ANTES de establecer la provincia
+            # Comarca - en cascada con Provincia
+            customtkinter.CTkLabel(left_frame, text="Comarca:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.comarca_menu = customtkinter.CTkOptionMenu(
+                left_frame,
+                values=["Selecciona provincia primero"],
+                command=self._on_comarca_change_edit
+            )
+            self.comarca_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
+
+            # Municipio - en cascada con Comarca
             customtkinter.CTkLabel(left_frame, text="Municipio:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.municipio_menu = customtkinter.CTkOptionMenu(left_frame, values=["Seleccione provincia primero"])
+            self.municipio_menu = customtkinter.CTkOptionMenu(
+                left_frame,
+                values=["Selecciona comarca primero"],
+                command=self._on_municipio_change_edit
+            )
             self.municipio_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
             row_left += 1
 
-            # AHORA establecer provincia y municipio
+            # Concejo (opcional) - Solo para municipios de Álava
+            customtkinter.CTkLabel(left_frame, text="Concejo:", font=("", 12, "bold")).grid(
+                row=row_left, column=0, padx=5, pady=8, sticky="e")
+            self.concejo_menu = customtkinter.CTkOptionMenu(left_frame, values=["(Sin concejo)"])
+            self.concejo_menu.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+            row_left += 1
+
+            # AHORA establecer provincia, comarca, municipio y concejo
             current_municipio_id = parte_data[8]  # Actualizado: era 9, ahora 8
+            current_concejo_id = parte_data[23] if len(parte_data) > 23 else None  # concejo_id
             if current_municipio_id:
-                # Obtener provincia del municipio actual
+                # Obtener provincia y comarca del municipio actual
                 try:
                     with get_project_connection(self.user, self.password, self.schema) as cn:
                         cur = cn.cursor()
-                        # FIX: Tabla correcta es dim_municipios (con 's'), no dim_municipio
-                        cur.execute(f"SELECT provincia_id FROM {self.schema}.dim_municipios WHERE id = %s", (current_municipio_id,))
+                        # Obtener provincia_id y comarca_id del municipio
+                        cur.execute(f"SELECT provincia_id, comarca_id FROM {self.schema}.dim_municipios WHERE id = %s", (current_municipio_id,))
                         result = cur.fetchone()
                         if result:
                             provincia_id = result[0]
+                            comarca_id = result[1]
 
-                            # Cargar municipios de esta provincia ANTES de establecer provincia
-                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
-                            self.municipio_menu.configure(values=municipios_list)
+                            # Cargar comarcas de esta provincia
+                            comarcas_list = get_comarcas_by_provincia(self.user, self.password, self.schema, provincia_id)
+                            self.comarca_menu.configure(values=comarcas_list if comarcas_list else ["(sin comarcas)"])
 
-                            # Establecer provincia (esto dispara _on_provincia_change que actualiza lista de municipios)
+                            # Cargar municipios de esta comarca
+                            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, comarca_id=comarca_id)
+                            self.municipio_menu.configure(values=municipios_list if municipios_list else ["(sin municipios)"])
+
+                            # Establecer provincia
                             for item in provincias_list:
                                 if item.startswith(f"{provincia_id} -"):
                                     self.provincia_menu.set(item)
                                     break
 
-                            # Establecer municipio DESPUES de establecer provincia
-                            # La lista ya fue actualizada por _on_provincia_change
-                            for item in municipios_list:
-                                if item.startswith(f"{current_municipio_id} -"):
-                                    self.municipio_menu.set(item)
-                                    break
+                            # Establecer comarca
+                            if comarcas_list and comarca_id:
+                                for item in comarcas_list:
+                                    if item.startswith(f"{comarca_id} -"):
+                                        self.comarca_menu.set(item)
+                                        break
+
+                            # Establecer municipio
+                            if municipios_list:
+                                for item in municipios_list:
+                                    if item.startswith(f"{current_municipio_id} -"):
+                                        self.municipio_menu.set(item)
+                                        break
+
+                            # Cargar y establecer concejo (si existe)
+                            concejos_list = get_concejos_by_municipio(self.user, self.password, self.schema, current_municipio_id)
+                            if concejos_list:
+                                valores_concejo = ["(Sin concejo)"] + concejos_list
+                                self.concejo_menu.configure(values=valores_concejo)
+                                if current_concejo_id:
+                                    for item in concejos_list:
+                                        if item.startswith(f"{current_concejo_id} -"):
+                                            self.concejo_menu.set(item)
+                                            break
+                                else:
+                                    self.concejo_menu.set("(Sin concejo)")
+                            else:
+                                self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                                self.concejo_menu.set("(Sin concejos en este municipio)")
+
                         cur.close()
                 except Exception as e:
-                    print(f"Error al cargar provincia/municipio: {e}")
+                    print(f"Error al cargar provincia/comarca/municipio/concejo: {e}")
                     import traceback
                     traceback.print_exc()
 
@@ -1360,9 +1491,11 @@ class AppPartsManager(customtkinter.CTk):
             self.cod_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'tipo_rep_menu'):
             self.tipo_rep_menu.configure(command=lambda _: self._mark_as_changed())
-        if hasattr(self, 'municipio_menu'):
-            self.municipio_menu.configure(command=lambda _: self._mark_as_changed())
-        # Nota: provincia_menu ya tiene command=self._on_provincia_change que marca cambios
+        # Nota: municipio_menu ya tiene command=self._on_municipio_change_edit que marca cambios
+        if hasattr(self, 'concejo_menu'):
+            self.concejo_menu.configure(command=lambda _: self._mark_as_changed())
+        # Nota: provincia_menu ya tiene command=self._on_provincia_change_edit que marca cambios
+        # Nota: comarca_menu ya tiene command=self._on_comarca_change_edit que marca cambios
 
         # Textbox widgets
         if hasattr(self, 'desc_text'):
@@ -1376,37 +1509,101 @@ class AppPartsManager(customtkinter.CTk):
         if hasattr(self, 'fecha_fin_entry'):
             self.fecha_fin_entry.bind('<<DateEntrySelected>>', self._mark_as_changed)
 
-    def _on_provincia_change(self, selected_provincia):
-        """Actualiza lista de municipios cuando cambia la provincia"""
-        from script.modulo_db import get_municipios_by_provincia
+    def _on_provincia_change_edit(self, selected_provincia):
+        """Actualiza lista de comarcas cuando cambia la provincia"""
+        from script.modulo_db import get_comarcas_by_provincia
 
         # Si estamos cargando datos iniciales, NO hacer nada
-        # La carga inicial se encarga de configurar todo correctamente
         if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
             return
 
         try:
             provincia_id = int(selected_provincia.split(" - ")[0])
-            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, provincia_id)
+            comarcas_list = get_comarcas_by_provincia(self.user, self.password, self.schema, provincia_id)
+
+            if hasattr(self, 'comarca_menu'):
+                if comarcas_list:
+                    self.comarca_menu.configure(values=comarcas_list)
+                    self.comarca_menu.set(comarcas_list[0])
+                    # Disparar cascada a municipios
+                    self._on_comarca_change_edit(comarcas_list[0])
+                else:
+                    self.comarca_menu.configure(values=["(sin comarcas)"])
+                    self.comarca_menu.set("(sin comarcas)")
+
+            # Limpiar municipios y concejos
+            if hasattr(self, 'municipio_menu'):
+                self.municipio_menu.configure(values=["Selecciona comarca primero"])
+                self.municipio_menu.set("Selecciona comarca primero")
+
+            if hasattr(self, 'concejo_menu'):
+                self.concejo_menu.configure(values=["(Sin concejo)"])
+                self.concejo_menu.set("(Sin concejo)")
+
+            # Marcar como cambiado
+            self._mark_as_changed()
+
+        except Exception as e:
+            print(f"Error al cambiar provincia: {e}")
+
+    def _on_comarca_change_edit(self, selected_comarca):
+        """Actualiza lista de municipios cuando cambia la comarca"""
+        from script.modulo_db import get_municipios_by_provincia
+
+        # Si estamos cargando datos iniciales, NO hacer nada
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
+        try:
+            comarca_id = int(selected_comarca.split(" - ")[0])
+            municipios_list = get_municipios_by_provincia(self.user, self.password, self.schema, comarca_id=comarca_id)
 
             if hasattr(self, 'municipio_menu'):
-                # Actualizar la lista de municipios disponibles para esta provincia
                 if municipios_list:
                     self.municipio_menu.configure(values=municipios_list)
+                    self.municipio_menu.set(municipios_list[0])
+                    # Disparar cascada a concejos
+                    self._on_municipio_change_edit(municipios_list[0])
+                else:
+                    self.municipio_menu.configure(values=["(sin municipios)"])
+                    self.municipio_menu.set("(sin municipios)")
 
-                    # Es un cambio manual del usuario
-                    current_municipio = self.municipio_menu.get()
+            # Limpiar concejos
+            if hasattr(self, 'concejo_menu'):
+                self.concejo_menu.configure(values=["(Sin concejo)"])
+                self.concejo_menu.set("(Sin concejo)")
 
-                    # Solo mantener el municipio actual si está en la nueva lista
-                    if current_municipio not in municipios_list:
-                        # El municipio actual no pertenece a la nueva provincia seleccionada
-                        # No seleccionar automáticamente ninguno, dejar vacío
-                        self.municipio_menu.set("")
+            # Marcar como cambiado
+            self._mark_as_changed()
+
+        except Exception as e:
+            print(f"Error al cambiar comarca: {e}")
+
+    def _on_municipio_change_edit(self, selected_municipio):
+        """Actualiza lista de concejos cuando cambia el municipio"""
+        from script.modulo_db import get_concejos_by_municipio
+
+        # Si estamos cargando datos iniciales, NO hacer nada
+        if hasattr(self, '_loading_initial_data') and self._loading_initial_data:
+            return
+
+        try:
+            municipio_id = int(selected_municipio.split(" - ")[0])
+            concejos_list = get_concejos_by_municipio(self.user, self.password, self.schema, municipio_id)
+
+            if hasattr(self, 'concejo_menu'):
+                if concejos_list:
+                    valores = ["(Sin concejo)"] + concejos_list
+                    self.concejo_menu.configure(values=valores)
+                    self.concejo_menu.set("(Sin concejo)")
+                else:
+                    self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                    self.concejo_menu.set("(Sin concejos en este municipio)")
 
             # Marcar como cambiado
             self._mark_as_changed()
         except Exception as e:
-            print(f"Error al cambiar provincia: {e}")
+            print(f"Error al cambiar municipio: {e}")
 
     def _confirm_and_save_parte(self, parte_id):
         """Solicita confirmación antes de guardar"""
@@ -1429,16 +1626,29 @@ class AppPartsManager(customtkinter.CTk):
             # Extraer IDs de dimensiones
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
-            cod_id = int(self.cod_menu.get().split(" - ")[0])
 
-            # Tipo de reparación
+            # cod_id y tipo_rep_id dependen del tipo de trabajo:
+            # GF (ID 1): Ninguno
+            # OT (ID 2): Solo tipo_rep_id
+            # TP (ID 3): Solo cod_id
+            cod_id = None
             tipo_rep_id = None
-            try:
-                tipo_rep_text = self.tipo_rep_menu.get()
-                if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
-                    tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
-            except:
-                pass
+
+            if tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+                try:
+                    cod_text = self.cod_menu.get()
+                    if cod_text and " - " in cod_text:
+                        cod_id = int(cod_text.split(" - ")[0])
+                except:
+                    pass
+            elif tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+                try:
+                    tipo_rep_text = self.tipo_rep_menu.get()
+                    if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
+                        tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
+                except:
+                    pass
+            # GF (ID 1): No requiere ninguno de los dos
 
             # Municipio
             municipio_id = None
@@ -1446,6 +1656,15 @@ class AppPartsManager(customtkinter.CTk):
                 municipio_text = self.municipio_menu.get()
                 if municipio_text and not municipio_text.startswith("Seleccione"):
                     municipio_id = int(municipio_text.split(" - ")[0])
+            except:
+                pass
+
+            # Concejo (opcional)
+            concejo_id = None
+            try:
+                concejo_text = self.concejo_menu.get()
+                if concejo_text and not concejo_text.startswith("(Sin") and " - " in concejo_text:
+                    concejo_id = int(concejo_text.split(" - ")[0])
             except:
                 pass
 
@@ -1490,7 +1709,7 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             print(f"DEBUG - Guardando parte {parte_id}:")
-            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}")
+            print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}, Municipio={municipio_id}, Concejo={concejo_id}")
             print(f"  Título: {titulo}")
             print(f"  Estado: {estado_texto} (ID: {estado_id})")
             print(f"  Fechas: inicio={fecha_inicio}, fin={fecha_fin}")
@@ -1505,6 +1724,7 @@ class AppPartsManager(customtkinter.CTk):
                 estado=estado_id,
                 observaciones=observaciones,
                 municipio_id=municipio_id,
+                concejo_id=concejo_id,
                 tipo_rep_id=tipo_rep_id,
                 titulo=titulo,
                 fecha_fin=fecha_fin,
@@ -1769,24 +1989,60 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
         except:
-            partes_list = ["Sin partes"]
+            self.presupuesto_partes_list = ["Sin partes"]
+            self.presupuesto_partes_list_full = ["Sin partes"]
 
-        self.presupuesto_selector = customtkinter.CTkOptionMenu(
-            selector_frame,
-            values=partes_list if partes_list else ["Sin partes"],
-            command=lambda x: self._load_presupuesto_data()
+        # Frame contenedor para entry + botones
+        pres_search_container = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
+        pres_search_container.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        pres_search_container.grid_columnconfigure(0, weight=1)
+
+        # Entry de búsqueda
+        self.presupuesto_search_entry = customtkinter.CTkEntry(
+            pres_search_container,
+            placeholder_text="Escriba para buscar parte..."
         )
-        self.presupuesto_selector.grid(row=0, column=1, sticky="ew", padx=(0, 10))
+        self.presupuesto_search_entry.grid(row=0, column=0, sticky="ew")
+        self.presupuesto_search_entry.bind('<KeyRelease>', self._filter_presupuesto_partes)
+        self.presupuesto_search_entry.bind('<Return>', lambda e: self._select_first_presupuesto_match())
 
-        if partes_list and hasattr(self, 'selected_parte_id'):
-            for item in partes_list:
-                if item.startswith(f"{self.selected_parte_id} -"):
-                    self.presupuesto_selector.set(item)
-                    break
-        elif partes_list:
-            self.presupuesto_selector.set(partes_list[0])
+        # Botón X para limpiar
+        self.presupuesto_clear_btn = customtkinter.CTkButton(
+            pres_search_container,
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_presupuesto_search
+        )
+        self.presupuesto_clear_btn.grid(row=0, column=1, padx=(2, 0))
+
+        # Botón dropdown ▼
+        self.presupuesto_dropdown_btn = customtkinter.CTkButton(
+            pres_search_container,
+            text="▼",
+            width=30,
+            command=self._toggle_presupuesto_dropdown
+        )
+        self.presupuesto_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
+
+        # Variable para el Toplevel del dropdown
+        self.presupuesto_dropdown_toplevel = None
+        self.presupuesto_dropdown_visible = False
+        self.selected_presupuesto_parte = None
+
+        # Seleccionar parte por defecto
+        if self.presupuesto_partes_list and self.presupuesto_partes_list[0] != "Sin partes":
+            if hasattr(self, 'selected_parte_id'):
+                for item in self.presupuesto_partes_list:
+                    if item.startswith(f"{self.selected_parte_id} -"):
+                        self._set_selected_presupuesto_parte(item)
+                        break
+            else:
+                self._set_selected_presupuesto_parte(self.presupuesto_partes_list[0])
 
         btn_reload = customtkinter.CTkButton(
             selector_frame, text="🔄", width=40,
@@ -1817,14 +2073,7 @@ class AppPartsManager(customtkinter.CTk):
             command=self._export_presupuesto,
             width=120
         )
-        btn_export.pack(side="left", padx=(0, 10))
-
-        btn_update = customtkinter.CTkButton(
-            buttons_frame, text="⚙️ Gestionar Catálogo",
-            command=self._update_catalog_presupuesto,
-            width=180
-        )
-        btn_update.pack(side="left")
+        btn_export.pack(side="left")
 
         # Tabla de presupuesto
         table_frame = customtkinter.CTkFrame(self.presupuesto_frame)
@@ -1894,8 +2143,108 @@ class AppPartsManager(customtkinter.CTk):
         self.total_presupuesto_label.grid(row=0, column=1, sticky="e", padx=(0, 20))
 
         # Cargar datos
-        if partes_list and partes_list[0] != "Sin partes":
+        if self.presupuesto_partes_list and self.presupuesto_partes_list[0] != "Sin partes":
             self._load_presupuesto_data()
+
+    def _toggle_presupuesto_dropdown(self):
+        """Muestra/oculta el dropdown de partes en presupuesto"""
+        if self.presupuesto_dropdown_visible:
+            self._hide_presupuesto_dropdown()
+        else:
+            self._show_presupuesto_dropdown()
+
+    def _clear_presupuesto_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.presupuesto_search_entry.delete(0, 'end')
+        self.selected_presupuesto_parte = None
+        self._hide_presupuesto_dropdown()
+
+    def _show_presupuesto_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.presupuesto_dropdown_toplevel:
+            self.presupuesto_dropdown_toplevel.destroy()
+
+        x = self.presupuesto_search_entry.winfo_rootx()
+        y = self.presupuesto_search_entry.winfo_rooty() + self.presupuesto_search_entry.winfo_height()
+        width = self.presupuesto_search_entry.winfo_width() + 65
+
+        self.presupuesto_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.presupuesto_dropdown_toplevel.withdraw()
+        self.presupuesto_dropdown_toplevel.overrideredirect(True)
+        self.presupuesto_dropdown_toplevel.attributes('-topmost', True)
+        self.presupuesto_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.presupuesto_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        items = filtered if filtered else self.presupuesto_partes_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda p=item: self._select_presupuesto_parte_from_dropdown(p)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más.",
+                text_color="gray",
+                font=("", 10)
+            ).pack(pady=5)
+
+        self.presupuesto_dropdown_toplevel.deiconify()
+        self.presupuesto_dropdown_toplevel.lift()
+        self.presupuesto_dropdown_visible = True
+
+    def _hide_presupuesto_dropdown(self):
+        """Oculta el dropdown"""
+        if self.presupuesto_dropdown_toplevel:
+            self.presupuesto_dropdown_toplevel.destroy()
+            self.presupuesto_dropdown_toplevel = None
+        self.presupuesto_dropdown_visible = False
+
+    def _filter_presupuesto_partes(self, event=None):
+        """Filtra la lista de partes en presupuesto"""
+        search_text = self.presupuesto_search_entry.get().lower()
+        if not search_text:
+            self._hide_presupuesto_dropdown()
+            return
+        filtered = [p for p in self.presupuesto_partes_list_full if search_text in p.lower()]
+        if filtered:
+            self._show_presupuesto_dropdown(filtered)
+        else:
+            self._hide_presupuesto_dropdown()
+
+    def _select_presupuesto_parte_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown de presupuesto"""
+        self._set_selected_presupuesto_parte(parte_text)
+        self._hide_presupuesto_dropdown()
+        self._load_presupuesto_data()
+
+    def _select_first_presupuesto_match(self):
+        """Selecciona el primer resultado con Enter"""
+        search_text = self.presupuesto_search_entry.get().lower()
+        if search_text:
+            filtered = [p for p in self.presupuesto_partes_list_full if search_text in p.lower()]
+            if filtered:
+                self._set_selected_presupuesto_parte(filtered[0])
+                self._hide_presupuesto_dropdown()
+                self._load_presupuesto_data()
+
+    def _set_selected_presupuesto_parte(self, parte_text):
+        """Establece el parte seleccionado en presupuesto"""
+        self.selected_presupuesto_parte = parte_text
+        self.presupuesto_search_entry.delete(0, 'end')
+        self.presupuesto_search_entry.insert(0, parte_text)
 
     def _reload_presupuesto_selector(self):
         """Recarga el selector de partes en presupuesto"""
@@ -1903,15 +2252,17 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
 
-            if partes_list:
-                self.presupuesto_selector.configure(values=partes_list)
-                self.presupuesto_selector.set(partes_list[0])
+            if self.presupuesto_partes_list:
+                self._set_selected_presupuesto_parte(self.presupuesto_partes_list[0])
                 self._load_presupuesto_data()
             else:
-                self.presupuesto_selector.configure(values=["Sin partes"])
-                self.presupuesto_selector.set("Sin partes")
+                self.presupuesto_partes_list = ["Sin partes"]
+                self.presupuesto_partes_list_full = ["Sin partes"]
+                self.presupuesto_search_entry.delete(0, 'end')
+                self.presupuesto_search_entry.configure(placeholder_text="Sin partes")
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error recargando:\n{e}", icon="cancel")
 
@@ -1923,8 +2274,8 @@ class AppPartsManager(customtkinter.CTk):
         for item in self.tree_presupuesto.get_children():
             self.tree_presupuesto.delete(item)
 
-        selected = self.presupuesto_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_presupuesto_parte
+        if not selected or selected == "Sin partes":
             self.total_presupuesto_label.configure(text="TOTAL: 0.00€")
             return
 
@@ -1956,8 +2307,8 @@ class AppPartsManager(customtkinter.CTk):
 
     def _add_partida_presupuesto(self):
         """Añade partida al presupuesto del parte (ventana similar a registros)"""
-        selected = self.presupuesto_selector.get()
-        if selected == "Sin partes" or not selected:
+        selected = self.selected_presupuesto_parte
+        if not selected or selected == "Sin partes":
             CTkMessagebox(title="Aviso", message="Seleccione un parte primero", icon="info")
             return
 
@@ -2229,13 +2580,13 @@ class AppPartsManager(customtkinter.CTk):
             self.cert_list = ["Sin partes"]
             self.cert_list_full = self.cert_list.copy()
 
-        # Frame contenedor para Entry + Dropdown
+        # Frame contenedor para Entry + Botones
         search_container_cert = customtkinter.CTkFrame(selector_frame, fg_color="transparent")
         search_container_cert.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         search_container_cert.grid_rowconfigure(0, weight=1)
         search_container_cert.grid_columnconfigure(0, weight=1)
 
-        # Entry para búsqueda con dropdown
+        # Entry para búsqueda
         self.cert_search_entry = customtkinter.CTkEntry(
             search_container_cert,
             placeholder_text="Escriba para buscar parte..."
@@ -2244,26 +2595,29 @@ class AppPartsManager(customtkinter.CTk):
         self.cert_search_entry.bind('<KeyRelease>', self._filter_cert_list)
         self.cert_search_entry.bind('<Return>', lambda e: self._select_first_cert_match())
 
-        # Frame flotante para dropdown (inicialmente oculto)
-        self.cert_dropdown_frame = customtkinter.CTkFrame(
+        # Botón X para limpiar
+        self.cert_clear_btn = customtkinter.CTkButton(
             search_container_cert,
-            fg_color="#2b2b2b",
-            border_width=1,
-            border_color="gray"
+            text="✕",
+            width=30,
+            fg_color="transparent",
+            hover_color="#8B0000",
+            command=self._clear_cert_search
         )
-        self.cert_dropdown_frame.grid_remove()  # Oculto inicialmente
+        self.cert_clear_btn.grid(row=0, column=1, padx=(2, 0))
 
-        # Listbox para mostrar resultados filtrados
-        self.cert_listbox = ttk.Treeview(
-            self.cert_dropdown_frame,
-            columns=("partes",),
-            show="tree",
-            selectmode="browse",
-            height=10
+        # Botón dropdown ▼
+        self.cert_dropdown_btn = customtkinter.CTkButton(
+            search_container_cert,
+            text="▼",
+            width=30,
+            command=self._toggle_cert_dropdown
         )
-        self.cert_listbox.pack(fill="both", expand=True)
-        self.cert_listbox.bind("<ButtonRelease-1>", self._on_cert_select)
-        self.cert_listbox.bind("<Return>", self._on_cert_select)
+        self.cert_dropdown_btn.grid(row=0, column=2, padx=(2, 0))
+
+        # Variables para el Toplevel del dropdown
+        self.cert_dropdown_toplevel = None
+        self.cert_dropdown_visible = False
 
         # Seleccionar primer parte si hay selected_parte_id
         if self.cert_list and self.cert_list[0] != "Sin partes":
@@ -2453,42 +2807,97 @@ class AppPartsManager(customtkinter.CTk):
         if self.cert_list and self.cert_list[0] != "Sin partes":
             self._load_certificaciones_data()
 
+    def _toggle_cert_dropdown(self):
+        """Muestra/oculta el dropdown de partes en certificaciones"""
+        if self.cert_dropdown_visible:
+            self._hide_cert_dropdown()
+        else:
+            self._show_cert_dropdown()
+
+    def _clear_cert_search(self):
+        """Limpia el campo de búsqueda y oculta dropdown"""
+        self.cert_search_entry.delete(0, 'end')
+        self.selected_cert_text = None
+        self._hide_cert_dropdown()
+
+    def _show_cert_dropdown(self, filtered=None):
+        """Muestra el dropdown como Toplevel flotante"""
+        if self.cert_dropdown_toplevel:
+            self.cert_dropdown_toplevel.destroy()
+
+        # Obtener posición del entry
+        x = self.cert_search_entry.winfo_rootx()
+        y = self.cert_search_entry.winfo_rooty() + self.cert_search_entry.winfo_height()
+        width = self.cert_search_entry.winfo_width() + 65
+
+        # Crear Toplevel
+        self.cert_dropdown_toplevel = customtkinter.CTkToplevel(self)
+        self.cert_dropdown_toplevel.withdraw()
+        self.cert_dropdown_toplevel.overrideredirect(True)
+        self.cert_dropdown_toplevel.attributes('-topmost', True)
+        self.cert_dropdown_toplevel.geometry(f"{width}x250+{x}+{y}")
+
+        # Frame con scroll
+        scroll_frame = customtkinter.CTkScrollableFrame(
+            self.cert_dropdown_toplevel,
+            fg_color="#2b2b2b"
+        )
+        scroll_frame.pack(fill="both", expand=True)
+
+        # Opciones a mostrar
+        items = filtered if filtered else self.cert_list_full
+
+        for item in items[:15]:
+            btn = customtkinter.CTkButton(
+                scroll_frame,
+                text=item,
+                anchor="w",
+                fg_color="transparent",
+                hover_color="#1f6aa5",
+                command=lambda i=item: self._select_cert_from_dropdown(i)
+            )
+            btn.pack(fill="x", padx=2, pady=1)
+
+        if len(items) > 15:
+            customtkinter.CTkLabel(
+                scroll_frame,
+                text=f"... y {len(items) - 15} más",
+                text_color="gray"
+            ).pack(pady=5)
+
+        self.cert_dropdown_toplevel.deiconify()
+        self.cert_dropdown_toplevel.lift()
+        self.cert_dropdown_visible = True
+
+    def _hide_cert_dropdown(self):
+        """Oculta el dropdown"""
+        if self.cert_dropdown_toplevel:
+            self.cert_dropdown_toplevel.destroy()
+            self.cert_dropdown_toplevel = None
+        self.cert_dropdown_visible = False
+
+    def _select_cert_from_dropdown(self, parte_text):
+        """Selecciona un parte del dropdown"""
+        self._set_selected_cert(parte_text)
+        self._hide_cert_dropdown()
+        self._load_certificaciones_data()
+
     def _filter_cert_list(self, event=None):
         """Filtra la lista de partes en certificaciones según el texto de búsqueda"""
         search_text = self.cert_search_entry.get().lower()
 
         if not search_text:
             # Si está vacío, ocultar dropdown
-            self.cert_dropdown_frame.grid_remove()
+            self._hide_cert_dropdown()
             return
 
         # Filtrar partes que contengan el texto de búsqueda
         filtered = [p for p in self.cert_list_full if search_text in p.lower()]
 
-        # Limpiar listbox
-        for item in self.cert_listbox.get_children():
-            self.cert_listbox.delete(item)
-
-        # Mostrar dropdown solo si hay resultados
         if filtered:
-            # Limitar a 10 resultados para no sobrecargar
-            for parte in filtered[:10]:
-                self.cert_listbox.insert("", "end", text=parte, values=(parte,))
-
-            # Mostrar dropdown debajo del entry
-            self.cert_dropdown_frame.grid(row=1, column=0, sticky="ew", pady=(2, 0))
+            self._show_cert_dropdown(filtered)
         else:
-            self.cert_dropdown_frame.grid_remove()
-
-    def _on_cert_select(self, event=None):
-        """Maneja la selección de un parte del dropdown en certificaciones"""
-        selection = self.cert_listbox.selection()
-        if selection:
-            item = selection[0]
-            parte_text = self.cert_listbox.item(item, "text")
-            self._set_selected_cert(parte_text)
-            self.cert_dropdown_frame.grid_remove()
-            self._load_certificaciones_data()
+            self._hide_cert_dropdown()
 
     def _select_first_cert_match(self):
         """Selecciona el primer resultado del filtro en certificaciones"""
@@ -2497,7 +2906,7 @@ class AppPartsManager(customtkinter.CTk):
             filtered = [p for p in self.cert_list_full if search_text in p.lower()]
             if filtered:
                 self._set_selected_cert(filtered[0])
-                self.cert_dropdown_frame.grid_remove()
+                self._hide_cert_dropdown()
                 self._load_certificaciones_data()
 
     def _set_selected_cert(self, parte_text):
@@ -2860,17 +3269,21 @@ class AppPartsManager(customtkinter.CTk):
 
         # Crear pestañas
         tab_acerca_de = tabview.add("Acerca de")
-        tab_manual = tabview.add("Manual de Usuario")
+        tab_manual = tabview.add("Manuales")
         tab_soporte = tabview.add("Soporte")
+        tab_conexion = tabview.add("Conexion")
 
-        # ===== PESTAÑA: ACERCA DE =====
+        # ===== PESTANA: ACERCA DE =====
         self._create_acerca_de_tab(tab_acerca_de)
 
-        # ===== PESTAÑA: MANUAL DE USUARIO =====
+        # ===== PESTANA: MANUALES =====
         self._create_manual_usuario_tab(tab_manual)
 
-        # ===== PESTAÑA: SOPORTE =====
+        # ===== PESTANA: SOPORTE =====
         self._create_soporte_tab(tab_soporte)
+
+        # ===== PESTANA: CONEXION =====
+        self._create_conexion_tab(tab_conexion)
 
         # Seleccionar "Acerca de" por defecto
         tabview.set("Acerca de")
@@ -3048,7 +3461,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Usuario
         btn_manual_usuario = customtkinter.CTkButton(
             botones_frame,
-            text="📄 Manual de Usuario (PDF)",
+            text="Manual de Usuario (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("usuario")
@@ -3058,7 +3471,7 @@ class AppPartsManager(customtkinter.CTk):
         # Manual de Informes
         btn_manual_informes = customtkinter.CTkButton(
             botones_frame,
-            text="📊 Manual de Informes (PDF)",
+            text="Manual de Informes (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("informes")
@@ -3068,7 +3481,7 @@ class AppPartsManager(customtkinter.CTk):
         # Guía Técnica
         btn_guia_tecnica = customtkinter.CTkButton(
             botones_frame,
-            text="🔧 Guía Técnica (PDF)",
+            text="Guia Tecnica (PDF)",
             font=customtkinter.CTkFont(size=14),
             height=40,
             command=lambda: self._descargar_manual("tecnica")
@@ -3078,7 +3491,7 @@ class AppPartsManager(customtkinter.CTk):
         # Nota informativa
         nota = customtkinter.CTkLabel(
             scroll_frame,
-            text="Los manuales se descargarán en formato PDF en la carpeta de Descargas.",
+            text="Los manuales se copiaran en la carpeta de Descargas en formato PDF.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
             wraplength=600,
@@ -3092,7 +3505,7 @@ class AppPartsManager(customtkinter.CTk):
         import shutil
         from tkinter import messagebox
 
-        # Definir rutas de los manuales
+        # Definir rutas de los manuales PDF
         manuales = {
             "usuario": "docs/Manual_Usuario_HydroFlow.pdf",
             "informes": "docs/Manual_Informes_HydroFlow.pdf",
@@ -3110,7 +3523,7 @@ class AppPartsManager(customtkinter.CTk):
                 shutil.copy(manual_path, destino)
                 messagebox.showinfo(
                     "Descarga completada",
-                    f"El manual se ha descargado en:\n{destino}"
+                    f"El manual se ha copiado en:\n{destino}"
                 )
             except Exception as e:
                 messagebox.showerror(
@@ -3206,18 +3619,109 @@ R: Los partes eliminados no se pueden recuperar. Contacta con el administrador s
         faq_text.insert("1.0", faq_content)
         faq_text.configure(state="disabled")
 
-        # Información de versión de BD
-        separator2 = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
-        separator2.grid(row=5, column=0, sticky="ew", pady=30)
+    def _create_conexion_tab(self, parent):
+        """Crea el contenido de la pestaña 'Conexión' con información de la base de datos"""
+        from script.db_config import config
 
-        info_sistema = customtkinter.CTkLabel(
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_rowconfigure(0, weight=1)
+
+        scroll_frame = customtkinter.CTkScrollableFrame(parent, fg_color="transparent")
+        scroll_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        scroll_frame.grid_columnconfigure(0, weight=1)
+
+        # Título
+        titulo = customtkinter.CTkLabel(
             scroll_frame,
-            text=f"Información del Sistema:\nEsquema BD: {self.schema}\nUsuario: {self.user}",
+            text="Información de Conexión",
+            font=customtkinter.CTkFont(size=24, weight="bold")
+        )
+        titulo.grid(row=0, column=0, pady=(0, 20), sticky="w")
+
+        # Descripción
+        desc = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Configuración de la conexión a la base de datos:",
+            font=customtkinter.CTkFont(size=14),
+            text_color="gray"
+        )
+        desc.grid(row=1, column=0, pady=(0, 20), sticky="w")
+
+        # Frame de información
+        info_frame = customtkinter.CTkFrame(scroll_frame)
+        info_frame.grid(row=2, column=0, sticky="ew", pady=(0, 20))
+        info_frame.grid_columnconfigure(1, weight=1)
+
+        # Obtener información de conexión desde la configuración
+        try:
+            db_host = config.host if config.host else "No configurado"
+            db_port = str(config.port) if config.port else "No configurado"
+            db_manager = config.manager_schema if config.manager_schema else "No configurado"
+        except Exception:
+            db_host = "No disponible"
+            db_port = "No disponible"
+            db_manager = "No disponible"
+
+        # Información de conexión
+        connection_info = [
+            ("Servidor (Host):", db_host),
+            ("Puerto:", db_port),
+            ("Esquema Manager:", db_manager),
+            ("Esquema del proyecto:", self.schema),
+            ("Usuario conectado:", self.user),
+        ]
+
+        row = 0
+        for label_text, value_text in connection_info:
+            label = customtkinter.CTkLabel(
+                info_frame,
+                text=label_text,
+                font=customtkinter.CTkFont(size=14, weight="bold")
+            )
+            label.grid(row=row, column=0, padx=20, pady=12, sticky="w")
+
+            value = customtkinter.CTkLabel(
+                info_frame,
+                text=value_text,
+                font=customtkinter.CTkFont(size=14)
+            )
+            value.grid(row=row, column=1, padx=20, pady=12, sticky="w")
+            row += 1
+
+        # Separador
+        separator = customtkinter.CTkFrame(scroll_frame, height=2, fg_color="gray")
+        separator.grid(row=3, column=0, sticky="ew", pady=20)
+
+        # Estado de conexión
+        estado_frame = customtkinter.CTkFrame(scroll_frame, fg_color="#1a472a")
+        estado_frame.grid(row=4, column=0, sticky="ew", pady=(0, 20))
+
+        estado_label = customtkinter.CTkLabel(
+            estado_frame,
+            text="✅ Conexión activa",
+            font=customtkinter.CTkFont(size=16, weight="bold"),
+            text_color="#90EE90"
+        )
+        estado_label.pack(padx=20, pady=15)
+
+        # Nota informativa
+        nota = customtkinter.CTkLabel(
+            scroll_frame,
+            text="Nota: Esta información es solo de lectura y muestra los parámetros "
+                 "de conexión actuales. Para modificar la configuración de conexión, "
+                 "contacta con el administrador del sistema.",
             font=customtkinter.CTkFont(size=12),
             text_color="gray",
+            wraplength=500,
             justify="left"
         )
-        info_sistema.grid(row=6, column=0, pady=(0, 20), sticky="w")
+        nota.grid(row=5, column=0, pady=(0, 20), sticky="w")
+
+    def _open_config_window(self):
+        """Abre la ventana de configuración del sistema."""
+        from interface.config_interfaz import AppConfiguracion
+        config_window = AppConfiguracion(self, self.user, self.password, self.schema)
+        config_window.focus()
 
     def back_to_selector(self):
         """Volver al selector de tipo de usuario"""

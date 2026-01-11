@@ -102,7 +102,7 @@ class InformesFrame(customtkinter.CTkFrame):
             print(f"Error al mostrar mensaje: {e}")
 
     def _create_compact_header(self):
-        """Crea el header compacto en una sola línea con título y botón configuración"""
+        """Crea el header compacto con el titulo"""
         # Frame del header (altura fija ~40px)
         header_frame = customtkinter.CTkFrame(self, fg_color="transparent", height=40)
         header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=15, pady=(8, 5))
@@ -112,22 +112,11 @@ class InformesFrame(customtkinter.CTkFrame):
         # Título a la izquierda
         title = customtkinter.CTkLabel(
             header_frame,
-            text="GENERACIÓN DE INFORMES",
+            text="GENERACION DE INFORMES",
             font=customtkinter.CTkFont(size=16, weight="bold"),
             anchor="w"
         )
         title.grid(row=0, column=0, sticky="w")
-
-        # Botón configuración a la derecha
-        config_button = customtkinter.CTkButton(
-            header_frame,
-            text="⚙️ Configuración",
-            width=120,
-            height=30,
-            font=customtkinter.CTkFont(size=11),
-            command=self._open_config_dialog
-        )
-        config_button.grid(row=0, column=1, sticky="e")
 
         # Separador visual debajo del header
         separator = customtkinter.CTkFrame(self, height=1, fg_color="gray30")
@@ -1813,21 +1802,6 @@ class InformesFrame(customtkinter.CTkFrame):
         for idx, campo_key in enumerate(self.campos_orden):
             if campo_key in self.campos_seleccionados:
                 self.campos_seleccionados[campo_key]['frame'].grid(row=idx, column=0, sticky="ew", pady=1)
-
-    def _open_config_dialog(self):
-        """Abre el diálogo de configuración de cabecera"""
-        from CTkMessagebox import CTkMessagebox
-
-        CTkMessagebox(
-            title="Configuración",
-            message="Funcionalidad de configuración de cabecera en desarrollo.\n\n"
-                    "Próximamente podrás configurar:\n"
-                    "• Datos de la empresa\n"
-                    "• Logo corporativo\n"
-                    "• Datos del proyecto\n"
-                    "• Pie de página personalizado",
-            icon="info"
-        )
 
     def _mostrar_dialogo_configuracion_informe(self):
         """Muestra diálogo para configurar título y fecha del informe antes de exportar"""
@@ -3707,36 +3681,45 @@ class InformesFrame(customtkinter.CTkFrame):
             dialog.destroy()
 
         def eliminar_config(filename, nombre_mostrar):
-            # Destruir el diálogo de configuraciones primero para evitar bloqueos
+            # Liberar el grab y destruir el dialogo primero
+            dialog.grab_release()
             dialog.destroy()
+            self.update_idletasks()
+            self.update()
 
-            # Mostrar confirmación (ahora sin diálogo padre que pueda causar bloqueo)
+            # Mostrar confirmacion
             respuesta = CTkMessagebox(
-                title="Confirmar Eliminación",
-                message=f"¿Está seguro de eliminar la configuración '{nombre_mostrar}'?",
+                master=self,
+                title="Confirmar Eliminacion",
+                message=f"Esta seguro de eliminar la configuracion '{nombre_mostrar}'?",
                 icon="question",
                 option_1="Cancelar",
-                option_2="Eliminar"
+                option_2="Eliminar",
+                topmost=True
             )
 
             if respuesta.get() == "Eliminar":
-                if self.storage.eliminar_configuracion(filename):
-                    # Mostrar mensaje de éxito
+                exito = self.storage.eliminar_configuracion(filename)
+                self.update_idletasks()
+                self.update()
+
+                if exito:
                     CTkMessagebox(
-                        title="Éxito",
-                        message=f"Configuración '{nombre_mostrar}' eliminada correctamente.",
-                        icon="check"
+                        master=self,
+                        title="Exito",
+                        message=f"Configuracion '{nombre_mostrar}' eliminada correctamente.",
+                        icon="check",
+                        topmost=True
                     )
                 else:
-                    # Mostrar error
                     CTkMessagebox(
+                        master=self,
                         title="Error",
-                        message=f"No se pudo eliminar la configuración '{nombre_mostrar}'.",
-                        icon="cancel"
+                        message=f"No se pudo eliminar la configuracion '{nombre_mostrar}'.",
+                        icon="cancel",
+                        topmost=True
                     )
-
-            # Reabrir el diálogo de configuraciones actualizado
-            self.after(100, self._cargar_configuracion)
+            # No reabrir automaticamente - el usuario puede volver a abrir si lo necesita
         
         # Botón cerrar
         cancelar_btn = customtkinter.CTkButton(

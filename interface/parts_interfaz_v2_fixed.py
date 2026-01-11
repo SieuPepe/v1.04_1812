@@ -24,7 +24,8 @@ from script.modulo_db import (
     get_dim_all,
     get_provincias,
     get_comarcas_by_provincia,
-    get_municipios_by_provincia
+    get_municipios_by_provincia,
+    get_concejos_by_municipio
 )
 # from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
 
@@ -41,7 +42,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
-        self.geometry("1050x850")
+        self.geometry("1050x910")
         self.resizable(False, False)
 
         # Asegurar que la ventana aparezca al frente
@@ -185,8 +186,15 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         # Municipio (se actualiza según comarca seleccionada)
         customtkinter.CTkLabel(self, text="Municipio:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400, state="normal")
+        self.municipio_menu = customtkinter.CTkComboBox(self, values=["Selecciona provincia primero"], width=400,
+                                                         state="normal", command=self._on_municipio_change)
         self.municipio_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
+        row += 1
+
+        # Concejo (se actualiza según municipio seleccionado) - Solo para municipios de Álava
+        customtkinter.CTkLabel(self, text="Concejo:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        self.concejo_menu = customtkinter.CTkComboBox(self, values=["(Opcional - selecciona municipio)"], width=400, state="normal")
+        self.concejo_menu.grid(row=row, column=1, columnspan=2, padx=5, pady=10, sticky="w")
         row += 1
 
         # ====================================================================
@@ -309,6 +317,38 @@ class AppPartsV2(customtkinter.CTkToplevel):
             self.municipio_menu.configure(values=["Error al cargar"])
             self.municipio_menu.set("Error al cargar")
 
+    def _on_municipio_change(self, municipio_value=None):
+        """Actualiza lista de concejos cuando cambia el municipio seleccionado"""
+        try:
+            # Si se llama desde el callback del combobox, municipio_value es el valor actual
+            if municipio_value is None:
+                municipio_value = self.municipio_menu.get()
+
+            # Extraer ID de municipio
+            municipio_id = self._take_id(municipio_value)
+
+            if not municipio_id:
+                self.concejo_menu.configure(values=["(Opcional - selecciona municipio)"])
+                self.concejo_menu.set("(Opcional - selecciona municipio)")
+                return
+
+            # Obtener concejos filtrados por municipio
+            concejos = get_concejos_by_municipio(self.user, self.password, self.schema, municipio_id=municipio_id)
+
+            if concejos:
+                # Añadir opción vacía al inicio para que sea opcional
+                valores = ["(Sin concejo)"] + concejos
+                self.concejo_menu.configure(values=valores)
+                self.concejo_menu.set("(Sin concejo)")
+            else:
+                self.concejo_menu.configure(values=["(Sin concejos en este municipio)"])
+                self.concejo_menu.set("(Sin concejos en este municipio)")
+
+        except Exception as e:
+            print(f"Error actualizando concejos: {e}")
+            self.concejo_menu.configure(values=["Error al cargar"])
+            self.concejo_menu.set("Error al cargar")
+
     @staticmethod
     def _take_id(v: str) -> int|None:
         """Extrae ID de string formato 'id - texto'"""
@@ -336,12 +376,22 @@ class AppPartsV2(customtkinter.CTkToplevel):
             tipo_id = self._take_id(tipo_value)
             print(f"[DEBUG] ID extraído: {tipo_id}")  # DEBUG
 
-            # Habilitar/deshabilitar "Código trabajo" según tipo de trabajo
-            # Solo habilitado si tipo_trabajo == 3 (Trabajos programados)
-            if tipo_id == 3:
+            # Habilitar/deshabilitar desplegables según tipo de trabajo:
+            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
+            if tipo_id == 1:  # GF - Gastos Fijos
+                self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="disabled")
+            elif tipo_id == 2:  # OT - Orden de Trabajo
+                self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="normal")
+            elif tipo_id == 3:  # TP - Trabajos Programados
                 self.cod_menu.configure(state="normal")
+                self.tipo_rep_menu.configure(state="disabled")
             else:
                 self.cod_menu.configure(state="disabled")
+                self.tipo_rep_menu.configure(state="disabled")
 
             if not tipo_id:
                 self.codigo_ot_entry.configure(state="normal")
@@ -355,26 +405,27 @@ class AppPartsV2(customtkinter.CTkToplevel):
             prefix = _get_tipo_trabajo_prefix(self.user, self.password, self.schema, tipo_id)
             print(f"[DEBUG] Prefijo obtenido: {prefix}")  # DEBUG
 
-            # Get next number for this specific prefix (independent numbering per prefix)
-            # Formato: PREFIX-NNNN (sin año)
+            # Get next number for this specific prefix (each type has its own sequence)
+            # Formato: PREFIX/NNNN (usando barra como en los datos existentes)
             with get_project_connection(self.user, self.password, self.schema) as cn:
                 cur = cn.cursor()
-                # Obtener el último número usado para este prefijo
+                # Obtener el último número usado para ESTE prefijo específico
+                # Cada tipo (GF, OT, TP) tiene su propia secuencia: GF/0001, OT/0001, TP/0001...
                 cur.execute("""
                     SELECT COALESCE(MAX(
                         CAST(
-                            SUBSTRING_INDEX(codigo, '-', -1)
+                            SUBSTRING_INDEX(codigo, '/', -1)
                             AS UNSIGNED
                         )
                     ), 0) + 1
                     FROM tbl_partes
                     WHERE codigo IS NOT NULL
                       AND codigo LIKE %s
-                """, (f"{prefix}-%",))
+                """, (f"{prefix}/%",))
                 next_id = int(cur.fetchone()[0])  # Convertir a int para evitar ValueError con Decimal
                 cur.close()
 
-            codigo = f"{prefix}-{next_id:04d}"
+            codigo = f"{prefix}/{next_id:04d}"
             print(f"[DEBUG] Código generado: {codigo}")  # DEBUG
 
             # Update readonly entry
@@ -409,12 +460,30 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         red_id = self._take_id(self.red_menu.get())
         tipo_id = self._take_id(self.tipo_menu.get())
-        cod_id = self._take_id(self.cod_menu.get())
-        tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
 
-        if not all([red_id, tipo_id, cod_id]):
-            CTkMessagebox(title="Campos obligatorios", message="Selecciona Red, Tipo y Código de Trabajo", icon="warning")
+        # Validar campos obligatorios básicos
+        if not red_id or not tipo_id:
+            CTkMessagebox(title="Campos obligatorios", message="Selecciona Red y Tipo de Trabajo", icon="warning")
             return
+
+        # cod_id y tipo_rep_id dependen del tipo de trabajo:
+        # GF (ID 1): Ninguno es obligatorio, ambos NULL
+        # OT (ID 2): tipo_rep_id obligatorio, cod_id NULL
+        # TP (ID 3): cod_id obligatorio, tipo_rep_id NULL
+        cod_id = None
+        tipo_rep_id = None
+
+        if tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+            tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
+            if not tipo_rep_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Orden de Trabajo, debes seleccionar Tipo de Reparación", icon="warning")
+                return
+        elif tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+            cod_id = self._take_id(self.cod_menu.get())
+            if not cod_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Trabajos Programados, debes seleccionar Código de Trabajo", icon="warning")
+                return
+        # GF (ID 1): No requiere ninguno de los dos
 
         descripcion = self.descripcion_entry.get().strip()
         if not descripcion:
@@ -427,9 +496,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
-        if not desc_larga:
-            CTkMessagebox(title="Campo obligatorio", message="La Descripción Larga es obligatoria", icon="warning")
-            return
+        # Descripción Larga es opcional
 
         fecha_inicio_str = self.fecha_inicio_entry.get()
         if not fecha_inicio_str:
@@ -437,9 +504,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         fecha_prevista_str = self.fecha_prevista_entry.get()
-        if not fecha_prevista_str:
-            CTkMessagebox(title="Campo obligatorio", message="La Fecha Prevista es obligatoria", icon="warning")
-            return
+        # Fecha Prevista es opcional
 
         localizacion = self.localizacion_entry.get().strip()
         if not localizacion:
@@ -449,6 +514,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         provincia_id = self._take_id(self.provincia_menu.get())
         comarca_id = self._take_id(self.comarca_menu.get())
         municipio_id = self._take_id(self.municipio_menu.get())
+        concejo_id = self._take_id(self.concejo_menu.get())  # Opcional
 
         if not provincia_id:
             CTkMessagebox(title="Campo obligatorio", message="La Provincia es obligatoria", icon="warning")
@@ -552,6 +618,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 provincia_id=provincia_id,
                 comarca_id=comarca_id,
                 municipio_id=municipio_id,
+                concejo_id=concejo_id,
                 tipo_rep_id=tipo_rep_id,
                 trabajadores=trabajadores,
                 latitud=latitud,

@@ -85,7 +85,6 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
     """
     # Mapeo de candidatos por tabla (orden de preferencia)
     candidates_map = {
-        'dim_ot': ('descripcion', 'ot', 'nombre', 'codigo'),
         'dim_red': ('descripcion', 'red', 'nombre', 'codigo'),
         'dim_tipo_trabajo': ('descripcion', 'tipo', 'nombre', 'codigo'),
         'dim_codigo_trabajo': ('descripcion', 'cod_trabajo', 'codigo', 'nombre'),
@@ -151,74 +150,17 @@ def get_dim_all(user: str, password: str, schema: str):
     """
     Devuelve dict con las listas de dimensiones para la UI,
     detectando automáticamente la columna visible:
-      - dim_ot
       - dim_red
       - dim_tipo_trabajo
       - dim_codigo_trabajo
       - dim_tipos_rep
     """
     return {
-        'OT': _fetch_dim_list_guess(user, password, schema, 'dim_ot'),
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
         'TIPOS_REP': _fetch_dim_list_guess(user, password, schema, 'dim_tipos_rep'),
     }
-
-
-def add_dim_ot(user: str, password: str, schema: str, ot_codigo: str, descripcion: str = None):
-    """
-    Añade un nuevo código de OT a la tabla dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            # Detectar la columna de texto
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                query_insert = "INSERT INTO dim_ot (ot_codigo, {}) VALUES (%s, %s)".format(text_col)
-                cur.execute(query_insert, (ot_codigo, descripcion or ot_codigo))
-            else:
-                cur.execute("INSERT INTO dim_ot (ot_codigo) VALUES (%s)", (ot_codigo,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
-
-
-def get_all_dim_ot(user: str, password: str, schema: str):
-    """
-    Devuelve todos los registros de dim_ot.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            text_col = _guess_text_column(user, password, schema, 'dim_ot')
-            if text_col:
-                cur.execute(f"SELECT id, ot_codigo, {text_col} FROM dim_ot ORDER BY ot_codigo")
-            else:
-                cur.execute("SELECT id, ot_codigo FROM dim_ot ORDER BY ot_codigo")
-            rows = cur.fetchall()
-            cur.close()
-            return rows
-    except Exception as e:
-        return []
-
-
-def delete_dim_ot(user: str, password: str, schema: str, ot_id: int):
-    """
-    Elimina un código de OT.
-    """
-    try:
-        with get_project_connection(user, password, schema) as cn:
-            cur = cn.cursor()
-            cur.execute("DELETE FROM dim_ot WHERE id = %s", (ot_id,))
-            cn.commit()
-            cur.close()
-            return "ok"
-    except Exception as e:
-        return str(e)
 
 
 # ==================== GESTIÓN DE PARTES ====================
@@ -302,7 +244,7 @@ def get_parts_list(user, password, schema, limit=100, offset=0):
     Incluye: id, codigo, red, tipo, cod_trabajo, cod_trabajo_desc, tipo_rep,
              descripcion, presupuesto, certificado, estado, created_at, municipio,
              titulo, descripcion_corta, descripcion_larga, fecha_inicio, fecha_fin,
-             localizacion, comarca, provincia, latitud, longitud, trabajadores,
+             localizacion, comarca, provincia, concejo, latitud, longitud, trabajadores,
              observaciones, finalizada
 
     Note:
@@ -323,6 +265,11 @@ def get_parts_list(user, password, schema, limit=100, offset=0):
         provincia_col = _detect_text_column_cached(
             user, password, schema, 'dim_provincias',
             ('nombre', 'provincia_nombre', 'provincia', 'descripcion')
+        )
+        # Detectar columna de nombre en dim_concejos (si existe la tabla)
+        concejo_col = _detect_text_column_cached(
+            user, password, schema, 'dim_concejos',
+            ('nombre', 'concejo_nombre', 'concejo', 'descripcion')
         )
         estado_col = _detect_text_column_cached(
             user, password, schema, 'tbl_partes',
@@ -358,6 +305,7 @@ def get_parts_list(user, password, schema, limit=100, offset=0):
                 p.localizacion,
                 COALESCE(co.{comarca_col}, '')       AS comarca,
                 COALESCE(pr.{provincia_col}, '')     AS provincia,
+                COALESCE(cj.{concejo_col}, '')       AS concejo,
                 p.latitud,
                 p.longitud,
                 p.trabajadores,
@@ -371,13 +319,14 @@ def get_parts_list(user, password, schema, limit=100, offset=0):
             LEFT JOIN dim_municipios     m  ON m.id = p.municipio_id
             LEFT JOIN dim_comarcas       co ON co.id = m.comarca_id
             LEFT JOIN dim_provincias     pr ON pr.id = m.provincia_id
+            LEFT JOIN dim_concejos       cj ON cj.id = p.concejo_id
             LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id
             LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id
             LEFT JOIN tbl_parte_estados pe ON pe.id = p.{estado_col}
             GROUP BY p.id, p.codigo, rd.descripcion, tt.descripcion, ct.{cod_trabajo_col},
                      tr.descripcion, p.descripcion, pe.nombre, p.creado_en, m.{municipio_col},
                      p.titulo, p.descripcion_corta, p.descripcion_larga, p.fecha_inicio, p.fecha_fin,
-                     p.localizacion, co.{comarca_col}, pr.{provincia_col}, p.latitud, p.longitud,
+                     p.localizacion, co.{comarca_col}, pr.{provincia_col}, cj.{concejo_col}, p.latitud, p.longitud,
                      p.trabajadores, p.observaciones, p.finalizada
             ORDER BY p.id DESC
             LIMIT %s OFFSET %s
@@ -424,7 +373,7 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
     Devuelve: id, codigo, descripcion, estado, red, tipo, cod_trabajo, tipo_rep,
               presupuesto, certificado, pendiente, titulo, descripcion_corta, descripcion_larga,
               fecha_inicio, fecha_fin, created_at, updated_at, localizacion, municipio, comarca,
-              provincia, latitud, longitud, trabajadores, observaciones
+              provincia, concejo, latitud, longitud, trabajadores, observaciones
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -437,6 +386,7 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         municipio_col = _guess_text_column(user, password, schema, 'dim_municipios') if 'municipio_id' in columns else None
         comarca_col = _guess_text_column(user, password, schema, 'dim_comarcas') if 'municipio_id' in columns else None
         provincia_col = _guess_text_column(user, password, schema, 'dim_provincias') if 'municipio_id' in columns else None
+        concejo_col = _guess_text_column(user, password, schema, 'dim_concejos') if 'concejo_id' in columns else None
 
         # Construir SELECT dinámicamente con todas las columnas disponibles
         query_parts = []
@@ -475,6 +425,12 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         else:
             query_parts.append("'' AS provincia")
 
+        # Usar columna detectada dinámicamente para concejo
+        if 'concejo_id' in columns and concejo_col:
+            query_parts.append(f"COALESCE(cj.{concejo_col}, '') AS concejo")
+        else:
+            query_parts.append("'' AS concejo")
+
         query_parts.append("p.latitud" if 'latitud' in columns else "NULL AS latitud")
         query_parts.append("p.longitud" if 'longitud' in columns else "NULL AS longitud")
         query_parts.append("p.trabajadores" if 'trabajadores' in columns else "NULL AS trabajadores")
@@ -495,6 +451,8 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
             from_clause += " LEFT JOIN dim_comarcas cm ON cm.id = m.comarca_id"
         if 'municipio_id' in columns and provincia_col:
             from_clause += " LEFT JOIN dim_provincias pr ON pr.id = m.provincia_id"
+        if 'concejo_id' in columns and concejo_col:
+            from_clause += " LEFT JOIN dim_concejos cj ON cj.id = p.concejo_id"
 
         # GROUP BY
         group_by = "GROUP BY p.id, p.codigo, p.descripcion, p.estado"
@@ -523,6 +481,8 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
             group_by += f", cm.{comarca_col}"
         if 'municipio_id' in columns and provincia_col:
             group_by += f", pr.{provincia_col}"
+        if 'concejo_id' in columns and concejo_col:
+            group_by += f", cj.{concejo_col}"
         if 'latitud' in columns:
             group_by += ", p.latitud"
         if 'longitud' in columns:
@@ -550,7 +510,8 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
       9: observaciones, 10: creado_en, 11: actualizado_en,
       12: titulo, 13: fecha_inicio, 14: fecha_fin,
       15: localizacion, 16: latitud, 17: longitud, 18: trabajadores,
-      19: descripcion_corta, 20: descripcion_larga, 21: comarca_id, 22: id_municipio
+      19: descripcion_corta, 20: descripcion_larga, 21: comarca_id, 22: id_municipio,
+      23: concejo_id
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
@@ -645,6 +606,12 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         else:
             select_cols.append('NULL as id_municipio')
 
+        # Concejo (entidad local menor)
+        if 'concejo_id' in columns:
+            select_cols.append('concejo_id')
+        else:
+            select_cols.append('NULL as concejo_id')
+
         query = f"SELECT {', '.join(select_cols)} FROM tbl_partes WHERE id = %s"
         cur.execute(query, (parte_id,))
         row = cur.fetchone()
@@ -655,7 +622,7 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
 def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
                    red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                    descripcion: str = None, estado: int = 1, observaciones: str = None,
-                   municipio_id: int = None, tipo_rep_id: int = None,
+                   municipio_id: int = None, concejo_id: int = None, tipo_rep_id: int = None,
                    titulo: str = None, fecha_fin=None,
                    trabajadores: str = None, localizacion: str = None,
                    latitud: float = None, longitud: float = None):
@@ -667,6 +634,7 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
         estado: ID numérico del estado (FK a tbl_parte_estados, por defecto 1=Pendiente)
         observaciones: Observaciones del parte
         municipio_id: ID del municipio
+        concejo_id: ID del concejo (entidad local menor dentro del municipio)
         tipo_rep_id: ID del tipo de reparación (FK a dim_tipos_rep)
         titulo, trabajadores, localizacion: Campos de texto
         fecha_fin: Fecha de finalización (date o str)
@@ -703,6 +671,10 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
             if 'municipio_id' in columns:
                 set_clauses.append("municipio_id = %s")
                 values.append(municipio_id)
+
+            if 'concejo_id' in columns:
+                set_clauses.append("concejo_id = %s")
+                values.append(concejo_id)
 
             if 'tipo_rep_id' in columns:
                 set_clauses.append("tipo_rep_id = %s")
@@ -1342,6 +1314,80 @@ def get_municipios_by_provincia(user: str, password: str, schema: str, provincia
         return []
 
 
+@cached_dimension_query('dim_concejos')
+def get_concejos_by_municipio(user: str, password: str, schema: str, municipio_id: int = None):
+    """
+    Obtiene lista de concejos filtrados por municipio.
+
+    Los concejos son entidades locales menores dentro de municipios,
+    principalmente en la provincia de Álava.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        municipio_id: ID de municipio para filtrar (None = todos)
+
+    Returns:
+        list: Lista de strings formato "id - nombre"
+
+    Note:
+        Los resultados se cachean automáticamente con TTL de 1 hora.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Verificar si existe la tabla dim_concejos
+            cur.execute(f"""
+                SELECT COUNT(*)
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_concejos'
+            """, (schema,))
+            if cur.fetchone()[0] == 0:
+                cur.close()
+                return []  # Tabla no existe, devolver lista vacía
+
+            # Detectar si existe columna activo
+            cur.execute(f"""
+                SELECT COUNT(*)
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'dim_concejos'
+                AND COLUMN_NAME = 'activo'
+            """, (schema,))
+            tiene_activo = cur.fetchone()[0] > 0
+
+            # Construir WHERE clause dinámicamente
+            where_parts = []
+            params = []
+
+            if municipio_id:
+                where_parts.append("municipio_id = %s")
+                params.append(municipio_id)
+
+            if tiene_activo:
+                where_parts.append("activo = 1")
+
+            where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+
+            query = f"""
+                SELECT id, nombre
+                FROM {schema}.dim_concejos
+                WHERE {where_clause}
+                ORDER BY nombre
+            """
+
+            cur.execute(query, tuple(params))
+            rows = cur.fetchall()
+            cur.close()
+            return [f"{row[0]} - {row[1]}" for row in rows]
+    except Exception as e:
+        logger.error(f"Error al obtener concejos: {e}")
+        return []
+
+
 def add_parte_mejorado(user: str, password: str, schema: str,
                        red_id: int, tipo_trabajo_id: int, cod_trabajo_id: int,
                        titulo: str = None,
@@ -1356,6 +1402,7 @@ def add_parte_mejorado(user: str, password: str, schema: str,
                        provincia_id: int = None,
                        comarca_id: int = None,
                        municipio_id: int = None,
+                       concejo_id: int = None,
                        trabajadores: str = None,
                        latitud: float = None,
                        longitud: float = None):
@@ -1398,27 +1445,38 @@ def add_parte_mejorado(user: str, password: str, schema: str,
         # Obtener prefijo del tipo de trabajo (OT, GF o TP)
         prefix = _get_tipo_trabajo_prefix(user, password, schema, tipo_trabajo_id)
 
-        # Generar código único para este prefijo (formato: PREFIX-NNNN)
+        # Generar código único por prefijo (formato: PREFIX/NNNN)
+        # Cada tipo de trabajo (GF, OT, TP) tiene su propia secuencia independiente
+        # NOTA: Los códigos existentes usan barra / como separador (OT/0001, TP/0002)
         query_next = (
             "SELECT COALESCE(MAX("
-            "CAST(SUBSTRING_INDEX(codigo, '-', -1) AS UNSIGNED)"
+            "CAST(SUBSTRING_INDEX(codigo, '/', -1) AS UNSIGNED)"
             "), 0) + 1 "
             "FROM " + schema + ".tbl_partes "
-            "WHERE codigo LIKE %s"
+            "WHERE codigo IS NOT NULL AND codigo LIKE %s"
         )
-        pattern = f"{prefix}-%"
+        pattern = f"{prefix}/%"
         cur.execute(query_next, (pattern,))
 
         # Convertir a int explícitamente para evitar problemas con Decimal
         next_num = int(cur.fetchone()[0])
-        codigo = f"{prefix}-{next_num:04d}"
+        codigo = f"{prefix}/{next_num:04d}"
 
         # Verificar qué columnas existen en tbl_partes (con caché)
         columns = set(_get_table_columns_cached(user, password, schema, 'tbl_partes'))
 
         # Construir INSERT dinámicamente según columnas disponibles
-        insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id', 'cod_trabajo_id']
-        insert_vals = [codigo, red_id, tipo_trabajo_id, cod_trabajo_id]
+        # cod_trabajo_id y tipo_rep_id son opcionales según el tipo de trabajo:
+        # GF (ID 1): Ninguno
+        # OT (ID 2): Solo tipo_rep_id
+        # TP (ID 3): Solo cod_trabajo_id
+        insert_cols = ['codigo', 'red_id', 'tipo_trabajo_id']
+        insert_vals = [codigo, red_id, tipo_trabajo_id]
+
+        # Solo incluir cod_trabajo_id si tiene valor (TP - Trabajos Programados)
+        if cod_trabajo_id is not None:
+            insert_cols.append('cod_trabajo_id')
+            insert_vals.append(cod_trabajo_id)
 
         # Campos nuevos (añadir solo si la columna existe)
         if 'titulo' in columns and titulo:
@@ -1472,6 +1530,11 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             col = 'municipio_id' if 'municipio_id' in columns else 'id_municipio'
             insert_cols.append(col)
             insert_vals.append(municipio_id)
+
+        if ('concejo_id' in columns or 'id_concejo' in columns) and concejo_id:
+            col = 'concejo_id' if 'concejo_id' in columns else 'id_concejo'
+            insert_cols.append(col)
+            insert_vals.append(concejo_id)
 
         if 'trabajadores' in columns and trabajadores:
             insert_cols.append('trabajadores')
