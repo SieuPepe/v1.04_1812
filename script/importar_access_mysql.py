@@ -157,41 +157,79 @@ def conectar_mysql(host: str, port: int, user: str, password: str, database: str
 # CARGA DE DATOS GEOGRÁFICOS
 # ============================================================================
 
-def cargar_comarcas(cursor) -> List[Dict]:
-    """Carga todas las comarcas de MySQL."""
-    cursor.execute("""
-        SELECT id, comarca_codigo, comarca_nombre
-        FROM dim_comarcas
-        WHERE comarca_nombre NOT LIKE 'Todo%'
-        ORDER BY comarca_nombre
-    """)
+def cargar_comarcas(cursor, incluir_especiales: bool = False) -> List[Dict]:
+    """Carga comarcas de MySQL. Si incluir_especiales=True, incluye Todo/Varios."""
+    if incluir_especiales:
+        cursor.execute("""
+            SELECT id, comarca_codigo, comarca_nombre
+            FROM dim_comarcas
+            ORDER BY
+                CASE WHEN comarca_nombre LIKE 'Todo%' THEN 0
+                     WHEN comarca_nombre LIKE 'Varios%' THEN 1
+                     ELSE 2 END,
+                comarca_nombre
+        """)
+    else:
+        cursor.execute("""
+            SELECT id, comarca_codigo, comarca_nombre
+            FROM dim_comarcas
+            WHERE comarca_nombre NOT LIKE 'Todo%'
+              AND comarca_nombre NOT LIKE 'Varios%'
+            ORDER BY comarca_nombre
+        """)
     return cursor.fetchall()
 
 
-def cargar_municipios(cursor) -> List[Dict]:
-    """Carga todos los municipios de MySQL con su comarca."""
-    cursor.execute("""
-        SELECT m.id, m.codigo_ine, m.municipio_nombre, m.comarca_id, c.comarca_nombre
-        FROM dim_municipios m
-        JOIN dim_comarcas c ON m.comarca_id = c.id
-        WHERE m.activo = 1
-          AND m.municipio_nombre NOT LIKE 'Todo%'
-          AND m.municipio_nombre NOT LIKE 'Varios%'
-        ORDER BY m.municipio_nombre
-    """)
+def cargar_municipios(cursor, incluir_especiales: bool = False) -> List[Dict]:
+    """Carga municipios de MySQL con su comarca. Si incluir_especiales=True, incluye Todo/Varios."""
+    if incluir_especiales:
+        cursor.execute("""
+            SELECT m.id, m.codigo_ine, m.municipio_nombre, m.comarca_id, c.comarca_nombre
+            FROM dim_municipios m
+            JOIN dim_comarcas c ON m.comarca_id = c.id
+            WHERE m.activo = 1
+            ORDER BY
+                CASE WHEN m.municipio_nombre LIKE 'Todo%' THEN 0
+                     WHEN m.municipio_nombre LIKE 'Varios%' THEN 1
+                     ELSE 2 END,
+                m.municipio_nombre
+        """)
+    else:
+        cursor.execute("""
+            SELECT m.id, m.codigo_ine, m.municipio_nombre, m.comarca_id, c.comarca_nombre
+            FROM dim_municipios m
+            JOIN dim_comarcas c ON m.comarca_id = c.id
+            WHERE m.activo = 1
+              AND m.municipio_nombre NOT LIKE 'Todo%'
+              AND m.municipio_nombre NOT LIKE 'Varios%'
+            ORDER BY m.municipio_nombre
+        """)
     return cursor.fetchall()
 
 
-def cargar_concejos(cursor) -> List[Dict]:
-    """Carga todos los concejos de MySQL con su municipio."""
-    cursor.execute("""
-        SELECT c.id, c.municipio_id, c.nombre, m.municipio_nombre
-        FROM dim_concejos c
-        JOIN dim_municipios m ON c.municipio_id = m.id
-        WHERE c.activo = 1
-          AND c.nombre NOT LIKE 'Varios%'
-        ORDER BY c.nombre
-    """)
+def cargar_concejos(cursor, incluir_especiales: bool = False) -> List[Dict]:
+    """Carga concejos de MySQL con su municipio. Si incluir_especiales=True, incluye Varios."""
+    if incluir_especiales:
+        cursor.execute("""
+            SELECT c.id, c.municipio_id, c.nombre, m.municipio_nombre
+            FROM dim_concejos c
+            JOIN dim_municipios m ON c.municipio_id = m.id
+            WHERE c.activo = 1
+            ORDER BY
+                CASE WHEN c.nombre LIKE 'Todo%' THEN 0
+                     WHEN c.nombre LIKE 'Varios%' THEN 1
+                     ELSE 2 END,
+                c.nombre
+        """)
+    else:
+        cursor.execute("""
+            SELECT c.id, c.municipio_id, c.nombre, m.municipio_nombre
+            FROM dim_concejos c
+            JOIN dim_municipios m ON c.municipio_id = m.id
+            WHERE c.activo = 1
+              AND c.nombre NOT LIKE 'Varios%'
+            ORDER BY c.nombre
+        """)
     return cursor.fetchall()
 
 
@@ -323,7 +361,9 @@ def seleccionar_de_lista(lista: List[Dict], campo_nombre: str, titulo: str, filt
             print("  Opción inválida.")
 
 
-def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Optional[Dict]:
+def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict],
+                                   comarcas_todas: List[Dict] = None, municipios_todos: List[Dict] = None,
+                                   concejos_todos: List[Dict] = None) -> Optional[Dict]:
     """
     Procesa un registro de forma interactiva y devuelve el mapeo geográfico.
 
@@ -331,7 +371,15 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
     - COMARCA (Access) → Municipio (MySQL)
     - LOCALIZACIÓN (Access) → Concejo (MySQL)
     - Comarca MySQL se deriva del municipio
+
+    Args:
+        comarcas, municipios, concejos: Listas filtradas (sin Todo/Varios) para sugerencias automáticas
+        comarcas_todas, municipios_todos, concejos_todos: Listas completas para selección manual
     """
+    # Usar listas completas para selección manual si están disponibles
+    comarcas_manual = comarcas_todas if comarcas_todas else comarcas
+    municipios_manual = municipios_todos if municipios_todos else municipios
+    concejos_manual = concejos_todos if concejos_todos else concejos
     localizacion = registro.get('LOCALIZACIÓN', registro.get('LOCALIZACION', '')).strip()
     comarca_access = registro.get('COMARCA', '').strip()
 
@@ -426,21 +474,21 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
             elif num == opcion_manual:  # Selección manual
                 print("\n  === SELECCIÓN MANUAL ===")
 
-                # 1. Seleccionar Comarca
-                comarca_sel = seleccionar_de_lista(comarcas, 'comarca_nombre', 'COMARCA')
+                # 1. Seleccionar Comarca (usando lista completa con Todo/Varios)
+                comarca_sel = seleccionar_de_lista(comarcas_manual, 'comarca_nombre', 'COMARCA')
                 if not comarca_sel:
                     continue
 
-                # 2. Seleccionar Municipio (filtrado por comarca)
+                # 2. Seleccionar Municipio (filtrado por comarca, usando lista completa)
                 municipio_sel = seleccionar_de_lista(
-                    municipios, 'municipio_nombre', 'MUNICIPIO',
+                    municipios_manual, 'municipio_nombre', 'MUNICIPIO',
                     filtro_campo='comarca_id', filtro_valor=comarca_sel['id']
                 )
                 if not municipio_sel:
                     continue
 
-                # 3. Seleccionar Concejo (filtrado por municipio)
-                concejos_municipio = [c for c in concejos if c['municipio_id'] == municipio_sel['id']]
+                # 3. Seleccionar Concejo (filtrado por municipio, usando lista completa)
+                concejos_municipio = [c for c in concejos_manual if c['municipio_id'] == municipio_sel['id']]
 
                 concejo_id = None
                 concejo_nombre = f"Todo {municipio_sel['municipio_nombre']}"
@@ -478,7 +526,9 @@ def procesar_registro_interactivo(registro: Dict, comarcas: List[Dict], municipi
             print("  Entrada inválida.")
 
 
-def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict]) -> Tuple[Dict, List[Dict]]:
+def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], municipios: List[Dict], concejos: List[Dict],
+                               comarcas_todas: List[Dict] = None, municipios_todos: List[Dict] = None,
+                               concejos_todos: List[Dict] = None) -> Tuple[Dict, List[Dict]]:
     """
     Procesa el mapeo geográfico de todos los registros.
 
@@ -486,6 +536,10 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
     - COMARCA (Access) → Municipio (MySQL)
     - LOCALIZACIÓN (Access) → Concejo (MySQL)
     - Comarca MySQL se deriva del municipio encontrado
+
+    Args:
+        comarcas, municipios, concejos: Listas filtradas para matching automático
+        comarcas_todas, municipios_todos, concejos_todos: Listas completas para selección manual
 
     Retorna: (mapeo_por_registro, correcciones_realizadas)
     """
@@ -643,7 +697,10 @@ def procesar_mapeo_geografico(listado_ots: List[Dict], comarcas: List[Dict], mun
         for i, registro in enumerate(problematicos, 1):
             print(f"\n--- Registro {i}/{len(problematicos)} ---")
 
-            resultado = procesar_registro_interactivo(registro, comarcas, municipios, concejos)
+            resultado = procesar_registro_interactivo(
+                registro, comarcas, municipios, concejos,
+                comarcas_todas, municipios_todos, concejos_todos
+            )
 
             if resultado:
                 id_reg = registro.get('ID', registro.get('Id', ''))
@@ -1023,16 +1080,25 @@ Ejemplo de uso:
         sys.exit(0)
 
     # FASE 3: Mapeo geográfico
-    comarcas = cargar_comarcas(cursor)
-    municipios = cargar_municipios(cursor)
-    concejos = cargar_concejos(cursor)
+    # Listas filtradas para matching automático (sin Todo/Varios)
+    comarcas = cargar_comarcas(cursor, incluir_especiales=False)
+    municipios = cargar_municipios(cursor, incluir_especiales=False)
+    concejos = cargar_concejos(cursor, incluir_especiales=False)
+
+    # Listas completas para selección manual (con Todo/Varios)
+    comarcas_todas = cargar_comarcas(cursor, incluir_especiales=True)
+    municipios_todos = cargar_municipios(cursor, incluir_especiales=True)
+    concejos_todos = cargar_concejos(cursor, incluir_especiales=True)
 
     print(f"\nDatos geográficos cargados:")
-    print(f"  Comarcas: {len(comarcas)}")
-    print(f"  Municipios: {len(municipios)}")
-    print(f"  Concejos: {len(concejos)}")
+    print(f"  Comarcas: {len(comarcas)} (+ {len(comarcas_todas) - len(comarcas)} especiales)")
+    print(f"  Municipios: {len(municipios)} (+ {len(municipios_todos) - len(municipios)} especiales)")
+    print(f"  Concejos: {len(concejos)} (+ {len(concejos_todos) - len(concejos)} especiales)")
 
-    mapeo, correcciones = procesar_mapeo_geografico(listado_ots, comarcas, municipios, concejos)
+    mapeo, correcciones = procesar_mapeo_geografico(
+        listado_ots, comarcas, municipios, concejos,
+        comarcas_todas, municipios_todos, concejos_todos
+    )
 
     # FASE 4: Importar datos
     print("\n" + "="*70)
