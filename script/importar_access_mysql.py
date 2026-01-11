@@ -1055,11 +1055,12 @@ def importar_mediciones_ots(cursor, conn, mediciones: List[Dict], mapeo_access_m
                 cod_precio = cod_precio_raw
             precio_id = precios_db.get(cod_precio)
 
-            if not precio_id and cod_precio:
-                if cod_precio not in precios_no_encontrados:
+            if not precio_id:
+                if cod_precio and cod_precio not in precios_no_encontrados:
                     precios_no_encontrados.add(cod_precio)
                     if len(precios_no_encontrados) <= 5:
                         print(f"  DEBUG: Código precio '{cod_precio}' no encontrado")
+                continue  # Saltar mediciones sin precio válido
 
             cantidad_str = row.get('CANTIDAD', '0').replace(',', '.')
             try:
