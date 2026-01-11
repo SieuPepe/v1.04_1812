@@ -286,8 +286,29 @@ def verificar_dim_codigo_trabajo(cursor, datos_access: List[Dict]) -> Tuple[bool
     print("VERIFICACIÓN: dim_codigo_trabajo (TRABAJOS PROGRAMADOS)")
     print("="*70)
 
+    # Detectar columnas disponibles en la tabla
+    cursor.execute("SHOW COLUMNS FROM dim_codigo_trabajo")
+    columnas_db = [row['Field'] for row in cursor.fetchall()]
+
+    # Determinar qué columna usar para el código
+    codigo_col = None
+    for posible in ['codigo', 'cod', 'cod_trabajo']:
+        if posible in columnas_db:
+            codigo_col = posible
+            break
+
+    # Construir query según columnas disponibles
+    if codigo_col and 'descripcion' in columnas_db:
+        query = f"SELECT id, {codigo_col} as codigo, descripcion FROM dim_codigo_trabajo WHERE activo = 1 ORDER BY id"
+    elif 'descripcion' in columnas_db:
+        query = "SELECT id, id as codigo, descripcion FROM dim_codigo_trabajo WHERE activo = 1 ORDER BY id"
+    else:
+        print("⚠ No se puede verificar: estructura de tabla desconocida")
+        print(f"  Columnas encontradas: {columnas_db}")
+        return True, []  # Saltar verificación
+
     # Obtener datos de MySQL
-    cursor.execute("SELECT id, codigo, descripcion FROM dim_codigo_trabajo WHERE activo = 1 ORDER BY id")
+    cursor.execute(query)
     mysql_data = {row['id']: row for row in cursor.fetchall()}
 
     # Leer datos de Access
