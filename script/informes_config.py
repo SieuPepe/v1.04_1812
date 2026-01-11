@@ -10,7 +10,8 @@ Define categorías, tipos de informes, campos, operadores, etc.
 
 CATEGORIAS_INFORMES = {
     "📊 Partes": [
-        "Listado de Partes"
+        "Listado de Partes",
+        "Trabajos Programados"
     ],
 
     "📦 Recursos": [
@@ -445,6 +446,147 @@ INFORMES_DEFINICIONES = {
             "presupuesto",
             "certificado",
             "pendiente"
+        ]
+    },
+
+    "Trabajos Programados": {
+        "categoria": "📊 Partes",
+        "descripcion": "Listado de trabajos programados agrupados por Código de Trabajo. En Excel genera una pestaña por cada código, en PDF una sección por código.",
+        "tabla_principal": "tbl_partes",
+
+        # Flag especial: agrupar por codigo_trabajo al exportar
+        "agrupar_export_por": "codigo_trabajo",
+
+        # Campos fijos - el usuario no puede modificar la selección
+        "campos_fijos": True,
+
+        # Campos disponibles para mostrar (mismo que Listado de Partes pero solo los necesarios)
+        "campos": {
+            "codigo": {
+                "nombre": "Código",
+                "tipo": "texto",
+                "columna_bd": "codigo",
+                "grupo": "Información Básica"
+            },
+            "fecha_inicio": {
+                "nombre": "Fecha Inicio",
+                "tipo": "fecha",
+                "columna_bd": "fecha_inicio",
+                "grupo": "Fechas"
+            },
+            "fecha_fin": {
+                "nombre": "Fecha Fin",
+                "tipo": "fecha",
+                "columna_bd": "fecha_fin",
+                "grupo": "Fechas"
+            },
+            "titulo": {
+                "nombre": "Título",
+                "tipo": "texto",
+                "columna_bd": "titulo",
+                "grupo": "Información Básica"
+            },
+            "descripcion": {
+                "nombre": "Descripción",
+                "tipo": "texto",
+                "columna_bd": "descripcion",
+                "grupo": "Información Básica"
+            },
+            "red": {
+                "nombre": "Red",
+                "tipo": "dimension",
+                "columna_bd": "red_id",
+                "tabla_dimension": "dim_red",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "comarca": {
+                "nombre": "Comarca",
+                "tipo": "dimension",
+                "columna_bd": "comarca_id",
+                "tabla_dimension": "dim_comarcas",
+                "campo_nombre": "comarca_nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "municipio": {
+                "nombre": "Municipio",
+                "tipo": "dimension",
+                "columna_bd": "municipio_id",
+                "tabla_dimension": "dim_municipios",
+                "campo_nombre": "municipio_nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "concejo": {
+                "nombre": "Concejo",
+                "tipo": "dimension",
+                "columna_bd": "concejo_id",
+                "tabla_dimension": "dim_concejos",
+                "campo_nombre": "nombre",
+                "grupo": "Ubicación Geográfica"
+            },
+            "tipo_trabajo": {
+                "nombre": "Tipo de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "tipo_trabajo_id",
+                "tabla_dimension": "dim_tipo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "codigo_trabajo": {
+                "nombre": "Código de Trabajo",
+                "tipo": "dimension",
+                "columna_bd": "cod_trabajo_id",
+                "tabla_dimension": "dim_codigo_trabajo",
+                "campo_nombre": "descripcion",
+                "grupo": "Dimensiones Técnicas"
+            },
+            "mes": {
+                "nombre": "Mes",
+                "tipo": "calculado",
+                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "grupo": "Temporal"
+            }
+        },
+
+        # Solo filtro de mes disponible
+        "filtros": {
+            "mes": {
+                "campo": "mes",
+                "tipo": "mes_anio",
+                "operadores": ["Igual a", "Posterior a", "Anterior a", "Entre"]
+            }
+        },
+
+        # Ordenaciones por defecto
+        "ordenaciones": [
+            "codigo_trabajo",
+            "fecha_inicio",
+            "codigo"
+        ],
+
+        # Sin agrupaciones para este informe
+        "agrupaciones": {
+            "campos_permitidos": [],
+            "max_niveles": 0,
+            "modo_default": "detalle"
+        },
+
+        # Sin agregaciones para este informe
+        "agregaciones": {},
+
+        # Campos por defecto seleccionados (en el orden especificado)
+        "campos_default": [
+            "codigo",
+            "fecha_inicio",
+            "fecha_fin",
+            "titulo",
+            "descripcion",
+            "red",
+            "comarca",
+            "municipio",
+            "concejo",
+            "tipo_trabajo",
+            "codigo_trabajo"
         ]
     },
 
