@@ -2179,15 +2179,6 @@ class AppPartsManager(customtkinter.CTk):
             except ValueError:
                 pass
 
-            # VALIDACIÓN: Fecha fin obligatoria si estado es "Finalizado"
-            if estado_texto == "Finalizado" and not fecha_fin:
-                CTkMessagebox(
-                    title="Campo obligatorio",
-                    message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
-                    icon="warning"
-                )
-                return
-
             print(f"DEBUG - Guardando parte {parte_id}:")
             print(f"  IDs: Red={red_id}, Tipo={tipo_id}, Cod={cod_id}, TipoRep={tipo_rep_id}")
             print(f"  Geografía: Provincia={provincia_id}, Comarca={comarca_id}, Municipio={municipio_id}, Concejo={concejo_id}")

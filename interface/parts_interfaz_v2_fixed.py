@@ -541,16 +541,6 @@ class AppPartsV2(customtkinter.CTkToplevel):
             CTkMessagebox(title="Campo obligatorio", message="El Concejo es obligatorio", icon="warning")
             return
 
-        # VALIDACIÓN ESPECIAL: Si estado es "Finalizado", Fecha Fin es obligatoria
-        fecha_fin_str = self.fecha_fin_entry.get()
-        if estado_nombre.lower() == "finalizado" and not fecha_fin_str:
-            CTkMessagebox(
-                title="Campo obligatorio",
-                message="⚠️ El campo 'Fecha Fin' es obligatorio cuando el estado es 'Finalizado'",
-                icon="warning"
-            )
-            return
-
         # Convertir fechas a formato MySQL
         def convert_date(date_str):
             if not date_str:
