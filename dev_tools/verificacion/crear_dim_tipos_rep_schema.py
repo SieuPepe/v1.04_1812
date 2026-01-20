@@ -81,10 +81,15 @@ def crear_dim_tipos_rep(user, password, schema):
 
 
 if __name__ == "__main__":
-    # Para testing rápido
-    USER = "root"
-    PASSWORD = "hydroflow"
-    SCHEMA = "cert_dev"  # Por defecto
+    # Credenciales desde variables de entorno (NUNCA hardcodear)
+    USER = os.getenv('DB_USER', 'root')
+    PASSWORD = os.getenv('DB_PASSWORD')
+    SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    if not PASSWORD:
+        print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+        print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+        sys.exit(1)
 
     if len(sys.argv) > 1:
         SCHEMA = sys.argv[1]

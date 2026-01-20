@@ -4,6 +4,7 @@ Script para insertar registros en tbl_partes por lotes pequeños
 para identificar problemas de integridad referencial
 """
 
+import os
 import pandas as pd
 import sys
 import mysql.connector
@@ -31,19 +32,29 @@ def format_value(val, dtype):
 def main():
     excel_file = "Para exportar.xlsx"
 
+    # Configuración desde variables de entorno (NUNCA hardcodear)
+    db_host = os.getenv('DB_HOST', 'localhost')
+    db_user = os.getenv('DB_USER', 'root')
+    db_password = os.getenv('DB_PASSWORD')
+    db_schema = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    if not db_password:
+        print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+        print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+        sys.exit(1)
+
     # Conectar a la base de datos
     try:
         conn = mysql.connector.connect(
-            host='localhost',
-            user='root',  # Ajustar según tu configuración
-            password='',  # Ajustar según tu configuración
-            database='cert_dev'  # Ajustar según tu configuración
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            database=db_schema
         )
         cursor = conn.cursor()
         print("✓ Conectado a la base de datos")
     except Exception as e:
         print(f"✗ Error al conectar a la base de datos: {e}")
-        print("\nNOTA: Ajusta las credenciales en el script antes de ejecutar")
         sys.exit(1)
 
     try:

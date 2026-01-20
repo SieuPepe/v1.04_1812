@@ -13,6 +13,7 @@ NOTA: Este script está preparado para múltiples escenarios:
   3. Importación desde CSV exportado manualmente
 """
 import sys
+import os
 import subprocess
 from pathlib import Path
 from datetime import datetime
@@ -192,10 +193,15 @@ def main():
         print(f"ERROR: El archivo '{archivo_accdb}' no existe")
         sys.exit(1)
 
-    # Configuración de base de datos MySQL
-    USER = 'root'
-    PASSWORD = 'root'
-    SCHEMA = 'cert_dev'
+    # Configuración de base de datos MySQL (desde variables de entorno)
+    USER = os.getenv('DB_USER', 'root')
+    PASSWORD = os.getenv('DB_PASSWORD')
+    SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    if not PASSWORD:
+        print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+        print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+        sys.exit(1)
 
     print(f"Archivo Access: {archivo_path.name}")
     print(f"Esquema MySQL: {SCHEMA}")

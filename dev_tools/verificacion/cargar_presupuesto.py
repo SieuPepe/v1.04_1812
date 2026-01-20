@@ -4,6 +4,7 @@ Script para cargar presupuesto desde archivo Excel
 HydroFlow Manager v1.04 - FASE 1: PREPARACIÓN DE DATOS
 """
 import sys
+import os
 from pathlib import Path
 
 # Añadir directorio raíz al path
@@ -16,10 +17,15 @@ from script.budget_import import budget_import
 def main():
     """Carga un presupuesto desde archivo Excel a la base de datos."""
 
-    # Configuración
-    USER = 'root'
-    PASSWORD = 'root'
-    SCHEMA = 'cert_dev'
+    # Configuración (desde variables de entorno - NUNCA hardcodear)
+    USER = os.getenv('DB_USER', 'root')
+    PASSWORD = os.getenv('DB_PASSWORD')
+    SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    if not PASSWORD:
+        print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+        print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+        sys.exit(1)
 
     if len(sys.argv) < 2:
         print("=" * 70)

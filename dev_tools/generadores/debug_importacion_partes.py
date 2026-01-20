@@ -4,6 +4,7 @@ Script de depuración para entender por qué no se encuentran los partes
 """
 
 import sys
+import os
 from pathlib import Path
 import pandas as pd
 
@@ -14,9 +15,15 @@ sys.path.insert(0, str(root_dir))
 from script.db_connection import get_project_connection
 
 EXCEL_FILE = 'MEDICIONES OTS.xlsx'
-DEFAULT_USER = 'root'
-DEFAULT_PASSWORD = 'Lauburu1969'
-DEFAULT_SCHEMA = 'cert_dev'
+# Credenciales desde variables de entorno (NUNCA hardcodear)
+DEFAULT_USER = os.getenv('DB_USER', 'root')
+DEFAULT_PASSWORD = os.getenv('DB_PASSWORD')  # Sin default - requiere configuración
+DEFAULT_SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
+
+if not DEFAULT_PASSWORD:
+    print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+    print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+    sys.exit(1)
 
 
 def debug_busqueda_partes():

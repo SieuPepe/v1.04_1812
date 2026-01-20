@@ -634,9 +634,20 @@ def open_parts_list(master, user, password, schema):
 
 
 if __name__ == "__main__":
+    import os
+    # Credenciales desde variables de entorno (NUNCA hardcodear)
+    test_user = os.getenv('DB_USER', 'root')
+    test_password = os.getenv('DB_PASSWORD')
+    test_schema = os.getenv('DB_SCHEMA', 'cert_dev')
+
+    if not test_password:
+        print("ERROR: Variable de entorno DB_PASSWORD no configurada")
+        print("Ejecuta: export DB_PASSWORD='tu_contraseña'")
+        exit(1)
+
     app = customtkinter.CTk()
     app.title("Test ventana - Listado de partes")
     btn = customtkinter.CTkButton(app, text="Abrir lista",
-                                  command=lambda: open_parts_list(app, "aperez", "WGueXNk9", "cert_dev"))
+                                  command=lambda: open_parts_list(app, test_user, test_password, test_schema))
     btn.pack(padx=20, pady=20)
     app.mainloop()

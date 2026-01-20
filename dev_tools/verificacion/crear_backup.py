@@ -18,13 +18,13 @@ sys.path.insert(0, str(root_dir))
 
 from script.db_config import get_config
 
-# Configuración usando valores centralizados
+# Configuración usando valores centralizados y variables de entorno
 config = get_config()
 HOST = config.host
 PORT = config.port
-USER = 'root'
-PASSWORD = None  # Se solicitará si no se proporciona
-SCHEMA = 'cert_dev'  # Esquema por defecto
+USER = os.getenv('DB_USER', 'root')
+PASSWORD = os.getenv('DB_PASSWORD')  # Se solicitará si no está configurada
+SCHEMA = os.getenv('DB_SCHEMA', 'cert_dev')
 BACKUP_DIR = Path(__file__).parent.parent / 'backup'
 
 
