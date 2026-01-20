@@ -1800,13 +1800,50 @@ class AppPartsManager(customtkinter.CTk):
                     pass
             row_left += 1
 
-            # NUEVO: Trabajadores
+            # NUEVO: Trabajadores (con desplegable)
             customtkinter.CTkLabel(left_frame, text="Trabajadores:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
-            self.trabajadores_entry = customtkinter.CTkEntry(left_frame)
-            self.trabajadores_entry.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+
+            # Frame para selector de trabajadores
+            trab_frame = customtkinter.CTkFrame(left_frame, fg_color="transparent")
+            trab_frame.grid(row=row_left, column=1, padx=5, pady=8, sticky="ew")
+
+            self.trabajadores_gestion_list = []  # Lista de trabajadores seleccionados
+            self.trabajadores_gestion_menu = customtkinter.CTkComboBox(
+                trab_frame, values=["Cargando..."], width=200, state="normal"
+            )
+            self.trabajadores_gestion_menu.pack(side="left", padx=(0, 5))
+            self.trabajadores_gestion_menu.set("")
+
+            customtkinter.CTkButton(
+                trab_frame, text="+", width=30, height=28,
+                command=self._add_trabajador_gestion
+            ).pack(side="left", padx=2)
+
+            customtkinter.CTkButton(
+                trab_frame, text="X", width=30, height=28,
+                fg_color="gray", hover_color="#555555",
+                command=self._clear_trabajadores_gestion
+            ).pack(side="left", padx=2)
+            row_left += 1
+
+            # Fila para mostrar trabajadores seleccionados
+            self.trabajadores_gestion_display = customtkinter.CTkLabel(
+                left_frame, text="(ninguno)", font=customtkinter.CTkFont(size=11),
+                text_color="gray", anchor="w", wraplength=350
+            )
+            self.trabajadores_gestion_display.grid(row=row_left, column=1, padx=5, pady=(0, 8), sticky="w")
+
+            # Cargar lista de trabajadores y datos existentes
+            self._load_trabajadores_gestion()
             if parte_data[18]:
-                self.trabajadores_entry.insert(0, parte_data[18])
+                # Parsear trabajadores existentes (separados por " | " o ", ")
+                existing = parte_data[18]
+                if " | " in existing:
+                    self.trabajadores_gestion_list = [t.strip() for t in existing.split(" | ") if t.strip()]
+                else:
+                    self.trabajadores_gestion_list = [t.strip() for t in existing.split(",") if t.strip()]
+                self._update_trabajadores_gestion_display()
             row_left += 1
 
             # NUEVO: Localización
@@ -1920,8 +1957,7 @@ class AppPartsManager(customtkinter.CTk):
         # Entry widgets
         if hasattr(self, 'titulo_entry'):
             self.titulo_entry.bind('<KeyRelease>', self._mark_as_changed)
-        if hasattr(self, 'trabajadores_entry'):
-            self.trabajadores_entry.bind('<KeyRelease>', self._mark_as_changed)
+        # trabajadores ahora usa ComboBox con lista, no Entry
         if hasattr(self, 'localizacion_entry'):
             self.localizacion_entry.bind('<KeyRelease>', self._mark_as_changed)
         if hasattr(self, 'latitud_entry'):
@@ -2067,6 +2103,58 @@ class AppPartsManager(customtkinter.CTk):
         if msg.get() == "Guardar":
             self._save_parte_changes(parte_id)
 
+    # -------------------------------------------------------------------------
+    # Métodos para gestión de trabajadores en edición de partes
+    # -------------------------------------------------------------------------
+
+    def _load_trabajadores_gestion(self):
+        """Carga la lista de trabajadores en el ComboBox de gestión."""
+        from script.modulo_db import get_trabajadores
+
+        try:
+            trabajadores = get_trabajadores(self.user, self.password, self.schema)
+            if trabajadores:
+                # trabajadores: [(id, nombre_completo), ...]
+                self._trabajadores_gestion_data = {t[1]: t[0] for t in trabajadores}
+                valores = [t[1] for t in trabajadores]
+                self.trabajadores_gestion_menu.configure(values=valores)
+                self.trabajadores_gestion_menu.set("")
+            else:
+                self._trabajadores_gestion_data = {}
+                self.trabajadores_gestion_menu.configure(values=["(sin trabajadores)"])
+        except Exception as e:
+            print(f"Error cargando trabajadores: {e}")
+            self._trabajadores_gestion_data = {}
+            self.trabajadores_gestion_menu.configure(values=["Error"])
+
+    def _add_trabajador_gestion(self):
+        """Añade el trabajador seleccionado a la lista."""
+        trabajador = self.trabajadores_gestion_menu.get().strip()
+        if not trabajador or trabajador in ["", "(sin trabajadores)", "Error", "Cargando..."]:
+            return
+
+        if trabajador not in self.trabajadores_gestion_list:
+            self.trabajadores_gestion_list.append(trabajador)
+            self._update_trabajadores_gestion_display()
+            self._mark_as_changed()
+
+        self.trabajadores_gestion_menu.set("")
+
+    def _clear_trabajadores_gestion(self):
+        """Limpia la lista de trabajadores seleccionados."""
+        if self.trabajadores_gestion_list:
+            self.trabajadores_gestion_list = []
+            self._update_trabajadores_gestion_display()
+            self._mark_as_changed()
+
+    def _update_trabajadores_gestion_display(self):
+        """Actualiza el label que muestra los trabajadores seleccionados."""
+        if self.trabajadores_gestion_list:
+            text = " | ".join(self.trabajadores_gestion_list)
+            self.trabajadores_gestion_display.configure(text=text, text_color="white")
+        else:
+            self.trabajadores_gestion_display.configure(text="(ninguno)", text_color="gray")
+
     def _save_parte_changes(self, parte_id):
         """Guarda los cambios del parte"""
         from script.modulo_db import mod_parte_item
@@ -2156,7 +2244,8 @@ class AppPartsManager(customtkinter.CTk):
             # Convertir texto a ID numérico (según tbl_parte_estados)
             estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
-            trabajadores = self.trabajadores_entry.get().strip() or None
+            # Obtener trabajadores de la lista seleccionada
+            trabajadores = " | ".join(self.trabajadores_gestion_list) if self.trabajadores_gestion_list else None
             localizacion = self.localizacion_entry.get().strip() or None
 
             # Fechas
