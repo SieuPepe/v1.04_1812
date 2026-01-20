@@ -942,8 +942,8 @@ class AppPartsManager(customtkinter.CTk):
         from collections import OrderedDict
 
         selector_window = customtkinter.CTkToplevel(self)
-        selector_window.title("Configurar Columnas - Resumen")
-        selector_window.geometry("500x600")
+        selector_window.title("Configurar Columnas")
+        selector_window.geometry("550x650")
         selector_window.transient(self)
         selector_window.grab_set()
 
@@ -951,115 +951,150 @@ class AppPartsManager(customtkinter.CTk):
         title_label = customtkinter.CTkLabel(
             selector_window,
             text="Configurar Columnas",
-            font=("", 16, "bold")
+            font=customtkinter.CTkFont(size=20, weight="bold")
         )
         title_label.pack(pady=(20, 5))
 
         subtitle = customtkinter.CTkLabel(
             selector_window,
-            text="Activa/desactiva columnas y usa ▲▼ para ordenarlas",
-            font=("", 11), text_color="gray"
+            text="Selecciona una columna y usa los botones para ordenar",
+            font=customtkinter.CTkFont(size=13), text_color="gray"
         )
-        subtitle.pack(pady=(0, 10))
+        subtitle.pack(pady=(0, 15))
 
-        # Frame principal con lista y botones de orden
+        # Frame principal
         main_frame = customtkinter.CTkFrame(selector_window)
         main_frame.pack(pady=10, padx=20, fill="both", expand=True)
         main_frame.grid_columnconfigure(0, weight=1)
         main_frame.grid_rowconfigure(0, weight=1)
 
-        # Lista de columnas (usando Listbox de tkinter para selección)
-        from tkinter import Listbox, SINGLE, END
-
-        # Frame para la lista
-        list_frame = customtkinter.CTkFrame(main_frame)
-        list_frame.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="nsew")
-        list_frame.grid_rowconfigure(0, weight=1)
-        list_frame.grid_columnconfigure(0, weight=1)
-
-        # Crear lista de columnas con checkboxes simulados
-        self._col_order_list = []  # [(col_name, visible), ...]
+        # Crear lista de columnas
+        self._col_order_list = []
         for col_name, col_info in self.resumen_columns.items():
             self._col_order_list.append((col_name, col_info["visible"], col_info["locked"]))
 
-        # Listbox para mostrar columnas
-        listbox = Listbox(list_frame, selectmode=SINGLE, font=("", 11), height=20, width=35)
-        listbox.grid(row=0, column=0, sticky="nsew")
+        # Variable para rastrear selección
+        self._selected_col_idx = None
+        self._col_frames = []
 
-        scrollbar_list = customtkinter.CTkScrollbar(list_frame, command=listbox.yview)
-        scrollbar_list.grid(row=0, column=1, sticky="ns")
-        listbox.configure(yscrollcommand=scrollbar_list.set)
+        # Scrollable frame para la lista
+        scroll_frame = customtkinter.CTkScrollableFrame(main_frame, width=320, height=380)
+        scroll_frame.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="nsew")
 
-        def refresh_listbox():
-            listbox.delete(0, END)
-            for col_name, visible, locked in self._col_order_list:
+        def select_item(idx):
+            self._selected_col_idx = idx
+            refresh_list()
+
+        def refresh_list():
+            # Limpiar frames anteriores
+            for frame in self._col_frames:
+                frame.destroy()
+            self._col_frames.clear()
+
+            for idx, (col_name, visible, locked) in enumerate(self._col_order_list):
                 col_info = self.resumen_columns.get(col_name, {"label": col_name})
-                prefix = "✓ " if visible else "○ "
-                suffix = " 🔒" if locked else ""
-                listbox.insert(END, f"{prefix}{col_info['label']}{suffix}")
 
-        refresh_listbox()
+                # Determinar colores según estado
+                is_selected = (idx == self._selected_col_idx)
+                if is_selected:
+                    bg_color = "#1f6aa5"
+                    text_color = "white"
+                else:
+                    bg_color = "#333333" if visible else "#222222"
+                    text_color = "white" if visible else "gray"
+
+                # Frame para cada item
+                item_frame = customtkinter.CTkFrame(scroll_frame, fg_color=bg_color, corner_radius=5)
+                item_frame.pack(fill="x", pady=2, padx=5)
+                item_frame.bind("<Button-1>", lambda e, i=idx: select_item(i))
+
+                # Icono de estado
+                icon = "✓" if visible else "○"
+                lock_icon = " 🔒" if locked else ""
+
+                label = customtkinter.CTkLabel(
+                    item_frame,
+                    text=f"  {icon}  {col_info['label']}{lock_icon}",
+                    font=customtkinter.CTkFont(size=14),
+                    text_color=text_color,
+                    anchor="w"
+                )
+                label.pack(fill="x", padx=10, pady=8)
+                label.bind("<Button-1>", lambda e, i=idx: select_item(i))
+
+                self._col_frames.append(item_frame)
+
+        refresh_list()
 
         # Frame para botones de control
         btn_control_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
         btn_control_frame.grid(row=0, column=1, padx=(5, 10), pady=10, sticky="ns")
 
         def move_up():
-            idx = listbox.curselection()
-            if idx and idx[0] > 0:
-                i = idx[0]
-                # No mover por encima de columnas locked
-                if i > 0:
-                    self._col_order_list[i], self._col_order_list[i-1] = \
-                        self._col_order_list[i-1], self._col_order_list[i]
-                    refresh_listbox()
-                    listbox.selection_set(i-1)
+            if self._selected_col_idx is not None and self._selected_col_idx > 0:
+                i = self._selected_col_idx
+                self._col_order_list[i], self._col_order_list[i-1] = \
+                    self._col_order_list[i-1], self._col_order_list[i]
+                self._selected_col_idx = i - 1
+                refresh_list()
 
         def move_down():
-            idx = listbox.curselection()
-            if idx and idx[0] < len(self._col_order_list) - 1:
-                i = idx[0]
+            if self._selected_col_idx is not None and self._selected_col_idx < len(self._col_order_list) - 1:
+                i = self._selected_col_idx
                 self._col_order_list[i], self._col_order_list[i+1] = \
                     self._col_order_list[i+1], self._col_order_list[i]
-                refresh_listbox()
-                listbox.selection_set(i+1)
+                self._selected_col_idx = i + 1
+                refresh_list()
 
         def toggle_visibility():
-            idx = listbox.curselection()
-            if idx:
-                i = idx[0]
+            if self._selected_col_idx is not None:
+                i = self._selected_col_idx
                 col_name, visible, locked = self._col_order_list[i]
-                if not locked:  # Solo si no está bloqueada
+                if not locked:
                     self._col_order_list[i] = (col_name, not visible, locked)
-                    refresh_listbox()
-                    listbox.selection_set(i)
+                    refresh_list()
 
-        btn_up = customtkinter.CTkButton(btn_control_frame, text="▲ Subir", command=move_up, width=100)
-        btn_up.pack(pady=5)
+        btn_up = customtkinter.CTkButton(
+            btn_control_frame, text="▲ Subir", command=move_up,
+            width=120, height=40, font=customtkinter.CTkFont(size=14)
+        )
+        btn_up.pack(pady=8)
 
-        btn_down = customtkinter.CTkButton(btn_control_frame, text="▼ Bajar", command=move_down, width=100)
-        btn_down.pack(pady=5)
+        btn_down = customtkinter.CTkButton(
+            btn_control_frame, text="▼ Bajar", command=move_down,
+            width=120, height=40, font=customtkinter.CTkFont(size=14)
+        )
+        btn_down.pack(pady=8)
 
         btn_toggle = customtkinter.CTkButton(
-            btn_control_frame, text="✓/○ Visible",
-            command=toggle_visibility, width=100, fg_color="#1f6aa5"
+            btn_control_frame, text="✓/○ Visible", command=toggle_visibility,
+            width=120, height=40, font=customtkinter.CTkFont(size=14),
+            fg_color="#1f6aa5", hover_color="#144870"
         )
-        btn_toggle.pack(pady=20)
+        btn_toggle.pack(pady=25)
 
         # Leyenda
-        legend = customtkinter.CTkLabel(
-            btn_control_frame,
-            text="✓ = Visible\n○ = Oculta\n🔒 = Fija",
-            font=("", 10), text_color="gray", justify="left"
-        )
-        legend.pack(pady=10)
+        legend_frame = customtkinter.CTkFrame(btn_control_frame, fg_color="transparent")
+        legend_frame.pack(pady=15)
+
+        customtkinter.CTkLabel(
+            legend_frame, text="✓ = Visible",
+            font=customtkinter.CTkFont(size=12), text_color="gray"
+        ).pack(anchor="w")
+        customtkinter.CTkLabel(
+            legend_frame, text="○ = Oculta",
+            font=customtkinter.CTkFont(size=12), text_color="gray"
+        ).pack(anchor="w")
+        customtkinter.CTkLabel(
+            legend_frame, text="🔒 = Fija",
+            font=customtkinter.CTkFont(size=12), text_color="gray"
+        ).pack(anchor="w")
 
         # Botones de acción
         btn_frame = customtkinter.CTkFrame(selector_window, fg_color="transparent")
         btn_frame.pack(pady=20)
 
         def aplicar():
-            # Reconstruir resumen_columns con nuevo orden y visibilidad
             new_columns = OrderedDict()
             for col_name, visible, locked in self._col_order_list:
                 col_info = self.resumen_columns[col_name].copy()
@@ -1067,23 +1102,25 @@ class AppPartsManager(customtkinter.CTk):
                 new_columns[col_name] = col_info
 
             self.resumen_columns = new_columns
-
-            # Guardar configuración
             self._save_column_config("resumen", self.resumen_columns)
-
-            # Reconstruir tabla
             self._rebuild_resumen_tree()
             selector_window.destroy()
 
         def cancelar():
             selector_window.destroy()
 
-        btn_aplicar = customtkinter.CTkButton(btn_frame, text="Aplicar", command=aplicar, width=120,
-                                               fg_color="green", hover_color="#006400")
-        btn_aplicar.pack(side="left", padx=5)
+        btn_aplicar = customtkinter.CTkButton(
+            btn_frame, text="Aplicar", command=aplicar,
+            width=140, height=40, font=customtkinter.CTkFont(size=14, weight="bold"),
+            fg_color="green", hover_color="#006400"
+        )
+        btn_aplicar.pack(side="left", padx=10)
 
-        btn_cancelar = customtkinter.CTkButton(btn_frame, text="Cancelar", command=cancelar, width=120)
-        btn_cancelar.pack(side="left", padx=5)
+        btn_cancelar = customtkinter.CTkButton(
+            btn_frame, text="Cancelar", command=cancelar,
+            width=140, height=40, font=customtkinter.CTkFont(size=14)
+        )
+        btn_cancelar.pack(side="left", padx=10)
 
     def _add_parte_resumen(self):
         """

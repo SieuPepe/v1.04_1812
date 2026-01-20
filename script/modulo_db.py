@@ -175,6 +175,16 @@ from .db_partes import (
     get_concejos_by_municipio,
     _get_tipo_trabajo_prefix,
     get_tipo_codigo_by_id,
+
+    # Gestión de trabajadores
+    get_empresas,
+    get_trabajadores,
+    get_trabajadores_lista,
+    add_trabajador,
+    update_trabajador,
+    delete_trabajador,
+    create_trabajadores_tables,
+    populate_trabajadores_iniciales,
 )
 
 # Lista de todas las funciones exportadas (útil para debugging)
@@ -225,4 +235,8 @@ __all__ = [
     'get_comarcas_by_provincia', 'get_municipios_by_provincia',
     'get_concejos_by_municipio', '_get_tipo_trabajo_prefix',
     'get_tipo_codigo_by_id',
+    # Trabajadores
+    'get_empresas', 'get_trabajadores', 'get_trabajadores_lista',
+    'add_trabajador', 'update_trabajador', 'delete_trabajador',
+    'create_trabajadores_tables', 'populate_trabajadores_iniciales',
 ]

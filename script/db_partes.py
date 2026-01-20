@@ -154,12 +154,14 @@ def get_dim_all(user: str, password: str, schema: str):
       - dim_tipo_trabajo
       - dim_codigo_trabajo
       - dim_tipos_rep
+      - dim_trabajadores (nuevo)
     """
     return {
         'RED': _fetch_dim_list_guess(user, password, schema, 'dim_red'),
         'TIPO_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_tipo_trabajo'),
         'COD_TRABAJO': _fetch_dim_list_guess(user, password, schema, 'dim_codigo_trabajo'),
         'TIPOS_REP': _fetch_dim_list_guess(user, password, schema, 'dim_tipos_rep'),
+        'TRABAJADORES': get_trabajadores_lista(user, password, schema),
     }
 
 
@@ -1595,3 +1597,214 @@ def add_parte_mejorado(user: str, password: str, schema: str,
             logger.debug(f"Query: {query}")
             logger.debug(f"Valores: {insert_vals}")
             raise
+
+
+# ==================== GESTIÓN DE TRABAJADORES ====================
+
+def get_empresas(user: str, password: str, schema: str):
+    """
+    Devuelve lista de empresas para el dropdown.
+    Returns: [(id, nombre, prefijo), ...]
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute("""
+                SELECT id, nombre, prefijo
+                FROM dim_empresas
+                WHERE activo = 1
+                ORDER BY nombre
+            """)
+            result = cur.fetchall()
+            cur.close()
+            return result
+    except Exception as e:
+        logger.error(f"Error obteniendo empresas: {e}")
+        return []
+
+
+def get_trabajadores(user: str, password: str, schema: str, solo_activos: bool = True):
+    """
+    Devuelve lista de trabajadores para el dropdown.
+    Returns: [(id, nombre_completo), ...] ordenados alfabéticamente
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            where_clause = "WHERE t.activo = 1" if solo_activos else ""
+            cur.execute(f"""
+                SELECT t.id, CONCAT(e.prefijo, ' ', t.nombre) as nombre_completo
+                FROM dim_trabajadores t
+                JOIN dim_empresas e ON e.id = t.empresa_id
+                {where_clause}
+                ORDER BY nombre_completo
+            """)
+            result = cur.fetchall()
+            cur.close()
+            return result
+    except Exception as e:
+        logger.error(f"Error obteniendo trabajadores: {e}")
+        return []
+
+
+def get_trabajadores_lista(user: str, password: str, schema: str):
+    """
+    Devuelve lista de nombres de trabajadores para UI (formato "ID - NOMBRE").
+    """
+    trabajadores = get_trabajadores(user, password, schema)
+    return [f"{t[0]} - {t[1]}" for t in trabajadores]
+
+
+def add_trabajador(user: str, password: str, schema: str, empresa_id: int, nombre: str):
+    """
+    Añade un nuevo trabajador.
+    Returns: id del nuevo trabajador o None si error
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute("""
+                INSERT INTO dim_trabajadores (empresa_id, nombre)
+                VALUES (%s, %s)
+            """, (empresa_id, nombre.upper().strip()))
+            new_id = cur.lastrowid
+            cn.commit()
+            cur.close()
+            return new_id
+    except Exception as e:
+        logger.error(f"Error añadiendo trabajador: {e}")
+        return None
+
+
+def update_trabajador(user: str, password: str, schema: str, trabajador_id: int,
+                      empresa_id: int = None, nombre: str = None, activo: bool = None):
+    """
+    Actualiza un trabajador existente.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            updates = []
+            values = []
+
+            if empresa_id is not None:
+                updates.append("empresa_id = %s")
+                values.append(empresa_id)
+            if nombre is not None:
+                updates.append("nombre = %s")
+                values.append(nombre.upper().strip())
+            if activo is not None:
+                updates.append("activo = %s")
+                values.append(1 if activo else 0)
+
+            if updates:
+                values.append(trabajador_id)
+                cur.execute(f"""
+                    UPDATE dim_trabajadores
+                    SET {', '.join(updates)}
+                    WHERE id = %s
+                """, tuple(values))
+                cn.commit()
+
+            cur.close()
+            return True
+    except Exception as e:
+        logger.error(f"Error actualizando trabajador: {e}")
+        return False
+
+
+def delete_trabajador(user: str, password: str, schema: str, trabajador_id: int):
+    """
+    Desactiva un trabajador (soft delete).
+    """
+    return update_trabajador(user, password, schema, trabajador_id, activo=False)
+
+
+def create_trabajadores_tables(user: str, password: str, schema: str):
+    """
+    Crea las tablas dim_empresas y dim_trabajadores si no existen.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Crear tabla empresas
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS dim_empresas (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    nombre VARCHAR(100) NOT NULL,
+                    prefijo VARCHAR(20) NOT NULL,
+                    activo TINYINT(1) DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Crear tabla trabajadores
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS dim_trabajadores (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    empresa_id INT NOT NULL,
+                    nombre VARCHAR(100) NOT NULL,
+                    activo TINYINT(1) DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (empresa_id) REFERENCES dim_empresas(id)
+                )
+            """)
+
+            cn.commit()
+            cur.close()
+            logger.info("Tablas dim_empresas y dim_trabajadores creadas correctamente")
+            return True
+    except Exception as e:
+        logger.error(f"Error creando tablas de trabajadores: {e}")
+        return False
+
+
+def populate_trabajadores_iniciales(user: str, password: str, schema: str):
+    """
+    Puebla las tablas con los datos iniciales de empresas y trabajadores.
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+
+            # Verificar si ya hay datos
+            cur.execute("SELECT COUNT(*) FROM dim_empresas")
+            if cur.fetchone()[0] > 0:
+                logger.info("Las tablas ya tienen datos, saltando población inicial")
+                cur.close()
+                return True
+
+            # Insertar empresas
+            cur.execute("""
+                INSERT INTO dim_empresas (nombre, prefijo) VALUES
+                ('UTE REDES', 'UTE REDES.'),
+                ('EXCAVACIONES CAMPO', 'EXC. CAMPO.')
+            """)
+
+            # Insertar trabajadores UTE REDES (id=1)
+            trabajadores_ute = [
+                'MIGUEL FRUTOS', 'KERMAN GARCIA', 'ALBERTO PEREZ RUIZ', 'TOMAS BULLON',
+                'IÑIGO FERNANDEZ', 'JORGE ESCULTA', 'ELENA DE LA TORRE', 'EDUARDO HERNANDO',
+                'ABDESSELAM ZOUITA', 'IZASKUN MOLINUEVO', 'FRANCISCO ROSEL', 'GABRIEL PALLAS',
+                'ARNOLDO PAREDES', 'AITOR GARCIA'
+            ]
+            for nombre in trabajadores_ute:
+                cur.execute("INSERT INTO dim_trabajadores (empresa_id, nombre) VALUES (1, %s)", (nombre,))
+
+            # Insertar trabajadores EXCAVACIONES CAMPO (id=2)
+            trabajadores_exc = [
+                'ANGEL', 'KARIM', 'JAGOBA', 'BEÑAT', 'RAFHIR', 'ALBERTO',
+                'MANU', 'MANUEL', 'PEDRO', 'SHERGEY', 'FERNANDO'
+            ]
+            for nombre in trabajadores_exc:
+                cur.execute("INSERT INTO dim_trabajadores (empresa_id, nombre) VALUES (2, %s)", (nombre,))
+
+            cn.commit()
+            cur.close()
+            logger.info("Datos iniciales de trabajadores poblados correctamente")
+            return True
+    except Exception as e:
+        logger.error(f"Error poblando trabajadores: {e}")
+        return False
+
