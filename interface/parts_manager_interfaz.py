@@ -1467,7 +1467,19 @@ class AppPartsManager(customtkinter.CTk):
             self.partes_list_full = self.partes_list.copy()
 
             if self.partes_list:
-                self._set_selected_parte(self.partes_list[0])
+                # Si hay un parte_id seleccionado (ej: recién creado), buscarlo y seleccionarlo
+                parte_seleccionado = None
+                if hasattr(self, 'selected_parte_id') and self.selected_parte_id:
+                    for item in self.partes_list:
+                        if item.startswith(f"{self.selected_parte_id} - "):
+                            parte_seleccionado = item
+                            break
+
+                # Si no se encontró, usar el primero
+                if not parte_seleccionado:
+                    parte_seleccionado = self.partes_list[0]
+
+                self._set_selected_parte(parte_seleccionado)
                 self._load_parte_tabs()
             else:
                 self.partes_list = ["Sin partes"]
@@ -2825,7 +2837,19 @@ class AppPartsManager(customtkinter.CTk):
             self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
 
             if self.presupuesto_partes_list:
-                self._set_selected_presupuesto_parte(self.presupuesto_partes_list[0])
+                # Si hay un parte_id seleccionado (ej: recién creado), buscarlo y seleccionarlo
+                parte_seleccionado = None
+                if hasattr(self, 'selected_parte_id') and self.selected_parte_id:
+                    for item in self.presupuesto_partes_list:
+                        if item.startswith(f"{self.selected_parte_id} - "):
+                            parte_seleccionado = item
+                            break
+
+                # Si no se encontró, usar el primero
+                if not parte_seleccionado:
+                    parte_seleccionado = self.presupuesto_partes_list[0]
+
+                self._set_selected_presupuesto_parte(parte_seleccionado)
                 self._load_presupuesto_data()
             else:
                 self.presupuesto_partes_list = ["Sin partes"]
