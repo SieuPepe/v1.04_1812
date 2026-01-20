@@ -53,13 +53,13 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
+                "formula": "YEAR(p.fecha_fin)",
                 "grupo": "Temporal"
             },
             "codigo": {
@@ -543,7 +543,7 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             }
         },
@@ -850,14 +850,14 @@ INFORMES_DEFINICIONES = {
                 "nombre": "Mes",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(parte.fecha_fin, '%Y-%m')",
                 "grupo": "Parte"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "YEAR(parte.fecha_inicio)",
+                "formula": "YEAR(parte.fecha_fin)",
                 "grupo": "Parte"
             }
         },
@@ -1091,14 +1091,14 @@ INFORMES_DEFINICIONES = {
                 "nombre": "Mes",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(parte.fecha_fin, '%Y-%m')",
                 "grupo": "Parte"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "YEAR(parte.fecha_inicio)",
+                "formula": "YEAR(parte.fecha_fin)",
                 "grupo": "Parte"
             }
         },
@@ -1331,14 +1331,14 @@ INFORMES_DEFINICIONES = {
                 "nombre": "Mes",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "DATE_FORMAT(parte.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(parte.fecha_fin, '%Y-%m')",
                 "grupo": "Parte"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
                 "tabla_relacion": "parte",
-                "formula": "YEAR(parte.fecha_inicio)",
+                "formula": "YEAR(parte.fecha_fin)",
                 "grupo": "Parte"
             }
         },
@@ -1674,13 +1674,13 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
+                "formula": "YEAR(p.fecha_fin)",
                 "grupo": "Temporal"
             },
             "codigo": {
@@ -1950,13 +1950,13 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
+                "formula": "YEAR(p.fecha_fin)",
                 "grupo": "Temporal"
             },
             "codigo": {
@@ -2341,13 +2341,13 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
+                "formula": "YEAR(p.fecha_fin)",
                 "grupo": "Temporal"
             },
             "codigo": {
@@ -2618,13 +2618,13 @@ INFORMES_DEFINICIONES = {
             "mes": {
                 "nombre": "Mes",
                 "tipo": "calculado",
-                "formula": "DATE_FORMAT(p.fecha_inicio, '%Y-%m')",
+                "formula": "DATE_FORMAT(p.fecha_fin, '%Y-%m')",
                 "grupo": "Temporal"
             },
             "año": {
                 "nombre": "Año",
                 "tipo": "calculado",
-                "formula": "YEAR(p.fecha_inicio)",
+                "formula": "YEAR(p.fecha_fin)",
                 "grupo": "Temporal"
             },
             "codigo": {

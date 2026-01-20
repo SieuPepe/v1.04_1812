@@ -56,9 +56,63 @@ class PartsTab(customtkinter.CTkFrame):
         # Cargar configuración guardada de columnas visibles
         self._load_column_config()
 
+        # Estado de ordenación
+        self.sort_state = {"column": None, "reverse": False}
+
         self._build_ui()
         self._load_filters()
         self._load_data()
+
+    def _sort_column(self, col):
+        """Ordena la tabla por la columna clickeada"""
+        # Determinar dirección de ordenación
+        if self.sort_state["column"] == col:
+            self.sort_state["reverse"] = not self.sort_state["reverse"]
+        else:
+            self.sort_state["column"] = col
+            self.sort_state["reverse"] = False
+
+        # Obtener todos los items
+        items = [(self.tree.set(item, col), item) for item in self.tree.get_children('')]
+
+        # Función de ordenación inteligente
+        def sort_key(x):
+            val = x[0]
+            if val is None or val == "" or val == "None":
+                return (1, "")
+
+            # Intentar como número
+            try:
+                clean_val = str(val).replace('€', '').replace(',', '').replace(' ', '').strip()
+                return (0, float(clean_val))
+            except (ValueError, TypeError):
+                pass
+
+            # Intentar como fecha
+            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S']:
+                try:
+                    return (0, datetime.strptime(str(val), fmt))
+                except (ValueError, TypeError):
+                    pass
+
+            # Ordenar como texto
+            return (0, str(val).lower())
+
+        items.sort(key=sort_key, reverse=self.sort_state["reverse"])
+
+        # Reordenar items
+        for index, (val, item) in enumerate(items):
+            self.tree.move(item, '', index)
+
+        # Actualizar encabezados con indicador
+        for c in self.tree["columns"]:
+            if c == "id":
+                continue
+            col_info = self.all_columns.get(c, {"label": c})
+            label = col_info.get("label", c).replace(" ▲", "").replace(" ▼", "")
+            if c == col:
+                label += " ▼" if self.sort_state["reverse"] else " ▲"
+            self.tree.heading(c, text=label)
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
@@ -263,7 +317,12 @@ class PartsTab(customtkinter.CTkFrame):
 
         for col in visible_cols[1:]:  # Skip "id"
             col_info = self.all_columns.get(col, {"label": col, "width": 100})
-            self.tree.heading(col, text=col_info["label"])
+            # Vincular click en encabezado para ordenar
+            self.tree.heading(
+                col,
+                text=col_info["label"],
+                command=lambda c=col: self._sort_column(c)
+            )
             self.tree.column(col, width=col_info["width"], anchor="w")
 
         # Scrollbar

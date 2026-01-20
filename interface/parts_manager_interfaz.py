@@ -100,6 +100,9 @@ class AppPartsManager(customtkinter.CTk):
         self.main_informes()
         self.main_ayuda()
 
+        # Estado de ordenación para cada treeview
+        self.sort_states = {}  # {tree_name: {"column": col, "reverse": False}}
+
         # Seleccionar frame por defecto
         self.select_frame_by_name("resumen")
 
@@ -125,6 +128,81 @@ class AppPartsManager(customtkinter.CTk):
 
         config_path = os.path.join(parent_path, "resources/images/permisos.png")
         self.config_image = customtkinter.CTkImage(Image.open(config_path), size=(30, 30))
+
+    def _sort_treeview_column(self, tree, tree_name, col, columns_config):
+        """
+        Ordena una columna del Treeview al hacer clic en el encabezado.
+
+        Args:
+            tree: El widget Treeview
+            tree_name: Nombre único para rastrear estado de ordenación
+            col: Nombre de la columna clickeada
+            columns_config: Diccionario con configuración de columnas {col: {"label": "..."}}
+        """
+        # Inicializar estado si no existe
+        if tree_name not in self.sort_states:
+            self.sort_states[tree_name] = {"column": None, "reverse": False}
+
+        state = self.sort_states[tree_name]
+
+        # Determinar dirección de ordenación
+        if state["column"] == col:
+            state["reverse"] = not state["reverse"]
+        else:
+            state["column"] = col
+            state["reverse"] = False
+
+        # Obtener todos los items
+        items = [(tree.set(item, col), item) for item in tree.get_children('')]
+
+        # Intentar ordenar como número, fecha o texto
+        def sort_key(x):
+            val = x[0]
+            if val is None or val == "" or val == "None":
+                return (1, "")  # Valores vacíos al final
+
+            # Intentar como número (incluyendo decimales y negativos)
+            try:
+                # Eliminar símbolos de moneda y separadores de miles
+                clean_val = str(val).replace('€', '').replace(',', '').replace(' ', '').strip()
+                return (0, float(clean_val))
+            except (ValueError, TypeError):
+                pass
+
+            # Intentar como fecha (formatos comunes)
+            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S']:
+                try:
+                    from datetime import datetime
+                    return (0, datetime.strptime(str(val), fmt))
+                except (ValueError, TypeError):
+                    pass
+
+            # Ordenar como texto (case-insensitive)
+            return (0, str(val).lower())
+
+        items.sort(key=sort_key, reverse=state["reverse"])
+
+        # Reordenar items en el tree
+        for index, (val, item) in enumerate(items):
+            tree.move(item, '', index)
+
+        # Actualizar encabezados con indicador de ordenación
+        for c in tree["columns"]:
+            if c == "id":
+                continue  # No mostrar indicador en ID oculto
+
+            # Obtener label original
+            col_info = columns_config.get(c, {"label": c})
+            label = col_info.get("label", c)
+
+            # Quitar indicadores anteriores
+            label = label.replace(" ▲", "").replace(" ▼", "")
+
+            # Añadir indicador a la columna ordenada
+            if c == col:
+                label += " ▼" if state["reverse"] else " ▲"
+
+            tree.heading(c, text=label)
 
     def _create_sidebar(self):
         """Crea la barra lateral de navegación"""
@@ -354,46 +432,49 @@ class AppPartsManager(customtkinter.CTk):
         self.resumen_frame.grid_rowconfigure(2, weight=1)
 
         # Definir TODAS las columnas disponibles para tbl_partes + presupuesto/certificado/pendiente
-        self.resumen_columns = {
+        # IMPORTANTE: Usar OrderedDict para mantener el orden: fecha_fin primero, luego codigo
+        from collections import OrderedDict
+        self.resumen_columns = OrderedDict([
+            # Fecha fin como primer campo visible (locked)
+            ("fecha_fin", {"label": "Fecha Fin", "width": 100, "visible": True, "locked": True}),
+            # Código como segundo campo visible (locked)
+            ("codigo", {"label": "Código", "width": 80, "visible": True, "locked": True}),
             # Columnas principales (visibles por defecto)
-            "codigo": {"label": "Código", "width": 80, "visible": True, "locked": True},
-            "descripcion": {"label": "Descripción", "width": 200, "visible": True, "locked": False},
-            "estado": {"label": "Estado", "width": 80, "visible": True, "locked": False},
-            "red": {"label": "Red", "width": 120, "visible": True, "locked": False},
-            "tipo": {"label": "Tipo Trabajo", "width": 120, "visible": True, "locked": False},
-            "cod_trabajo": {"label": "Cód.Trabajo", "width": 120, "visible": True, "locked": False},
-            "tipo_rep": {"label": "Tipo Reparación", "width": 130, "visible": True, "locked": False},
-            "presupuesto": {"label": "Presup.", "width": 90, "visible": True, "locked": False},
-            "certificado": {"label": "Certif.", "width": 90, "visible": True, "locked": False},
-            "pendiente": {"label": "Pendiente", "width": 90, "visible": True, "locked": False},
-
+            ("descripcion", {"label": "Descripción", "width": 200, "visible": True, "locked": False}),
+            ("estado", {"label": "Estado", "width": 80, "visible": True, "locked": False}),
+            ("red", {"label": "Red", "width": 120, "visible": True, "locked": False}),
+            ("tipo", {"label": "Tipo Trabajo", "width": 120, "visible": True, "locked": False}),
+            ("cod_trabajo", {"label": "Cód.Trabajo", "width": 120, "visible": True, "locked": False}),
+            ("tipo_rep", {"label": "Tipo Reparación", "width": 130, "visible": True, "locked": False}),
+            ("presupuesto", {"label": "Presup.", "width": 90, "visible": True, "locked": False}),
+            ("certificado", {"label": "Certif.", "width": 90, "visible": True, "locked": False}),
+            ("pendiente", {"label": "Pendiente", "width": 90, "visible": True, "locked": False}),
             # Campos de descripción ampliada (ocultos por defecto)
-            "titulo": {"label": "Título", "width": 200, "visible": False, "locked": False},
-            "descripcion_corta": {"label": "Desc. Corta", "width": 150, "visible": False, "locked": False},
-            "descripcion_larga": {"label": "Desc. Larga", "width": 300, "visible": False, "locked": False},
-
-            # Fechas (ocultas por defecto excepto created_at)
-            "fecha_inicio": {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False},
-            "fecha_fin": {"label": "Fecha Fin", "width": 110, "visible": False, "locked": False},
-            "created_at": {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False},
-            "updated_at": {"label": "Última Actualiz.", "width": 150, "visible": False, "locked": False},
-
+            ("titulo", {"label": "Título", "width": 200, "visible": False, "locked": False}),
+            ("descripcion_corta", {"label": "Desc. Corta", "width": 150, "visible": False, "locked": False}),
+            ("descripcion_larga", {"label": "Desc. Larga", "width": 300, "visible": False, "locked": False}),
+            # Otras fechas (ocultas por defecto)
+            ("fecha_inicio", {"label": "Fecha Inicio", "width": 110, "visible": False, "locked": False}),
+            ("created_at", {"label": "Fecha Creación", "width": 150, "visible": False, "locked": False}),
+            ("updated_at", {"label": "Última Actualiz.", "width": 150, "visible": False, "locked": False}),
             # Localización (ocultos por defecto)
-            "localizacion": {"label": "Localización", "width": 200, "visible": False, "locked": False},
-            "municipio": {"label": "Municipio", "width": 150, "visible": False, "locked": False},
-            "comarca": {"label": "Comarca", "width": 150, "visible": False, "locked": False},
-            "provincia": {"label": "Provincia", "width": 120, "visible": False, "locked": False},
-            "concejo": {"label": "Concejo", "width": 150, "visible": False, "locked": False},
-            "latitud": {"label": "Latitud", "width": 100, "visible": False, "locked": False},
-            "longitud": {"label": "Longitud", "width": 100, "visible": False, "locked": False},
-
+            ("localizacion", {"label": "Localización", "width": 200, "visible": False, "locked": False}),
+            ("municipio", {"label": "Municipio", "width": 150, "visible": False, "locked": False}),
+            ("comarca", {"label": "Comarca", "width": 150, "visible": False, "locked": False}),
+            ("provincia", {"label": "Provincia", "width": 120, "visible": False, "locked": False}),
+            ("concejo", {"label": "Concejo", "width": 150, "visible": False, "locked": False}),
+            ("latitud", {"label": "Latitud", "width": 100, "visible": False, "locked": False}),
+            ("longitud", {"label": "Longitud", "width": 100, "visible": False, "locked": False}),
             # Otros campos (ocultos por defecto)
-            "trabajadores": {"label": "Trabajadores", "width": 200, "visible": False, "locked": False},
-            "observaciones": {"label": "Observaciones", "width": 250, "visible": False, "locked": False},
-        }
+            ("trabajadores", {"label": "Trabajadores", "width": 200, "visible": False, "locked": False}),
+            ("observaciones", {"label": "Observaciones", "width": 250, "visible": False, "locked": False}),
+        ])
 
         # Cargar configuración guardada de columnas visibles
         self._load_column_config("resumen", self.resumen_columns)
+
+        # Actualizar grid para incluir filtros
+        self.resumen_frame.grid_rowconfigure(3, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
@@ -403,9 +484,82 @@ class AppPartsManager(customtkinter.CTk):
         )
         title.grid(row=0, column=0, padx=30, pady=(20, 10), sticky="w", columnspan=3)
 
-        # Botones superiores
+        # ===== FRAME DE FILTROS =====
+        filter_frame = customtkinter.CTkFrame(self.resumen_frame, corner_radius=5)
+        filter_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=3)
+        filter_frame.grid_columnconfigure(1, weight=1)
+        filter_frame.grid_columnconfigure(3, weight=1)
+        filter_frame.grid_columnconfigure(5, weight=1)
+
+        # Filtro Red
+        customtkinter.CTkLabel(filter_frame, text="Red:", font=("", 12, "bold")).grid(
+            row=0, column=0, padx=5, pady=5, sticky="e")
+        self.filter_red = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=120)
+        self.filter_red.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.filter_red.set("Todos")
+
+        # Filtro Tipo Trabajo
+        customtkinter.CTkLabel(filter_frame, text="Tipo:", font=("", 12, "bold")).grid(
+            row=0, column=2, padx=5, pady=5, sticky="e")
+        self.filter_tipo = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=120)
+        self.filter_tipo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        self.filter_tipo.set("Todos")
+
+        # Filtro Tipo Reparación
+        customtkinter.CTkLabel(filter_frame, text="Tipo Rep.:", font=("", 12, "bold")).grid(
+            row=0, column=4, padx=5, pady=5, sticky="e")
+        self.filter_tipo_rep = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=120)
+        self.filter_tipo_rep.grid(row=0, column=5, padx=5, pady=5, sticky="ew")
+        self.filter_tipo_rep.set("Todos")
+
+        # Fila 2: Código trabajo + Búsqueda
+        customtkinter.CTkLabel(filter_frame, text="Cód. Trabajo:", font=("", 12, "bold")).grid(
+            row=1, column=0, padx=5, pady=5, sticky="e")
+        self.filter_cod_trabajo = customtkinter.CTkOptionMenu(filter_frame, values=["Todos"], width=120)
+        self.filter_cod_trabajo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.filter_cod_trabajo.set("Todos")
+
+        # Frame de búsqueda
+        search_frame = customtkinter.CTkFrame(filter_frame, fg_color="transparent")
+        search_frame.grid(row=1, column=2, columnspan=2, padx=5, pady=5, sticky="ew")
+        search_frame.grid_columnconfigure(2, weight=1)
+
+        customtkinter.CTkLabel(search_frame, text="Buscar en:", font=("", 12, "bold")).grid(
+            row=0, column=0, padx=(0, 5), sticky="e")
+
+        # Selector de campo para búsqueda
+        self.search_fields = ["Código", "Descripción", "Estado", "Red", "Tipo Trabajo",
+                              "Municipio", "Trabajadores", "Observaciones"]
+        self.search_field_selector = customtkinter.CTkOptionMenu(
+            search_frame, values=self.search_fields, width=130)
+        self.search_field_selector.grid(row=0, column=1, padx=5, sticky="w")
+        self.search_field_selector.set("Código")
+
+        self.search_entry = customtkinter.CTkEntry(search_frame, placeholder_text="Buscar...", width=150)
+        self.search_entry.grid(row=0, column=2, padx=5, sticky="ew")
+
+        # Botón Aplicar Filtros
+        btn_apply_filter = customtkinter.CTkButton(
+            filter_frame, text="🔍 Filtrar",
+            command=self._apply_resumen_filters,
+            width=100
+        )
+        btn_apply_filter.grid(row=1, column=4, padx=5, pady=5, sticky="ew")
+
+        # Botón Limpiar Filtros
+        btn_clear_filter = customtkinter.CTkButton(
+            filter_frame, text="✖ Limpiar",
+            command=self._clear_resumen_filters,
+            width=100, fg_color="gray"
+        )
+        btn_clear_filter.grid(row=1, column=5, padx=5, pady=5, sticky="ew")
+
+        # Cargar valores de filtros desde dimensiones
+        self._load_resumen_filters()
+
+        # ===== BOTONES DE ACCIÓN =====
         btn_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
-        btn_frame.grid(row=1, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=3)
+        btn_frame.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=3)
 
         btn_add = customtkinter.CTkButton(
             btn_frame, text="➕ Añadir Parte",
@@ -421,24 +575,23 @@ class AppPartsManager(customtkinter.CTk):
         )
         btn_refresh.pack(side="left", padx=(0, 10))
 
-        # Botón para ver listado completo de partes (abre módulo de informes)
-        btn_list = customtkinter.CTkButton(
-            btn_frame, text="📋 Ver Listado Completo",
-            command=self._open_listado_completo,
-            width=180
-        )
-        btn_list.pack(side="left", padx=(0, 10))
-
         btn_columns = customtkinter.CTkButton(
             btn_frame, text="⚙ Columnas",
             command=self._show_resumen_column_selector,
             width=100, fg_color="#1f6aa5"
         )
-        btn_columns.pack(side="left")
+        btn_columns.pack(side="left", padx=(0, 10))
+
+        btn_export = customtkinter.CTkButton(
+            btn_frame, text="📊 Exportar Excel",
+            command=self._export_resumen_excel,
+            width=130, fg_color="#217346", hover_color="#1a5c38"
+        )
+        btn_export.pack(side="left")
 
         # Frame para tabla
         self.resumen_table_frame = customtkinter.CTkFrame(self.resumen_frame)
-        self.resumen_table_frame.grid(row=2, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
+        self.resumen_table_frame.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
         self.resumen_table_frame.grid_rowconfigure(0, weight=1)
         self.resumen_table_frame.grid_columnconfigure(0, weight=1)
 
@@ -447,7 +600,7 @@ class AppPartsManager(customtkinter.CTk):
 
         # Botones inferiores
         bottom_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
-        bottom_frame.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="ew", columnspan=3)
+        bottom_frame.grid(row=4, column=0, padx=30, pady=(0, 20), sticky="ew", columnspan=3)
 
         btn_delete = customtkinter.CTkButton(
             bottom_frame, text="🗑️ Eliminar",
@@ -542,6 +695,185 @@ class AppPartsManager(customtkinter.CTk):
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando partes:\n{e}", icon="cancel")
 
+    def _load_resumen_filters(self):
+        """Carga las opciones de filtros desde las tablas dimensionales"""
+        try:
+            from script.modulo_db import get_dim_all, get_partes_resumen
+
+            dims = get_dim_all(self.user, self.password, self.schema)
+
+            # Extraer solo las descripciones (formato: "ID - DESCRIPCION")
+            red_raw = dims.get("RED", [])
+            red_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in red_raw]
+
+            tipo_raw = dims.get("TIPO_TRABAJO", [])
+            tipo_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_raw]
+
+            tipo_rep_raw = dims.get("TIPOS_REP", [])
+            tipo_rep_values = ["Todos"] + [v.split(" - ")[1] if " - " in v else v for v in tipo_rep_raw]
+
+            # Código trabajo desde los partes existentes
+            all_rows = get_partes_resumen(self.user, self.password, self.schema)
+            cod_set = set()
+            for row in all_rows:
+                if row[6]:  # cod_trabajo está en índice 6
+                    cod_set.add(str(row[6]).strip())
+            cod_values = ["Todos"] + sorted(list(cod_set))
+
+            self.filter_red.configure(values=red_values)
+            self.filter_tipo.configure(values=tipo_values)
+            self.filter_tipo_rep.configure(values=tipo_rep_values)
+            self.filter_cod_trabajo.configure(values=cod_values)
+
+        except Exception as e:
+            print(f"Error cargando filtros: {e}")
+
+    def _apply_resumen_filters(self):
+        """Aplica los filtros seleccionados y recarga la tabla"""
+        from script.modulo_db import get_partes_resumen
+
+        # Limpiar tabla
+        for item in self.tree_resumen.get_children():
+            self.tree_resumen.delete(item)
+
+        try:
+            all_rows = get_partes_resumen(self.user, self.password, self.schema)
+            filtered = []
+            search_text = self.search_entry.get().lower().strip()
+
+            # Mapeo de campo de búsqueda a índice
+            search_field_map = {
+                "Código": 1, "Descripción": 2, "Estado": 3, "Red": 4,
+                "Tipo Trabajo": 5, "Municipio": 19, "Trabajadores": 25, "Observaciones": 26
+            }
+
+            for row in all_rows:
+                # Filtro Red
+                if self.filter_red.get() != "Todos":
+                    if str(row[4]).strip().lower() != self.filter_red.get().strip().lower():
+                        continue
+
+                # Filtro Tipo Trabajo
+                if self.filter_tipo.get() != "Todos":
+                    if str(row[5]).strip().lower() != self.filter_tipo.get().strip().lower():
+                        continue
+
+                # Filtro Tipo Reparación
+                if self.filter_tipo_rep.get() != "Todos":
+                    if str(row[7]).strip().lower() != self.filter_tipo_rep.get().strip().lower():
+                        continue
+
+                # Filtro Código Trabajo
+                if self.filter_cod_trabajo.get() != "Todos":
+                    if str(row[6]).strip().lower() != self.filter_cod_trabajo.get().strip().lower():
+                        continue
+
+                # Búsqueda por texto
+                if search_text:
+                    selected_field = self.search_field_selector.get()
+                    field_idx = search_field_map.get(selected_field, 1)
+                    field_value = str(row[field_idx]).lower() if row[field_idx] else ""
+                    if search_text not in field_value:
+                        continue
+
+                filtered.append(row)
+
+            # Insertar filas filtradas
+            self._insert_resumen_rows(filtered)
+
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"Error aplicando filtros:\n{e}", icon="cancel")
+
+    def _clear_resumen_filters(self):
+        """Limpia todos los filtros y recarga los datos"""
+        self.filter_red.set("Todos")
+        self.filter_tipo.set("Todos")
+        self.filter_tipo_rep.set("Todos")
+        self.filter_cod_trabajo.set("Todos")
+        self.search_entry.delete(0, "end")
+        self._reload_resumen()
+
+    def _insert_resumen_rows(self, rows):
+        """Inserta filas en la tabla de resumen (usado por _reload y _apply_filters)"""
+        field_map = {
+            "id": 0, "codigo": 1, "descripcion": 2, "estado": 3, "red": 4,
+            "tipo": 5, "cod_trabajo": 6, "tipo_rep": 7, "presupuesto": 8,
+            "certificado": 9, "pendiente": 10, "titulo": 11, "descripcion_corta": 12,
+            "descripcion_larga": 13, "fecha_inicio": 14, "fecha_fin": 15,
+            "created_at": 16, "updated_at": 17, "localizacion": 18, "municipio": 19,
+            "comarca": 20, "provincia": 21, "concejo": 22, "latitud": 23,
+            "longitud": 24, "trabajadores": 25, "observaciones": 26
+        }
+
+        visible_cols = self.tree_resumen["columns"]
+
+        for row_data in rows:
+            row_values = []
+            for col in visible_cols:
+                idx = field_map.get(col)
+                if idx is not None and idx < len(row_data):
+                    value = row_data[idx]
+                    if col in ["presupuesto", "certificado", "pendiente"] and value is not None:
+                        row_values.append(f"{float(value):.2f}€")
+                    elif col in ["created_at", "updated_at", "fecha_inicio", "fecha_fin"] and value is not None:
+                        row_values.append(str(value))
+                    elif col in ["latitud", "longitud"] and value is not None:
+                        row_values.append(f"{float(value):.6f}")
+                    elif col == "estado":
+                        row_values.append(value if value else "Pendiente")
+                    else:
+                        row_values.append(value if value is not None else "")
+                else:
+                    row_values.append("")
+
+            parte_id = row_data[0]
+            self.tree_resumen.insert("", "end", iid=str(parte_id), values=row_values)
+
+    def _export_resumen_excel(self):
+        """Exporta los datos visibles de la tabla a Excel"""
+        from tkinter import filedialog
+        from datetime import datetime
+        import pandas as pd
+
+        try:
+            # Obtener datos visibles
+            data = []
+            for item in self.tree_resumen.get_children():
+                values = self.tree_resumen.item(item)['values']
+                data.append(values)
+
+            if not data:
+                CTkMessagebox(title="Aviso", message="No hay datos para exportar", icon="info")
+                return
+
+            # Obtener nombres de columnas
+            visible_cols = self.tree_resumen["columns"]
+            col_labels = []
+            for col in visible_cols:
+                if col == "id":
+                    col_labels.append("ID")
+                else:
+                    col_info = self.resumen_columns.get(col, {"label": col})
+                    col_labels.append(col_info["label"])
+
+            # Crear DataFrame
+            df = pd.DataFrame(data, columns=col_labels)
+
+            # Diálogo guardar
+            filename = f"partes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            filepath = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx")],
+                initialfile=filename
+            )
+
+            if filepath:
+                df.to_excel(filepath, index=False, engine='openpyxl')
+                CTkMessagebox(title="Éxito", message=f"✅ Exportado a:\n{filepath}", icon="check")
+
+        except Exception as e:
+            CTkMessagebox(title="Error", message=f"Error al exportar:\n{e}", icon="cancel")
+
     def _open_listado_completo(self):
         """Abre la ventana de listado completo de partes con filtros"""
         from interface.parts_list_window import PartsTab
@@ -576,13 +908,13 @@ class AppPartsManager(customtkinter.CTk):
             self.tree_resumen.destroy()
             self.resumen_scrollbar.destroy()
 
-        # Obtener columnas visibles (codigo siempre primero)
+        # Obtener columnas visibles respetando el orden del OrderedDict
+        # (fecha_fin primero, luego codigo, luego el resto)
         visible_cols = ["id"]  # ID siempre incluido pero oculto
-        visible_cols.append("codigo")  # Codigo siempre primero y visible
 
-        # Agregar resto de columnas visibles
+        # Agregar columnas visibles en el orden definido en resumen_columns
         for col_name, col_info in self.resumen_columns.items():
-            if col_name != "codigo" and col_info["visible"]:
+            if col_info["visible"]:
                 visible_cols.append(col_name)
 
         # Crear nueva tabla
@@ -594,7 +926,14 @@ class AppPartsManager(customtkinter.CTk):
 
         for col in visible_cols[1:]:  # Skip "id"
             col_info = self.resumen_columns.get(col, {"label": col, "width": 100})
-            self.tree_resumen.heading(col, text=col_info["label"])
+            # Vincular click en encabezado para ordenar
+            self.tree_resumen.heading(
+                col,
+                text=col_info["label"],
+                command=lambda c=col: self._sort_treeview_column(
+                    self.tree_resumen, "resumen", c, self.resumen_columns
+                )
+            )
             self.tree_resumen.column(col, width=col_info["width"], anchor="center")
 
         # Scrollbar
@@ -2136,18 +2475,25 @@ class AppPartsManager(customtkinter.CTk):
         self.tree_presupuesto.column("precio_unit", width=90, anchor="e")
         self.tree_presupuesto.column("coste", width=90, anchor="e")
 
-        headers_pres = {
-            "id": "ID",
-            "codigo": "Código",
-            "resumen": "Resumen",
-            "unidad": "Ud",
-            "cantidad": "Cantidad",
-            "precio_unit": "Precio Unit.",
-            "coste": "Coste"
+        self.presupuesto_columns = {
+            "id": {"label": "ID", "width": 40},
+            "codigo": {"label": "Código", "width": 90},
+            "resumen": {"label": "Resumen", "width": 280},
+            "unidad": {"label": "Ud", "width": 50},
+            "cantidad": {"label": "Cantidad", "width": 80},
+            "precio_unit": {"label": "Precio Unit.", "width": 90},
+            "coste": {"label": "Coste", "width": 90}
         }
 
         for col in cols:
-            self.tree_presupuesto.heading(col, text=headers_pres[col])
+            # Vincular click en encabezado para ordenar
+            self.tree_presupuesto.heading(
+                col,
+                text=self.presupuesto_columns[col]["label"],
+                command=lambda c=col: self._sort_treeview_column(
+                    self.tree_presupuesto, "presupuesto", c, self.presupuesto_columns
+                )
+            )
 
         # Doble clic para editar cantidad
         self.tree_presupuesto.bind("<Double-1>", lambda e: self._edit_cantidad_presupuesto())
@@ -2731,21 +3077,28 @@ class AppPartsManager(customtkinter.CTk):
         }
 
         # Configurar headers con texto más legible
-        headers = {
-            "presupuesto_id": "Pres.ID",
-            "precio_id": "Precio ID",
-            "codigo": "Código",
-            "resumen": "Resumen",
-            "unidad": "Ud",
-            "presupuestado": "Presup.",
-            "certificado": "Certif.",
-            "pendiente": "Pendiente",
-            "precio": "Precio",
-            "fecha": "Fecha Destino"
+        self.cert_pend_columns = {
+            "presupuesto_id": {"label": "Pres.ID", "width": 50},
+            "precio_id": {"label": "Precio ID", "width": 60},
+            "codigo": {"label": "Código", "width": 90},
+            "resumen": {"label": "Resumen", "width": 250},
+            "unidad": {"label": "Ud", "width": 45},
+            "presupuestado": {"label": "Presup.", "width": 80},
+            "certificado": {"label": "Certif.", "width": 80},
+            "pendiente": {"label": "Pendiente", "width": 80},
+            "precio": {"label": "Precio", "width": 75},
+            "fecha": {"label": "Fecha Destino", "width": 95}
         }
 
         for col in cols_pend:
-            self.tree_cert_pendientes.heading(col, text=headers[col])
+            # Vincular click en encabezado para ordenar
+            self.tree_cert_pendientes.heading(
+                col,
+                text=self.cert_pend_columns[col]["label"],
+                command=lambda c=col: self._sort_treeview_column(
+                    self.tree_cert_pendientes, "cert_pendientes", c, self.cert_pend_columns
+                )
+            )
             width, anchor = cols_config[col]
             self.tree_cert_pendientes.column(col, width=width, anchor=anchor, stretch=False)
 
@@ -2798,19 +3151,26 @@ class AppPartsManager(customtkinter.CTk):
             "fecha": (95, "center")
         }
 
-        headers_cert = {
-            "id": "ID",
-            "codigo": "Código",
-            "resumen": "Resumen",
-            "unidad": "Ud",
-            "cantidad": "Cantidad",
-            "precio": "Precio",
-            "coste": "Coste",
-            "fecha": "Fecha Certif."
+        self.cert_done_columns = {
+            "id": {"label": "ID", "width": 45},
+            "codigo": {"label": "Código", "width": 95},
+            "resumen": {"label": "Resumen", "width": 270},
+            "unidad": {"label": "Ud", "width": 45},
+            "cantidad": {"label": "Cantidad", "width": 85},
+            "precio": {"label": "Precio", "width": 85},
+            "coste": {"label": "Coste", "width": 85},
+            "fecha": {"label": "Fecha Certif.", "width": 95}
         }
 
         for col in cols_cert:
-            self.tree_cert_certificadas.heading(col, text=headers_cert[col])
+            # Vincular click en encabezado para ordenar
+            self.tree_cert_certificadas.heading(
+                col,
+                text=self.cert_done_columns[col]["label"],
+                command=lambda c=col: self._sort_treeview_column(
+                    self.tree_cert_certificadas, "cert_certificadas", c, self.cert_done_columns
+                )
+            )
             width, anchor = cols_config_cert[col]
             self.tree_cert_certificadas.column(col, width=width, anchor=anchor, stretch=False)
 
