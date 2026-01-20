@@ -785,7 +785,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         Guarda el parte y abre la ventana de Entrada Rápida de Presupuestos.
         Utiliza la misma lógica de validación y guardado que _save_part.
         """
-        from script.modulo_db import add_parte_mejorado, get_tipo_codigo_by_id, get_next_parte_codigo
+        from script.modulo_db import add_parte_mejorado, get_tipo_codigo_by_id
 
         # ============================================
         # VALIDACIONES (igual que _save_part)
@@ -880,17 +880,26 @@ class AppPartsV2(customtkinter.CTkToplevel):
         # GUARDAR PARTE
         # ============================================
         try:
-            codigo = get_next_parte_codigo(self.user, self.password, self.schema, tipo_id)
-
-            new_id = add_parte_mejorado(
-                user=self.user, password=self.password, schema=self.schema,
-                codigo=codigo, descripcion=descripcion, estado_id=estado_id,
-                red_id=red_id, tipo_id=tipo_id, cod_id=cod_id, tipo_rep_id=tipo_rep_id,
-                titulo=titulo, descripcion_corta=desc_corta, descripcion_larga=desc_larga,
-                fecha_inicio=fecha_inicio, fecha_fin=fecha_fin,
-                provincia_id=provincia_id, comarca_id=comarca_id, municipio_id=municipio_id,
-                concejo_id=concejo_id, latitud=latitud, longitud=longitud,
-                localizacion=localizacion, trabajadores=trabajadores
+            # add_parte_mejorado devuelve (new_id, codigo)
+            new_id, codigo = add_parte_mejorado(
+                self.user, self.password, self.schema,
+                red_id, tipo_id, cod_id,
+                titulo=titulo,
+                descripcion=descripcion,
+                descripcion_larga=desc_larga,
+                descripcion_corta=desc_corta,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                estado_id=estado_id,
+                localizacion=localizacion,
+                provincia_id=provincia_id,
+                comarca_id=comarca_id,
+                municipio_id=municipio_id,
+                concejo_id=concejo_id,
+                tipo_rep_id=tipo_rep_id,
+                trabajadores=trabajadores,
+                latitud=latitud,
+                longitud=longitud
             )
 
             if not new_id or new_id == "error":
