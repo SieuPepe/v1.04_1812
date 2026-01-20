@@ -25,7 +25,8 @@ from script.modulo_db import (
     get_provincias,
     get_comarcas_by_provincia,
     get_municipios_by_provincia,
-    get_concejos_by_municipio
+    get_concejos_by_municipio,
+    get_tipo_codigo_by_id
 )
 # from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
 
@@ -376,20 +377,25 @@ class AppPartsV2(customtkinter.CTkToplevel):
             tipo_id = self._take_id(tipo_value)
             print(f"[DEBUG] ID extraído: {tipo_id}")  # DEBUG
 
-            # Habilitar/deshabilitar desplegables según tipo de trabajo:
-            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
-            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
-            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
-            if tipo_id == 1:  # GF - Gastos Fijos
+            # Obtener tipo_codigo de la BD (DINÁMICO - no hardcodeado)
+            tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_id)
+            print(f"[DEBUG] Tipo código obtenido: {tipo_codigo}")  # DEBUG
+
+            # Habilitar/deshabilitar desplegables según tipo_codigo:
+            # GF (Gastos Fijos): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (Orden de Trabajo): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (Trabajos Programados): cod_menu habilitado, tipo_rep_menu deshabilitado
+            if tipo_codigo == "GF":  # Gastos Fijos
                 self.cod_menu.configure(state="disabled")
                 self.tipo_rep_menu.configure(state="disabled")
-            elif tipo_id == 2:  # OT - Orden de Trabajo
+            elif tipo_codigo == "OT":  # Orden de Trabajo
                 self.cod_menu.configure(state="disabled")
                 self.tipo_rep_menu.configure(state="normal")
-            elif tipo_id == 3:  # TP - Trabajos Programados
+            elif tipo_codigo == "TP":  # Trabajos Programados
                 self.cod_menu.configure(state="normal")
                 self.tipo_rep_menu.configure(state="disabled")
             else:
+                # Por defecto, deshabilitar ambos
                 self.cod_menu.configure(state="disabled")
                 self.tipo_rep_menu.configure(state="disabled")
 
@@ -466,24 +472,27 @@ class AppPartsV2(customtkinter.CTkToplevel):
             CTkMessagebox(title="Campos obligatorios", message="Selecciona Red y Tipo de Trabajo", icon="warning")
             return
 
-        # cod_id y tipo_rep_id dependen del tipo de trabajo:
-        # GF (ID 1): Ninguno es obligatorio, ambos NULL
-        # OT (ID 2): tipo_rep_id obligatorio, cod_id NULL
-        # TP (ID 3): cod_id obligatorio, tipo_rep_id NULL
+        # Obtener tipo_codigo de la BD (DINÁMICO)
+        tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_id)
+
+        # cod_id y tipo_rep_id dependen del tipo_codigo:
+        # GF (Gastos Fijos): Ninguno es obligatorio, ambos NULL
+        # OT (Orden de Trabajo): tipo_rep_id obligatorio, cod_id NULL
+        # TP (Trabajos Programados): cod_id obligatorio, tipo_rep_id NULL
         cod_id = None
         tipo_rep_id = None
 
-        if tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+        if tipo_codigo == "OT":  # Orden de Trabajo: requiere Tipo Reparación
             tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
             if not tipo_rep_id:
                 CTkMessagebox(title="Campo obligatorio", message="Para Orden de Trabajo, debes seleccionar Tipo de Reparación", icon="warning")
                 return
-        elif tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+        elif tipo_codigo == "TP":  # Trabajos Programados: requiere Código Trabajo
             cod_id = self._take_id(self.cod_menu.get())
             if not cod_id:
                 CTkMessagebox(title="Campo obligatorio", message="Para Trabajos Programados, debes seleccionar Código de Trabajo", icon="warning")
                 return
-        # GF (ID 1): No requiere ninguno de los dos
+        # GF (Gastos Fijos): No requiere ninguno de los dos
 
         descripcion = self.descripcion_entry.get().strip()
         if not descripcion:

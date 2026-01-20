@@ -174,6 +174,7 @@ from .db_partes import (
     get_municipios_by_provincia,
     get_concejos_by_municipio,
     _get_tipo_trabajo_prefix,
+    get_tipo_codigo_by_id,
 )
 
 # Lista de todas las funciones exportadas (útil para debugging)
@@ -223,4 +224,5 @@ __all__ = [
     'add_parte_mejorado', 'get_estados_parte', 'get_provincias',
     'get_comarcas_by_provincia', 'get_municipios_by_provincia',
     'get_concejos_by_municipio', '_get_tipo_trabajo_prefix',
+    'get_tipo_codigo_by_id',
 ]

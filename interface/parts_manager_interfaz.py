@@ -3,7 +3,7 @@ import customtkinter
 from PIL import Image
 from CTkMessagebox import CTkMessagebox
 from tkinter import ttk, font as tkfont
-from script.modulo_db import get_schemas_db, project_directory_db
+from script.modulo_db import get_schemas_db, project_directory_db, get_tipo_codigo_by_id
 from script.db_connection import get_project_connection
 import os
 import json
@@ -1181,15 +1181,18 @@ class AppPartsManager(customtkinter.CTk):
                     break
             row_left += 1
 
-            # Determinar qué campos habilitar según tipo de trabajo (tipo_trabajo_id ya se obtuvo arriba):
-            # GF (ID 1): cod_menu deshabilitado, tipo_rep_menu deshabilitado
-            # OT (ID 2): cod_menu deshabilitado, tipo_rep_menu habilitado
-            # TP (ID 3): cod_menu habilitado, tipo_rep_menu deshabilitado
+            # Obtener tipo_codigo de la BD (DINÁMICO - no hardcodeado)
+            tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_trabajo_id)
+
+            # Determinar qué campos habilitar según tipo_codigo:
+            # GF (Gastos Fijos): cod_menu deshabilitado, tipo_rep_menu deshabilitado
+            # OT (Orden de Trabajo): cod_menu deshabilitado, tipo_rep_menu habilitado
+            # TP (Trabajos Programados): cod_menu habilitado, tipo_rep_menu deshabilitado
             cod_menu_state = "disabled"
             tipo_rep_menu_state = "disabled"
-            if tipo_trabajo_id == 2:  # OT - Orden de Trabajo
+            if tipo_codigo == "OT":  # Orden de Trabajo
                 tipo_rep_menu_state = "normal"
-            elif tipo_trabajo_id == 3:  # TP - Trabajos Programados
+            elif tipo_codigo == "TP":  # Trabajos Programados
                 cod_menu_state = "normal"
 
             # Código trabajo
@@ -1627,28 +1630,31 @@ class AppPartsManager(customtkinter.CTk):
             red_id = int(self.red_menu.get().split(" - ")[0])
             tipo_id = int(self.tipo_menu.get().split(" - ")[0])
 
-            # cod_id y tipo_rep_id dependen del tipo de trabajo:
-            # GF (ID 1): Ninguno
-            # OT (ID 2): Solo tipo_rep_id
-            # TP (ID 3): Solo cod_id
+            # Obtener tipo_codigo de la BD (DINÁMICO - no hardcodeado)
+            tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_id)
+
+            # cod_id y tipo_rep_id dependen del tipo_codigo:
+            # GF (Gastos Fijos): Ninguno
+            # OT (Orden de Trabajo): Solo tipo_rep_id
+            # TP (Trabajos Programados): Solo cod_id
             cod_id = None
             tipo_rep_id = None
 
-            if tipo_id == 3:  # TP - Trabajos Programados: requiere Código Trabajo
+            if tipo_codigo == "TP":  # Trabajos Programados: requiere Código Trabajo
                 try:
                     cod_text = self.cod_menu.get()
                     if cod_text and " - " in cod_text:
                         cod_id = int(cod_text.split(" - ")[0])
                 except:
                     pass
-            elif tipo_id == 2:  # OT - Orden de Trabajo: requiere Tipo Reparación
+            elif tipo_codigo == "OT":  # Orden de Trabajo: requiere Tipo Reparación
                 try:
                     tipo_rep_text = self.tipo_rep_menu.get()
                     if tipo_rep_text and not tipo_rep_text.startswith("Seleccione") and " - " in tipo_rep_text:
                         tipo_rep_id = int(tipo_rep_text.split(" - ")[0])
                 except:
                     pass
-            # GF (ID 1): No requiere ninguno de los dos
+            # GF (Gastos Fijos): No requiere ninguno de los dos
 
             # Campos geográficos obligatorios
             provincia_id = None

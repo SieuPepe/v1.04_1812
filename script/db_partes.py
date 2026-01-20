@@ -1008,47 +1008,74 @@ def cert_parte_completo(user: str, password: str, schema: str, parte_id: int, fe
 
 # ==================== FUNCIONES AUXILIARES PARA FORMULARIO MEJORADO ====================
 
+def get_tipo_codigo_by_id(user: str, password: str, schema: str, tipo_trabajo_id: int) -> str:
+    """
+    Obtiene el tipo_codigo (GF, OT, TP) de la tabla dim_tipo_trabajo según el ID.
+
+    Esta función es DINÁMICA - lee de la BD en vez de usar mapeos hardcodeados.
+
+    Args:
+        user: Usuario de BD
+        password: Contraseña
+        schema: Esquema del proyecto
+        tipo_trabajo_id: ID del tipo de trabajo
+
+    Returns:
+        str: tipo_codigo ('GF', 'OT', 'TP') o None si no se encuentra
+    """
+    if not tipo_trabajo_id:
+        return None
+
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            cur.execute(f"""
+                SELECT tipo_codigo
+                FROM {schema}.dim_tipo_trabajo
+                WHERE id = %s
+            """, (tipo_trabajo_id,))
+            result = cur.fetchone()
+            cur.close()
+
+            if result and result[0]:
+                return result[0].upper().strip()
+            return None
+    except Exception as e:
+        logger.error(f"Error obteniendo tipo_codigo para ID {tipo_trabajo_id}: {e}")
+        return None
+
+
 def _get_tipo_trabajo_prefix(user: str, password: str, schema: str, tipo_trabajo_id: int):
     """
     Obtiene el prefijo de código del tipo de trabajo según el ID.
 
-    Mapeo según especificación:
-    - ID 1 → GF (Gastos Fijos)
-    - ID 2 → OT (Orden de Trabajo)
-    - ID 3 → TP (Trabajos Programados)
+    DINÁMICO: Lee el tipo_codigo directamente de la tabla dim_tipo_trabajo.
+    No usa mapeos hardcodeados - soporta cualquier configuración de IDs.
 
     Returns:
-        str: Prefijo del código (GF, OT o TP)
+        str: Prefijo del código (GF, OT, TP, etc.) o "PT" si no se encuentra
     """
-    # Mapeo directo por ID según especificación del usuario
-    id_to_prefix = {
-        1: "GF",  # Gastos Fijos
-        2: "OT",  # Orden de Trabajo
-        3: "TP",  # Trabajos Programados
-    }
+    # Obtener tipo_codigo dinámicamente de la BD
+    tipo_codigo = get_tipo_codigo_by_id(user, password, schema, tipo_trabajo_id)
 
-    # Primero intentar con el mapeo directo
-    if tipo_trabajo_id in id_to_prefix:
-        return id_to_prefix[tipo_trabajo_id]
+    if tipo_codigo:
+        return tipo_codigo
 
-    # Si no está en el mapeo, buscar en la BD
+    # Fallback: intentar obtener de otras columnas
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-
-            # Intentar obtener el código/prefijo del tipo de trabajo
             cur.execute(f"""
-                SELECT codigo, tipo_codigo, descripcion
+                SELECT codigo, descripcion
                 FROM {schema}.dim_tipo_trabajo
                 WHERE id = %s
             """, (tipo_trabajo_id,))
-
             result = cur.fetchone()
             cur.close()
 
             if result:
-                # Preferir 'tipo_codigo' o 'codigo', sino usar descripción
-                return result[1] or result[0] or result[2] or "PT"
+                # Usar 'codigo' o extraer de descripción
+                return result[0] or "PT"
             return "PT"
     except Exception:
         return "PT"
