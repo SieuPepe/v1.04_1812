@@ -916,14 +916,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                     self.on_parte_created(new_id)
                 self.destroy()
 
-            # Mostrar mensaje breve
-            CTkMessagebox(
-                title="Parte creado",
-                message=f"Parte {codigo} creado.\n\nAbriendo Entrada Rápida de Presupuestos...",
-                icon="check"
-            )
-
-            # Abrir Speed Entry
+            # Abrir Speed Entry directamente (sin mensaje bloqueante)
             speed_window = SpeedEntryWindow(
                 parent=self,
                 user=self.user,
