@@ -63,28 +63,32 @@ class AppLogin(customtkinter.CTk):
         if db:
             schema = os.getenv('DB_SCHEMA', 'cert_dev')
 
-            # Ocultar ventana primero para evitar errores de callbacks pendientes
+            # Guardar datos para usar después
+            self._next_access = access
+            self._next_schema = schema
+
+            # Ocultar ventana inmediatamente
             self.withdraw()
 
-            # Cancelar todos los callbacks after() pendientes
-            for after_id in self.tk.eval('after info').split():
-                try:
-                    self.after_cancel(after_id)
-                except Exception:
-                    pass
-
-            # Pequeña pausa para que se procesen eventos pendientes
-            self.update_idletasks()
-
-            # Ahora destruir la ventana
-            self.destroy()
-
-            app = AppPartsManager(access, schema)
-            app.mainloop()
-
-            return access
+            # Programar la transición para después del callback actual
+            self.after(50, self._complete_login)
 
         else:
             mssg = f"Error al conectar a la base de datos:\n{str(error)} "
             CTkMessagebox(title="Warning Message!", message=mssg,
                           icon="warning")
+
+    def _complete_login(self):
+        """Completa la transición al gestor principal después del login."""
+        try:
+            # Detener el mainloop actual
+            self.quit()
+
+            # Destruir ventana de login
+            self.destroy()
+        except Exception:
+            pass
+
+        # Crear y ejecutar la ventana principal
+        app = AppPartsManager(self._next_access, self._next_schema)
+        app.mainloop()
