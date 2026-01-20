@@ -1004,8 +1004,9 @@ class AppPartsManager(customtkinter.CTk):
                     text_color = "white" if visible else "gray"
 
                 # Frame para cada item
-                item_frame = customtkinter.CTkFrame(scroll_frame, fg_color=bg_color, corner_radius=5)
-                item_frame.pack(fill="x", pady=2, padx=5)
+                item_frame = customtkinter.CTkFrame(scroll_frame, fg_color=bg_color, corner_radius=4, height=28)
+                item_frame.pack(fill="x", pady=1, padx=5)
+                item_frame.pack_propagate(False)
                 item_frame.bind("<Button-1>", lambda e, i=idx: select_item(i))
 
                 # Icono de estado
@@ -1015,11 +1016,11 @@ class AppPartsManager(customtkinter.CTk):
                 label = customtkinter.CTkLabel(
                     item_frame,
                     text=f"  {icon}  {col_info['label']}{lock_icon}",
-                    font=customtkinter.CTkFont(size=14),
+                    font=customtkinter.CTkFont(size=13),
                     text_color=text_color,
                     anchor="w"
                 )
-                label.pack(fill="x", padx=10, pady=8)
+                label.pack(fill="both", expand=True, padx=8, pady=2)
                 label.bind("<Button-1>", lambda e, i=idx: select_item(i))
 
                 self._col_frames.append(item_frame)
