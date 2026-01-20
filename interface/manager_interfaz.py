@@ -59,7 +59,7 @@ class AppManager(customtkinter.CTk):
         self.grid_columnconfigure(1, weight=1)
 
         # cargar imagenes de iconos
-        image_logo_path = parent_path +"/resources/images/logo artanda2.png"
+        image_logo_path = parent_path +"/resources/images/Logo Redes Urbide Black.jpg"
         self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 44))
         new_project_path = parent_path +"/resources/images/proyecto.png" #quitar punto cuando ya no este en pruebas
         self.new_project_image = customtkinter.CTkImage(Image.open(new_project_path),
