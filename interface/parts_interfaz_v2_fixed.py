@@ -240,8 +240,27 @@ class AppPartsV2(customtkinter.CTkToplevel):
         # ====================================================================
         # BOTONES
         # ====================================================================
-        self.save_btn = customtkinter.CTkButton(self, text="Guardar parte", command=self._save_part)
-        self.save_btn.grid(row=row, column=0, columnspan=4, padx=20, pady=15, sticky="nsew")
+        btn_frame = customtkinter.CTkFrame(self, fg_color="transparent")
+        btn_frame.grid(row=row, column=0, columnspan=4, padx=20, pady=15, sticky="ew")
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
+
+        self.save_btn = customtkinter.CTkButton(
+            btn_frame, text="Guardar parte",
+            fg_color="#1565c0", hover_color="#0d47a1",
+            command=self._save_part
+        )
+        self.save_btn.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+
+        self.save_speed_btn = customtkinter.CTkButton(
+            btn_frame, text="Guardar + Entrada Rápida (Ctrl+Enter)",
+            fg_color="#2e7d32", hover_color="#1b5e20",
+            command=self._save_part_and_speed_entry
+        )
+        self.save_speed_btn.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+
+        # Binding Ctrl+Enter para guardar y abrir Speed Entry
+        self.bind("<Control-Return>", lambda e: self._save_part_and_speed_entry())
 
         # Cargar datos iniciales
         self._reload_dims()
@@ -760,6 +779,159 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.longitud_entry.delete(0, "end")
         # Recargar mantiene OT preseleccionada
         self._reload_dims()
+
+    def _save_part_and_speed_entry(self):
+        """
+        Guarda el parte y abre la ventana de Entrada Rápida de Presupuestos.
+        Utiliza la misma lógica de validación y guardado que _save_part.
+        """
+        from script.modulo_db import add_parte_mejorado, get_tipo_codigo_by_id, get_next_parte_codigo
+
+        # ============================================
+        # VALIDACIONES (igual que _save_part)
+        # ============================================
+        titulo = self.titulo_entry.get().strip()
+        if not titulo:
+            CTkMessagebox(title="Campo obligatorio", message="El Título es obligatorio", icon="warning")
+            return
+
+        estado_id = self._take_id(self.estado_menu.get())
+        red_id = self._take_id(self.red_menu.get())
+        tipo_id = self._take_id(self.tipo_menu.get())
+
+        if not tipo_id:
+            CTkMessagebox(title="Campo obligatorio", message="El Tipo de Trabajo es obligatorio", icon="warning")
+            return
+
+        tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_id)
+        cod_id = None
+        tipo_rep_id = None
+
+        if tipo_codigo == "OT":
+            tipo_rep_id = self._take_id(self.tipo_rep_menu.get())
+            if not tipo_rep_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Orden de Trabajo, debes seleccionar Tipo de Reparación", icon="warning")
+                return
+        elif tipo_codigo == "TP":
+            cod_id = self._take_id(self.cod_menu.get())
+            if not cod_id:
+                CTkMessagebox(title="Campo obligatorio", message="Para Trabajos Programados, debes seleccionar Código de Trabajo", icon="warning")
+                return
+
+        descripcion = self.descripcion_entry.get().strip()
+        if not descripcion:
+            CTkMessagebox(title="Campo obligatorio", message="La Descripción es obligatoria", icon="warning")
+            return
+
+        desc_corta = self.desc_corta_entry.get().strip()
+        if not desc_corta:
+            CTkMessagebox(title="Campo obligatorio", message="La Descripción Corta es obligatoria", icon="warning")
+            return
+
+        desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
+
+        fecha_inicio_str = self.fecha_inicio_entry.get()
+        if not fecha_inicio_str:
+            CTkMessagebox(title="Campo obligatorio", message="La Fecha de Inicio es obligatoria", icon="warning")
+            return
+
+        fecha_fin_str = self.fecha_fin_entry.get()
+        fecha_prevista_str = self.fecha_prevista_entry.get()
+
+        localizacion = self.localizacion_entry.get().strip()
+        if not localizacion:
+            CTkMessagebox(title="Campo obligatorio", message="La Localización es obligatoria", icon="warning")
+            return
+
+        provincia_id = self._take_id(self.provincia_menu.get())
+        comarca_id = self._take_id(self.comarca_menu.get())
+        municipio_id = self._take_id(self.municipio_menu.get())
+        concejo_id = self._take_id(self.concejo_menu.get())
+
+        if not provincia_id or not comarca_id or not municipio_id or not concejo_id:
+            CTkMessagebox(title="Campos obligatorios", message="Todos los campos de ubicación son obligatorios", icon="warning")
+            return
+
+        # Convertir fechas
+        def convert_date(date_str):
+            if not date_str:
+                return None
+            try:
+                parts = date_str.split('/')
+                if len(parts) == 3:
+                    return f"{parts[2]}-{parts[1]}-{parts[0]}"
+                return date_str
+            except:
+                return date_str
+
+        fecha_inicio = convert_date(fecha_inicio_str)
+        fecha_fin = convert_date(fecha_fin_str) if fecha_fin_str else None
+        fecha_prevista = convert_date(fecha_prevista_str)
+
+        trabajadores = " | ".join(self.trabajadores_list) if self.trabajadores_list else None
+
+        # GPS
+        latitud_str = self.latitud_entry.get().strip()
+        longitud_str = self.longitud_entry.get().strip()
+        latitud = float(latitud_str) if latitud_str else None
+        longitud = float(longitud_str) if longitud_str else None
+
+        # ============================================
+        # GUARDAR PARTE
+        # ============================================
+        try:
+            codigo = get_next_parte_codigo(self.user, self.password, self.schema, tipo_id)
+
+            new_id = add_parte_mejorado(
+                user=self.user, password=self.password, schema=self.schema,
+                codigo=codigo, descripcion=descripcion, estado_id=estado_id,
+                red_id=red_id, tipo_id=tipo_id, cod_id=cod_id, tipo_rep_id=tipo_rep_id,
+                titulo=titulo, descripcion_corta=desc_corta, descripcion_larga=desc_larga,
+                fecha_inicio=fecha_inicio, fecha_fin=fecha_fin,
+                provincia_id=provincia_id, comarca_id=comarca_id, municipio_id=municipio_id,
+                concejo_id=concejo_id, latitud=latitud, longitud=longitud,
+                localizacion=localizacion, trabajadores=trabajadores
+            )
+
+            if not new_id or new_id == "error":
+                raise Exception("Error al crear el parte")
+
+            # ============================================
+            # ABRIR SPEED ENTRY
+            # ============================================
+            from interface.speed_entry_interfaz import SpeedEntryWindow
+
+            def on_speed_entry_close():
+                """Callback cuando se cierra Speed Entry"""
+                if self.on_parte_created:
+                    self.on_parte_created(new_id)
+                self.destroy()
+
+            # Mostrar mensaje breve
+            CTkMessagebox(
+                title="Parte creado",
+                message=f"Parte {codigo} creado.\n\nAbriendo Entrada Rápida de Presupuestos...",
+                icon="check"
+            )
+
+            # Abrir Speed Entry
+            speed_window = SpeedEntryWindow(
+                parent=self,
+                user=self.user,
+                password=self.password,
+                schema=self.schema,
+                parte_id=new_id,
+                parte_codigo=codigo,
+                parte_titulo=titulo,
+                on_close_callback=on_speed_entry_close
+            )
+
+        except Exception as e:
+            CTkMessagebox(
+                title="Error",
+                message=f"No se pudo guardar el parte:\n{e}",
+                icon="cancel"
+            )
 
     def _open_parts_list(self):
         """Abre ventana de lista de partes"""

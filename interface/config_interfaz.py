@@ -11,6 +11,12 @@ from CTkMessagebox import CTkMessagebox
 # Ruta del proyecto
 parent_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Importar gestor de conexiones
+from config.connection_manager import (
+    load_profiles, save_profiles, get_profile_names, get_profile,
+    set_active_profile, add_profile, update_profile, delete_profile, test_connection
+)
+
 
 class AppConfiguracion(customtkinter.CTkToplevel):
     """Ventana principal de configuración del sistema."""
@@ -92,10 +98,12 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         # Crear pestañas
         self.tabview.add("📊 Gestión de Variables")
         self.tabview.add("📦 Catálogo de Partidas")
+        self.tabview.add("🔌 Conexión")
 
         # Configurar contenido de cada pestaña
         self._setup_variables_tab()
         self._setup_catalogo_tab()
+        self._setup_conexion_tab()
 
     # =========================================================================
     # PESTAÑA: GESTIÓN DE VARIABLES
@@ -1298,5 +1306,349 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         CTkMessagebox(
             title="Duplicar",
             message="Los datos se han copiado al formulario.\nSeleccione un capítulo, modifique el código y pulse 'Añadir'.",
+            icon="info"
+        )
+
+    # =========================================================================
+    # PESTAÑA: CONEXIÓN
+    # =========================================================================
+
+    def _setup_conexion_tab(self):
+        """Configura la pestaña de gestión de perfiles de conexión."""
+        tab = self.tabview.tab("🔌 Conexión")
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+
+        # Frame superior - Selector de perfil activo
+        top_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
+        top_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        top_frame.grid_columnconfigure(1, weight=1)
+
+        customtkinter.CTkLabel(
+            top_frame, text="Perfil activo:", font=("", 14, "bold")
+        ).grid(row=0, column=0, padx=(0, 10), pady=5, sticky="w")
+
+        # Cargar perfiles
+        self._load_connection_profiles()
+
+        self.profile_selector = customtkinter.CTkOptionMenu(
+            top_frame,
+            values=self.profile_names_display,
+            width=250,
+            command=self._on_profile_select
+        )
+        self.profile_selector.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+
+        # Botones de gestión
+        btn_frame = customtkinter.CTkFrame(top_frame, fg_color="transparent")
+        btn_frame.grid(row=0, column=2, padx=10, pady=5, sticky="e")
+
+        customtkinter.CTkButton(
+            btn_frame, text="+ Nuevo", width=80,
+            fg_color="#2e7d32", hover_color="#1b5e20",
+            command=self._new_profile
+        ).pack(side="left", padx=2)
+
+        customtkinter.CTkButton(
+            btn_frame, text="🗑️ Eliminar", width=90,
+            fg_color="#c62828", hover_color="#8e0000",
+            command=self._delete_profile
+        ).pack(side="left", padx=2)
+
+        # Frame central - Edición de perfil
+        edit_frame = customtkinter.CTkFrame(tab, corner_radius=10)
+        edit_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+        edit_frame.grid_columnconfigure(1, weight=1)
+
+        # Título
+        customtkinter.CTkLabel(
+            edit_frame, text="Configuración del Perfil",
+            font=("", 16, "bold")
+        ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 20), sticky="w")
+
+        # Campos de edición
+        row = 1
+
+        # ID del perfil (solo lectura para perfiles existentes)
+        customtkinter.CTkLabel(
+            edit_frame, text="ID del perfil:", font=("", 12)
+        ).grid(row=row, column=0, padx=(20, 10), pady=8, sticky="e")
+        self.profile_id_entry = customtkinter.CTkEntry(edit_frame, width=200)
+        self.profile_id_entry.grid(row=row, column=1, padx=(0, 20), pady=8, sticky="w")
+        row += 1
+
+        # Nombre descriptivo
+        customtkinter.CTkLabel(
+            edit_frame, text="Nombre:", font=("", 12)
+        ).grid(row=row, column=0, padx=(20, 10), pady=8, sticky="e")
+        self.profile_name_entry = customtkinter.CTkEntry(edit_frame, width=300)
+        self.profile_name_entry.grid(row=row, column=1, padx=(0, 20), pady=8, sticky="w")
+        row += 1
+
+        # Host/IP
+        customtkinter.CTkLabel(
+            edit_frame, text="Host / IP:", font=("", 12)
+        ).grid(row=row, column=0, padx=(20, 10), pady=8, sticky="e")
+        self.profile_host_entry = customtkinter.CTkEntry(edit_frame, width=300)
+        self.profile_host_entry.grid(row=row, column=1, padx=(0, 20), pady=8, sticky="w")
+        row += 1
+
+        # Puerto
+        customtkinter.CTkLabel(
+            edit_frame, text="Puerto:", font=("", 12)
+        ).grid(row=row, column=0, padx=(20, 10), pady=8, sticky="e")
+        self.profile_port_entry = customtkinter.CTkEntry(edit_frame, width=100)
+        self.profile_port_entry.grid(row=row, column=1, padx=(0, 20), pady=8, sticky="w")
+        row += 1
+
+        # Esquema por defecto
+        customtkinter.CTkLabel(
+            edit_frame, text="Esquema:", font=("", 12)
+        ).grid(row=row, column=0, padx=(20, 10), pady=8, sticky="e")
+        self.profile_schema_entry = customtkinter.CTkEntry(edit_frame, width=200)
+        self.profile_schema_entry.grid(row=row, column=1, padx=(0, 20), pady=8, sticky="w")
+        row += 1
+
+        # Separador
+        customtkinter.CTkFrame(edit_frame, height=2, fg_color="gray40").grid(
+            row=row, column=0, columnspan=2, pady=15, padx=20, sticky="ew")
+        row += 1
+
+        # Botones de acción
+        action_frame = customtkinter.CTkFrame(edit_frame, fg_color="transparent")
+        action_frame.grid(row=row, column=0, columnspan=2, padx=20, pady=15, sticky="ew")
+
+        customtkinter.CTkButton(
+            action_frame, text="💾 Guardar Perfil", width=140,
+            fg_color="#1565c0", hover_color="#0d47a1",
+            command=self._save_profile
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            action_frame, text="🔌 Probar Conexión", width=140,
+            fg_color="#6a1b9a", hover_color="#4a148c",
+            command=self._test_connection
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            action_frame, text="✓ Aplicar y Reconectar", width=160,
+            fg_color="#2e7d32", hover_color="#1b5e20",
+            command=self._apply_profile
+        ).pack(side="left", padx=5)
+
+        # Nota informativa
+        note_label = customtkinter.CTkLabel(
+            edit_frame,
+            text="Nota: Las credenciales (usuario/contraseña) se mantienen desde el login.\n"
+                 "Solo cambian Host, Puerto y Esquema entre perfiles.",
+            font=("", 11),
+            text_color="gray"
+        )
+        note_label.grid(row=row+1, column=0, columnspan=2, padx=20, pady=(5, 15), sticky="w")
+
+        # Cargar datos del perfil activo
+        self._load_active_profile_data()
+
+    def _load_connection_profiles(self):
+        """Carga la lista de perfiles disponibles."""
+        config = load_profiles()
+        self.profiles_config = config
+        self.profile_ids = list(config.get("profiles", {}).keys())
+        self.profile_names_display = []
+
+        for pid in self.profile_ids:
+            profile = config["profiles"][pid]
+            display = f"{profile['name']} ({pid})"
+            self.profile_names_display.append(display)
+
+        self.active_profile_id = config.get("active_profile", self.profile_ids[0] if self.profile_ids else None)
+
+    def _load_active_profile_data(self):
+        """Carga los datos del perfil activo en los campos de edición."""
+        if not self.active_profile_id:
+            return
+
+        profile = get_profile(self.active_profile_id)
+        if not profile:
+            return
+
+        # Limpiar campos
+        self.profile_id_entry.delete(0, 'end')
+        self.profile_name_entry.delete(0, 'end')
+        self.profile_host_entry.delete(0, 'end')
+        self.profile_port_entry.delete(0, 'end')
+        self.profile_schema_entry.delete(0, 'end')
+
+        # Rellenar con datos del perfil
+        self.profile_id_entry.insert(0, self.active_profile_id)
+        self.profile_name_entry.insert(0, profile.get('name', ''))
+        self.profile_host_entry.insert(0, profile.get('host', ''))
+        self.profile_port_entry.insert(0, str(profile.get('port', 3306)))
+        self.profile_schema_entry.insert(0, profile.get('schema', ''))
+
+        # Seleccionar en el dropdown
+        for i, pid in enumerate(self.profile_ids):
+            if pid == self.active_profile_id:
+                self.profile_selector.set(self.profile_names_display[i])
+                break
+
+    def _on_profile_select(self, selection):
+        """Maneja el cambio de selección de perfil."""
+        # Extraer ID del perfil de la selección (formato: "Nombre (id)")
+        try:
+            profile_id = selection.split("(")[-1].rstrip(")")
+            self.active_profile_id = profile_id
+            self._load_active_profile_data()
+        except:
+            pass
+
+    def _new_profile(self):
+        """Crea un nuevo perfil vacío."""
+        # Limpiar campos para nuevo perfil
+        self.profile_id_entry.delete(0, 'end')
+        self.profile_name_entry.delete(0, 'end')
+        self.profile_host_entry.delete(0, 'end')
+        self.profile_port_entry.delete(0, 'end')
+        self.profile_schema_entry.delete(0, 'end')
+
+        # Valores por defecto
+        self.profile_id_entry.insert(0, "nuevo_perfil")
+        self.profile_name_entry.insert(0, "Nuevo Perfil")
+        self.profile_host_entry.insert(0, "127.0.0.1")
+        self.profile_port_entry.insert(0, "3306")
+        self.profile_schema_entry.insert(0, "cert_dev")
+
+        self.active_profile_id = None  # Indica que es nuevo
+
+    def _save_profile(self):
+        """Guarda el perfil actual."""
+        profile_id = self.profile_id_entry.get().strip()
+        name = self.profile_name_entry.get().strip()
+        host = self.profile_host_entry.get().strip()
+        port_str = self.profile_port_entry.get().strip()
+        schema = self.profile_schema_entry.get().strip()
+
+        # Validaciones
+        if not profile_id:
+            CTkMessagebox(title="Error", message="El ID del perfil es obligatorio", icon="warning")
+            return
+
+        if not name:
+            CTkMessagebox(title="Error", message="El nombre es obligatorio", icon="warning")
+            return
+
+        if not host:
+            CTkMessagebox(title="Error", message="El host es obligatorio", icon="warning")
+            return
+
+        try:
+            port = int(port_str)
+        except:
+            CTkMessagebox(title="Error", message="El puerto debe ser un número", icon="warning")
+            return
+
+        # Guardar perfil
+        if profile_id in self.profile_ids:
+            # Actualizar existente
+            success = update_profile(profile_id, name, host, port, schema)
+        else:
+            # Crear nuevo
+            success = add_profile(profile_id, name, host, port, schema)
+
+        if success:
+            CTkMessagebox(title="Éxito", message=f"Perfil '{name}' guardado correctamente", icon="check")
+            # Recargar lista
+            self._load_connection_profiles()
+            self.profile_selector.configure(values=self.profile_names_display)
+            self.active_profile_id = profile_id
+            self._load_active_profile_data()
+        else:
+            CTkMessagebox(title="Error", message="No se pudo guardar el perfil", icon="cancel")
+
+    def _delete_profile(self):
+        """Elimina el perfil seleccionado."""
+        if not self.active_profile_id:
+            CTkMessagebox(title="Error", message="No hay perfil seleccionado", icon="warning")
+            return
+
+        profile = get_profile(self.active_profile_id)
+        if not profile:
+            return
+
+        # Confirmar
+        msg = CTkMessagebox(
+            title="Confirmar eliminación",
+            message=f"¿Eliminar el perfil '{profile['name']}'?\n\nEsta acción no se puede deshacer.",
+            icon="warning",
+            option_1="Cancelar",
+            option_2="Eliminar"
+        )
+
+        if msg.get() == "Eliminar":
+            success = delete_profile(self.active_profile_id)
+            if success:
+                CTkMessagebox(title="Éxito", message="Perfil eliminado", icon="check")
+                # Recargar lista
+                self._load_connection_profiles()
+                self.profile_selector.configure(values=self.profile_names_display)
+                if self.profile_ids:
+                    self.active_profile_id = self.profile_ids[0]
+                    self._load_active_profile_data()
+            else:
+                CTkMessagebox(
+                    title="Error",
+                    message="No se puede eliminar el perfil.\nNo puede ser el activo ni el único.",
+                    icon="cancel"
+                )
+
+    def _test_connection(self):
+        """Prueba la conexión con los parámetros actuales."""
+        host = self.profile_host_entry.get().strip()
+        port_str = self.profile_port_entry.get().strip()
+
+        try:
+            port = int(port_str)
+        except:
+            CTkMessagebox(title="Error", message="Puerto inválido", icon="warning")
+            return
+
+        # Usar credenciales actuales
+        success, message = test_connection(host, port, self.user, self.password)
+
+        if success:
+            CTkMessagebox(title="Conexión exitosa", message=f"✓ {message}\n\nHost: {host}:{port}", icon="check")
+        else:
+            CTkMessagebox(title="Error de conexión", message=f"✗ {message}", icon="cancel")
+
+    def _apply_profile(self):
+        """Aplica el perfil y reconecta."""
+        profile_id = self.profile_id_entry.get().strip()
+
+        if not profile_id or profile_id not in self.profile_ids:
+            CTkMessagebox(title="Error", message="Guarde el perfil primero", icon="warning")
+            return
+
+        # Establecer como activo
+        success = set_active_profile(profile_id)
+        if not success:
+            CTkMessagebox(title="Error", message="No se pudo activar el perfil", icon="cancel")
+            return
+
+        profile = get_profile(profile_id)
+
+        # Actualizar los datos de conexión en la aplicación padre
+        if hasattr(self.parent, 'schema'):
+            # Actualizar schema si cambió
+            new_schema = profile.get('schema', self.schema)
+            if new_schema != self.schema:
+                self.parent.schema = new_schema
+                self.schema = new_schema
+
+        CTkMessagebox(
+            title="Perfil aplicado",
+            message=f"Perfil '{profile['name']}' activado.\n\n"
+                    f"Host: {profile['host']}:{profile['port']}\n"
+                    f"Esquema: {profile['schema']}\n\n"
+                    "Nota: Para aplicar cambios de host/puerto,\nreinicie la aplicación.",
             icon="info"
         )
