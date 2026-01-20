@@ -1560,6 +1560,7 @@ class AppPartsManager(customtkinter.CTk):
 
             # Tipo Trabajo (solo lectura) - en zona superior
             tipo_trabajo_id = parte_data[5]
+            self.tipo_trabajo_id = tipo_trabajo_id  # Guardar para usar en _save_parte_changes
             customtkinter.CTkLabel(left_frame, text="Tipo Trabajo:", font=("", 12, "bold")).grid(
                 row=row_left, column=0, padx=5, pady=8, sticky="e")
             tipo_trabajo_texto = ""
@@ -1970,8 +1971,7 @@ class AppPartsManager(customtkinter.CTk):
             self.estado_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'red_menu'):
             self.red_menu.configure(command=lambda _: self._mark_as_changed())
-        if hasattr(self, 'tipo_menu'):
-            self.tipo_menu.configure(command=lambda _: self._mark_as_changed())
+        # Nota: tipo_trabajo es de solo lectura (Label), no requiere callback
         if hasattr(self, 'cod_menu'):
             self.cod_menu.configure(command=lambda _: self._mark_as_changed())
         if hasattr(self, 'tipo_rep_menu'):
@@ -2162,7 +2162,7 @@ class AppPartsManager(customtkinter.CTk):
         try:
             # Extraer IDs de dimensiones
             red_id = int(self.red_menu.get().split(" - ")[0])
-            tipo_id = int(self.tipo_menu.get().split(" - ")[0])
+            tipo_id = self.tipo_trabajo_id  # Usar el ID guardado (Tipo Trabajo es de solo lectura)
 
             # Obtener tipo_codigo de la BD (DINÁMICO - no hardcodeado)
             tipo_codigo = get_tipo_codigo_by_id(self.user, self.password, self.schema, tipo_id)
