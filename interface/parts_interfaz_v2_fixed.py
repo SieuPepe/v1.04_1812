@@ -150,35 +150,47 @@ class AppPartsV2(customtkinter.CTkToplevel):
         row += 1
 
         # Trabajadores (desplegable con lista de trabajadores)
-        customtkinter.CTkLabel(self, text="Trabajadores:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
+        customtkinter.CTkLabel(self, text="Trabajadores:").grid(row=row, column=0, padx=10, pady=(10, 5), sticky="e")
+
+        # Frame contenedor para selector y botones
+        trab_selector_frame = customtkinter.CTkFrame(self, fg_color="transparent")
+        trab_selector_frame.grid(row=row, column=1, columnspan=3, padx=5, pady=(10, 5), sticky="w")
+
         self.trabajadores_menu = customtkinter.CTkComboBox(
-            self, values=["Cargando..."], width=400,
+            trab_selector_frame, values=["Cargando..."], width=350,
             state="normal"  # Permite escribir para autocompletado
         )
-        self.trabajadores_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        self.trabajadores_menu.pack(side="left", padx=(0, 10))
         self.trabajadores_menu.set("")
 
-        # Botón para añadir más trabajadores
         self.trabajadores_list = []  # Lista de trabajadores seleccionados
-        self.trabajadores_display = customtkinter.CTkLabel(
-            self, text="", font=customtkinter.CTkFont(size=11),
-            text_color="gray", anchor="w", width=280
-        )
-        self.trabajadores_display.grid(row=row, column=2, columnspan=2, padx=5, pady=10, sticky="w")
-
-        btn_frame_trab = customtkinter.CTkFrame(self, fg_color="transparent")
-        btn_frame_trab.grid(row=row, column=2, padx=5, pady=10, sticky="e")
 
         customtkinter.CTkButton(
-            btn_frame_trab, text="+ Añadir", width=70, height=28,
+            trab_selector_frame, text="+ Añadir", width=80, height=28,
             command=self._add_trabajador_to_list
         ).pack(side="left", padx=2)
 
         customtkinter.CTkButton(
-            btn_frame_trab, text="Limpiar", width=70, height=28,
+            trab_selector_frame, text="Limpiar", width=80, height=28,
             fg_color="gray", hover_color="#555555",
             command=self._clear_trabajadores_list
         ).pack(side="left", padx=2)
+        row += 1
+
+        # Fila para mostrar trabajadores seleccionados
+        customtkinter.CTkLabel(self, text="").grid(row=row, column=0)  # Espaciador
+        self.trabajadores_display_frame = customtkinter.CTkFrame(self, fg_color="#2b2b2b", corner_radius=5, height=30)
+        self.trabajadores_display_frame.grid(row=row, column=1, columnspan=3, padx=5, pady=(0, 10), sticky="ew")
+        self.trabajadores_display_frame.grid_propagate(False)
+
+        self.trabajadores_display = customtkinter.CTkLabel(
+            self.trabajadores_display_frame,
+            text="(ningún trabajador seleccionado)",
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray",
+            anchor="w"
+        )
+        self.trabajadores_display.pack(fill="x", padx=10, pady=5)
         row += 1
 
         # GPS - Latitud y Longitud
@@ -429,14 +441,16 @@ class AppPartsV2(customtkinter.CTkToplevel):
     def _update_trabajadores_display(self):
         """Actualiza el label que muestra los trabajadores seleccionados."""
         if self.trabajadores_list:
-            # Mostrar nombres abreviados si hay muchos
-            if len(self.trabajadores_list) <= 2:
-                text = ", ".join(self.trabajadores_list)
-            else:
-                text = f"{self.trabajadores_list[0]}, +{len(self.trabajadores_list)-1} más"
-            self.trabajadores_display.configure(text=text)
+            # Mostrar todos los nombres separados por " | "
+            text = " | ".join(self.trabajadores_list)
+            self.trabajadores_display.configure(text=text, text_color="white")
+            # Ajustar altura del frame si hay muchos trabajadores
+            num_trabajadores = len(self.trabajadores_list)
+            altura = 30 + (15 * (num_trabajadores // 3))  # Más altura si hay varios
+            self.trabajadores_display_frame.configure(height=min(altura, 60))
         else:
-            self.trabajadores_display.configure(text="")
+            self.trabajadores_display.configure(text="(ningún trabajador seleccionado)", text_color="gray")
+            self.trabajadores_display_frame.configure(height=30)
 
     def _update_codigo_ot(self, *args):
         """Actualiza el código OT preview según el tipo de trabajo seleccionado
