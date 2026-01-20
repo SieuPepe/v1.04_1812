@@ -474,7 +474,7 @@ class AppPartsManager(customtkinter.CTk):
         self._load_column_config("resumen", self.resumen_columns)
 
         # Actualizar grid para incluir filtros
-        self.resumen_frame.grid_rowconfigure(3, weight=1)
+        self.resumen_frame.grid_rowconfigure(2, weight=1)
 
         # Título
         title = customtkinter.CTkLabel(
@@ -527,9 +527,13 @@ class AppPartsManager(customtkinter.CTk):
         customtkinter.CTkLabel(search_frame, text="Buscar en:", font=("", 12, "bold")).grid(
             row=0, column=0, padx=(0, 5), sticky="e")
 
-        # Selector de campo para búsqueda
-        self.search_fields = ["Código", "Descripción", "Estado", "Red", "Tipo Trabajo",
-                              "Municipio", "Trabajadores", "Observaciones"]
+        # Selector de campo para búsqueda - TODOS los campos de tbl_partes
+        self.search_fields = [
+            "Código", "Título", "Descripción", "Desc. Corta", "Desc. Larga",
+            "Estado", "Red", "Tipo Trabajo", "Cód. Trabajo", "Tipo Reparación",
+            "Localización", "Municipio", "Comarca", "Provincia", "Concejo",
+            "Trabajadores", "Observaciones"
+        ]
         self.search_field_selector = customtkinter.CTkOptionMenu(
             search_frame, values=self.search_fields, width=130)
         self.search_field_selector.grid(row=0, column=1, padx=5, sticky="w")
@@ -557,50 +561,18 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar valores de filtros desde dimensiones
         self._load_resumen_filters()
 
-        # ===== BOTONES DE ACCIÓN =====
-        btn_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
-        btn_frame.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="ew", columnspan=3)
-
-        btn_add = customtkinter.CTkButton(
-            btn_frame, text="➕ Añadir Parte",
-            command=self._add_parte_resumen,
-            fg_color="green", hover_color="#006400", width=150
-        )
-        btn_add.pack(side="left", padx=(0, 10))
-
-        btn_refresh = customtkinter.CTkButton(
-            btn_frame, text="🔄 Recargar",
-            command=self._reload_resumen,
-            width=120
-        )
-        btn_refresh.pack(side="left", padx=(0, 10))
-
-        btn_columns = customtkinter.CTkButton(
-            btn_frame, text="⚙ Columnas",
-            command=self._show_resumen_column_selector,
-            width=100, fg_color="#1f6aa5"
-        )
-        btn_columns.pack(side="left", padx=(0, 10))
-
-        btn_export = customtkinter.CTkButton(
-            btn_frame, text="📊 Exportar Excel",
-            command=self._export_resumen_excel,
-            width=130, fg_color="#217346", hover_color="#1a5c38"
-        )
-        btn_export.pack(side="left")
-
-        # Frame para tabla
+        # Frame para tabla (row 2 - sin sección de botones intermedios)
         self.resumen_table_frame = customtkinter.CTkFrame(self.resumen_frame)
-        self.resumen_table_frame.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="nsew", columnspan=3)
+        self.resumen_table_frame.grid(row=2, column=0, padx=30, pady=(0, 10), sticky="nsew", columnspan=3)
         self.resumen_table_frame.grid_rowconfigure(0, weight=1)
         self.resumen_table_frame.grid_columnconfigure(0, weight=1)
 
         # Crear tabla con columnas seleccionadas
         self._rebuild_resumen_tree()
 
-        # Botones inferiores
+        # Botones inferiores (todos los botones consolidados aquí)
         bottom_frame = customtkinter.CTkFrame(self.resumen_frame, fg_color="transparent")
-        bottom_frame.grid(row=4, column=0, padx=30, pady=(0, 20), sticky="ew", columnspan=3)
+        bottom_frame.grid(row=3, column=0, padx=30, pady=(0, 20), sticky="ew", columnspan=3)
 
         btn_delete = customtkinter.CTkButton(
             bottom_frame, text="🗑️ Eliminar",
@@ -609,12 +581,26 @@ class AppPartsManager(customtkinter.CTk):
         )
         btn_delete.pack(side="left", padx=(0, 10))
 
-        btn_detail = customtkinter.CTkButton(
-            bottom_frame, text="🔍 Ver Detalle",
-            command=self._view_parte_detail,
-            width=150
+        btn_refresh = customtkinter.CTkButton(
+            bottom_frame, text="🔄 Recargar",
+            command=self._reload_resumen,
+            width=100
         )
-        btn_detail.pack(side="left")
+        btn_refresh.pack(side="left", padx=(0, 10))
+
+        btn_columns = customtkinter.CTkButton(
+            bottom_frame, text="⚙ Columnas",
+            command=self._show_resumen_column_selector,
+            width=100, fg_color="#1f6aa5"
+        )
+        btn_columns.pack(side="left", padx=(0, 10))
+
+        btn_export = customtkinter.CTkButton(
+            bottom_frame, text="📊 Excel",
+            command=self._export_resumen_excel,
+            width=80, fg_color="#217346", hover_color="#1a5c38"
+        )
+        btn_export.pack(side="left")
 
         # Cargar datos
         self._reload_resumen()
@@ -741,10 +727,13 @@ class AppPartsManager(customtkinter.CTk):
             filtered = []
             search_text = self.search_entry.get().lower().strip()
 
-            # Mapeo de campo de búsqueda a índice
+            # Mapeo de campo de búsqueda a índice (todos los campos de tbl_partes)
             search_field_map = {
                 "Código": 1, "Descripción": 2, "Estado": 3, "Red": 4,
-                "Tipo Trabajo": 5, "Municipio": 19, "Trabajadores": 25, "Observaciones": 26
+                "Tipo Trabajo": 5, "Cód. Trabajo": 6, "Tipo Reparación": 7,
+                "Título": 11, "Desc. Corta": 12, "Desc. Larga": 13,
+                "Localización": 18, "Municipio": 19, "Comarca": 20,
+                "Provincia": 21, "Concejo": 22, "Trabajadores": 25, "Observaciones": 26
             }
 
             for row in all_rows:
@@ -949,56 +938,135 @@ class AppPartsManager(customtkinter.CTk):
         self._reload_resumen()
 
     def _show_resumen_column_selector(self):
-        """Muestra ventana para seleccionar columnas visibles del resumen"""
+        """Muestra ventana para seleccionar y ordenar columnas visibles del resumen"""
+        from collections import OrderedDict
+
         selector_window = customtkinter.CTkToplevel(self)
-        selector_window.title("Seleccionar Columnas - Resumen")
-        selector_window.geometry("400x500")
+        selector_window.title("Configurar Columnas - Resumen")
+        selector_window.geometry("500x600")
         selector_window.transient(self)
         selector_window.grab_set()
 
         # Título
         title_label = customtkinter.CTkLabel(
             selector_window,
-            text="Seleccionar Columnas Visibles",
+            text="Configurar Columnas",
             font=("", 16, "bold")
         )
-        title_label.pack(pady=(20, 10))
+        title_label.pack(pady=(20, 5))
 
-        # Scroll frame para checkboxes
-        scroll_frame = customtkinter.CTkScrollableFrame(selector_window, width=350, height=350)
-        scroll_frame.pack(pady=10, padx=20, fill="both", expand=True)
+        subtitle = customtkinter.CTkLabel(
+            selector_window,
+            text="Activa/desactiva columnas y usa ▲▼ para ordenarlas",
+            font=("", 11), text_color="gray"
+        )
+        subtitle.pack(pady=(0, 10))
 
-        # Checkboxes
-        checkboxes = {}
+        # Frame principal con lista y botones de orden
+        main_frame = customtkinter.CTkFrame(selector_window)
+        main_frame.pack(pady=10, padx=20, fill="both", expand=True)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(0, weight=1)
+
+        # Lista de columnas (usando Listbox de tkinter para selección)
+        from tkinter import Listbox, SINGLE, END
+
+        # Frame para la lista
+        list_frame = customtkinter.CTkFrame(main_frame)
+        list_frame.grid(row=0, column=0, padx=(10, 5), pady=10, sticky="nsew")
+        list_frame.grid_rowconfigure(0, weight=1)
+        list_frame.grid_columnconfigure(0, weight=1)
+
+        # Crear lista de columnas con checkboxes simulados
+        self._col_order_list = []  # [(col_name, visible), ...]
         for col_name, col_info in self.resumen_columns.items():
-            if col_info["locked"]:
-                # Columnas bloqueadas (siempre visibles)
-                label = customtkinter.CTkLabel(
-                    scroll_frame,
-                    text=f"✓ {col_info['label']} (siempre visible)",
-                    font=("", 12)
-                )
-                label.pack(anchor="w", pady=5, padx=10)
-            else:
-                # Columnas opcionales
-                var = customtkinter.BooleanVar(value=col_info["visible"])
-                cb = customtkinter.CTkCheckBox(
-                    scroll_frame,
-                    text=col_info["label"],
-                    variable=var,
-                    font=("", 12)
-                )
-                cb.pack(anchor="w", pady=5, padx=10)
-                checkboxes[col_name] = var
+            self._col_order_list.append((col_name, col_info["visible"], col_info["locked"]))
 
-        # Botones
+        # Listbox para mostrar columnas
+        listbox = Listbox(list_frame, selectmode=SINGLE, font=("", 11), height=20, width=35)
+        listbox.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar_list = customtkinter.CTkScrollbar(list_frame, command=listbox.yview)
+        scrollbar_list.grid(row=0, column=1, sticky="ns")
+        listbox.configure(yscrollcommand=scrollbar_list.set)
+
+        def refresh_listbox():
+            listbox.delete(0, END)
+            for col_name, visible, locked in self._col_order_list:
+                col_info = self.resumen_columns.get(col_name, {"label": col_name})
+                prefix = "✓ " if visible else "○ "
+                suffix = " 🔒" if locked else ""
+                listbox.insert(END, f"{prefix}{col_info['label']}{suffix}")
+
+        refresh_listbox()
+
+        # Frame para botones de control
+        btn_control_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
+        btn_control_frame.grid(row=0, column=1, padx=(5, 10), pady=10, sticky="ns")
+
+        def move_up():
+            idx = listbox.curselection()
+            if idx and idx[0] > 0:
+                i = idx[0]
+                # No mover por encima de columnas locked
+                if i > 0:
+                    self._col_order_list[i], self._col_order_list[i-1] = \
+                        self._col_order_list[i-1], self._col_order_list[i]
+                    refresh_listbox()
+                    listbox.selection_set(i-1)
+
+        def move_down():
+            idx = listbox.curselection()
+            if idx and idx[0] < len(self._col_order_list) - 1:
+                i = idx[0]
+                self._col_order_list[i], self._col_order_list[i+1] = \
+                    self._col_order_list[i+1], self._col_order_list[i]
+                refresh_listbox()
+                listbox.selection_set(i+1)
+
+        def toggle_visibility():
+            idx = listbox.curselection()
+            if idx:
+                i = idx[0]
+                col_name, visible, locked = self._col_order_list[i]
+                if not locked:  # Solo si no está bloqueada
+                    self._col_order_list[i] = (col_name, not visible, locked)
+                    refresh_listbox()
+                    listbox.selection_set(i)
+
+        btn_up = customtkinter.CTkButton(btn_control_frame, text="▲ Subir", command=move_up, width=100)
+        btn_up.pack(pady=5)
+
+        btn_down = customtkinter.CTkButton(btn_control_frame, text="▼ Bajar", command=move_down, width=100)
+        btn_down.pack(pady=5)
+
+        btn_toggle = customtkinter.CTkButton(
+            btn_control_frame, text="✓/○ Visible",
+            command=toggle_visibility, width=100, fg_color="#1f6aa5"
+        )
+        btn_toggle.pack(pady=20)
+
+        # Leyenda
+        legend = customtkinter.CTkLabel(
+            btn_control_frame,
+            text="✓ = Visible\n○ = Oculta\n🔒 = Fija",
+            font=("", 10), text_color="gray", justify="left"
+        )
+        legend.pack(pady=10)
+
+        # Botones de acción
         btn_frame = customtkinter.CTkFrame(selector_window, fg_color="transparent")
         btn_frame.pack(pady=20)
 
         def aplicar():
-            # Actualizar visibilidad
-            for col_name, var in checkboxes.items():
-                self.resumen_columns[col_name]["visible"] = var.get()
+            # Reconstruir resumen_columns con nuevo orden y visibilidad
+            new_columns = OrderedDict()
+            for col_name, visible, locked in self._col_order_list:
+                col_info = self.resumen_columns[col_name].copy()
+                col_info["visible"] = visible
+                new_columns[col_name] = col_info
+
+            self.resumen_columns = new_columns
 
             # Guardar configuración
             self._save_column_config("resumen", self.resumen_columns)
@@ -1010,7 +1078,8 @@ class AppPartsManager(customtkinter.CTk):
         def cancelar():
             selector_window.destroy()
 
-        btn_aplicar = customtkinter.CTkButton(btn_frame, text="Aplicar", command=aplicar, width=120)
+        btn_aplicar = customtkinter.CTkButton(btn_frame, text="Aplicar", command=aplicar, width=120,
+                                               fg_color="green", hover_color="#006400")
         btn_aplicar.pack(side="left", padx=5)
 
         btn_cancelar = customtkinter.CTkButton(btn_frame, text="Cancelar", command=cancelar, width=120)
