@@ -62,7 +62,23 @@ class AppLogin(customtkinter.CTk):
         # check connection
         if db:
             schema = os.getenv('DB_SCHEMA', 'cert_dev')
+
+            # Ocultar ventana primero para evitar errores de callbacks pendientes
+            self.withdraw()
+
+            # Cancelar todos los callbacks after() pendientes
+            for after_id in self.tk.eval('after info').split():
+                try:
+                    self.after_cancel(after_id)
+                except Exception:
+                    pass
+
+            # Pequeña pausa para que se procesen eventos pendientes
+            self.update_idletasks()
+
+            # Ahora destruir la ventana
             self.destroy()
+
             app = AppPartsManager(access, schema)
             app.mainloop()
 
