@@ -1,7 +1,7 @@
 import customtkinter
 from PIL import Image
 from script.modulo_db import login_db
-from interface.typeUser_interfaz import AppTypeUser
+from interface.parts_manager_interfaz import AppPartsManager
 from CTkMessagebox import CTkMessagebox
 import os
 
@@ -61,8 +61,9 @@ class AppLogin(customtkinter.CTk):
 
         # check connection
         if db:
+            schema = os.getenv('DB_SCHEMA', 'cert_dev')
             self.destroy()
-            app = AppTypeUser(access)
+            app = AppPartsManager(access, schema)
             app.mainloop()
 
             return access
