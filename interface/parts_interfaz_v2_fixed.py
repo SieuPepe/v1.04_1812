@@ -44,7 +44,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         super().__init__()
 
         self.title("Generador de partes - Formulario Completo")
-        self.geometry("1050x910")
+        self.geometry("1050x1000")
         self.resizable(False, False)
 
         # Asegurar que la ventana aparezca al frente
@@ -603,6 +603,9 @@ class AppPartsV2(customtkinter.CTkToplevel):
         if not fecha_inicio_str:
             CTkMessagebox(title="Campo obligatorio", message="La Fecha de Inicio es obligatoria", icon="warning")
             return
+
+        fecha_fin_str = self.fecha_fin_entry.get()
+        # Fecha Fin es opcional
 
         fecha_prevista_str = self.fecha_prevista_entry.get()
         # Fecha Prevista es opcional
