@@ -59,7 +59,7 @@ class AppManagerProject(customtkinter.CTkToplevel):
 
         # cargar imagenes de iconos
         image_logo_path = parent_path +"/resources/images/Logo Redes Urbide Black.jpg"
-        self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 44))
+        self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 151))
         resume_path = parent_path +"/resources/images/resumen.png"  # quitar punto cuando ya no este en pruebas
         self.resume_image = customtkinter.CTkImage(Image.open(resume_path),
                                                       size=(30, 30))

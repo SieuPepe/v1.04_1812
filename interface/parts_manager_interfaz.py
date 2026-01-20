@@ -106,7 +106,7 @@ class AppPartsManager(customtkinter.CTk):
     def _load_images(self):
         """Carga todas las imágenes necesarias"""
         logo_path = os.path.join(parent_path, "resources/images/Logo Redes Urbide Black.jpg")
-        self.lg_image = customtkinter.CTkImage(Image.open(logo_path), size=(200, 44))
+        self.lg_image = customtkinter.CTkImage(Image.open(logo_path), size=(200, 151))
 
         resumen_path = os.path.join(parent_path, "resources/images/proyecto.png")
         self.resumen_image = customtkinter.CTkImage(Image.open(resumen_path), size=(30, 30))

@@ -39,7 +39,7 @@ class AppTypeUser(customtkinter.CTk):
         self.select_frame.place(relx=0.5, rely=0.5, anchor="center")
 
         image_logo_path = parent_path +"/resources/images/Logo Redes Urbide Black.jpg"
-        self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200,44))
+        self.lg_image = customtkinter.CTkImage(Image.open(image_logo_path), size=(200, 151))
         self.lg_image_label = customtkinter.CTkLabel(self.select_frame, text=" ",image=self.lg_image)
         self.lg_image_label.grid(row=0, column=0, padx=30, pady=(15, 15), columnspan=2)
 
