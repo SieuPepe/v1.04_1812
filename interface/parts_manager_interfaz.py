@@ -1150,7 +1150,7 @@ class AppPartsManager(customtkinter.CTk):
                 partes_data = get_partes_resumen(self.user, self.password, self.schema)
                 for row in partes_data:
                     if row[0] == parte_id:  # row[0] es el ID
-                        parte_text = f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
+                        parte_text = f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}"
                         self._set_selected_parte(parte_text)
                         break
 
@@ -1262,8 +1262,8 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
-                           for row in partes_data]  # id - codigo | ot | red | descripcion
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}"
+                           for row in partes_data]  # id - codigo | municipio | titulo
             self.partes_list_full = self.partes_list.copy()  # Guardar lista completa
         except:
             self.partes_list = ["Sin partes"]
@@ -1462,8 +1462,8 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]} | {row[2] or 'Sin desc.'}"
-                           for row in partes_data]
+            self.partes_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}"
+                           for row in partes_data]  # id - codigo | municipio | titulo
             self.partes_list_full = self.partes_list.copy()
 
             if self.partes_list:
@@ -2563,7 +2563,7 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar lista de partes
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}" for row in partes_data]
             self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
         except:
             self.presupuesto_partes_list = ["Sin partes"]
@@ -2833,7 +2833,7 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.presupuesto_partes_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}" for row in partes_data]
             self.presupuesto_partes_list_full = self.presupuesto_partes_list.copy()
 
             if self.presupuesto_partes_list:
@@ -3167,7 +3167,7 @@ class AppPartsManager(customtkinter.CTk):
         # Cargar lista de partes completa para búsqueda
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.cert_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}" for row in partes_data]
             self.cert_list_full = self.cert_list.copy()
         except:
             self.cert_list = ["Sin partes"]
@@ -3528,7 +3528,7 @@ class AppPartsManager(customtkinter.CTk):
 
         try:
             partes_data = get_partes_resumen(self.user, self.password, self.schema)
-            self.cert_list = [f"{row[0]} - {row[1]} | {row[4]} | {row[5]}" for row in partes_data]
+            self.cert_list = [f"{row[0]} - {row[1]} | {row[19] or ''} | {row[11] or 'Sin título'}" for row in partes_data]
             self.cert_list_full = self.cert_list.copy()
 
             if self.cert_list:
