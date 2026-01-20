@@ -80,14 +80,31 @@ class AppLogin(customtkinter.CTk):
 
     def _complete_login(self):
         """Completa la transición al gestor principal después del login."""
+        import sys
+
+        # Silenciar errores de callbacks pendientes durante la transición
+        original_stderr = sys.stderr
+
+        class SilentStderr:
+            def write(self, msg):
+                # Ignorar errores de callbacks de Tk/CustomTkinter
+                if 'invalid command name' not in msg and 'after' not in msg:
+                    original_stderr.write(msg)
+            def flush(self):
+                original_stderr.flush()
+
+        sys.stderr = SilentStderr()
+
         try:
             # Detener el mainloop actual
             self.quit()
-
             # Destruir ventana de login
             self.destroy()
         except Exception:
             pass
+        finally:
+            # Restaurar stderr
+            sys.stderr = original_stderr
 
         # Crear y ejecutar la ventana principal
         app = AppPartsManager(self._next_access, self._next_schema)
