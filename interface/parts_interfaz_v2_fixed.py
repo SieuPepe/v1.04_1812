@@ -26,7 +26,8 @@ from script.modulo_db import (
     get_comarcas_by_provincia,
     get_municipios_by_provincia,
     get_concejos_by_municipio,
-    get_tipo_codigo_by_id
+    get_tipo_codigo_by_id,
+    get_trabajadores
 )
 # from parts_list_window import open_parts_list  # OBSOLETO: Módulo eliminado
 
@@ -148,10 +149,36 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.localizacion_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
         row += 1
 
-        # Trabajadores
+        # Trabajadores (desplegable con lista de trabajadores)
         customtkinter.CTkLabel(self, text="Trabajadores:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.trabajadores_entry = customtkinter.CTkEntry(self, width=720, placeholder_text="Ej: Juan Pérez, María López")
-        self.trabajadores_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+        self.trabajadores_menu = customtkinter.CTkComboBox(
+            self, values=["Cargando..."], width=400,
+            state="normal"  # Permite escribir para autocompletado
+        )
+        self.trabajadores_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        self.trabajadores_menu.set("")
+
+        # Botón para añadir más trabajadores
+        self.trabajadores_list = []  # Lista de trabajadores seleccionados
+        self.trabajadores_display = customtkinter.CTkLabel(
+            self, text="", font=customtkinter.CTkFont(size=11),
+            text_color="gray", anchor="w", width=280
+        )
+        self.trabajadores_display.grid(row=row, column=2, columnspan=2, padx=5, pady=10, sticky="w")
+
+        btn_frame_trab = customtkinter.CTkFrame(self, fg_color="transparent")
+        btn_frame_trab.grid(row=row, column=2, padx=5, pady=10, sticky="e")
+
+        customtkinter.CTkButton(
+            btn_frame_trab, text="+ Añadir", width=70, height=28,
+            command=self._add_trabajador_to_list
+        ).pack(side="left", padx=2)
+
+        customtkinter.CTkButton(
+            btn_frame_trab, text="Limpiar", width=70, height=28,
+            fg_color="gray", hover_color="#555555",
+            command=self._clear_trabajadores_list
+        ).pack(side="left", padx=2)
         row += 1
 
         # GPS - Latitud y Longitud
@@ -248,6 +275,9 @@ class AppPartsV2(customtkinter.CTkToplevel):
             else:
                 self.provincia_menu.configure(values=["(sin datos)"])
                 self.provincia_menu.set("(sin datos)")
+
+            # 4. Cargar trabajadores
+            self._load_trabajadores()
 
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
@@ -359,6 +389,54 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return int(str(v).split(" - ")[0].strip())
         except Exception:
             return None
+
+    def _load_trabajadores(self):
+        """Carga la lista de trabajadores en el desplegable."""
+        try:
+            trabajadores = get_trabajadores(self.user, self.password, self.schema)
+            if trabajadores:
+                # trabajadores: [(id, nombre_completo), ...]
+                self._trabajadores_data = {t[1]: t[0] for t in trabajadores}  # nombre -> id
+                valores = [t[1] for t in trabajadores]
+                self.trabajadores_menu.configure(values=valores)
+                self.trabajadores_menu.set("")
+            else:
+                self._trabajadores_data = {}
+                self.trabajadores_menu.configure(values=["(sin trabajadores)"])
+        except Exception as e:
+            print(f"Error cargando trabajadores: {e}")
+            self._trabajadores_data = {}
+            self.trabajadores_menu.configure(values=["Error al cargar"])
+
+    def _add_trabajador_to_list(self):
+        """Añade el trabajador seleccionado a la lista."""
+        trabajador = self.trabajadores_menu.get().strip()
+        if not trabajador or trabajador in ["", "(sin trabajadores)", "Error al cargar", "Cargando..."]:
+            return
+
+        if trabajador not in self.trabajadores_list:
+            self.trabajadores_list.append(trabajador)
+            self._update_trabajadores_display()
+
+        # Limpiar selección
+        self.trabajadores_menu.set("")
+
+    def _clear_trabajadores_list(self):
+        """Limpia la lista de trabajadores seleccionados."""
+        self.trabajadores_list = []
+        self._update_trabajadores_display()
+
+    def _update_trabajadores_display(self):
+        """Actualiza el label que muestra los trabajadores seleccionados."""
+        if self.trabajadores_list:
+            # Mostrar nombres abreviados si hay muchos
+            if len(self.trabajadores_list) <= 2:
+                text = ", ".join(self.trabajadores_list)
+            else:
+                text = f"{self.trabajadores_list[0]}, +{len(self.trabajadores_list)-1} más"
+            self.trabajadores_display.configure(text=text)
+        else:
+            self.trabajadores_display.configure(text="")
 
     def _update_codigo_ot(self, *args):
         """Actualiza el código OT preview según el tipo de trabajo seleccionado
@@ -557,8 +635,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
         fecha_fin = convert_date(fecha_fin_str) if fecha_fin_str else None
         fecha_prevista = convert_date(fecha_prevista_str)
 
-        # Obtener trabajadores (opcional)
-        trabajadores = self.trabajadores_entry.get().strip() or None
+        # Obtener trabajadores (de la lista seleccionada)
+        trabajadores = ", ".join(self.trabajadores_list) if self.trabajadores_list else None
 
         # Obtener coordenadas GPS (opcionales, pero validar formato)
         latitud_str = self.latitud_entry.get().strip()
@@ -660,7 +738,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.fecha_fin_entry.delete(0, "end")
         self.fecha_prevista_entry.delete(0, "end")
         self.localizacion_entry.delete(0, "end")
-        self.trabajadores_entry.delete(0, "end")
+        self._clear_trabajadores_list()  # Limpiar lista de trabajadores
         self.latitud_entry.delete(0, "end")
         self.longitud_entry.delete(0, "end")
         # Recargar mantiene OT preseleccionada

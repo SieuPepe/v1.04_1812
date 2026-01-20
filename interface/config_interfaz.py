@@ -115,6 +115,7 @@ class AppConfiguracion(customtkinter.CTkToplevel):
         self.var_subtabs.add("🌐 Redes")
         self.var_subtabs.add("🔧 Tipos Reparación")
         self.var_subtabs.add("📝 Códigos Trabajo")
+        self.var_subtabs.add("👷 Trabajadores")
 
         # Configurar cada sub-pestaña
         self._setup_dimension_subtab(
@@ -131,6 +132,10 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             self.var_subtabs.tab("📝 Códigos Trabajo"),
             "dim_codigo_trabajo",
             "Gestiona los códigos de trabajo programado"
+        )
+        self._setup_trabajadores_subtab(
+            self.var_subtabs.tab("👷 Trabajadores"),
+            "Gestiona los trabajadores de las empresas (UTE REDES, EXCAVACIONES CAMPO, etc.)"
         )
 
     def _setup_dimension_subtab(self, tab, table_name: str, description: str):
@@ -490,6 +495,360 @@ class AppConfiguracion(customtkinter.CTkToplevel):
             self._load_dimension_data(table_name)
         else:
             CTkMessagebox(title="Error", message=result['message'], icon="cancel")
+
+    # =========================================================================
+    # SUB-PESTAÑA: TRABAJADORES
+    # =========================================================================
+
+    def _setup_trabajadores_subtab(self, tab, description: str):
+        """Configura la sub-pestaña de gestión de trabajadores."""
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+
+        # Descripción
+        desc_label = customtkinter.CTkLabel(
+            tab,
+            text=description,
+            font=customtkinter.CTkFont(size=12),
+            text_color="gray"
+        )
+        desc_label.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="w")
+
+        # Frame para el TreeView
+        tree_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
+        tree_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
+        tree_frame.grid_columnconfigure(0, weight=1)
+        tree_frame.grid_rowconfigure(0, weight=1)
+
+        # Configurar estilo del TreeView
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure(
+            "Trabajadores.Treeview",
+            background="#2a2d2e",
+            foreground="white",
+            fieldbackground="#2a2d2e",
+            rowheight=28,
+            font=('Segoe UI', 11)
+        )
+        style.configure(
+            "Trabajadores.Treeview.Heading",
+            background="#1f6aa5",
+            foreground="white",
+            font=('Segoe UI', 11, 'bold')
+        )
+        style.map("Trabajadores.Treeview", background=[('selected', '#1f6aa5')])
+
+        # Crear TreeView
+        columns = ("id", "empresa", "nombre", "nombre_completo")
+        self.trabajadores_tree = ttk.Treeview(
+            tree_frame,
+            columns=columns,
+            show="headings",
+            height=10,
+            style="Trabajadores.Treeview"
+        )
+
+        # Configurar columnas
+        self.trabajadores_tree.heading("id", text="ID")
+        self.trabajadores_tree.heading("empresa", text="Empresa")
+        self.trabajadores_tree.heading("nombre", text="Nombre")
+        self.trabajadores_tree.heading("nombre_completo", text="Nombre Completo")
+
+        self.trabajadores_tree.column("id", width=50, anchor="center")
+        self.trabajadores_tree.column("empresa", width=150, anchor="w")
+        self.trabajadores_tree.column("nombre", width=180, anchor="w")
+        self.trabajadores_tree.column("nombre_completo", width=250, anchor="w")
+
+        self.trabajadores_tree.grid(row=0, column=0, sticky="nsew")
+
+        # Scrollbar vertical
+        scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.trabajadores_tree.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.trabajadores_tree.configure(yscrollcommand=scrollbar.set)
+
+        # Frame para añadir nuevo trabajador
+        add_frame = customtkinter.CTkFrame(tab, fg_color=("#e0e0e0", "#333333"), corner_radius=10)
+        add_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
+        add_frame.grid_columnconfigure(4, weight=1)
+
+        # Label
+        customtkinter.CTkLabel(
+            add_frame,
+            text="Añadir nuevo:",
+            font=customtkinter.CTkFont(size=12, weight="bold")
+        ).grid(row=0, column=0, padx=15, pady=12, sticky="w")
+
+        # Dropdown Empresa
+        customtkinter.CTkLabel(add_frame, text="Empresa:").grid(row=0, column=1, padx=(10, 5), pady=12)
+        self.trabajador_empresa_var = customtkinter.StringVar(value="")
+        self.trabajador_empresa_menu = customtkinter.CTkOptionMenu(
+            add_frame,
+            variable=self.trabajador_empresa_var,
+            values=["Cargando..."],
+            width=180
+        )
+        self.trabajador_empresa_menu.grid(row=0, column=2, padx=5, pady=12)
+
+        # Entry Nombre
+        customtkinter.CTkLabel(add_frame, text="Nombre:").grid(row=0, column=3, padx=(20, 5), pady=12)
+        self.trabajador_nombre_entry = customtkinter.CTkEntry(
+            add_frame,
+            width=250,
+            fg_color="#171717",
+            text_color="#FFFFFF",
+            placeholder_text="Ej: JUAN PEREZ"
+        )
+        self.trabajador_nombre_entry.grid(row=0, column=4, padx=5, pady=12, sticky="ew")
+
+        # Botón Añadir
+        add_btn = customtkinter.CTkButton(
+            add_frame,
+            text="➕ Añadir",
+            width=100,
+            fg_color="green",
+            hover_color="#006400",
+            command=self._add_trabajador
+        )
+        add_btn.grid(row=0, column=5, padx=15, pady=12)
+
+        # Frame de acciones
+        actions_frame = customtkinter.CTkFrame(tab, fg_color="transparent")
+        actions_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 10))
+
+        # Botón Editar
+        customtkinter.CTkButton(
+            actions_frame,
+            text="✏️ Editar",
+            width=110,
+            fg_color="#1f6aa5",
+            hover_color="#144870",
+            command=self._edit_trabajador
+        ).grid(row=0, column=0, padx=(0, 10), pady=5)
+
+        # Botón Eliminar (desactivar)
+        customtkinter.CTkButton(
+            actions_frame,
+            text="🗑️ Eliminar",
+            width=110,
+            fg_color="#8B0000",
+            hover_color="#5C0000",
+            command=self._delete_trabajador
+        ).grid(row=0, column=1, padx=10, pady=5)
+
+        # Botón Actualizar
+        customtkinter.CTkButton(
+            actions_frame,
+            text="🔄 Actualizar",
+            width=110,
+            fg_color="transparent",
+            hover_color=("gray70", "gray30"),
+            border_width=1,
+            command=self._load_trabajadores_data
+        ).grid(row=0, column=2, padx=10, pady=5)
+
+        # Cargar empresas y datos iniciales
+        self.after(100, self._load_empresas)
+        self.after(200, self._load_trabajadores_data)
+
+    def _load_empresas(self):
+        """Carga las empresas disponibles para el dropdown."""
+        from script.modulo_db import get_empresas
+
+        try:
+            empresas = get_empresas(self.user, self.password, self.schema)
+            # empresas: [(id, nombre, prefijo), ...]
+            if empresas:
+                self._empresas_map = {f"{e[1]}": e[0] for e in empresas}
+                valores = [e[1] for e in empresas]
+                self.trabajador_empresa_menu.configure(values=valores)
+                self.trabajador_empresa_var.set(valores[0] if valores else "")
+            else:
+                self._empresas_map = {}
+                self.trabajador_empresa_menu.configure(values=["Sin empresas"])
+        except Exception as e:
+            print(f"Error al cargar empresas: {e}")
+            self._empresas_map = {}
+
+    def _load_trabajadores_data(self):
+        """Carga los datos de trabajadores en el TreeView."""
+        from script.modulo_db import get_trabajadores, get_empresas
+
+        # Limpiar TreeView
+        for item in self.trabajadores_tree.get_children():
+            self.trabajadores_tree.delete(item)
+
+        try:
+            # Obtener mapa de empresas para mostrar el nombre
+            empresas = get_empresas(self.user, self.password, self.schema)
+            empresas_map = {e[0]: (e[1], e[2]) for e in empresas}  # {id: (nombre, prefijo)}
+
+            # Obtener trabajadores con detalle
+            from script.db_partes import get_project_connection
+            with get_project_connection(self.user, self.password, self.schema) as cn:
+                cur = cn.cursor()
+                cur.execute("""
+                    SELECT t.id, t.empresa_id, t.nombre, e.prefijo
+                    FROM dim_trabajadores t
+                    JOIN dim_empresas e ON e.id = t.empresa_id
+                    WHERE t.activo = 1
+                    ORDER BY e.nombre, t.nombre
+                """)
+                trabajadores = cur.fetchall()
+                cur.close()
+
+            # Insertar en el TreeView
+            for t in trabajadores:
+                empresa_nombre = empresas_map.get(t[1], ("Desconocida", ""))[0]
+                nombre_completo = f"{t[3]} {t[2]}"
+                self.trabajadores_tree.insert("", "end", values=(t[0], empresa_nombre, t[2], nombre_completo))
+
+        except Exception as e:
+            print(f"Error al cargar trabajadores: {e}")
+            CTkMessagebox(title="Error", message=f"Error al cargar trabajadores:\n{e}", icon="cancel")
+
+    def _add_trabajador(self):
+        """Añade un nuevo trabajador."""
+        from script.modulo_db import add_trabajador
+
+        empresa_nombre = self.trabajador_empresa_var.get()
+        nombre = self.trabajador_nombre_entry.get().strip().upper()
+
+        if not empresa_nombre or empresa_nombre == "Sin empresas":
+            CTkMessagebox(title="Error", message="Seleccione una empresa", icon="cancel")
+            return
+
+        if not nombre:
+            CTkMessagebox(title="Error", message="El nombre es obligatorio", icon="cancel")
+            return
+
+        empresa_id = self._empresas_map.get(empresa_nombre)
+        if not empresa_id:
+            CTkMessagebox(title="Error", message="Empresa no válida", icon="cancel")
+            return
+
+        result = add_trabajador(self.user, self.password, self.schema, empresa_id, nombre)
+
+        if result:
+            CTkMessagebox(title="Éxito", message=f"Trabajador '{nombre}' añadido correctamente", icon="check")
+            self.trabajador_nombre_entry.delete(0, 'end')
+            self._load_trabajadores_data()
+        else:
+            CTkMessagebox(title="Error", message="Error al añadir trabajador", icon="cancel")
+
+    def _edit_trabajador(self):
+        """Edita un trabajador seleccionado."""
+        selected = self.trabajadores_tree.selection()
+
+        if not selected:
+            CTkMessagebox(title="Aviso", message="Seleccione un trabajador para editar", icon="warning")
+            return
+
+        item = self.trabajadores_tree.item(selected[0])
+        values = item['values']
+        record_id = values[0]
+        current_empresa = values[1]
+        current_nombre = values[2]
+
+        # Crear ventana de edición
+        dialog = customtkinter.CTkToplevel(self)
+        dialog.title("Editar Trabajador")
+        dialog.geometry("450x220")
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.resizable(False, False)
+
+        dialog.grid_columnconfigure(1, weight=1)
+
+        # Título
+        customtkinter.CTkLabel(
+            dialog,
+            text="Editar Trabajador",
+            font=customtkinter.CTkFont(size=16, weight="bold")
+        ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 10))
+
+        # Empresa
+        customtkinter.CTkLabel(dialog, text="Empresa:", font=("", 12, "bold")).grid(
+            row=1, column=0, padx=20, pady=10, sticky="e")
+        empresa_var = customtkinter.StringVar(value=current_empresa)
+        empresa_menu = customtkinter.CTkOptionMenu(
+            dialog,
+            variable=empresa_var,
+            values=list(self._empresas_map.keys()),
+            width=250
+        )
+        empresa_menu.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+
+        # Nombre
+        customtkinter.CTkLabel(dialog, text="Nombre:", font=("", 12, "bold")).grid(
+            row=2, column=0, padx=20, pady=10, sticky="e")
+        nombre_entry = customtkinter.CTkEntry(dialog, fg_color="#171717", text_color="#FFFFFF", width=250)
+        nombre_entry.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
+        nombre_entry.insert(0, current_nombre)
+
+        # Botones
+        btn_frame = customtkinter.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.grid(row=3, column=0, columnspan=2, pady=20)
+
+        def save_changes():
+            from script.modulo_db import update_trabajador
+
+            empresa_nombre = empresa_var.get()
+            nombre = nombre_entry.get().strip().upper()
+
+            if not nombre:
+                CTkMessagebox(title="Error", message="El nombre es obligatorio", icon="cancel")
+                return
+
+            empresa_id = self._empresas_map.get(empresa_nombre)
+            if not empresa_id:
+                CTkMessagebox(title="Error", message="Empresa no válida", icon="cancel")
+                return
+
+            update_trabajador(self.user, self.password, self.schema, record_id,
+                            empresa_id=empresa_id, nombre=nombre)
+
+            CTkMessagebox(title="Éxito", message="Trabajador actualizado correctamente", icon="check")
+            dialog.destroy()
+            self._load_trabajadores_data()
+
+        customtkinter.CTkButton(
+            btn_frame, text="💾 Guardar", fg_color="green", hover_color="#006400",
+            width=100, command=save_changes
+        ).grid(row=0, column=0, padx=10)
+
+        customtkinter.CTkButton(
+            btn_frame, text="❌ Cancelar", fg_color="red", hover_color="#8B0000",
+            width=100, command=dialog.destroy
+        ).grid(row=0, column=1, padx=10)
+
+    def _delete_trabajador(self):
+        """Elimina (desactiva) un trabajador seleccionado."""
+        from script.modulo_db import delete_trabajador
+
+        selected = self.trabajadores_tree.selection()
+
+        if not selected:
+            CTkMessagebox(title="Aviso", message="Seleccione un trabajador para eliminar", icon="warning")
+            return
+
+        item = self.trabajadores_tree.item(selected[0])
+        record_id = item['values'][0]
+        nombre = item['values'][3]  # nombre_completo
+
+        # Confirmar eliminación
+        msg = CTkMessagebox(
+            title="Confirmar eliminación",
+            message=f"¿Está seguro de eliminar al trabajador '{nombre}'?\n\nEl trabajador será desactivado.",
+            icon="warning",
+            option_1="Cancelar",
+            option_2="Eliminar"
+        )
+
+        if msg.get() == "Eliminar":
+            delete_trabajador(self.user, self.password, self.schema, record_id)
+            CTkMessagebox(title="Éxito", message="Trabajador eliminado correctamente", icon="check")
+            self._load_trabajadores_data()
 
     # =========================================================================
     # PESTAÑA: CATÁLOGO DE PARTIDAS
