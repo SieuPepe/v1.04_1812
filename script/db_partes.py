@@ -128,6 +128,7 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
 def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     """
     Devuelve lista de 'id - texto' detectando automáticamente la columna de texto.
+    Para dim_red: ordena poniendo Distribución y Saneamiento primero.
     """
     text_col = _guess_text_column(user, password, schema, table)
     if not text_col:
@@ -137,7 +138,20 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
+            # Orden especial para dim_red: Distribución y Saneamiento primero
+            if table == 'dim_red':
+                cur.execute(f"""
+                    SELECT id, {text_col} FROM {schema}.{table}
+                    ORDER BY
+                        CASE
+                            WHEN LOWER({text_col}) LIKE '%distribuci%' THEN 1
+                            WHEN LOWER({text_col}) LIKE '%saneamiento%' THEN 2
+                            ELSE 3
+                        END,
+                        {text_col}
+                """)
+            else:
+                cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
             for rid, txt in cur.fetchall():
                 rows.append(f"{rid} - {txt}")
             cur.close()
