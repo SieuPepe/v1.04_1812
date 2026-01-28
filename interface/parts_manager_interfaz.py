@@ -958,7 +958,12 @@ class AppPartsManager(customtkinter.CTk):
                     self.tree_resumen, "resumen", c, self.resumen_columns
                 )
             )
-            self.tree_resumen.column(col, width=col_info["width"], anchor="center")
+            # Columnas de texto descriptivo se alinean a la izquierda
+            text_cols = {"descripcion", "titulo", "descripcion_corta", "descripcion_larga",
+                         "localizacion", "observaciones", "trabajadores", "municipio",
+                         "comarca", "provincia", "concejo"}
+            anchor = "w" if col in text_cols else "center"
+            self.tree_resumen.column(col, width=col_info["width"], anchor=anchor)
 
         # Scrollbars (vertical y horizontal)
         self.resumen_scrollbar = ttk.Scrollbar(self.resumen_table_frame, orient="vertical", command=self.tree_resumen.yview)
