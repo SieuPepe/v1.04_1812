@@ -671,8 +671,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
         fecha_fin = convert_date(fecha_fin_str) if fecha_fin_str else None
         fecha_prevista = convert_date(fecha_prevista_str)
 
-        # Obtener trabajadores (de la lista seleccionada)
-        trabajadores = ", ".join(self.trabajadores_list) if self.trabajadores_list else None
+        # Obtener trabajadores (de la lista seleccionada) - separador " | "
+        trabajadores = " | ".join(self.trabajadores_list) if self.trabajadores_list else None
 
         # Obtener coordenadas GPS (opcionales, pero validar formato)
         latitud_str = self.latitud_entry.get().strip()
