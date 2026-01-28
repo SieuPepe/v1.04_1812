@@ -929,6 +929,8 @@ class AppPartsManager(customtkinter.CTk):
         if hasattr(self, 'tree_resumen'):
             self.tree_resumen.destroy()
             self.resumen_scrollbar.destroy()
+            if hasattr(self, 'resumen_scrollbar_h'):
+                self.resumen_scrollbar_h.destroy()
 
         # Obtener columnas visibles respetando el orden del OrderedDict
         # (fecha_fin primero, luego codigo, luego el resto)
@@ -958,11 +960,13 @@ class AppPartsManager(customtkinter.CTk):
             )
             self.tree_resumen.column(col, width=col_info["width"], anchor="center")
 
-        # Scrollbar
+        # Scrollbars (vertical y horizontal)
         self.resumen_scrollbar = ttk.Scrollbar(self.resumen_table_frame, orient="vertical", command=self.tree_resumen.yview)
-        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set)
+        self.resumen_scrollbar_h = ttk.Scrollbar(self.resumen_table_frame, orient="horizontal", command=self.tree_resumen.xview)
+        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set, xscrollcommand=self.resumen_scrollbar_h.set)
         self.tree_resumen.grid(row=0, column=0, sticky="nsew")
         self.resumen_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.resumen_scrollbar_h.grid(row=1, column=0, sticky="ew")
 
         # Doble clic para ver detalles
         self.tree_resumen.bind("<Double-1>", lambda e: self._view_parte_detail())
