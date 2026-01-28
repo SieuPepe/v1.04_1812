@@ -2252,7 +2252,8 @@ class AppPartsManager(customtkinter.CTk):
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado_texto = self.estado_var.get()
+            # Obtener estado directamente del menú (no del StringVar que puede no sincronizar)
+            estado_texto = self.estado_menu.get()
             # Convertir texto a ID numérico (según tbl_parte_estados)
             estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
