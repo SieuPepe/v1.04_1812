@@ -530,8 +530,14 @@ def create_view_partes(user, password, code_project):
             cert_columns = [row[0] for row in cursor.fetchall()]
             has_cert_creado = 'creado_en' in cert_columns
 
-            # Vista de presupuesto de partes
-            cursor.execute(""" CREATE OR REPLACE VIEW vw_part_presupuesto AS
+            # Verificar si tbl_part_presupuesto tiene campo fecha
+            cursor.execute(f"DESCRIBE {code_project}.tbl_part_presupuesto")
+            pres_columns = [row[0] for row in cursor.fetchall()]
+            has_pres_fecha = 'fecha' in pres_columns
+
+            # Vista de presupuesto de partes (con fecha de medición si existe)
+            pres_fecha_col = "pp.fecha" if has_pres_fecha else "NULL as fecha"
+            cursor.execute(f""" CREATE OR REPLACE VIEW vw_part_presupuesto AS
                             SELECT
                                 pp.id,
                                 pp.parte_id,
@@ -541,6 +547,7 @@ def create_view_partes(user, password, code_project):
                                 pr.descripcion,
                                 u.unidad,
                                 pp.cantidad,
+                                {pres_fecha_col},
                                 pp.precio_unit,
                                 (pp.cantidad * pp.precio_unit) AS coste
                             FROM tbl_part_presupuesto pp

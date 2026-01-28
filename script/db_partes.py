@@ -741,12 +741,13 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
 def get_part_presupuesto(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve el presupuesto de un parte (partidas añadidas).
+    Incluye fecha de medición si está disponible en la vista.
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute("""
             SELECT id, parte_id, codigo_parte, codigo_partida, resumen,
-                   descripcion, unidad, cantidad, precio_unit, coste
+                   descripcion, unidad, cantidad, fecha, precio_unit, coste
             FROM vw_part_presupuesto
             WHERE parte_id = %s
             ORDER BY codigo_partida
@@ -757,18 +758,26 @@ def get_part_presupuesto(user: str, password: str, schema: str, parte_id: int):
 
 
 def add_part_presupuesto_item(user: str, password: str, schema: str,
-                               parte_id: int, precio_id: int, cantidad: float, precio_unit: float):
+                               parte_id: int, precio_id: int, cantidad: float, precio_unit: float,
+                               fecha: str = None):
     """
     Añade una partida al presupuesto de un parte.
+    fecha: fecha de medición en formato 'YYYY-MM-DD' (opcional)
     """
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
             try:
-                cur.execute("""
-                    INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
-                    VALUES (%s, %s, %s, %s)
-                """, (parte_id, precio_id, cantidad, precio_unit))
+                if fecha:
+                    cur.execute("""
+                        INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (parte_id, precio_id, cantidad, fecha, precio_unit))
+                else:
+                    cur.execute("""
+                        INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
+                        VALUES (%s, %s, %s, %s)
+                    """, (parte_id, precio_id, cantidad, precio_unit))
                 cn.commit()
                 return "ok"
             except Exception as e:
@@ -803,6 +812,32 @@ def mod_amount_part_budget_item(user: str, password: str, schema: str, item_id: 
                 cur.close()
     except Exception as e:
         logger.error(f"Error modificando cantidad en presupuesto: {e}")
+        return str(e)
+
+
+def update_fecha_presupuesto_item(user: str, password: str, schema: str, item_id: int, fecha: str):
+    """
+    Actualiza la fecha de medición de una partida en el presupuesto.
+    fecha: fecha en formato 'YYYY-MM-DD' o None para borrar
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            try:
+                cur.execute("""
+                    UPDATE tbl_part_presupuesto
+                    SET fecha = %s
+                    WHERE id = %s
+                """, (fecha, item_id))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
+    except Exception as e:
+        logger.error(f"Error actualizando fecha en presupuesto: {e}")
         return str(e)
 
 

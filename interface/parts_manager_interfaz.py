@@ -2698,7 +2698,7 @@ class AppPartsManager(customtkinter.CTk):
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
-        cols = ("id", "codigo", "resumen", "unidad", "cantidad", "precio_unit", "coste")
+        cols = ("id", "codigo", "resumen", "unidad", "cantidad", "fecha", "precio_unit", "coste")
         self.tree_presupuesto = ttk.Treeview(table_frame, columns=cols, show="headings", height=20)
 
         self.tree_presupuesto.heading("id", text="ID")
@@ -2706,23 +2706,26 @@ class AppPartsManager(customtkinter.CTk):
         self.tree_presupuesto.heading("resumen", text="Resumen")
         self.tree_presupuesto.heading("unidad", text="Unidad")
         self.tree_presupuesto.heading("cantidad", text="Cantidad")
+        self.tree_presupuesto.heading("fecha", text="Fecha")
         self.tree_presupuesto.heading("precio_unit", text="Precio Unit.")
         self.tree_presupuesto.heading("coste", text="Coste")
 
         self.tree_presupuesto.column("id", width=40, anchor="center")
         self.tree_presupuesto.column("codigo", width=90, anchor="center")
-        self.tree_presupuesto.column("resumen", width=280, anchor="w")
+        self.tree_presupuesto.column("resumen", width=250, anchor="w")
         self.tree_presupuesto.column("unidad", width=50, anchor="center")
         self.tree_presupuesto.column("cantidad", width=80, anchor="e")
+        self.tree_presupuesto.column("fecha", width=90, anchor="center")
         self.tree_presupuesto.column("precio_unit", width=90, anchor="e")
         self.tree_presupuesto.column("coste", width=90, anchor="e")
 
         self.presupuesto_columns = {
             "id": {"label": "ID", "width": 40},
             "codigo": {"label": "Código", "width": 90},
-            "resumen": {"label": "Resumen", "width": 280},
+            "resumen": {"label": "Resumen", "width": 250},
             "unidad": {"label": "Ud", "width": 50},
             "cantidad": {"label": "Cantidad", "width": 80},
+            "fecha": {"label": "Fecha", "width": 90},
             "precio_unit": {"label": "Precio Unit.", "width": 90},
             "coste": {"label": "Coste", "width": 90}
         }
@@ -2737,8 +2740,8 @@ class AppPartsManager(customtkinter.CTk):
                 )
             )
 
-        # Doble clic para editar cantidad
-        self.tree_presupuesto.bind("<Double-1>", lambda e: self._edit_cantidad_presupuesto())
+        # Doble clic para editar cantidad o fecha según la columna
+        self.tree_presupuesto.bind("<Double-1>", self._on_presupuesto_double_click)
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree_presupuesto.yview)
         self.tree_presupuesto.configure(yscrollcommand=scrollbar.set)
@@ -2923,18 +2926,25 @@ class AppPartsManager(customtkinter.CTk):
             total = 0
 
             for row in rows:
-                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, precio_unit, coste
+                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, fecha, precio_unit, coste
+                fecha_str = ""
+                if row[8]:  # fecha puede ser None o datetime.date
+                    try:
+                        fecha_str = row[8].strftime("%d/%m/%Y") if hasattr(row[8], 'strftime') else str(row[8])
+                    except:
+                        fecha_str = str(row[8]) if row[8] else ""
                 display = (
                     row[0],  # id
                     row[3],  # codigo_partida
                     row[4] or "",  # resumen
                     row[6] or "",  # unidad
                     f"{float(row[7]):.3f}",  # cantidad
-                    f"{float(row[8]):.2f}€",  # precio_unit
-                    f"{float(row[9]):.2f}€"  # coste
+                    fecha_str,  # fecha de medición
+                    f"{float(row[9]):.2f}€",  # precio_unit
+                    f"{float(row[10]):.2f}€"  # coste
                 )
                 self.tree_presupuesto.insert("", "end", values=display)
-                total += float(row[9])
+                total += float(row[10])
 
             self.total_presupuesto_label.configure(text=f"TOTAL: {total:.2f}€")
 
@@ -3030,6 +3040,110 @@ class AppPartsManager(customtkinter.CTk):
 
         win.bind('<Return>', lambda e: guardar())
         win.lift()
+
+    def _edit_fecha_presupuesto(self):
+        """Edita la fecha de medición de la partida seleccionada"""
+        from tkcalendar import DateEntry
+        from script.modulo_db import update_fecha_presupuesto_item
+        from datetime import datetime
+
+        selected = self.tree_presupuesto.selection()
+        if not selected:
+            return
+
+        item = self.tree_presupuesto.item(selected[0])
+        values = item['values']
+        item_id = values[0]
+        fecha_actual = values[5] if values[5] else ""  # columna fecha
+
+        # Ventana pequeña para editar fecha
+        win = customtkinter.CTkToplevel(self)
+        win.title("Modificar Fecha de Medición")
+        win.geometry("400x200")
+        win.resizable(False, False)
+        win.attributes('-topmost', True)
+
+        customtkinter.CTkLabel(
+            win,
+            text="Fecha de Medición:",
+            font=("", 14, "bold")
+        ).pack(pady=(20, 10))
+
+        fecha_entry = DateEntry(win, width=20, date_pattern='dd/mm/yyyy', locale='es_ES')
+        fecha_entry.pack(pady=10)
+
+        # Si hay fecha actual, ponerla
+        if fecha_actual:
+            try:
+                fecha_dt = datetime.strptime(fecha_actual, "%d/%m/%Y")
+                fecha_entry.set_date(fecha_dt)
+            except:
+                pass
+
+        def guardar():
+            try:
+                fecha_str = fecha_entry.get()
+                if fecha_str:
+                    # Convertir de dd/mm/yyyy a yyyy-mm-dd para MySQL
+                    fecha_dt = datetime.strptime(fecha_str, "%d/%m/%Y")
+                    fecha_mysql = fecha_dt.strftime("%Y-%m-%d")
+                else:
+                    fecha_mysql = None
+
+                result = update_fecha_presupuesto_item(
+                    self.user, self.password, self.schema, item_id, fecha_mysql
+                )
+
+                if result == "ok":
+                    win.destroy()
+                    self._load_presupuesto_data()
+                else:
+                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
+            except ValueError as ve:
+                CTkMessagebox(title="Error", message=f"Fecha inválida: {ve}", icon="cancel")
+
+        def limpiar():
+            """Quita la fecha"""
+            result = update_fecha_presupuesto_item(
+                self.user, self.password, self.schema, item_id, None
+            )
+            if result == "ok":
+                win.destroy()
+                self._load_presupuesto_data()
+
+        btn_frame = customtkinter.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Guardar", command=guardar,
+            fg_color="green", width=100
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Sin Fecha", command=limpiar,
+            fg_color="gray", width=100
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Cancelar", command=win.destroy,
+            fg_color="red", width=100
+        ).pack(side="left", padx=5)
+
+        win.bind('<Return>', lambda e: guardar())
+        win.lift()
+
+    def _on_presupuesto_double_click(self, event):
+        """Maneja doble clic en tabla de presupuesto según la columna"""
+        region = self.tree_presupuesto.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+
+        column = self.tree_presupuesto.identify_column(event.x)
+        # columnas: #1=id, #2=codigo, #3=resumen, #4=unidad, #5=cantidad, #6=fecha, #7=precio, #8=coste
+        if column == "#5":  # cantidad
+            self._edit_cantidad_presupuesto()
+        elif column == "#6":  # fecha
+            self._edit_fecha_presupuesto()
 
     def _delete_partida_presupuesto(self):
         """Elimina la partida seleccionada del presupuesto"""
