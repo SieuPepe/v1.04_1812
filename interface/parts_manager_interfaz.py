@@ -329,9 +329,9 @@ class AppPartsManager(customtkinter.CTk):
 
     def _save_column_config(self, section, columns_dict):
         """
-        Guarda la configuración de columnas visibles
+        Guarda la configuración de columnas (visibilidad y orden)
         section: 'resumen' o 'listado'
-        columns_dict: diccionario con la configuración de columnas
+        columns_dict: OrderedDict con la configuración de columnas
         """
         try:
             config_path = self._get_config_path()
@@ -343,10 +343,13 @@ class AppPartsManager(customtkinter.CTk):
             else:
                 config = {}
 
-            # Guardar solo el estado de visibilidad de cada columna
+            # Guardar visibilidad y orden de columnas
             config[section] = {
-                col_name: col_info["visible"]
-                for col_name, col_info in columns_dict.items()
+                "order": list(columns_dict.keys()),  # Orden de columnas
+                "visibility": {
+                    col_name: col_info["visible"]
+                    for col_name, col_info in columns_dict.items()
+                }
             }
 
             # Escribir archivo
@@ -358,10 +361,12 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_column_config(self, section, columns_dict):
         """
-        Carga la configuración de columnas visibles
+        Carga la configuración de columnas (visibilidad y orden)
         section: 'resumen' o 'listado'
-        columns_dict: diccionario con la configuración de columnas (se modifica in-place)
+        columns_dict: OrderedDict con la configuración de columnas (se modifica in-place)
+        Retorna: OrderedDict reordenado si hay orden guardado
         """
+        from collections import OrderedDict
         try:
             config_path = self._get_config_path()
 
@@ -370,10 +375,38 @@ class AppPartsManager(customtkinter.CTk):
                     config = json.load(f)
 
                 if section in config:
-                    # Aplicar configuración guardada
-                    for col_name, visible in config[section].items():
-                        if col_name in columns_dict:
-                            columns_dict[col_name]["visible"] = visible
+                    section_config = config[section]
+
+                    # Compatibilidad con formato antiguo (solo visibilidad)
+                    if isinstance(section_config, dict) and "order" not in section_config:
+                        # Formato antiguo: solo {col_name: visible}
+                        for col_name, visible in section_config.items():
+                            if col_name in columns_dict:
+                                columns_dict[col_name]["visible"] = visible
+                    else:
+                        # Formato nuevo: {order: [...], visibility: {...}}
+                        # Aplicar visibilidad
+                        visibility = section_config.get("visibility", {})
+                        for col_name, visible in visibility.items():
+                            if col_name in columns_dict:
+                                columns_dict[col_name]["visible"] = visible
+
+                        # Aplicar orden
+                        saved_order = section_config.get("order", [])
+                        if saved_order:
+                            # Reordenar columns_dict según el orden guardado
+                            new_dict = OrderedDict()
+                            # Primero agregar columnas en el orden guardado
+                            for col_name in saved_order:
+                                if col_name in columns_dict:
+                                    new_dict[col_name] = columns_dict[col_name]
+                            # Agregar columnas nuevas que no estaban guardadas
+                            for col_name in columns_dict:
+                                if col_name not in new_dict:
+                                    new_dict[col_name] = columns_dict[col_name]
+                            # Actualizar el diccionario original
+                            columns_dict.clear()
+                            columns_dict.update(new_dict)
 
         except Exception as e:
             print(f"Error cargando configuración de columnas: {e}")
