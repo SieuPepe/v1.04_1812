@@ -397,9 +397,10 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         query_parts.append("COALESCE(tt.descripcion, '') AS tipo")
         query_parts.append("COALESCE(ct.descripcion, '') AS cod_trabajo")
         query_parts.append("COALESCE(tr.descripcion, '') AS tipo_rep" if 'tipo_rep_id' in columns else "'' AS tipo_rep")
-        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto")
-        query_parts.append("COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado")
-        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS pendiente")
+        # Usar subconsultas para evitar duplicados por producto cartesiano
+        query_parts.append("(SELECT COALESCE(SUM(cantidad * precio_unit), 0) FROM tbl_part_presupuesto WHERE parte_id = p.id) AS presupuesto")
+        query_parts.append("(SELECT COALESCE(SUM(CASE WHEN certificada = 1 THEN cantidad_cert * precio_unit ELSE 0 END), 0) FROM tbl_part_certificacion WHERE parte_id = p.id) AS certificado")
+        query_parts.append("(SELECT COALESCE(SUM(cantidad * precio_unit), 0) FROM tbl_part_presupuesto WHERE parte_id = p.id) - (SELECT COALESCE(SUM(CASE WHEN certificada = 1 THEN cantidad_cert * precio_unit ELSE 0 END), 0) FROM tbl_part_certificacion WHERE parte_id = p.id) AS pendiente")
         query_parts.append("p.titulo" if 'titulo' in columns else "NULL AS titulo")
         query_parts.append("p.descripcion_corta" if 'descripcion_corta' in columns else "NULL AS descripcion_corta")
         query_parts.append("p.descripcion_larga" if 'descripcion_larga' in columns else "NULL AS descripcion_larga")
@@ -445,8 +446,7 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         from_clause += " LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id"
         if 'tipo_rep_id' in columns:
             from_clause += " LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id"
-        from_clause += " LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id"
-        from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
+        # Nota: presupuesto y certificado se calculan con subconsultas para evitar duplicados
         if 'municipio_id' in columns and municipio_col:
             from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
         if 'municipio_id' in columns and comarca_col:
