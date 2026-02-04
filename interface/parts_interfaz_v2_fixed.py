@@ -65,6 +65,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(self, text="Título:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
         self.titulo_entry = customtkinter.CTkEntry(self, width=720)
         self.titulo_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+        # Al escribir en título, se copia automáticamente a descripción
+        self.titulo_entry.bind("<KeyRelease>", self._sync_titulo_to_descripcion)
         row += 1
 
         customtkinter.CTkLabel(self, text="Estado:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
@@ -107,8 +109,22 @@ class AppPartsV2(customtkinter.CTkToplevel):
         # DESCRIPCIONES
         # ====================================================================
         customtkinter.CTkLabel(self, text="Descripción:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.descripcion_entry = customtkinter.CTkEntry(self, width=720)
-        self.descripcion_entry.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+
+        # Frame para descripción + botón editar
+        desc_frame = customtkinter.CTkFrame(self, fg_color="transparent")
+        desc_frame.grid(row=row, column=1, columnspan=3, padx=5, pady=10, sticky="w")
+
+        self.descripcion_entry = customtkinter.CTkEntry(desc_frame, width=650, state="disabled",
+                                                         fg_color="#3a3a3a", text_color="white")
+        self.descripcion_entry.pack(side="left", padx=(0, 10))
+
+        self.descripcion_locked = True  # Estado bloqueado por defecto
+        self.btn_editar_desc = customtkinter.CTkButton(
+            desc_frame, text="✏️ Editar", width=70, height=28,
+            fg_color="#555555", hover_color="#666666",
+            command=self._toggle_descripcion_edit
+        )
+        self.btn_editar_desc.pack(side="left")
         row += 1
 
         customtkinter.CTkLabel(self, text="Descripción corta:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
@@ -135,11 +151,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
         self.fecha_fin_entry.delete(0, "end")  # Vacío por defecto
         row += 1
 
-        customtkinter.CTkLabel(self, text="Fecha prevista:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.fecha_prevista_entry = DateEntry(self, width=28, date_pattern='dd/mm/yyyy', locale='es_ES')
-        self.fecha_prevista_entry.grid(row=row, column=1, padx=5, pady=10, sticky="w")
-        self.fecha_prevista_entry.delete(0, "end")  # Vacío por defecto
-        row += 1
+        # Fecha Prevista eliminada (ya no se usa)
+        self.fecha_prevista_entry = None
 
         # ====================================================================
         # UBICACIÓN
@@ -210,10 +223,11 @@ class AppPartsV2(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(gps_frame, text="(WGS84)", font=("Arial", 9, "italic")).pack(side="left", padx=10)
         row += 1
 
-        # Provincia
+        # Provincia (fija: Araba)
         customtkinter.CTkLabel(self, text="Provincia:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.provincia_menu = customtkinter.CTkComboBox(self, values=["Cargando..."], width=350,
-                                                         state="readonly", command=self._on_provincia_change)
+        self.provincia_menu = customtkinter.CTkComboBox(self, values=["1 - Araba"], width=350,
+                                                         state="disabled")  # Fija en Araba
+        self.provincia_menu.set("1 - Araba")
         self.provincia_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
         row += 1
 
@@ -296,22 +310,40 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 if vals and len(vals) > 0:
                     menu.set(vals[0])
 
-            # 3. Cargar provincias
-            provincias = get_provincias(self.user, self.password, self.schema)
-            if provincias:
-                self.provincia_menu.configure(values=provincias)
-                self.provincia_menu.set(provincias[0] if provincias else "(sin datos)")
-                # Cargar municipios de la primera provincia
-                self._on_provincia_change(provincias[0] if provincias else None)
-            else:
-                self.provincia_menu.configure(values=["(sin datos)"])
-                self.provincia_menu.set("(sin datos)")
+            # 3. Provincia fija = Araba (ID 1)
+            # No se carga desde BD, está fija
+            self.provincia_menu.set("1 - Araba")
+            # Cargar comarcas de Araba directamente
+            self._on_provincia_change("1 - Araba")
 
             # 4. Cargar trabajadores
             self._load_trabajadores()
 
         except Exception as e:
             CTkMessagebox(title="Error", message=f"Error cargando datos: {e}", icon="warning")
+
+    def _sync_titulo_to_descripcion(self, event=None):
+        """Sincroniza el título con la descripción automáticamente (si está bloqueada)."""
+        if self.descripcion_locked:
+            titulo = self.titulo_entry.get()
+            self.descripcion_entry.configure(state="normal")
+            self.descripcion_entry.delete(0, "end")
+            self.descripcion_entry.insert(0, titulo)
+            self.descripcion_entry.configure(state="disabled")
+
+    def _toggle_descripcion_edit(self):
+        """Alterna entre modo edición y modo bloqueado para la descripción."""
+        if self.descripcion_locked:
+            # Desbloquear para editar
+            self.descripcion_locked = False
+            self.descripcion_entry.configure(state="normal", fg_color="#2b2b2b")
+            self.btn_editar_desc.configure(text="🔒 Bloquear", fg_color="#cc5500")
+        else:
+            # Bloquear y sincronizar con título
+            self.descripcion_locked = True
+            self._sync_titulo_to_descripcion()
+            self.descripcion_entry.configure(state="disabled", fg_color="#3a3a3a")
+            self.btn_editar_desc.configure(text="✏️ Editar", fg_color="#555555")
 
     def _on_provincia_change(self, provincia_value=None):
         """Actualiza lista de comarcas cuando cambia la provincia seleccionada"""
@@ -611,9 +643,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         desc_corta = self.desc_corta_entry.get().strip()
-        if not desc_corta:
-            CTkMessagebox(title="Campo obligatorio", message="La Descripción Corta es obligatoria", icon="warning")
-            return
+        # Descripción Corta es opcional
 
         desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
         # Descripción Larga es opcional
@@ -626,13 +656,11 @@ class AppPartsV2(customtkinter.CTkToplevel):
         fecha_fin_str = self.fecha_fin_entry.get()
         # Fecha Fin es opcional
 
-        fecha_prevista_str = self.fecha_prevista_entry.get()
-        # Fecha Prevista es opcional
+        fecha_prevista_str = self.fecha_prevista_entry.get() if self.fecha_prevista_entry else ""
+        # Fecha Prevista eliminada
 
         localizacion = self.localizacion_entry.get().strip()
-        if not localizacion:
-            CTkMessagebox(title="Campo obligatorio", message="La Localización es obligatoria", icon="warning")
-            return
+        # Localización es opcional
 
         provincia_id = self._take_id(self.provincia_menu.get())
         comarca_id = self._take_id(self.comarca_menu.get())
@@ -671,8 +699,8 @@ class AppPartsV2(customtkinter.CTkToplevel):
         fecha_fin = convert_date(fecha_fin_str) if fecha_fin_str else None
         fecha_prevista = convert_date(fecha_prevista_str)
 
-        # Obtener trabajadores (de la lista seleccionada)
-        trabajadores = ", ".join(self.trabajadores_list) if self.trabajadores_list else None
+        # Obtener trabajadores (de la lista seleccionada) - separador " | "
+        trabajadores = " | ".join(self.trabajadores_list) if self.trabajadores_list else None
 
         # Obtener coordenadas GPS (opcionales, pero validar formato)
         latitud_str = self.latitud_entry.get().strip()
@@ -824,9 +852,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         desc_corta = self.desc_corta_entry.get().strip()
-        if not desc_corta:
-            CTkMessagebox(title="Campo obligatorio", message="La Descripción Corta es obligatoria", icon="warning")
-            return
+        # Descripción Corta es opcional
 
         desc_larga = self.desc_larga_text.get("1.0", "end-1c").strip()
 
@@ -836,12 +862,10 @@ class AppPartsV2(customtkinter.CTkToplevel):
             return
 
         fecha_fin_str = self.fecha_fin_entry.get()
-        fecha_prevista_str = self.fecha_prevista_entry.get()
+        fecha_prevista_str = self.fecha_prevista_entry.get() if self.fecha_prevista_entry else ""
 
         localizacion = self.localizacion_entry.get().strip()
-        if not localizacion:
-            CTkMessagebox(title="Campo obligatorio", message="La Localización es obligatoria", icon="warning")
-            return
+        # Localización es opcional
 
         provincia_id = self._take_id(self.provincia_menu.get())
         comarca_id = self._take_id(self.comarca_menu.get())
@@ -916,14 +940,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                     self.on_parte_created(new_id)
                 self.destroy()
 
-            # Mostrar mensaje breve
-            CTkMessagebox(
-                title="Parte creado",
-                message=f"Parte {codigo} creado.\n\nAbriendo Entrada Rápida de Presupuestos...",
-                icon="check"
-            )
-
-            # Abrir Speed Entry
+            # Abrir Speed Entry directamente (sin mensaje bloqueante)
             speed_window = SpeedEntryWindow(
                 parent=self,
                 user=self.user,

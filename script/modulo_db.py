@@ -156,6 +156,7 @@ from .db_partes import (
     get_part_presupuesto,
     add_part_presupuesto_item,
     mod_amount_part_budget_item,
+    update_fecha_presupuesto_item,
     delete_part_presupuesto_item,
 
     # Certificaciones de partes

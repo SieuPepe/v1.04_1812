@@ -128,6 +128,7 @@ def _guess_text_column(user: str, password: str, schema: str, table: str):
 def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     """
     Devuelve lista de 'id - texto' detectando automáticamente la columna de texto.
+    Para dim_red: ordena poniendo Distribución y Saneamiento primero.
     """
     text_col = _guess_text_column(user, password, schema, table)
     if not text_col:
@@ -137,7 +138,20 @@ def _fetch_dim_list_guess(user: str, password: str, schema: str, table: str):
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
-            cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
+            # Orden especial para dim_red: Distribución y Saneamiento primero
+            if table == 'dim_red':
+                cur.execute(f"""
+                    SELECT id, {text_col} FROM {schema}.{table}
+                    ORDER BY
+                        CASE
+                            WHEN LOWER({text_col}) LIKE '%distribuci%' THEN 1
+                            WHEN LOWER({text_col}) LIKE '%saneamiento%' THEN 2
+                            ELSE 3
+                        END,
+                        {text_col}
+                """)
+            else:
+                cur.execute(f"SELECT id, {text_col} FROM {schema}.{table} ORDER BY {text_col}")
             for rid, txt in cur.fetchall():
                 rows.append(f"{rid} - {txt}")
             cur.close()
@@ -397,9 +411,10 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         query_parts.append("COALESCE(tt.descripcion, '') AS tipo")
         query_parts.append("COALESCE(ct.descripcion, '') AS cod_trabajo")
         query_parts.append("COALESCE(tr.descripcion, '') AS tipo_rep" if 'tipo_rep_id' in columns else "'' AS tipo_rep")
-        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) AS presupuesto")
-        query_parts.append("COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS certificado")
-        query_parts.append("COALESCE(SUM(pp.cantidad * pp.precio_unit), 0) - COALESCE(SUM(CASE WHEN pc.certificada = 1 THEN pc.cantidad_cert * pc.precio_unit ELSE 0 END), 0) AS pendiente")
+        # Usar subconsultas para evitar duplicados por producto cartesiano
+        query_parts.append("(SELECT COALESCE(SUM(cantidad * precio_unit), 0) FROM tbl_part_presupuesto WHERE parte_id = p.id) AS presupuesto")
+        query_parts.append("(SELECT COALESCE(SUM(CASE WHEN certificada = 1 THEN cantidad_cert * precio_unit ELSE 0 END), 0) FROM tbl_part_certificacion WHERE parte_id = p.id) AS certificado")
+        query_parts.append("(SELECT COALESCE(SUM(cantidad * precio_unit), 0) FROM tbl_part_presupuesto WHERE parte_id = p.id) - (SELECT COALESCE(SUM(CASE WHEN certificada = 1 THEN cantidad_cert * precio_unit ELSE 0 END), 0) FROM tbl_part_certificacion WHERE parte_id = p.id) AS pendiente")
         query_parts.append("p.titulo" if 'titulo' in columns else "NULL AS titulo")
         query_parts.append("p.descripcion_corta" if 'descripcion_corta' in columns else "NULL AS descripcion_corta")
         query_parts.append("p.descripcion_larga" if 'descripcion_larga' in columns else "NULL AS descripcion_larga")
@@ -445,8 +460,7 @@ def get_partes_resumen(user: str, password: str, schema: str, limit: int = 1000,
         from_clause += " LEFT JOIN dim_codigo_trabajo ct ON ct.id = p.cod_trabajo_id"
         if 'tipo_rep_id' in columns:
             from_clause += " LEFT JOIN dim_tipos_rep tr ON tr.id = p.tipo_rep_id"
-        from_clause += " LEFT JOIN tbl_part_presupuesto pp ON pp.parte_id = p.id"
-        from_clause += " LEFT JOIN tbl_part_certificacion pc ON pc.parte_id = p.id"
+        # Nota: presupuesto y certificado se calculan con subconsultas para evitar duplicados
         if 'municipio_id' in columns and municipio_col:
             from_clause += " LEFT JOIN dim_municipios m ON m.id = p.municipio_id"
         if 'municipio_id' in columns and comarca_col:
@@ -727,12 +741,13 @@ def mod_parte_item(user: str, password: str, schema: str, parte_id: int,
 def get_part_presupuesto(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve el presupuesto de un parte (partidas añadidas).
+    Incluye fecha de medición si está disponible en la vista.
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
         cur.execute("""
             SELECT id, parte_id, codigo_parte, codigo_partida, resumen,
-                   descripcion, unidad, cantidad, precio_unit, coste
+                   descripcion, unidad, cantidad, fecha, precio_unit, coste
             FROM vw_part_presupuesto
             WHERE parte_id = %s
             ORDER BY codigo_partida
@@ -743,18 +758,26 @@ def get_part_presupuesto(user: str, password: str, schema: str, parte_id: int):
 
 
 def add_part_presupuesto_item(user: str, password: str, schema: str,
-                               parte_id: int, precio_id: int, cantidad: float, precio_unit: float):
+                               parte_id: int, precio_id: int, cantidad: float, precio_unit: float,
+                               fecha: str = None):
     """
     Añade una partida al presupuesto de un parte.
+    fecha: fecha de medición en formato 'YYYY-MM-DD' (opcional)
     """
     try:
         with get_project_connection(user, password, schema) as cn:
             cur = cn.cursor()
             try:
-                cur.execute("""
-                    INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
-                    VALUES (%s, %s, %s, %s)
-                """, (parte_id, precio_id, cantidad, precio_unit))
+                if fecha:
+                    cur.execute("""
+                        INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, fecha, precio_unit)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (parte_id, precio_id, cantidad, fecha, precio_unit))
+                else:
+                    cur.execute("""
+                        INSERT INTO tbl_part_presupuesto (parte_id, precio_id, cantidad, precio_unit)
+                        VALUES (%s, %s, %s, %s)
+                    """, (parte_id, precio_id, cantidad, precio_unit))
                 cn.commit()
                 return "ok"
             except Exception as e:
@@ -789,6 +812,32 @@ def mod_amount_part_budget_item(user: str, password: str, schema: str, item_id: 
                 cur.close()
     except Exception as e:
         logger.error(f"Error modificando cantidad en presupuesto: {e}")
+        return str(e)
+
+
+def update_fecha_presupuesto_item(user: str, password: str, schema: str, item_id: int, fecha: str):
+    """
+    Actualiza la fecha de medición de una partida en el presupuesto.
+    fecha: fecha en formato 'YYYY-MM-DD' o None para borrar
+    """
+    try:
+        with get_project_connection(user, password, schema) as cn:
+            cur = cn.cursor()
+            try:
+                cur.execute("""
+                    UPDATE tbl_part_presupuesto
+                    SET fecha = %s
+                    WHERE id = %s
+                """, (fecha, item_id))
+                cn.commit()
+                return "ok"
+            except Exception as e:
+                cn.rollback()
+                raise
+            finally:
+                cur.close()
+    except Exception as e:
+        logger.error(f"Error actualizando fecha en presupuesto: {e}")
         return str(e)
 
 

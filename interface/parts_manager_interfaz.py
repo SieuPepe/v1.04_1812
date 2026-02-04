@@ -329,9 +329,9 @@ class AppPartsManager(customtkinter.CTk):
 
     def _save_column_config(self, section, columns_dict):
         """
-        Guarda la configuración de columnas visibles
+        Guarda la configuración de columnas (visibilidad y orden)
         section: 'resumen' o 'listado'
-        columns_dict: diccionario con la configuración de columnas
+        columns_dict: OrderedDict con la configuración de columnas
         """
         try:
             config_path = self._get_config_path()
@@ -343,10 +343,13 @@ class AppPartsManager(customtkinter.CTk):
             else:
                 config = {}
 
-            # Guardar solo el estado de visibilidad de cada columna
+            # Guardar visibilidad y orden de columnas
             config[section] = {
-                col_name: col_info["visible"]
-                for col_name, col_info in columns_dict.items()
+                "order": list(columns_dict.keys()),  # Orden de columnas
+                "visibility": {
+                    col_name: col_info["visible"]
+                    for col_name, col_info in columns_dict.items()
+                }
             }
 
             # Escribir archivo
@@ -358,10 +361,12 @@ class AppPartsManager(customtkinter.CTk):
 
     def _load_column_config(self, section, columns_dict):
         """
-        Carga la configuración de columnas visibles
+        Carga la configuración de columnas (visibilidad y orden)
         section: 'resumen' o 'listado'
-        columns_dict: diccionario con la configuración de columnas (se modifica in-place)
+        columns_dict: OrderedDict con la configuración de columnas (se modifica in-place)
+        Retorna: OrderedDict reordenado si hay orden guardado
         """
+        from collections import OrderedDict
         try:
             config_path = self._get_config_path()
 
@@ -370,10 +375,38 @@ class AppPartsManager(customtkinter.CTk):
                     config = json.load(f)
 
                 if section in config:
-                    # Aplicar configuración guardada
-                    for col_name, visible in config[section].items():
-                        if col_name in columns_dict:
-                            columns_dict[col_name]["visible"] = visible
+                    section_config = config[section]
+
+                    # Compatibilidad con formato antiguo (solo visibilidad)
+                    if isinstance(section_config, dict) and "order" not in section_config:
+                        # Formato antiguo: solo {col_name: visible}
+                        for col_name, visible in section_config.items():
+                            if col_name in columns_dict:
+                                columns_dict[col_name]["visible"] = visible
+                    else:
+                        # Formato nuevo: {order: [...], visibility: {...}}
+                        # Aplicar visibilidad
+                        visibility = section_config.get("visibility", {})
+                        for col_name, visible in visibility.items():
+                            if col_name in columns_dict:
+                                columns_dict[col_name]["visible"] = visible
+
+                        # Aplicar orden
+                        saved_order = section_config.get("order", [])
+                        if saved_order:
+                            # Reordenar columns_dict según el orden guardado
+                            new_dict = OrderedDict()
+                            # Primero agregar columnas en el orden guardado
+                            for col_name in saved_order:
+                                if col_name in columns_dict:
+                                    new_dict[col_name] = columns_dict[col_name]
+                            # Agregar columnas nuevas que no estaban guardadas
+                            for col_name in columns_dict:
+                                if col_name not in new_dict:
+                                    new_dict[col_name] = columns_dict[col_name]
+                            # Actualizar el diccionario original
+                            columns_dict.clear()
+                            columns_dict.update(new_dict)
 
         except Exception as e:
             print(f"Error cargando configuración de columnas: {e}")
@@ -896,6 +929,8 @@ class AppPartsManager(customtkinter.CTk):
         if hasattr(self, 'tree_resumen'):
             self.tree_resumen.destroy()
             self.resumen_scrollbar.destroy()
+            if hasattr(self, 'resumen_scrollbar_h'):
+                self.resumen_scrollbar_h.destroy()
 
         # Obtener columnas visibles respetando el orden del OrderedDict
         # (fecha_fin primero, luego codigo, luego el resto)
@@ -923,13 +958,20 @@ class AppPartsManager(customtkinter.CTk):
                     self.tree_resumen, "resumen", c, self.resumen_columns
                 )
             )
-            self.tree_resumen.column(col, width=col_info["width"], anchor="center")
+            # Columnas de texto descriptivo se alinean a la izquierda
+            text_cols = {"descripcion", "titulo", "descripcion_corta", "descripcion_larga",
+                         "localizacion", "observaciones", "trabajadores", "municipio",
+                         "comarca", "provincia", "concejo"}
+            anchor = "w" if col in text_cols else "center"
+            self.tree_resumen.column(col, width=col_info["width"], anchor=anchor)
 
-        # Scrollbar
+        # Scrollbars (vertical y horizontal)
         self.resumen_scrollbar = ttk.Scrollbar(self.resumen_table_frame, orient="vertical", command=self.tree_resumen.yview)
-        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set)
+        self.resumen_scrollbar_h = ttk.Scrollbar(self.resumen_table_frame, orient="horizontal", command=self.tree_resumen.xview)
+        self.tree_resumen.configure(yscrollcommand=self.resumen_scrollbar.set, xscrollcommand=self.resumen_scrollbar_h.set)
         self.tree_resumen.grid(row=0, column=0, sticky="nsew")
         self.resumen_scrollbar.grid(row=0, column=1, sticky="ns")
+        self.resumen_scrollbar_h.grid(row=1, column=0, sticky="ew")
 
         # Doble clic para ver detalles
         self.tree_resumen.bind("<Double-1>", lambda e: self._view_parte_detail())
@@ -2252,7 +2294,8 @@ class AppPartsManager(customtkinter.CTk):
             # Campos de texto
             titulo = self.titulo_entry.get().strip() or None
             descripcion = self.desc_text.get("1.0", "end-1c").strip() or None
-            estado_texto = self.estado_var.get()
+            # Obtener estado directamente del menú (no del StringVar que puede no sincronizar)
+            estado_texto = self.estado_menu.get()
             # Convertir texto a ID numérico (según tbl_parte_estados)
             estado_id = self.estados_map.get(estado_texto, 1)  # Por defecto 1 (Pendiente)
             observaciones = self.obs_text.get("1.0", "end-1c").strip() or None
@@ -2655,7 +2698,7 @@ class AppPartsManager(customtkinter.CTk):
         table_frame.grid_rowconfigure(0, weight=1)
         table_frame.grid_columnconfigure(0, weight=1)
 
-        cols = ("id", "codigo", "resumen", "unidad", "cantidad", "precio_unit", "coste")
+        cols = ("id", "codigo", "resumen", "unidad", "cantidad", "fecha", "precio_unit", "coste")
         self.tree_presupuesto = ttk.Treeview(table_frame, columns=cols, show="headings", height=20)
 
         self.tree_presupuesto.heading("id", text="ID")
@@ -2663,23 +2706,26 @@ class AppPartsManager(customtkinter.CTk):
         self.tree_presupuesto.heading("resumen", text="Resumen")
         self.tree_presupuesto.heading("unidad", text="Unidad")
         self.tree_presupuesto.heading("cantidad", text="Cantidad")
+        self.tree_presupuesto.heading("fecha", text="Fecha")
         self.tree_presupuesto.heading("precio_unit", text="Precio Unit.")
         self.tree_presupuesto.heading("coste", text="Coste")
 
         self.tree_presupuesto.column("id", width=40, anchor="center")
         self.tree_presupuesto.column("codigo", width=90, anchor="center")
-        self.tree_presupuesto.column("resumen", width=280, anchor="w")
+        self.tree_presupuesto.column("resumen", width=250, anchor="w")
         self.tree_presupuesto.column("unidad", width=50, anchor="center")
         self.tree_presupuesto.column("cantidad", width=80, anchor="e")
+        self.tree_presupuesto.column("fecha", width=90, anchor="center")
         self.tree_presupuesto.column("precio_unit", width=90, anchor="e")
         self.tree_presupuesto.column("coste", width=90, anchor="e")
 
         self.presupuesto_columns = {
             "id": {"label": "ID", "width": 40},
             "codigo": {"label": "Código", "width": 90},
-            "resumen": {"label": "Resumen", "width": 280},
+            "resumen": {"label": "Resumen", "width": 250},
             "unidad": {"label": "Ud", "width": 50},
             "cantidad": {"label": "Cantidad", "width": 80},
+            "fecha": {"label": "Fecha", "width": 90},
             "precio_unit": {"label": "Precio Unit.", "width": 90},
             "coste": {"label": "Coste", "width": 90}
         }
@@ -2694,8 +2740,8 @@ class AppPartsManager(customtkinter.CTk):
                 )
             )
 
-        # Doble clic para editar cantidad
-        self.tree_presupuesto.bind("<Double-1>", lambda e: self._edit_cantidad_presupuesto())
+        # Doble clic para editar cantidad o fecha según la columna
+        self.tree_presupuesto.bind("<Double-1>", self._on_presupuesto_double_click)
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree_presupuesto.yview)
         self.tree_presupuesto.configure(yscrollcommand=scrollbar.set)
@@ -2880,18 +2926,25 @@ class AppPartsManager(customtkinter.CTk):
             total = 0
 
             for row in rows:
-                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, precio_unit, coste
+                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, fecha, precio_unit, coste
+                fecha_str = ""
+                if row[8]:  # fecha puede ser None o datetime.date
+                    try:
+                        fecha_str = row[8].strftime("%d/%m/%Y") if hasattr(row[8], 'strftime') else str(row[8])
+                    except:
+                        fecha_str = str(row[8]) if row[8] else ""
                 display = (
                     row[0],  # id
                     row[3],  # codigo_partida
                     row[4] or "",  # resumen
                     row[6] or "",  # unidad
                     f"{float(row[7]):.3f}",  # cantidad
-                    f"{float(row[8]):.2f}€",  # precio_unit
-                    f"{float(row[9]):.2f}€"  # coste
+                    fecha_str,  # fecha de medición
+                    f"{float(row[9]):.2f}€",  # precio_unit
+                    f"{float(row[10]):.2f}€"  # coste
                 )
                 self.tree_presupuesto.insert("", "end", values=display)
-                total += float(row[9])
+                total += float(row[10])
 
             self.total_presupuesto_label.configure(text=f"TOTAL: {total:.2f}€")
 
@@ -2987,6 +3040,110 @@ class AppPartsManager(customtkinter.CTk):
 
         win.bind('<Return>', lambda e: guardar())
         win.lift()
+
+    def _edit_fecha_presupuesto(self):
+        """Edita la fecha de medición de la partida seleccionada"""
+        from tkcalendar import DateEntry
+        from script.modulo_db import update_fecha_presupuesto_item
+        from datetime import datetime
+
+        selected = self.tree_presupuesto.selection()
+        if not selected:
+            return
+
+        item = self.tree_presupuesto.item(selected[0])
+        values = item['values']
+        item_id = values[0]
+        fecha_actual = values[5] if values[5] else ""  # columna fecha
+
+        # Ventana pequeña para editar fecha
+        win = customtkinter.CTkToplevel(self)
+        win.title("Modificar Fecha de Medición")
+        win.geometry("400x200")
+        win.resizable(False, False)
+        win.attributes('-topmost', True)
+
+        customtkinter.CTkLabel(
+            win,
+            text="Fecha de Medición:",
+            font=("", 14, "bold")
+        ).pack(pady=(20, 10))
+
+        fecha_entry = DateEntry(win, width=20, date_pattern='dd/mm/yyyy', locale='es_ES')
+        fecha_entry.pack(pady=10)
+
+        # Si hay fecha actual, ponerla
+        if fecha_actual:
+            try:
+                fecha_dt = datetime.strptime(fecha_actual, "%d/%m/%Y")
+                fecha_entry.set_date(fecha_dt)
+            except:
+                pass
+
+        def guardar():
+            try:
+                fecha_str = fecha_entry.get()
+                if fecha_str:
+                    # Convertir de dd/mm/yyyy a yyyy-mm-dd para MySQL
+                    fecha_dt = datetime.strptime(fecha_str, "%d/%m/%Y")
+                    fecha_mysql = fecha_dt.strftime("%Y-%m-%d")
+                else:
+                    fecha_mysql = None
+
+                result = update_fecha_presupuesto_item(
+                    self.user, self.password, self.schema, item_id, fecha_mysql
+                )
+
+                if result == "ok":
+                    win.destroy()
+                    self._load_presupuesto_data()
+                else:
+                    CTkMessagebox(title="Error", message=f"Error:\n{result}", icon="cancel")
+            except ValueError as ve:
+                CTkMessagebox(title="Error", message=f"Fecha inválida: {ve}", icon="cancel")
+
+        def limpiar():
+            """Quita la fecha"""
+            result = update_fecha_presupuesto_item(
+                self.user, self.password, self.schema, item_id, None
+            )
+            if result == "ok":
+                win.destroy()
+                self._load_presupuesto_data()
+
+        btn_frame = customtkinter.CTkFrame(win, fg_color="transparent")
+        btn_frame.pack(pady=10)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Guardar", command=guardar,
+            fg_color="green", width=100
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Sin Fecha", command=limpiar,
+            fg_color="gray", width=100
+        ).pack(side="left", padx=5)
+
+        customtkinter.CTkButton(
+            btn_frame, text="Cancelar", command=win.destroy,
+            fg_color="red", width=100
+        ).pack(side="left", padx=5)
+
+        win.bind('<Return>', lambda e: guardar())
+        win.lift()
+
+    def _on_presupuesto_double_click(self, event):
+        """Maneja doble clic en tabla de presupuesto según la columna"""
+        region = self.tree_presupuesto.identify_region(event.x, event.y)
+        if region != "cell":
+            return
+
+        column = self.tree_presupuesto.identify_column(event.x)
+        # columnas: #1=id, #2=codigo, #3=resumen, #4=unidad, #5=cantidad, #6=fecha, #7=precio, #8=coste
+        if column == "#5":  # cantidad
+            self._edit_cantidad_presupuesto()
+        elif column == "#6":  # fecha
+            self._edit_fecha_presupuesto()
 
     def _delete_partida_presupuesto(self):
         """Elimina la partida seleccionada del presupuesto"""
