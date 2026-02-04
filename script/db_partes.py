@@ -742,16 +742,27 @@ def get_part_presupuesto(user: str, password: str, schema: str, parte_id: int):
     """
     Devuelve el presupuesto de un parte (partidas añadidas).
     Incluye fecha de medición si está disponible en la vista.
+    Formato tupla: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, fecha, precio_unit, coste
     """
     with get_project_connection(user, password, schema) as cn:
         cur = cn.cursor()
-        cur.execute("""
-            SELECT id, parte_id, codigo_parte, codigo_partida, resumen,
-                   descripcion, unidad, cantidad, fecha, precio_unit, coste
-            FROM vw_part_presupuesto
-            WHERE parte_id = %s
-            ORDER BY codigo_partida
-        """, (parte_id,))
+        try:
+            cur.execute("""
+                SELECT id, parte_id, codigo_parte, codigo_partida, resumen,
+                       descripcion, unidad, cantidad, fecha, precio_unit, coste
+                FROM vw_part_presupuesto
+                WHERE parte_id = %s
+                ORDER BY codigo_partida
+            """, (parte_id,))
+        except Exception:
+            # Si la columna fecha no existe en la vista, consultar sin ella
+            cur.execute("""
+                SELECT id, parte_id, codigo_parte, codigo_partida, resumen,
+                       descripcion, unidad, cantidad, NULL as fecha, precio_unit, coste
+                FROM vw_part_presupuesto
+                WHERE parte_id = %s
+                ORDER BY codigo_partida
+            """, (parte_id,))
         rows = cur.fetchall()
         cur.close()
         return rows
@@ -819,6 +830,7 @@ def update_fecha_presupuesto_item(user: str, password: str, schema: str, item_id
     """
     Actualiza la fecha de medición de una partida en el presupuesto.
     fecha: fecha en formato 'YYYY-MM-DD' o None para borrar
+    Si la columna fecha no existe, la crea automáticamente.
     """
     try:
         with get_project_connection(user, password, schema) as cn:
@@ -833,6 +845,17 @@ def update_fecha_presupuesto_item(user: str, password: str, schema: str, item_id
                 return "ok"
             except Exception as e:
                 cn.rollback()
+                error_str = str(e)
+                if "Unknown column" in error_str and "fecha" in error_str:
+                    # Crear la columna automáticamente
+                    try:
+                        cur.execute("ALTER TABLE tbl_part_presupuesto ADD COLUMN fecha DATE NULL AFTER cantidad")
+                        cur.execute("UPDATE tbl_part_presupuesto SET fecha = %s WHERE id = %s", (fecha, item_id))
+                        cn.commit()
+                        return "ok"
+                    except Exception as e2:
+                        cn.rollback()
+                        raise e2
                 raise
             finally:
                 cur.close()
