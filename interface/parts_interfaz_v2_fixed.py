@@ -223,12 +223,26 @@ class AppPartsV2(customtkinter.CTkToplevel):
         customtkinter.CTkLabel(gps_frame, text="(WGS84)", font=("Arial", 9, "italic")).pack(side="left", padx=10)
         row += 1
 
-        # Provincia (fija: Araba)
+        # Provincia (por defecto Araba, con botón para editar)
         customtkinter.CTkLabel(self, text="Provincia:").grid(row=row, column=0, padx=10, pady=10, sticky="e")
-        self.provincia_menu = customtkinter.CTkComboBox(self, values=["1 - Araba"], width=350,
-                                                         state="disabled")  # Fija en Araba
+
+        # Frame para provincia + botón editar
+        prov_frame = customtkinter.CTkFrame(self, fg_color="transparent")
+        prov_frame.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+
+        self.provincia_menu = customtkinter.CTkComboBox(prov_frame, values=["1 - Araba"], width=280,
+                                                         state="disabled", fg_color="#3a3a3a",
+                                                         command=self._on_provincia_change)
         self.provincia_menu.set("1 - Araba")
-        self.provincia_menu.grid(row=row, column=1, padx=5, pady=10, sticky="w")
+        self.provincia_menu.pack(side="left", padx=(0, 10))
+
+        self.provincia_locked = True  # Estado bloqueado por defecto
+        self.btn_editar_prov = customtkinter.CTkButton(
+            prov_frame, text="✏️ Editar", width=70, height=28,
+            fg_color="#555555", hover_color="#666666",
+            command=self._toggle_provincia_edit
+        )
+        self.btn_editar_prov.pack(side="left")
         row += 1
 
         # Comarca (se actualiza según provincia seleccionada)
@@ -344,6 +358,28 @@ class AppPartsV2(customtkinter.CTkToplevel):
             self._sync_titulo_to_descripcion()
             self.descripcion_entry.configure(state="disabled", fg_color="#3a3a3a")
             self.btn_editar_desc.configure(text="✏️ Editar", fg_color="#555555")
+
+    def _toggle_provincia_edit(self):
+        """Alterna entre modo edición y modo bloqueado para la provincia."""
+        if self.provincia_locked:
+            # Desbloquear para editar - cargar todas las provincias
+            self.provincia_locked = False
+            try:
+                provincias = get_provincias(self.user, self.password, self.schema)
+                if provincias:
+                    self.provincia_menu.configure(values=provincias, state="readonly", fg_color="#2b2b2b")
+                else:
+                    self.provincia_menu.configure(values=["1 - Araba"], state="readonly", fg_color="#2b2b2b")
+            except Exception:
+                self.provincia_menu.configure(values=["1 - Araba"], state="readonly", fg_color="#2b2b2b")
+            self.btn_editar_prov.configure(text="🔒 Bloquear", fg_color="#cc5500")
+        else:
+            # Bloquear y volver a Araba
+            self.provincia_locked = True
+            self.provincia_menu.configure(values=["1 - Araba"], state="disabled", fg_color="#3a3a3a")
+            self.provincia_menu.set("1 - Araba")
+            self._on_provincia_change("1 - Araba")
+            self.btn_editar_prov.configure(text="✏️ Editar", fg_color="#555555")
 
     def _on_provincia_change(self, provincia_value=None):
         """Actualiza lista de comarcas cuando cambia la provincia seleccionada"""
