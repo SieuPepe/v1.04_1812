@@ -56,16 +56,16 @@ def configure_treeview_style():
     # ========== ESTILO DE SCROLLBARS ==========
     # Scrollbars más anchos y con mejor contraste
     style.configure("Vertical.TScrollbar",
-                    width=24,  # 50% más ancho (default ~16)
-                    background="#4a4a4a",
+                    width=32,  # 100% más ancho (default ~16)
+                    background="#5a5a5a",
                     troughcolor="#2a2d2e",
                     bordercolor="#3a3a3a",
                     arrowcolor="white",
                     relief="flat")
 
     style.configure("Horizontal.TScrollbar",
-                    width=24,  # 50% más ancho
-                    background="#4a4a4a",
+                    width=32,  # 100% más ancho
+                    background="#5a5a5a",
                     troughcolor="#2a2d2e",
                     bordercolor="#3a3a3a",
                     arrowcolor="white",
@@ -2590,8 +2590,9 @@ class AppPartsManager(customtkinter.CTk):
         """Ir a pestaña Presupuesto con este parte"""
         self.selected_parte_id = parte_id
         self.select_frame_by_name("presupuesto")
-        if hasattr(self, '_load_presupuesto_data'):
-            self._load_presupuesto_data()
+        # Recargar selector para que encuentre y seleccione el parte correcto
+        if hasattr(self, '_reload_presupuesto_selector'):
+            self._reload_presupuesto_selector()
 
     def _goto_certificaciones(self, parte_id):
         """Ir a pestaña Certificaciones con este parte"""
@@ -3123,26 +3124,12 @@ class AppPartsManager(customtkinter.CTk):
             except ValueError as ve:
                 CTkMessagebox(title="Error", message=f"Fecha inválida: {ve}", icon="cancel")
 
-        def limpiar():
-            """Quita la fecha"""
-            result = update_fecha_presupuesto_item(
-                self.user, self.password, self.schema, item_id, None
-            )
-            if result == "ok":
-                win.destroy()
-                self._load_presupuesto_data()
-
         btn_frame = customtkinter.CTkFrame(win, fg_color="transparent")
         btn_frame.pack(pady=10)
 
         customtkinter.CTkButton(
             btn_frame, text="Guardar", command=guardar,
             fg_color="green", width=100
-        ).pack(side="left", padx=5)
-
-        customtkinter.CTkButton(
-            btn_frame, text="Sin Fecha", command=limpiar,
-            fg_color="gray", width=100
         ).pack(side="left", padx=5)
 
         customtkinter.CTkButton(

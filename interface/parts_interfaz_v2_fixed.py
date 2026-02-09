@@ -368,10 +368,14 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 provincias = get_provincias(self.user, self.password, self.schema)
                 if provincias:
                     self.provincia_menu.configure(values=provincias, state="readonly", fg_color="#2b2b2b")
+                    # Mantener Araba seleccionada por defecto
+                    self.provincia_menu.set("1 - Araba")
                 else:
                     self.provincia_menu.configure(values=["1 - Araba"], state="readonly", fg_color="#2b2b2b")
+                    self.provincia_menu.set("1 - Araba")
             except Exception:
                 self.provincia_menu.configure(values=["1 - Araba"], state="readonly", fg_color="#2b2b2b")
+                self.provincia_menu.set("1 - Araba")
             self.btn_editar_prov.configure(text="🔒 Bloquear", fg_color="#cc5500")
         else:
             # Bloquear y volver a Araba
