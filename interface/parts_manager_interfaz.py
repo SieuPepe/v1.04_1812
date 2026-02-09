@@ -53,6 +53,30 @@ def configure_treeview_style():
     # Para hacer las líneas divisorias más visibles
     style.layout("Treeview", [('Treeview.treearea', {'sticky': 'nswe'})])
 
+    # ========== ESTILO DE SCROLLBARS ==========
+    # Scrollbars más anchos y con mejor contraste
+    style.configure("Vertical.TScrollbar",
+                    width=24,  # 50% más ancho (default ~16)
+                    background="#4a4a4a",
+                    troughcolor="#2a2d2e",
+                    bordercolor="#3a3a3a",
+                    arrowcolor="white",
+                    relief="flat")
+
+    style.configure("Horizontal.TScrollbar",
+                    width=24,  # 50% más ancho
+                    background="#4a4a4a",
+                    troughcolor="#2a2d2e",
+                    bordercolor="#3a3a3a",
+                    arrowcolor="white",
+                    relief="flat")
+
+    # Estado activo/hover del scrollbar
+    style.map("Vertical.TScrollbar",
+              background=[('active', '#6a6a6a'), ('pressed', '#5a5a5a')])
+    style.map("Horizontal.TScrollbar",
+              background=[('active', '#6a6a6a'), ('pressed', '#5a5a5a')])
+
 
 customtkinter.set_appearance_mode("dark")
 
@@ -316,16 +340,6 @@ class AppPartsManager(customtkinter.CTk):
 
         # Espaciador
         self.navigation_frame.grid_rowconfigure(10, weight=1)
-
-        # Botón Volver
-        self.back_button = customtkinter.CTkButton(
-            self.navigation_frame, corner_radius=5, height=40,
-            border_spacing=10, text="Volver",
-            text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            font=("default", 14, "bold"), anchor="center",
-            command=self.back_to_selector
-        )
-        self.back_button.grid(row=11, padx=30, pady=(15, 15), sticky="nsew")
 
     def _get_config_path(self):
         """Retorna la ruta del archivo de configuración de columnas"""
@@ -3147,10 +3161,11 @@ class AppPartsManager(customtkinter.CTk):
 
         column = self.tree_presupuesto.identify_column(event.x)
         # columnas: #1=id, #2=codigo, #3=resumen, #4=unidad, #5=cantidad, #6=fecha, #7=precio, #8=coste
-        if column == "#5":  # cantidad
-            self._edit_cantidad_presupuesto()
-        elif column == "#6":  # fecha
+        if column == "#6":  # fecha
             self._edit_fecha_presupuesto()
+        else:
+            # Por defecto (cualquier otra columna): editar cantidad
+            self._edit_cantidad_presupuesto()
 
     def _delete_partida_presupuesto(self):
         """Elimina la partida seleccionada del presupuesto"""

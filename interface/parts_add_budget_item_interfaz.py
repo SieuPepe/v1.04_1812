@@ -1,6 +1,8 @@
 # interface/parts_add_budget_item_interfaz.py
 import customtkinter
 from CTkMessagebox import CTkMessagebox
+from tkcalendar import DateEntry
+from datetime import date
 from script.modulo_db import get_all_bd, get_filter_data_bd, get_id_item_sub_bd, get_id_item_bd, \
     add_part_presupuesto_item
 import os
@@ -23,7 +25,7 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         self.current_items = []  # Almacenar datos de partidas actuales
 
         self.title("Añadir Partida al Presupuesto del Parte")
-        self.geometry("900x500")
+        self.geometry("900x550")
         self.resizable(False, False)
         self.attributes('-topmost', True)
 
@@ -138,6 +140,14 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
         )
         self.precio_catalogo_label.grid(row=3, column=0, columnspan=2, pady=5)
 
+        # Fecha de medición
+        customtkinter.CTkLabel(self, text="Fecha de Medición:",
+                               font=("", 14, "bold")).grid(row=4, column=0, padx=20, pady=15, sticky="e")
+
+        self.fecha_entry = DateEntry(self, width=20, date_pattern='dd/mm/yyyy', locale='es_ES')
+        self.fecha_entry.set_date(date.today())  # Por defecto hoy
+        self.fecha_entry.grid(row=4, column=1, padx=20, pady=15, sticky="w")
+
         # Info general
         self.info_label = customtkinter.CTkLabel(
             self,
@@ -145,11 +155,11 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
             font=("", 11),
             text_color="#4CAF50"
         )
-        self.info_label.grid(row=4, column=0, columnspan=2, pady=5)
+        self.info_label.grid(row=5, column=0, columnspan=2, pady=5)
 
         # Botones
         btn_frame = customtkinter.CTkFrame(self, fg_color="transparent")
-        btn_frame.grid(row=5, column=0, columnspan=2, pady=30)
+        btn_frame.grid(row=6, column=0, columnspan=2, pady=30)
 
         customtkinter.CTkButton(
             btn_frame, text="💾 Guardar", command=self._save,
@@ -473,12 +483,21 @@ class AppPartAddBudgetItem(customtkinter.CTkToplevel):
                 CTkMessagebox(title="Error", message="El precio debe ser mayor a 0", icon="warning")
                 return
 
-            print(f"DEBUG - Cantidad: {cantidad}, Precio: {precio_unit}")
+            # Obtener fecha de medición
+            fecha_str = self.fecha_entry.get()
+            try:
+                from datetime import datetime
+                fecha_dt = datetime.strptime(fecha_str, "%d/%m/%Y")
+                fecha_mysql = fecha_dt.strftime("%Y-%m-%d")
+            except:
+                fecha_mysql = None
+
+            print(f"DEBUG - Cantidad: {cantidad}, Precio: {precio_unit}, Fecha: {fecha_mysql}")
 
             # Guardar
             result = add_part_presupuesto_item(
                 self.user, self.password, self.schema,
-                self.parte_id, precio_id, cantidad, precio_unit
+                self.parte_id, precio_id, cantidad, precio_unit, fecha=fecha_mysql
             )
 
             print(f"DEBUG - Resultado: {result}")
