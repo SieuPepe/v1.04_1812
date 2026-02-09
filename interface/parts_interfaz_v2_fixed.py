@@ -45,7 +45,12 @@ class AppPartsV2(customtkinter.CTkToplevel):
 
         self.title("Generador de partes - Formulario Completo")
         self.geometry("1050x1000")
-        self.resizable(False, False)
+        self.minsize(900, 700)  # Tamaño mínimo
+        self.resizable(True, True)
+
+        # Configurar grid para escalado
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(3, weight=1)
 
         # Asegurar que la ventana aparezca al frente
         self.lift()
