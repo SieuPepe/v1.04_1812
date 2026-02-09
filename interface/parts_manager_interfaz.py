@@ -92,6 +92,13 @@ class AppPartsManager(customtkinter.CTk):
         self.informes_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.ayuda_frame = customtkinter.CTkFrame(self, corner_radius=0)
 
+        # Recrear vistas SQL para asegurar que están actualizadas
+        try:
+            from script.modulo_db import create_view_partes
+            create_view_partes(self.user, self.password, self.schema)
+        except Exception as e:
+            print(f"Aviso: No se pudieron recrear las vistas de partes: {e}")
+
         # Generar vistas
         self.main_resumen()
         self.main_partes()
