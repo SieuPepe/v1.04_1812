@@ -535,8 +535,11 @@ def get_parte_detail(user: str, password: str, schema: str, parte_id: int):
         # Verificar qué columnas existen (con caché)
         columns = _get_table_columns_cached(user, password, schema, 'tbl_partes')
 
+        # Determinar nombre de columna de estado (puede ser 'estado' o 'id_estado')
+        estado_column = 'id_estado' if 'id_estado' in columns else 'estado'
+
         # Construir SELECT dinámicamente - ORDEN IMPORTANTE para parts_manager_interfaz.py
-        select_cols = ['id', 'codigo', 'descripcion', 'estado']
+        select_cols = ['id', 'codigo', 'descripcion', f'{estado_column} as estado']
 
         # Continuar con red, tipo, cod, tipo_rep
         select_cols.extend(['red_id', 'tipo_trabajo_id', 'cod_trabajo_id'])
