@@ -124,7 +124,8 @@ class AppPartsManager(customtkinter.CTk):
 
         self.title(f"HydroFlow Manager - Generador de Partes [{schema}]")
         self.geometry(f"{self.width}x{self.height}")
-        self.resizable(False, False)
+        self.minsize(1200, 700)  # Tamaño mínimo para que no se colapse
+        self.resizable(True, True)
 
         # Grid layout
         self.grid_rowconfigure(0, weight=1)

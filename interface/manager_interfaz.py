@@ -51,8 +51,8 @@ class AppManager(customtkinter.CTk):
 
         self.title("HydroFlow Manager")
         self.geometry(f"{self.width}x{self.height}")
-        self.resizable(False, False)
-
+        self.minsize(1100, 600)  # Tamaño mínimo
+        self.resizable(True, True)
 
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)

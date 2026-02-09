@@ -23,7 +23,12 @@ class AppLogin(customtkinter.CTk):
 
         self.title("HydroFlow Manager")
         self.geometry(f"{self.width}x{self.height}")
-        self.resizable(False, False)
+        self.minsize(800, 500)  # Tamaño mínimo
+        self.resizable(True, True)
+
+        # Configurar grid para escalado
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
         # load and create background image
         image_path = parent_path +"/resources/images/fondo.jpeg"
