@@ -1872,6 +1872,13 @@ class AppPartsManager(customtkinter.CTk):
                     print(f"Error al cargar provincia/comarca/municipio/concejo: {e}")
                     import traceback
                     traceback.print_exc()
+            else:
+                # Si no hay municipio, por defecto Araba y cargar sus comarcas
+                self.provincia_menu.set("1 - Araba")
+                comarcas_list = get_comarcas_by_provincia(self.user, self.password, self.schema, 1)
+                self.comarca_menu.configure(values=comarcas_list if comarcas_list else ["(sin comarcas)"])
+                if comarcas_list:
+                    self.comarca_menu.set(comarcas_list[0])
 
             # Separador
             customtkinter.CTkFrame(left_frame, height=2, fg_color="gray40").grid(
