@@ -55,27 +55,55 @@ def configure_treeview_style():
 
     # ========== ESTILO DE SCROLLBARS ==========
     # Scrollbars más anchos y con mejor contraste
+
+    # Configurar el ancho del scrollbar vertical
     style.configure("Vertical.TScrollbar",
-                    width=32,  # 100% más ancho (default ~16)
+                    width=25,
+                    arrowsize=20,
                     background="#5a5a5a",
                     troughcolor="#2a2d2e",
                     bordercolor="#3a3a3a",
                     arrowcolor="white",
                     relief="flat")
 
+    # Configurar el ancho del scrollbar horizontal
     style.configure("Horizontal.TScrollbar",
-                    width=32,  # 100% más ancho
+                    width=25,
+                    arrowsize=20,
                     background="#5a5a5a",
                     troughcolor="#2a2d2e",
                     bordercolor="#3a3a3a",
                     arrowcolor="white",
                     relief="flat")
+
+    # Redefinir el layout para hacer el thumb más grande
+    style.layout("Vertical.TScrollbar", [
+        ('Vertical.Scrollbar.trough', {
+            'sticky': 'ns',
+            'children': [
+                ('Vertical.Scrollbar.uparrow', {'side': 'top', 'sticky': ''}),
+                ('Vertical.Scrollbar.downarrow', {'side': 'bottom', 'sticky': ''}),
+                ('Vertical.Scrollbar.thumb', {'sticky': 'nswe', 'expand': True})
+            ]
+        })
+    ])
+
+    style.layout("Horizontal.TScrollbar", [
+        ('Horizontal.Scrollbar.trough', {
+            'sticky': 'ew',
+            'children': [
+                ('Horizontal.Scrollbar.leftarrow', {'side': 'left', 'sticky': ''}),
+                ('Horizontal.Scrollbar.rightarrow', {'side': 'right', 'sticky': ''}),
+                ('Horizontal.Scrollbar.thumb', {'sticky': 'nswe', 'expand': True})
+            ]
+        })
+    ])
 
     # Estado activo/hover del scrollbar
     style.map("Vertical.TScrollbar",
-              background=[('active', '#6a6a6a'), ('pressed', '#5a5a5a')])
+              background=[('active', '#7a7a7a'), ('pressed', '#6a6a6a')])
     style.map("Horizontal.TScrollbar",
-              background=[('active', '#6a6a6a'), ('pressed', '#5a5a5a')])
+              background=[('active', '#7a7a7a'), ('pressed', '#6a6a6a')])
 
 
 customtkinter.set_appearance_mode("dark")
