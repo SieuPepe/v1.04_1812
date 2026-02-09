@@ -231,7 +231,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         prov_frame.grid(row=row, column=1, padx=5, pady=10, sticky="w")
 
         self.provincia_menu = customtkinter.CTkComboBox(prov_frame, values=["1 - Araba"], width=280,
-                                                         state="disabled", fg_color="#3a3a3a",
+                                                         state="readonly", fg_color="#3a3a3a",
                                                          command=self._on_provincia_change)
         self.provincia_menu.set("1 - Araba")
         self.provincia_menu.pack(side="left", padx=(0, 10))
@@ -380,7 +380,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
         else:
             # Bloquear y volver a Araba
             self.provincia_locked = True
-            self.provincia_menu.configure(values=["1 - Araba"], state="disabled", fg_color="#3a3a3a")
+            self.provincia_menu.configure(values=["1 - Araba"], state="readonly", fg_color="#3a3a3a")
             self.provincia_menu.set("1 - Araba")
             self._on_provincia_change("1 - Araba")
             self.btn_editar_prov.configure(text="✏️ Editar", fg_color="#555555")
