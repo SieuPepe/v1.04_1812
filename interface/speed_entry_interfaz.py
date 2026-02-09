@@ -373,7 +373,7 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             partida = self.catalogo_cache[codigo]
             self.descripcion_label.configure(
                 text=partida['resumen'][:50] + "..." if len(partida['resumen']) > 50 else partida['resumen'],
-                text_color="white"
+                text_color="#90EE90"  # Verde claro - coincidencia exacta
             )
             self.unidad_label.configure(text=partida['unidad'])
             self.precio_label.configure(text=f"{partida['precio']:.2f} €")
