@@ -2512,13 +2512,17 @@ class AppPartsManager(customtkinter.CTk):
             rows = get_part_presupuesto(self.user, self.password, self.schema, parte_id)
             total = 0
             for row in rows:
-                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, precio_unit, coste
+                # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, fecha, precio_unit, coste
+                #      0   1         2             3               4        5            6       7         8      9           10
+                cantidad = float(row[7]) if row[7] else 0.0
+                precio_unit = float(row[9]) if row[9] else 0.0
+                coste = float(row[10]) if row[10] else 0.0
                 display = (
                     row[0], row[3], row[4] or "", row[6] or "",
-                    f"{float(row[7]):.3f}", f"{float(row[8]):.2f}€", f"{float(row[9]):.2f}€"
+                    f"{cantidad:.3f}", f"{precio_unit:.2f}€", f"{coste:.2f}€"
                 )
                 tree.insert("", "end", values=display)
-                total += float(row[9])
+                total += coste
 
             # Total
             total_frame = customtkinter.CTkFrame(main_frame, fg_color="transparent")
@@ -3287,16 +3291,25 @@ class AppPartsManager(customtkinter.CTk):
                 return
 
             # Crear DataFrame
+            # row: id, parte_id, codigo_parte, codigo_partida, resumen, descripcion, unidad, cantidad, fecha, precio_unit, coste
+            #      0   1         2             3               4        5            6       7         8      9           10
             data = []
             for row in rows:
+                fecha_str = ""
+                if row[8]:
+                    try:
+                        fecha_str = row[8].strftime("%d/%m/%Y") if hasattr(row[8], 'strftime') else str(row[8])
+                    except:
+                        fecha_str = ""
                 data.append({
                     'Código': row[3],
                     'Resumen': row[4],
                     'Descripción': row[5],
                     'Unidad': row[6],
-                    'Cantidad': float(row[7]),
-                    'Precio Unit.': float(row[8]),
-                    'Coste': float(row[9])
+                    'Cantidad': float(row[7]) if row[7] else 0.0,
+                    'Fecha': fecha_str,
+                    'Precio Unit.': float(row[9]) if row[9] else 0.0,
+                    'Coste': float(row[10]) if row[10] else 0.0
                 })
 
             df = pd.DataFrame(data)
