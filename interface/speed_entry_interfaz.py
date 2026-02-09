@@ -6,6 +6,8 @@ Permite introducir partidas de presupuesto de forma ágil usando solo el teclado
 import customtkinter
 from tkinter import ttk
 from CTkMessagebox import CTkMessagebox
+from tkcalendar import DateEntry
+from datetime import date, datetime
 
 
 class SpeedEntryWindow(customtkinter.CTkToplevel):
@@ -13,7 +15,7 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
 
     def __init__(self, parent, user: str, password: str, schema: str,
                  parte_id: int, parte_codigo: str, parte_titulo: str = "",
-                 on_close_callback=None):
+                 fecha_parte: str = None, on_close_callback=None):
         super().__init__(parent)
 
         self.user = user
@@ -22,6 +24,7 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         self.parte_id = parte_id
         self.parte_codigo = parte_codigo
         self.parte_titulo = parte_titulo
+        self.fecha_parte = fecha_parte  # Fecha por defecto (formato YYYY-MM-DD o DD/MM/YYYY)
         self.on_close_callback = on_close_callback
 
         # Lista de partidas añadidas en esta sesión
@@ -29,6 +32,8 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
 
         # Cache del catálogo para autocompletado
         self.catalogo_cache = {}
+        self.matching_codes = []  # Códigos que coinciden con la búsqueda actual
+        self.current_partida = None  # Partida seleccionada actualmente
         self._load_catalogo_cache()
 
         # Configuración de ventana
@@ -71,21 +76,26 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
     def _load_catalogo_cache(self):
         """Carga el catálogo de partidas en cache para autocompletado."""
         try:
-            from script.modulo_db import get_catalogo_partidas
+            from script.db_config_admin import get_catalogo_partidas
             partidas = get_catalogo_partidas(self.user, self.password, self.schema)
+            print(f"DEBUG - Catálogo cargado: {len(partidas)} partidas")
             for row in partidas:
                 # row: (id, codigo, resumen, coste, codigo_cap, capitulo, unidad)
                 codigo = row[1].strip().upper() if row[1] else ""
-                self.catalogo_cache[codigo] = {
-                    'id': row[0],
-                    'codigo': row[1],
-                    'resumen': row[2] or "",
-                    'precio': float(row[3]) if row[3] else 0.0,
-                    'capitulo': row[5] or "",
-                    'unidad': row[6] or ""
-                }
+                if codigo:  # Solo añadir si hay código
+                    self.catalogo_cache[codigo] = {
+                        'id': row[0],
+                        'codigo': row[1],
+                        'resumen': row[2] or "",
+                        'precio': float(row[3]) if row[3] else 0.0,
+                        'capitulo': row[5] or "",
+                        'unidad': row[6] or ""
+                    }
+            print(f"DEBUG - Cache con {len(self.catalogo_cache)} códigos únicos")
         except Exception as e:
             print(f"Error cargando catálogo: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _create_header(self):
         """Crea el encabezado con información del parte."""
@@ -128,72 +138,104 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         """Crea la fila de entrada de datos."""
         entry_frame = customtkinter.CTkFrame(self, corner_radius=10)
         entry_frame.grid(row=1, column=0, sticky="ew", padx=15, pady=15)
-        entry_frame.grid_columnconfigure(1, weight=1)
+        entry_frame.grid_columnconfigure(3, weight=1)
 
+        # === FILA 1: Código, Descripción, Unidad ===
         # Campo: Código de partida
         customtkinter.CTkLabel(
             entry_frame, text="Código:", font=("", 12, "bold")
-        ).grid(row=0, column=0, padx=(15, 5), pady=15, sticky="e")
+        ).grid(row=0, column=0, padx=(15, 5), pady=(15, 5), sticky="e")
 
         self.codigo_entry = customtkinter.CTkEntry(
             entry_frame, width=150,
             placeholder_text="Ej: 01.001"
         )
-        self.codigo_entry.grid(row=0, column=1, padx=5, pady=15, sticky="w")
+        self.codigo_entry.grid(row=0, column=1, padx=5, pady=(15, 5), sticky="w")
 
         # Campo: Descripción (autocompletada, solo lectura visual)
         customtkinter.CTkLabel(
             entry_frame, text="Descripción:", font=("", 12)
-        ).grid(row=0, column=2, padx=(20, 5), pady=15, sticky="e")
+        ).grid(row=0, column=2, padx=(20, 5), pady=(15, 5), sticky="e")
 
         self.descripcion_label = customtkinter.CTkLabel(
             entry_frame,
             text="(introduce código)",
             font=("", 12),
             text_color="gray",
-            width=300,
+            width=350,
             anchor="w"
         )
-        self.descripcion_label.grid(row=0, column=3, padx=5, pady=15, sticky="w")
+        self.descripcion_label.grid(row=0, column=3, columnspan=3, padx=5, pady=(15, 5), sticky="w")
 
         # Campo: Unidad
         customtkinter.CTkLabel(
             entry_frame, text="Ud:", font=("", 12)
-        ).grid(row=0, column=4, padx=(20, 5), pady=15, sticky="e")
+        ).grid(row=0, column=6, padx=(20, 5), pady=(15, 5), sticky="e")
 
         self.unidad_label = customtkinter.CTkLabel(
-            entry_frame, text="-", font=("", 12), width=40
+            entry_frame, text="-", font=("", 12), width=50
         )
-        self.unidad_label.grid(row=0, column=5, padx=5, pady=15, sticky="w")
+        self.unidad_label.grid(row=0, column=7, padx=5, pady=(15, 5), sticky="w")
+
+        # === FILA 2: Fecha, Cantidad, Precio, Botón ===
+        # Campo: Fecha de medición
+        customtkinter.CTkLabel(
+            entry_frame, text="Fecha:", font=("", 12, "bold")
+        ).grid(row=1, column=0, padx=(15, 5), pady=(5, 15), sticky="e")
+
+        self.fecha_entry = DateEntry(
+            entry_frame, width=12, date_pattern='dd/mm/yyyy', locale='es_ES'
+        )
+        # Establecer fecha por defecto (del parte o hoy)
+        self._set_default_fecha()
+        self.fecha_entry.grid(row=1, column=1, padx=5, pady=(5, 15), sticky="w")
 
         # Campo: Cantidad
         customtkinter.CTkLabel(
             entry_frame, text="Cantidad:", font=("", 12, "bold")
-        ).grid(row=0, column=6, padx=(20, 5), pady=15, sticky="e")
+        ).grid(row=1, column=2, padx=(20, 5), pady=(5, 15), sticky="e")
 
         self.cantidad_entry = customtkinter.CTkEntry(
             entry_frame, width=100,
             placeholder_text="0.00"
         )
-        self.cantidad_entry.grid(row=0, column=7, padx=5, pady=15, sticky="w")
+        self.cantidad_entry.grid(row=1, column=3, padx=5, pady=(5, 15), sticky="w")
 
         # Campo: Precio (autocompletado)
         customtkinter.CTkLabel(
             entry_frame, text="Precio:", font=("", 12)
-        ).grid(row=0, column=8, padx=(20, 5), pady=15, sticky="e")
+        ).grid(row=1, column=4, padx=(20, 5), pady=(5, 15), sticky="e")
 
         self.precio_label = customtkinter.CTkLabel(
             entry_frame, text="0.00 €", font=("", 12), width=80
         )
-        self.precio_label.grid(row=0, column=9, padx=5, pady=15, sticky="w")
+        self.precio_label.grid(row=1, column=5, padx=5, pady=(5, 15), sticky="w")
 
         # Botón añadir
         self.add_btn = customtkinter.CTkButton(
-            entry_frame, text="+ Añadir", width=90,
+            entry_frame, text="+ Añadir", width=100,
             fg_color="#2e7d32", hover_color="#1b5e20",
             command=self._add_item
         )
-        self.add_btn.grid(row=0, column=10, padx=(20, 15), pady=15)
+        self.add_btn.grid(row=1, column=6, columnspan=2, padx=(20, 15), pady=(5, 15))
+
+    def _set_default_fecha(self):
+        """Establece la fecha por defecto desde el parte o hoy."""
+        if self.fecha_parte:
+            try:
+                # Intentar parsear formato YYYY-MM-DD
+                if '-' in self.fecha_parte:
+                    fecha_dt = datetime.strptime(self.fecha_parte, "%Y-%m-%d")
+                # Intentar parsear formato DD/MM/YYYY
+                elif '/' in self.fecha_parte:
+                    fecha_dt = datetime.strptime(self.fecha_parte, "%d/%m/%Y")
+                else:
+                    fecha_dt = date.today()
+                self.fecha_entry.set_date(fecha_dt)
+            except:
+                self.fecha_entry.set_date(date.today())
+        else:
+            self.fecha_entry.set_date(date.today())
 
     def _create_items_table(self):
         """Crea la tabla de partidas añadidas."""
@@ -221,7 +263,7 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         style.map("SpeedEntry.Treeview", background=[('selected', '#1f6aa5')])
 
         # Crear TreeView
-        columns = ("codigo", "descripcion", "unidad", "cantidad", "precio", "importe")
+        columns = ("codigo", "descripcion", "unidad", "cantidad", "precio", "importe", "fecha")
         self.items_tree = ttk.Treeview(
             table_frame,
             columns=columns,
@@ -236,13 +278,15 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         self.items_tree.heading("cantidad", text="Cantidad")
         self.items_tree.heading("precio", text="Precio")
         self.items_tree.heading("importe", text="Importe")
+        self.items_tree.heading("fecha", text="Fecha")
 
         self.items_tree.column("codigo", width=100, anchor="w")
-        self.items_tree.column("descripcion", width=350, anchor="w")
+        self.items_tree.column("descripcion", width=300, anchor="w")
         self.items_tree.column("unidad", width=50, anchor="center")
         self.items_tree.column("cantidad", width=80, anchor="e")
         self.items_tree.column("precio", width=80, anchor="e")
         self.items_tree.column("importe", width=100, anchor="e")
+        self.items_tree.column("fecha", width=90, anchor="center")
 
         # Scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.items_tree.yview)
@@ -313,9 +357,18 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         self.items_tree.bind("<F2>", self._edit_selected_cantidad)
 
     def _on_codigo_change(self, event):
-        """Autocompletado al escribir código."""
+        """Autocompletado progresivo al escribir código."""
         codigo = self.codigo_entry.get().strip().upper()
 
+        if not codigo:
+            self.descripcion_label.configure(text="(introduce código)", text_color="gray")
+            self.unidad_label.configure(text="-")
+            self.precio_label.configure(text="0.00 €")
+            self.current_partida = None
+            self.matching_codes = []
+            return
+
+        # Primero buscar coincidencia exacta
         if codigo in self.catalogo_cache:
             partida = self.catalogo_cache[codigo]
             self.descripcion_label.configure(
@@ -325,6 +378,41 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             self.unidad_label.configure(text=partida['unidad'])
             self.precio_label.configure(text=f"{partida['precio']:.2f} €")
             self.current_partida = partida
+            self.matching_codes = [codigo]
+            return
+
+        # Si no hay coincidencia exacta, buscar códigos que empiecen con lo escrito
+        matching = []
+        for cod in sorted(self.catalogo_cache.keys()):
+            if cod.startswith(codigo):
+                matching.append(cod)
+
+        self.matching_codes = matching
+
+        if matching:
+            # Mostrar el primer código que coincide
+            first_code = matching[0]
+            partida = self.catalogo_cache[first_code]
+
+            # Indicar cuántas coincidencias hay
+            if len(matching) == 1:
+                # Código único encontrado
+                self.descripcion_label.configure(
+                    text=partida['resumen'][:50] + "..." if len(partida['resumen']) > 50 else partida['resumen'],
+                    text_color="#90EE90"  # Verde claro - coincidencia única
+                )
+                self.current_partida = partida
+            else:
+                # Múltiples coincidencias - mostrar primera con contador
+                desc_text = partida['resumen'][:40] + f"... ({len(matching)} coincidencias)"
+                self.descripcion_label.configure(
+                    text=desc_text,
+                    text_color="#FFD700"  # Dorado - hay más opciones
+                )
+                self.current_partida = partida  # Permitir añadir la primera
+
+            self.unidad_label.configure(text=partida['unidad'])
+            self.precio_label.configure(text=f"{partida['precio']:.2f} €")
         else:
             self.descripcion_label.configure(text="(código no encontrado)", text_color="orange")
             self.unidad_label.configure(text="-")
@@ -332,13 +420,14 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             self.current_partida = None
 
     def _on_codigo_enter(self, event):
-        """Al pulsar Enter en código, pasa a cantidad."""
-        codigo = self.codigo_entry.get().strip().upper()
-        if codigo in self.catalogo_cache:
+        """Al pulsar Enter en código, pasa a cantidad si hay partida válida."""
+        # Si hay una partida seleccionada (exacta o primera coincidencia), pasar a cantidad
+        if hasattr(self, 'current_partida') and self.current_partida:
             self.cantidad_entry.focus_set()
             self.cantidad_entry.select_range(0, 'end')
         else:
             # Mostrar sugerencias
+            codigo = self.codigo_entry.get().strip().upper()
             self._show_suggestions(codigo)
 
     def _on_codigo_tab(self, event):
@@ -352,16 +441,32 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         if not partial_code:
             return
 
-        suggestions = []
-        for codigo, data in self.catalogo_cache.items():
-            if partial_code in codigo:
+        # Usar las coincidencias ya encontradas si existen
+        if hasattr(self, 'matching_codes') and self.matching_codes:
+            suggestions = []
+            for codigo in self.matching_codes[:10]:  # Máximo 10 sugerencias
+                data = self.catalogo_cache[codigo]
                 suggestions.append(f"{codigo} - {data['resumen'][:40]}")
-            if len(suggestions) >= 5:
-                break
 
-        if suggestions:
-            msg = "Sugerencias:\n\n" + "\n".join(suggestions)
-            CTkMessagebox(title="Código no encontrado", message=msg, icon="info")
+            if suggestions:
+                msg = f"Códigos que empiezan con '{partial_code}':\n\n" + "\n".join(suggestions)
+                if len(self.matching_codes) > 10:
+                    msg += f"\n\n... y {len(self.matching_codes) - 10} más"
+                CTkMessagebox(title="Sugerencias", message=msg, icon="info")
+        else:
+            # Búsqueda alternativa - códigos que contienen el texto
+            suggestions = []
+            for codigo, data in self.catalogo_cache.items():
+                if partial_code in codigo:
+                    suggestions.append(f"{codigo} - {data['resumen'][:40]}")
+                if len(suggestions) >= 10:
+                    break
+
+            if suggestions:
+                msg = f"Códigos que contienen '{partial_code}':\n\n" + "\n".join(suggestions)
+                CTkMessagebox(title="Sugerencias", message=msg, icon="info")
+            else:
+                CTkMessagebox(title="Sin coincidencias", message=f"No se encontraron códigos con '{partial_code}'", icon="warning")
 
     def _add_item(self):
         """Añade una partida al presupuesto."""
@@ -382,6 +487,14 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             self.cantidad_entry.focus_set()
             return
 
+        # Obtener fecha de medición
+        fecha_str = self.fecha_entry.get()
+        try:
+            fecha_dt = datetime.strptime(fecha_str, "%d/%m/%Y")
+            fecha_mysql = fecha_dt.strftime("%Y-%m-%d")
+        except:
+            fecha_mysql = None
+
         partida = self.current_partida
         precio = partida['precio']
         importe = cantidad * precio
@@ -390,7 +503,7 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         from script.modulo_db import add_part_presupuesto_item
         result = add_part_presupuesto_item(
             self.user, self.password, self.schema,
-            self.parte_id, partida['id'], cantidad, precio
+            self.parte_id, partida['id'], cantidad, precio, fecha=fecha_mysql
         )
 
         if result == "ok":
@@ -401,14 +514,16 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
                 partida['unidad'],
                 f"{cantidad:.2f}",
                 f"{precio:.2f}",
-                f"{importe:.2f}"
+                f"{importe:.2f}",
+                fecha_str  # Mostrar fecha en formato DD/MM/YYYY
             ))
 
             # Guardar en lista de añadidos
             self.items_added.append({
                 'codigo': partida['codigo'],
                 'cantidad': cantidad,
-                'importe': importe
+                'importe': importe,
+                'fecha': fecha_str
             })
 
             # Actualizar total

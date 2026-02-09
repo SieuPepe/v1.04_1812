@@ -994,6 +994,7 @@ class AppPartsV2(customtkinter.CTkToplevel):
                 parte_id=new_id,
                 parte_codigo=codigo,
                 parte_titulo=titulo,
+                fecha_parte=fecha_inicio,  # Pasar fecha del parte para presupuesto
                 on_close_callback=on_speed_entry_close
             )
 
