@@ -29,6 +29,8 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
 
         # Cache del catálogo para autocompletado
         self.catalogo_cache = {}
+        self.matching_codes = []  # Códigos que coinciden con la búsqueda actual
+        self.current_partida = None  # Partida seleccionada actualmente
         self._load_catalogo_cache()
 
         # Configuración de ventana
@@ -71,21 +73,26 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
     def _load_catalogo_cache(self):
         """Carga el catálogo de partidas en cache para autocompletado."""
         try:
-            from script.modulo_db import get_catalogo_partidas
+            from script.db_config_admin import get_catalogo_partidas
             partidas = get_catalogo_partidas(self.user, self.password, self.schema)
+            print(f"DEBUG - Catálogo cargado: {len(partidas)} partidas")
             for row in partidas:
                 # row: (id, codigo, resumen, coste, codigo_cap, capitulo, unidad)
                 codigo = row[1].strip().upper() if row[1] else ""
-                self.catalogo_cache[codigo] = {
-                    'id': row[0],
-                    'codigo': row[1],
-                    'resumen': row[2] or "",
-                    'precio': float(row[3]) if row[3] else 0.0,
-                    'capitulo': row[5] or "",
-                    'unidad': row[6] or ""
-                }
+                if codigo:  # Solo añadir si hay código
+                    self.catalogo_cache[codigo] = {
+                        'id': row[0],
+                        'codigo': row[1],
+                        'resumen': row[2] or "",
+                        'precio': float(row[3]) if row[3] else 0.0,
+                        'capitulo': row[5] or "",
+                        'unidad': row[6] or ""
+                    }
+            print(f"DEBUG - Cache con {len(self.catalogo_cache)} códigos únicos")
         except Exception as e:
             print(f"Error cargando catálogo: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _create_header(self):
         """Crea el encabezado con información del parte."""
@@ -313,9 +320,18 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         self.items_tree.bind("<F2>", self._edit_selected_cantidad)
 
     def _on_codigo_change(self, event):
-        """Autocompletado al escribir código."""
+        """Autocompletado progresivo al escribir código."""
         codigo = self.codigo_entry.get().strip().upper()
 
+        if not codigo:
+            self.descripcion_label.configure(text="(introduce código)", text_color="gray")
+            self.unidad_label.configure(text="-")
+            self.precio_label.configure(text="0.00 €")
+            self.current_partida = None
+            self.matching_codes = []
+            return
+
+        # Primero buscar coincidencia exacta
         if codigo in self.catalogo_cache:
             partida = self.catalogo_cache[codigo]
             self.descripcion_label.configure(
@@ -325,6 +341,41 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             self.unidad_label.configure(text=partida['unidad'])
             self.precio_label.configure(text=f"{partida['precio']:.2f} €")
             self.current_partida = partida
+            self.matching_codes = [codigo]
+            return
+
+        # Si no hay coincidencia exacta, buscar códigos que empiecen con lo escrito
+        matching = []
+        for cod in sorted(self.catalogo_cache.keys()):
+            if cod.startswith(codigo):
+                matching.append(cod)
+
+        self.matching_codes = matching
+
+        if matching:
+            # Mostrar el primer código que coincide
+            first_code = matching[0]
+            partida = self.catalogo_cache[first_code]
+
+            # Indicar cuántas coincidencias hay
+            if len(matching) == 1:
+                # Código único encontrado
+                self.descripcion_label.configure(
+                    text=partida['resumen'][:50] + "..." if len(partida['resumen']) > 50 else partida['resumen'],
+                    text_color="#90EE90"  # Verde claro - coincidencia única
+                )
+                self.current_partida = partida
+            else:
+                # Múltiples coincidencias - mostrar primera con contador
+                desc_text = partida['resumen'][:40] + f"... ({len(matching)} coincidencias)"
+                self.descripcion_label.configure(
+                    text=desc_text,
+                    text_color="#FFD700"  # Dorado - hay más opciones
+                )
+                self.current_partida = partida  # Permitir añadir la primera
+
+            self.unidad_label.configure(text=partida['unidad'])
+            self.precio_label.configure(text=f"{partida['precio']:.2f} €")
         else:
             self.descripcion_label.configure(text="(código no encontrado)", text_color="orange")
             self.unidad_label.configure(text="-")
@@ -332,13 +383,14 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
             self.current_partida = None
 
     def _on_codigo_enter(self, event):
-        """Al pulsar Enter en código, pasa a cantidad."""
-        codigo = self.codigo_entry.get().strip().upper()
-        if codigo in self.catalogo_cache:
+        """Al pulsar Enter en código, pasa a cantidad si hay partida válida."""
+        # Si hay una partida seleccionada (exacta o primera coincidencia), pasar a cantidad
+        if hasattr(self, 'current_partida') and self.current_partida:
             self.cantidad_entry.focus_set()
             self.cantidad_entry.select_range(0, 'end')
         else:
             # Mostrar sugerencias
+            codigo = self.codigo_entry.get().strip().upper()
             self._show_suggestions(codigo)
 
     def _on_codigo_tab(self, event):
@@ -352,16 +404,32 @@ class SpeedEntryWindow(customtkinter.CTkToplevel):
         if not partial_code:
             return
 
-        suggestions = []
-        for codigo, data in self.catalogo_cache.items():
-            if partial_code in codigo:
+        # Usar las coincidencias ya encontradas si existen
+        if hasattr(self, 'matching_codes') and self.matching_codes:
+            suggestions = []
+            for codigo in self.matching_codes[:10]:  # Máximo 10 sugerencias
+                data = self.catalogo_cache[codigo]
                 suggestions.append(f"{codigo} - {data['resumen'][:40]}")
-            if len(suggestions) >= 5:
-                break
 
-        if suggestions:
-            msg = "Sugerencias:\n\n" + "\n".join(suggestions)
-            CTkMessagebox(title="Código no encontrado", message=msg, icon="info")
+            if suggestions:
+                msg = f"Códigos que empiezan con '{partial_code}':\n\n" + "\n".join(suggestions)
+                if len(self.matching_codes) > 10:
+                    msg += f"\n\n... y {len(self.matching_codes) - 10} más"
+                CTkMessagebox(title="Sugerencias", message=msg, icon="info")
+        else:
+            # Búsqueda alternativa - códigos que contienen el texto
+            suggestions = []
+            for codigo, data in self.catalogo_cache.items():
+                if partial_code in codigo:
+                    suggestions.append(f"{codigo} - {data['resumen'][:40]}")
+                if len(suggestions) >= 10:
+                    break
+
+            if suggestions:
+                msg = f"Códigos que contienen '{partial_code}':\n\n" + "\n".join(suggestions)
+                CTkMessagebox(title="Sugerencias", message=msg, icon="info")
+            else:
+                CTkMessagebox(title="Sin coincidencias", message=f"No se encontraron códigos con '{partial_code}'", icon="warning")
 
     def _add_item(self):
         """Añade una partida al presupuesto."""
