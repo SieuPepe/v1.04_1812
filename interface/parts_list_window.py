@@ -115,12 +115,15 @@ class PartsTab(customtkinter.CTkFrame):
             self.tree.heading(c, text=label)
 
     def _get_config_path(self):
-        """Retorna la ruta del archivo de configuración de columnas"""
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        parent_path = os.path.dirname(current_path)
-        config_dir = os.path.join(parent_path, ".config")
+        """Retorna la ruta del archivo de configuración de columnas.
+        Usa %APPDATA%/HydroFlow en Windows para que persista con el instalador."""
+        if os.name == 'nt':  # Windows
+            base_dir = os.getenv('APPDATA', os.path.join(os.path.expanduser('~'), 'AppData', 'Roaming'))
+            config_dir = os.path.join(base_dir, 'HydroFlow')
+        else:  # Linux/Mac
+            config_dir = os.path.join(os.path.expanduser('~'), '.config', 'hydroflow')
         if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
+            os.makedirs(config_dir, exist_ok=True)
         return os.path.join(config_dir, f"columns_config_{self.schema}.json")
 
     def _save_column_config(self):
